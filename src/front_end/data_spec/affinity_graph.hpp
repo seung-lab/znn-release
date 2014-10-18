@@ -1,3 +1,21 @@
+//
+// Copyright (C) 2014  Kisuk Lee <kisuklee@mit.edu>
+// ----------------------------------------------------------
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+
 #ifndef ZNN_AFFINITY_GRAPH_HPP_INCLUDED
 #define ZNN_AFFINITY_GRAPH_HPP_INCLUDED
 
@@ -85,7 +103,7 @@ private:
         zi::wall_timer wt;
         std::cout << "Constructing affinity graph from label..." << std::endl;
 
-        vec3i lblsz = volume_utils::volume_size(lbl);
+        vec3i lblsz = size_of(lbl);
         size_ = lblsz - vec3i::one;
         std::cout << "Label size:\t" << lblsz << std::endl;
         std::cout << "Graph size:\t" << size_ << std::endl;
@@ -258,7 +276,7 @@ public:
         set_affinity_edge_values(graph);
 
         // each volume in the list is assumed to be the same in size
-        size_ = volume_utils::volume_size(graph_.front());
+        size_ = size_of(graph_.front());
     }
 
 }; // class affinity_graph

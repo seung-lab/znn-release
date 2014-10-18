@@ -1,3 +1,21 @@
+//
+// Copyright (C) 2014  Kisuk Lee <kisuklee@mit.edu>
+// ----------------------------------------------------------
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+
 #ifndef ZNN_AFFINITY_MASK_HPP_INCLUDED
 #define ZNN_AFFINITY_MASK_HPP_INCLUDED
 
@@ -62,7 +80,7 @@ private:
 		zi::wall_timer wt;
 		std::cout << "Constructing affinity mask from mask..." << std::endl;
 
-		vec3i msksz = volume_utils::volume_size(msk);
+		vec3i msksz = size_of(msk);
 		size_ = msksz - vec3i::one;
 		std::cout << "Mask size:\t\t" << msksz << std::endl;
 		std::cout << "Affinity mask size:\t" << size_ << std::endl;
@@ -190,7 +208,7 @@ public:
 
 		mask_ = mask;
 		dim_ = mask_.size();		
-		size_ = volume_utils::volume_size(mask_.front());
+		size_ = size_of(mask_.front());
 	}
 
 }; // class affinity_mask

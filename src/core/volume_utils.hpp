@@ -1,3 +1,22 @@
+//
+// Copyright (C) 2014  Aleksandar Zlateski <zlateski@mit.edu>
+//                     Kisuk Lee           <kisuklee@mit.edu>
+// ----------------------------------------------------------
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+
 #ifndef ZNN_VOLUME_UTILS_HPP_INCLUDED
 #define ZNN_VOLUME_UTILS_HPP_INCLUDED
 
@@ -14,13 +33,6 @@
 
 namespace zi {
 namespace znn {
-
-template <typename T>
-inline std::size_t volume_elements(const T& a)
-{
-    return a->shape()[0]* a->shape()[1]* a->shape()[2];
-}
-
 namespace volume_utils {
 
 template <typename T>
@@ -34,7 +46,7 @@ inline void add_to(const T& a, const T& b)
 {
     PROFILE_FUNCTION();
     ASSERT_SAME_SIZE(a,b);
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
         b->data()[i] += a->data()[i];
@@ -45,7 +57,7 @@ inline void mul_add_to(double c, double3d_ptr a, double3d_ptr b)
 {
     PROFILE_FUNCTION();
     ASSERT_SAME_SIZE(a,b);
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
         b->data()[i] += c * a->data()[i];
@@ -56,7 +68,7 @@ inline void elementwise_mul_by(double3d_ptr a, double3d_ptr b)
 {
     PROFILE_FUNCTION();
     ASSERT_SAME_SIZE(a,b);
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
         a->data()[i] *= b->data()[i];
@@ -67,7 +79,7 @@ inline void elementwise_mul_by(complex3d_ptr a, complex3d_ptr b)
 {
     PROFILE_FUNCTION();
     ASSERT_SAME_SIZE(a,b);
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
         a->data()[i] *= b->data()[i];
@@ -78,7 +90,7 @@ inline void elementwise_mul(double3d_ptr r, double3d_ptr a, double3d_ptr b)
 {
     PROFILE_FUNCTION();
     ASSERT_SAME_SIZE(a,b);
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
         r->data()[i] = b->data()[i] * a->data()[i];;
@@ -89,23 +101,24 @@ inline void elementwise_mul(complex3d_ptr r, complex3d_ptr a, complex3d_ptr b)
 {
     PROFILE_FUNCTION();
     ASSERT_SAME_SIZE(a,b);
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
         r->data()[i] = b->data()[i] * a->data()[i];;
     }
 }
 
-// [07/24/2013 kisuklee]
 inline void elementwise_masking(double3d_ptr a, bool3d_ptr b)
 {
     PROFILE_FUNCTION();
     ASSERT_SAME_SIZE(a,b);
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
         if( b->data()[i] == false )
+        {
             a->data()[i] = static_cast<double>(0);
+        }
     }
 }
 
@@ -162,7 +175,7 @@ inline complex3d_ptr elementwise_mul(complex3d_ptr a, complex3d_ptr b)
     ASSERT_SAME_SIZE(a,b);
     complex3d_ptr r = volume_pool.get_complex3d(a);
 
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
 
     STRONG_ASSERT(b.use_count()>0);
 
@@ -188,7 +201,7 @@ inline void sub_from_mul(double3d_ptr a, double3d_ptr b, double c)
 {
     PROFILE_FUNCTION();
     ASSERT_SAME_SIZE(a,b);
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
         b->data()[i] -= a->data()[i];
@@ -202,19 +215,18 @@ inline void sub_from_mul(double3d_ptr r, double3d_ptr a, double3d_ptr b,
     PROFILE_FUNCTION();
     ASSERT_SAME_SIZE(a,b);
     ASSERT_SAME_SIZE(a,r);
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
         r->data()[i] = c*(a->data()[i] - b->data()[i]);
     }
 }
 
-
 inline void sub_from(double3d_ptr a, double3d_ptr b)
 {
     PROFILE_FUNCTION();
     ASSERT_SAME_SIZE(a,b);
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
         b->data()[i] -= a->data()[i];
@@ -224,7 +236,7 @@ inline void sub_from(double3d_ptr a, double3d_ptr b)
 inline double sum_all(double3d_ptr a)
 {
     PROFILE_FUNCTION();
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
     return zi::accumulate(a->data(), a->data()+n, static_cast<double>(0));
 }
 
@@ -242,11 +254,10 @@ inline double nnz(bool3d_ptr a)
 {
     PROFILE_FUNCTION();
     double ret = static_cast<double>(0);
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
-        if( a->data()[i] )
-            ret++;
+        if( a->data()[i] ) ret++;
     }
     return ret;
 }
@@ -394,7 +405,7 @@ inline double3d_ptr rand_volume(std::size_t x, std::size_t y, std::size_t z,
     PROFILE_FUNCTION();
     double3d_ptr a = volume_pool.get_double3d(x,y,z);
 
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
 
     double range = max-min;
 
@@ -599,7 +610,6 @@ inline bool3d_ptr flip(bool3d_ptr a)
     return r;
 }
 
-// [08/24/2013 kisuklee]
 // test implementation - should be elaborated later
 // dim: binary coding
 inline double3d_ptr flipdim(double3d_ptr a, std::size_t dim)
@@ -664,7 +674,6 @@ inline double3d_ptr flipdim(double3d_ptr a, std::size_t dim)
     return r;
 }
 
-// [08/24/2013 kisuklee]
 // test implementation - should be elaborated later
 // dim: binary coding
 inline bool3d_ptr flipdim(bool3d_ptr a, std::size_t dim)
@@ -778,7 +787,7 @@ inline bool3d_ptr transpose(bool3d_ptr a)
 inline void normalize(double3d_ptr a)
 {
     PROFILE_FUNCTION();
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
     elementwise_div_by(a,static_cast<double>(n));
 }
 
@@ -939,7 +948,7 @@ inline bool3d_ptr sparse_decompress(bool3d_ptr a, const vec3i& s)
     return r;
 }
 
-// [kisuklee] volume file input/output
+// volume file input/output
 template <typename T>
 inline bool load( T a, const std::string& fname )
 {
@@ -948,16 +957,14 @@ inline bool load( T a, const std::string& fname )
 
     // open file
     FILE* fvol = fopen(fname.c_str(), "r");
-    if ( !fvol )
-        return false;
+    if ( !fvol ) return false;
 
     // load each label
     for ( std::size_t z = 0; z < sz[2]; ++z )
         for ( std::size_t y = 0; y < sz[1]; ++y )
             for ( std::size_t x = 0; x < sz[0]; ++x )
-            {
                 static_cast<void>(fread(&((*a)[x][y][z]), elemsz, 1, fvol));
-            }
+
     return true;
 }
 
@@ -1036,10 +1043,7 @@ inline double3d_ptr classification_error(double3d_ptr prob, double3d_ptr lbl, do
         double truth = (lbl->data()[i] > thresh ?
                         static_cast<double>(1):static_cast<double>(-1));
         
-        // [01/20/2014 kisuklee] binary classification
-        // ret->data()[i] = 
-        //     (std::abs(pred - lbl->data()[i]) <= std::numeric_limits<double>::epsilon() ?
-        //         static_cast<double>(0):static_cast<double>(1));
+        // binary classification
         ret->data()[i] = 
             ((pred * truth > static_cast<double>(0)) ?
                 static_cast<double>(0):static_cast<double>(1));
@@ -1151,136 +1155,11 @@ inline std::list<double3d_ptr> binomial_cross_entropy( std::list<double3d_ptr> v
     return ret;
 }
 
-inline double3d_ptr concatenate_volumes(std::list<double3d_ptr> vl, std::size_t dim)
-{
-    STRONG_ASSERT( dim <= 2 );
-    STRONG_ASSERT( !vl.empty() );
-
-    vec3i catsz = size_of(vl.front());
-    for ( std::size_t d = 0; d <= 2; ++d )
-    {
-        if ( d == dim )
-        {
-            catsz[d] = 0;
-            FOR_EACH( it, vl )
-            {
-                catsz[d] += (*it)->shape()[d];
-            }
-        }
-        else
-        {
-            FOR_EACH( it, vl )
-            {
-                STRONG_ASSERT( (*it)->shape()[d] == catsz[d] );
-            }
-        }
-    }
-
-    double3d_ptr ret = volume_pool.get_double3d(catsz);
-    vec3i offset = vec3i::zero;
-    FOR_EACH( it, vl )
-    {
-        std::size_t ox = offset[0];
-        std::size_t oy = offset[1];
-        std::size_t oz = offset[2];
-        std::size_t x = (*it)->shape()[0];
-        std::size_t y = (*it)->shape()[1];
-        std::size_t z = (*it)->shape()[2];
-        (*ret)[boost::indices[range(ox,ox+x)][range(oy,oy+y)][range(oz,oz+z)]] =
-            (**it)[boost::indices[range(0,x)][range(0,y)][range(0,z)]];
-
-        offset[dim] += (*it)->shape()[dim];
-    }
-
-    return ret;
-}
-
-// [kisuklee]
-// temporary implementation
-inline double3d_ptr stitch_volumes(std::vector<double3d_ptr> vl, long3d_ptr idx)
-{
-    std::size_t n = idx->shape()[0]*idx->shape()[1]*idx->shape()[2];
-    STRONG_ASSERT( vl.size() == n );
-
-    // [kisuklee]
-    // safegaurd should be implemented
-
-    vec3i retsz = vec3i::zero;
-    for ( std::size_t x = 0; x < idx->shape()[0]; ++x )
-    {
-        double3d_ptr subvol = vl[(*idx)[x][0][0]];
-        retsz[0] += subvol->shape()[0];
-    }
-    for ( std::size_t y = 0; y < idx->shape()[1]; ++y )
-    {
-        double3d_ptr subvol = vl[(*idx)[0][y][0]];
-        retsz[1] += subvol->shape()[1];
-    }
-    for ( std::size_t z = 0; z < idx->shape()[2]; ++z )
-    {
-        double3d_ptr subvol = vl[(*idx)[0][0][z]];
-        retsz[2] += subvol->shape()[2];
-    }
-
-    double3d_ptr ret = volume_pool.get_double3d(retsz);
-    std::size_t ox = 0;
-    std::size_t oy = 0;
-    std::size_t oz = 0;
-    std::size_t sx = 0;
-    std::size_t sy = 0;
-    std::size_t sz = 0;
-    for ( std::size_t x = 0; x < idx->shape()[0]; ++x, ox += sx, oy = 0 )
-    {
-        for ( std::size_t y = 0; y < idx->shape()[1]; ++y, oy += sy, oz = 0 )
-        {
-            for ( std::size_t z = 0; z < idx->shape()[2]; ++z, oz += sz )
-            {
-                double3d_ptr subvol = vl[(*idx)[x][y][z]];
-                sx = subvol->shape()[0];
-                sy = subvol->shape()[1];
-                sz = subvol->shape()[2];
-
-                (*ret)[boost::indices[range(ox,ox+sx)][range(oy,oy+sy)][range(oz,oz+sz)]] =
-                    (*subvol)[boost::indices[range(0,sx)][range(0,sy)][range(0,sz)]];
-            }
-        }
-    }
-
-    return ret;
-}
-
-inline bool3d_ptr random_balanced_mask(double3d_ptr lbl, double target)
-{
-    vec3i sz = size_of(lbl);
-    std::size_t n = sz[0]*sz[1]*sz[2];
-
-    bool3d_ptr ret = volume_pool.get_bool3d(sz);
-    std::fill_n(ret->data(), n, true);
-
-    std::size_t nTarget = std::count(lbl->data(), lbl->data()+n, target);
-    std::size_t nNonTarget = n - nTarget;
-    if ( nTarget > nNonTarget )
-        return ret;
-
-    std::vector<std::size_t> idx;
-    idx.reserve(nNonTarget);
-    for ( std::size_t i = 0; i < n; ++i )
-        if ( lbl->data()[i] != target )
-            idx.push_back(i);
-    STRONG_ASSERT(idx.size() == nNonTarget);
-    std::random_shuffle(idx.begin(), idx.end());
-
-    for ( std::size_t i = 0; i < nNonTarget - nTarget; ++i )
-        ret->data()[idx[i]] = false;
-
-    return ret;
-}
-
-// [12/03/2013 kisuklee] for input normalization
+// for input normalization
 inline double get_mean(double3d_ptr a)
 {
     PROFILE_FUNCTION();
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
 
     return volume_utils::sum_all(a)/static_cast<double>(n);
 }
@@ -1288,7 +1167,7 @@ inline double get_mean(double3d_ptr a)
 inline double get_std(double3d_ptr a)
 {
     PROFILE_FUNCTION();
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
 
     double mean = volume_utils::get_mean(a);
     double3d_ptr b = volume_pool.get_double3d(a);
@@ -1303,7 +1182,7 @@ inline double get_std(double3d_ptr a)
 inline void normalize_volume(double3d_ptr a)
 {
     PROFILE_FUNCTION();
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
 
     double mean = volume_utils::get_mean(a);
     double stdev = volume_utils::get_std(a);
@@ -1383,7 +1262,7 @@ inline void transform(double3d_ptr a, double upper_bound, double lower_bound)
 inline double norm(double3d_ptr a)
 {
     PROFILE_FUNCTION();
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
 
     double ret = static_cast<double>(0);
     for ( std::size_t i = 0; i < n; ++i )
@@ -1400,7 +1279,7 @@ inline double cross_correlation(double3d_ptr a, double3d_ptr b)
     ASSERT_SAME_SIZE(a,b);
     double ret = static_cast<double>(0);
 
-    std::size_t n = a->shape()[0]*a->shape()[1]*a->shape()[2];
+    std::size_t n = a->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
         ret += a->data()[i] * b->data()[i];
@@ -1408,7 +1287,7 @@ inline double cross_correlation(double3d_ptr a, double3d_ptr b)
     return ret;
 }
 
-inline void binarify(double3d_ptr a, double thresh = 0.5)
+inline void binarize(double3d_ptr a, double thresh = 0.5)
 {
     PROFILE_FUNCTION();
     
@@ -1464,7 +1343,6 @@ std::list<double3d_ptr> encode_multiclass( double3d_ptr label, std::size_t n_cla
     }   
     
     std::list<double3d_ptr> ret(vret.begin(),vret.end());
-    // std::copy(vret.begin(), vret.end(), std::back_inserter(ret));
     return ret;
 }
 

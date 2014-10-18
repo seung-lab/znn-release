@@ -1,3 +1,21 @@
+//
+// Copyright (C) 2014  Aleksandar Zlateski <zlateski@mit.edu>
+// ----------------------------------------------------------
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+
 #ifndef ZNN_TYPES_HPP_INCLUDED
 #define ZNN_TYPES_HPP_INCLUDED
 
@@ -19,9 +37,6 @@ typedef boost::multi_array<std::complex<double>, 3, allocator< std::complex<doub
 typedef boost::shared_ptr<double3d>   double3d_ptr ;
 typedef boost::shared_ptr<complex3d>  complex3d_ptr;
 
-// [07/08/2013 kisuklee]
-// For mask
-// [zlateski]
 // std::allocator is more efficient for basic data structs that will not
 // require fft operations
 

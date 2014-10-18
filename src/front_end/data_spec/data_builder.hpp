@@ -1,3 +1,21 @@
+//
+// Copyright (C) 2014  Kisuk Lee <kisuklee@mit.edu>
+// ----------------------------------------------------------
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+
 #ifndef ZNN_DATA_BUILDER_HPP_INCLUDED
 #define ZNN_DATA_BUILDER_HPP_INCLUDED
 
@@ -79,14 +97,14 @@ private:
 			{
 				volume_utils::normalize_volume(vol);
 			}
-			else if ( spec->pptype == "binarify" )
+			else if ( spec->pptype == "binarize" )
 			{
-				volume_utils::binarify(vol);
+				volume_utils::binarize(vol);
 			}
 			else if ( spec->pptype == "binary_class" )
 			{
 				vols.clear();
-				volume_utils::binarify(vol);
+				volume_utils::binarize(vol);
 				vols = volume_utils::encode_multiclass(vol,2);
 			}
 			else if ( spec->pptype == "multiclass" )

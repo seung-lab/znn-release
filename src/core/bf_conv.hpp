@@ -1,3 +1,21 @@
+//
+// Copyright (C) 2014  Aleksandar Zlateski <zlateski@mit.edu>
+// ----------------------------------------------------------
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+
 #ifndef ZNN_BF_CONV_HPP_INCLUDED
 #define ZNN_BF_CONV_HPP_INCLUDED
 
@@ -186,9 +204,9 @@ inline double3d_ptr bf_conv_constant(const double3d_ptr& ap,
 inline double bf_conv_flipped_constant(const double3d_ptr& ap,
                                        const double3d_ptr& bp)
 {
-    ZI_ASSERT(volume_size(ap)==volume_size(bp));
+    ASSERT_SAME_SIZE(ap,bp);
 
-    std::size_t n = volume_elements(ap);
+    std::size_t n = ap->num_elements();
 
     double r = 0;
 
@@ -215,7 +233,7 @@ inline double3d_ptr bf_conv_inverse_constant(const double3d_ptr& ap,
     double3d_ptr rp = volume_pool.get_double3d(ax,ay,az);
     double3d& r = *rp;
 
-    std::size_t n = volume_elements(ap);
+    std::size_t n = ap->num_elements();
 
     for ( std::size_t i = 0; i < n; ++i )
     {
@@ -253,8 +271,7 @@ inline double3d_ptr bf_conv_sparse(const double3d_ptr& ap,
             for ( std::size_t z = 0; z < rz; ++z )
             {
                 r[x][y][z] = 0;
-
-                // [02/28/2014 kisuklee]                
+             
                 for ( std::size_t dx = x, wx = bx-1; dx < bx + x; dx += s[0], wx -= s[0] )
                     for ( std::size_t dy = y, wy = by-1; dy < by + y; dy += s[1], wy -= s[1] )
                         for ( std::size_t dz = z, wz = bz-1; dz < bz + z; dz += s[2], wz -= s[2] )
@@ -263,17 +280,6 @@ inline double3d_ptr bf_conv_sparse(const double3d_ptr& ap,
                                 a[dx][dy][dz] *
                                 b[wx][wy][wz];
                         }
-                //
-                // original code was buggy
-                //
-                // for ( std::size_t dx = x, wx = (bx-1)*s[0]; dx < bx + x; dx += s[0], wx -= s[0] )
-                //     for ( std::size_t dy = y, wy = (by-1)*s[1]; dy < by + y; dy += s[1], wy -= s[1] )
-                //         for ( std::size_t dz = z, wz = (bz-1)*s[2]; dz < bz + z; dz += s[2], wz -= s[2] )
-                //         {
-                //             r[x][y][z] +=
-                //                 a[dx][dy][dz] *
-                //                 b[wx][wy][wz];
-                //         }
             }
 
     return rp;
