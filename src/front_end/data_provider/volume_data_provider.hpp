@@ -23,6 +23,7 @@
 #include "../data_spec/volume_data.hpp"
 #include "../data_spec/data_builder.hpp"
 #include "../data_spec/data_spec_parser.hpp"
+#include "transformer/volume_transformer.hpp"
 
 namespace zi {
 namespace znn {
@@ -43,6 +44,8 @@ protected:
 	// status
 	bool						initialized_;
 
+	// transformer
+	transformer_ptr				trans_;
 
 public:
 	bool initialized() const
@@ -72,13 +75,11 @@ protected:
 		// labels
 		FOR_EACH( it, parser.label_specs )
 		{
-			std::cout << "Loading label [" << (*it)->name << "]" << std::endl;
-			bool aff = ((*it)->pptype == "affinity" ? true : false);
+			std::cout << "Loading label [" << (*it)->name << "]" << std::endl;			
 			std::list<dvolume_data_ptr> vols = data_builder::build_volume(*it);
 			FOR_EACH( jt, vols )
 			{
-				// add_label(*jt);
-				add_label(*jt,aff);
+				add_label(*jt);
 			}
 			std::cout << std::endl;
 		}
@@ -86,35 +87,42 @@ protected:
 		// masks
 		FOR_EACH( it, parser.mask_specs )
 		{
-			std::cout << "Loading mask [" << (*it)->name << "]" << std::endl;
-			bool aff = ((*it)->pptype == "affinity" ? true : false);
+			std::cout << "Loading mask [" << (*it)->name << "]" << std::endl;			
 			std::list<bvolume_data_ptr> vols = data_builder::build_mask(*it);
 			FOR_EACH( jt, vols )
 			{
-				// add_mask(*jt);
-				add_mask(*jt,aff);
+				add_mask(*jt);
 			}
 			std::cout << std::endl;
 		}
 	}
 
 
+// data augmentation
+public:
+	void data_augmentation( bool data_aug = false )
+	{
+		if ( data_aug )
+		{
+			trans_ = transformer_ptr(new volume_transformer());
+		}
+		else
+		{
+			trans_.reset();
+		}
+	}
+
+
 // input sampling
 public:
-	// sequential or random sampling
-	virtual input_sampler_ptr next_sample()
+	// (randomized) sequential sampling
+	virtual sample_ptr next_sample()
 	{
-		// [07/29/2014] temporary
 		return random_sample();
 	}
 
-	virtual input_sampler_ptr first_sample()
-	{
-		return get_sample(0);
-	}
-
 	// random sampling
-	virtual input_sampler_ptr random_sample()
+	virtual sample_ptr random_sample()
 	{
 		std::size_t e = get_random_index();
 		// std::cout << "[volume_data_provider]"
@@ -124,7 +132,7 @@ public:
 
 // sampling
 protected:
-    virtual input_sampler_ptr get_sample( std::size_t idx )
+    virtual sample_ptr get_sample( std::size_t idx )
     {
     	vec3i loc = locs_[idx];
 
@@ -149,19 +157,21 @@ protected:
     		msks.push_back((*it)->get_patch(loc));
     	}
 
-    	return input_sampler_ptr(new input_sampler(imgs,lbls,msks));
+    	sample_ptr s = sample_ptr(new sample(imgs,lbls,msks));
+    	if ( trans_ ) trans_->transform(s);
+    	return s;
     }
 
 // random sampling
-private:
+protected:
 	std::size_t get_random_index()
     {
         return rand() % locs_.size();
     }
 
 
-private:
-	void add_image( dvolume_data_ptr img )
+protected:
+	virtual void add_image( dvolume_data_ptr img )
 	{
 		std::size_t idx = imgs_.size();
 		STRONG_ASSERT(idx < in_szs_.size());		
@@ -173,18 +183,14 @@ private:
 		// img->print(); std::cout << '\n';
 	}
 
-	void add_label( dvolume_data_ptr lbl, bool aff = false )
+	virtual void add_label( dvolume_data_ptr lbl )
 	{
 		std::size_t idx = lbls_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
 
 		vec3i FoV = out_szs_[idx];
 		vec3i sft = vec3i::zero;
-		if ( aff )
-		{
-			FoV += vec3i::one;
-			sft += vec3i::one;
-		}
+		
 		lbl->set_FoV(FoV,sft);
 		lbls_.push_back(lbl);
 
@@ -192,18 +198,14 @@ private:
 		// lbl->print(); std::cout << '\n';
 	}
 
-	void add_mask( bvolume_data_ptr msk, bool aff = false )
+	virtual void add_mask( bvolume_data_ptr msk )
 	{
 		std::size_t idx = msks_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
 
 		vec3i FoV = out_szs_[idx];
 		vec3i sft = vec3i::zero;
-		if ( aff )
-		{
-			FoV += vec3i::one;
-			sft += vec3i::one;
-		}
+		
 		msk->set_FoV(FoV,sft);
 		msks_.push_back(msk);
 
@@ -292,6 +294,7 @@ public:
 			volume_utils::save(img, fname);
 			export_size_info(size_of(img), fname);
 		}
+			
 
 		// labels
 		cnt = 0;
@@ -325,6 +328,7 @@ public:
 		: in_szs_(in_szs)
 		, out_szs_(out_szs)
 		, initialized_(false)
+		, trans_()
 	{
 		load(fname);
 		init();

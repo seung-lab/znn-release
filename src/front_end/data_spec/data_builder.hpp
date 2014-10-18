@@ -193,9 +193,9 @@ private:
 			}
 			else
 			{
-				std::cout << "Unknown preprocess type: " << spec->pptype 
-					  << std::endl;
-				STRONG_ASSERT(false);
+				std::string what = 
+					"Unknown preprocess type [" + spec->pptype + "]";
+				throw std::invalid_argument(what);
 			}
 
 			// parser for parsing preprocessing parameters

@@ -84,6 +84,12 @@ private:
         {
             load_input(fname, *it);
         }
+
+        if ( inputs_.empty() )
+        {
+            std::string what = "No training data";
+            throw std::logic_error(what);
+        }
     }
 
     void load_input( const std::string& fname, int n )
@@ -116,8 +122,21 @@ private:
         
         if ( op->dp_type == "volume" )
         {
-            inputs_[n] = 
-                data_provider_ptr(new volume_data_provider(ssbatch.str(),in_szs,out_szs));
+            volume_data_provider* dp =
+                new volume_data_provider(ssbatch.str(),in_szs,out_szs);
+            
+            dp->data_augmentation(op->data_aug);
+            
+            inputs_[n] = data_provider_ptr(dp);
+        }
+        else if ( op->dp_type == "affinity" )
+        {
+            affinity_data_provider* dp =
+                new affinity_data_provider(ssbatch.str(),in_szs,out_szs);
+            
+            dp->data_augmentation(op->data_aug);
+            
+            inputs_[n] = data_provider_ptr(dp);   
         }
         else
         {
@@ -135,6 +154,12 @@ private:
             load_test_input(n);            
             std::cout << "batch" << n << " loaded." << std::endl;
         }
+
+        if ( scanners_.empty() )
+        {
+            std::string what = "No testing data";
+            throw std::logic_error(what);
+        }
     }
 
     void load_test_input( int n )
@@ -142,9 +167,6 @@ private:
         // data spec
         std::ostringstream ssbatch;
         ssbatch << op->data_path << "." << n << ".spec";
-
-        // loading
-        std::cout << "<<<<<<<<< Loading " << ssbatch.str() << std::endl;
         
         // inputs
         std::vector<vec3i> in_szs = net_->input_sizes();
@@ -177,44 +199,33 @@ private:
             std::string what = "Unknown forward scanner type [" + op->scanner + "]";
             throw std::invalid_argument(what);
         }
-
-        std::cout << ">>>>>>>>> Done.\n";
     }    
 
 
 // input sampling
 private:
-    input_sampler_ptr random_sampling( batch_list lst )
+    sample_ptr random_sample( batch_list lst )
     {
         int e = lst[rand() % lst.size()];
         ZI_ASSERT(inputs_.find(e) != inputs_.end());
         return inputs_[e]->random_sample();
     }
 
-    input_sampler_ptr first_sample()
-    {
-        return inputs_.begin()->second->first_sample();
-    }
-
 
 private:
-    double run_n_times(std::size_t n, input_sampler_ptr s, bool scanning)
+    double run_n_times(std::size_t n, sample_ptr s, bool scanning)
     {
-        std::list<double3d_ptr> inputs = s->get_inputs();
-        std::list<double3d_ptr> labels = s->get_labels();
-        std::list<bool3d_ptr>   masks  = s->get_masks();
-
         zi::wall_timer wt;
 
         for ( std::size_t i = 0; i < n; ++i )
         {
             // forward pass
-            std::list<double3d_ptr> v = run_forward(inputs);
+            std::list<double3d_ptr> v = run_forward(s->inputs);
 
             if ( !scanning )
             {
                 // backward pass
-                run_backward(labels, masks);
+                run_backward(s->labels, s->masks);
             }
         }
 
@@ -233,7 +244,15 @@ private:
         force_fft(true);
         
         // warming up
-        input_sampler_ptr sample = first_sample();
+        sample_ptr sample;
+        if ( scanning )
+        {
+            sample = random_sample(op->train_range);
+        }
+        else
+        {
+            sample = random_sample(op->test_range);
+        }
         std::cout << "Warmup ffts (make fftplans): "
                   << run_n_times(1, sample, scanning) << std::endl;        
 
@@ -376,7 +395,7 @@ public:
         net_->save(op->save_path);
 
         // load inputs
-        load_inputs(op->data_path,op->get_batch_range());
+        load_inputs(op->data_path,op->get_batch_range());        
         
         // learning rate, momentum, weight decay, linear output, fft ...
         prepare_training();
@@ -386,21 +405,16 @@ public:
         zi::wall_timer wt;
         for ( std::size_t tick = 1; n_iter_ <= op->n_iters; ++tick, ++n_iter_ )
         {
-            input_sampler_ptr s = random_sampling(op->train_range);            
-            if ( op->enable_aug ) s->random_transform();
-            
-            std::list<double3d_ptr> inputs = s->get_inputs();
-            std::list<double3d_ptr> labels = s->get_labels();
-            std::list<bool3d_ptr>   masks  = s->get_masks();
+            sample_ptr s = random_sample(op->train_range);
 
             // forward pass
-            std::list<double3d_ptr> v = run_forward(inputs);
+            std::list<double3d_ptr> v = run_forward(s->inputs);
            
             // update training monitor
-            train_monitor_->update(v,labels,masks,op->cls_thresh);
+            train_monitor_->update(v,s->labels,s->masks,op->cls_thresh);
 
             // backward pass
-            run_backward(labels,masks);
+            run_backward(s->labels,s->masks);
 
             // updates/sec
             if ( n_iter_ % op->check_freq == 0 )
@@ -490,16 +504,13 @@ public:
         // test loop
         for ( std::size_t i = 1; i <= op->test_samples; ++i )
         {
-            input_sampler_ptr s = random_sampling(op->test_range);
-            std::list<double3d_ptr> inputs      = s->get_inputs();
-            std::list<double3d_ptr> labels_list = s->get_labels();
-            std::list<bool3d_ptr>   mask_list   = s->get_masks();
+            sample_ptr s = random_sample(op->test_range);
 
             // forward pass
-            std::list<double3d_ptr> v = run_forward(inputs);
+            std::list<double3d_ptr> v = run_forward(s->inputs);
             
             // error computation
-            test_monitor_->update(v, labels_list, mask_list);
+            test_monitor_->update(v, s->labels, s->masks);
         }
 
         std::cout << "<<<<<<<<<<<<< TEST >>>>>>>>>>>>>" << std::endl;

@@ -19,3 +19,4 @@
 #pragma once
 
 #include "volume_data_provider.hpp"
+#include "affinity_data_provider.hpp"

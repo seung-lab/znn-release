@@ -16,32 +16,23 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef ZNN_DATA_PROVIDER_HPP_INCLUDED
-#define ZNN_DATA_PROVIDER_HPP_INCLUDED
+#ifndef ZNN_TRANSFORMER_HPP_INCLUDED
+#define ZNN_TRANSFORMER_HPP_INCLUDED
 
-#include "sample.hpp"
-
-#include <string>
+#include "../sample.hpp"
 
 namespace zi {
 namespace znn {
 
-class data_provider
+class transformer
 {
-protected:
-	virtual void load( const std::string& fname ) = 0;
-
 public:
-	// (randomized) sequential sampling
-	virtual sample_ptr next_sample() = 0;
+    virtual void transform( sample_ptr s ) = 0;
 
-	// random sampling
-	virtual sample_ptr random_sample() = 0;
+}; // abstract class transformer
 
-}; // abstract class data_provider
-
-typedef boost::shared_ptr<data_provider> data_provider_ptr;
+typedef boost::shared_ptr<transformer> transformer_ptr;
 
 }} // namespace zi::znn
 
-#endif // ZNN_DATA_PROVIDER_HPP_INCLUDED
+#endif // ZNN_TRANSFORMER_HPP_INCLUDED

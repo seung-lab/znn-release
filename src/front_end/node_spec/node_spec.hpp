@@ -45,7 +45,6 @@ public:
 	double 				eta;			// learning rate
 	double 				mom;			// momentum
 	double 				wc;				// weight decay
-	double 				maxnorm;		// max kernel L2-norm
 
 	bool				fft;			// receives fft
 	bool				load;
@@ -77,7 +76,6 @@ public:
         fout << "eta=" << eta << std::endl;
         fout << "mom=" << mom << std::endl;
         fout << "wc=" << wc << std::endl;
-        fout << "maxnorm=" << maxnorm << std::endl;
         fout << "fft=" << fft << std::endl;
         // Don't save load
         // fout << "load=" << load << std::endl;
@@ -125,8 +123,7 @@ private:
 	        ((name+".bias").c_str(),value<double>(&bias)->default_value(0.0),"bias")
 	        ((name+".eta").c_str(),value<double>(&eta)->default_value(0.01),"eta")
 	        ((name+".mom").c_str(),value<double>(&mom)->default_value(0.0),"mom")
-	        ((name+".wc").c_str(),value<double>(&wc)->default_value(0.0),"wc")
-	        ((name+".maxnorm").c_str(),value<double>(&maxnorm)->default_value(0.0),"maxnorm")
+	        ((name+".wc").c_str(),value<double>(&wc)->default_value(0.0),"wc")	        
 	        ((name+".fft").c_str(),value<bool>(&fft)->default_value(false),"fft")
 	        ((name+".load").c_str(),value<bool>(&load)->default_value(true),"load")
 	        ;

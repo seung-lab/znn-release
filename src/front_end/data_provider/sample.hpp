@@ -16,32 +16,41 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef ZNN_DATA_PROVIDER_HPP_INCLUDED
-#define ZNN_DATA_PROVIDER_HPP_INCLUDED
-
-#include "sample.hpp"
-
-#include <string>
+#ifndef ZNN_SAMPLE_HPP_INCLUDED
+#define ZNN_SAMPLE_HPP_INCLUDED
 
 namespace zi {
 namespace znn {
 
-class data_provider
+class sample
 {
-protected:
-	virtual void load( const std::string& fname ) = 0;
+public:
+	std::list<double3d_ptr>		inputs;
+	std::list<double3d_ptr> 	labels;
+	std::list<bool3d_ptr>		masks ;
 
 public:
-	// (randomized) sequential sampling
-	virtual sample_ptr next_sample() = 0;
+	// for debugging purpose
+	void save( const std::string& fname )
+	{
+		volume_utils::save_list(inputs, fname + ".input");
+		volume_utils::save_list(labels, fname + ".label");
+		volume_utils::save_list(labels, fname + ".mask");
+	}
 
-	// random sampling
-	virtual sample_ptr random_sample() = 0;
+public:
+	sample( std::list<double3d_ptr> i,
+		   	std::list<double3d_ptr> l,
+		   	std::list<bool3d_ptr>   m )
+		: inputs(i)
+		, labels(l)
+		, masks(m)
+	{}
 
-}; // abstract class data_provider
+}; // class sample
 
-typedef boost::shared_ptr<data_provider> data_provider_ptr;
+typedef boost::shared_ptr<sample> sample_ptr;
 
 }} // namespace zi::znn
 
-#endif // ZNN_DATA_PROVIDER_HPP_INCLUDED
+#endif // ZNN_SAMPLE_HPP_INCLUDED

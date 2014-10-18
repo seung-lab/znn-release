@@ -16,32 +16,43 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef ZNN_DATA_PROVIDER_HPP_INCLUDED
-#define ZNN_DATA_PROVIDER_HPP_INCLUDED
+#ifndef ZNN_VOLUME_TRANSFORMER_HPP_INCLUDED
+#define ZNN_VOLUME_TRANSFORMER_HPP_INCLUDED
 
-#include "sample.hpp"
+#include "transformer.hpp"
+#include "../sample.hpp"
+#include "../../../core/volume_utils.hpp"
 
-#include <string>
 
 namespace zi {
 namespace znn {
 
-class data_provider
+class volume_transformer: virtual public transformer
 {
-protected:
-	virtual void load( const std::string& fname ) = 0;
-
 public:
-	// (randomized) sequential sampling
-	virtual sample_ptr next_sample() = 0;
+    virtual void transform( sample_ptr s )
+    {
+    	// random transpose
+    	if ( rand() % 2 )
+    	{
+    		volume_utils::transpose(s->inputs);
+    		volume_utils::transpose(s->labels);
+    		volume_utils::transpose(s->masks);
+    	}
 
-	// random sampling
-	virtual sample_ptr random_sample() = 0;
+    	// random flip
+		std::size_t dim = rand() % 8;
+		{
+			volume_utils::flipdim(s->inputs, dim);
+			volume_utils::flipdim(s->labels, dim);
+			volume_utils::flipdim(s->masks, dim);
+		}
+    }
 
-}; // abstract class data_provider
+}; // abstract class volume_transformer
 
-typedef boost::shared_ptr<data_provider> data_provider_ptr;
+typedef boost::shared_ptr<volume_transformer> volume_transformer_ptr;
 
 }} // namespace zi::znn
 
-#endif // ZNN_DATA_PROVIDER_HPP_INCLUDED
+#endif // ZNN_VOLUME_TRANSFORMER_HPP_INCLUDED

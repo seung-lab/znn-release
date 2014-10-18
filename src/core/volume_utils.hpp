@@ -504,7 +504,6 @@ inline double3d_ptr crop_left(const double3d_ptr& a, const vec3i& s)
     return crop(a, 0, 0, 0, s[0], s[1], s[2]);
 }
 
-
 inline double3d_ptr zero_pad(double3d_ptr a, std::size_t x, std::size_t y, std::size_t z)
 {
     PROFILE_FUNCTION();
@@ -614,8 +613,11 @@ inline bool3d_ptr flip(bool3d_ptr a)
 // dim: binary coding
 inline double3d_ptr flipdim(double3d_ptr a, std::size_t dim)
 {
-    if ( dim == 0 || dim > 7 )
+    dim = dim % 8;
+    if ( dim == 0  )
+    {
         return a;
+    }
 
     PROFILE_FUNCTION();
     std::size_t x = a->shape()[0];
@@ -674,12 +676,24 @@ inline double3d_ptr flipdim(double3d_ptr a, std::size_t dim)
     return r;
 }
 
+inline void flipdim(std::list<double3d_ptr> vl, std::size_t dim)
+{
+    PROFILE_FUNCTION();
+    FOR_EACH( it, vl )
+    {
+        (*it) = flipdim(*it, dim);
+    }
+}
+
 // test implementation - should be elaborated later
 // dim: binary coding
 inline bool3d_ptr flipdim(bool3d_ptr a, std::size_t dim)
 {
-    if ( dim == 0 || dim > 7 )
+    dim = dim % 8;
+    if ( dim == 0 )
+    {
         return a;
+    }
 
     PROFILE_FUNCTION();
     std::size_t x = a->shape()[0];
@@ -736,6 +750,15 @@ inline bool3d_ptr flipdim(bool3d_ptr a, std::size_t dim)
     }
 
     return r;
+}
+
+inline void flipdim(std::list<bool3d_ptr> vl, std::size_t dim)
+{
+    PROFILE_FUNCTION();
+    FOR_EACH( it, vl )
+    {
+        (*it) = flipdim(*it, dim);
+    }
 }
 
 inline double3d_ptr transpose(double3d_ptr a)
@@ -761,6 +784,15 @@ inline double3d_ptr transpose(double3d_ptr a)
     return r;
 }
 
+inline void transpose(std::list<double3d_ptr> vl)
+{
+    PROFILE_FUNCTION();
+    FOR_EACH( it, vl )
+    {
+        (*it) = transpose(*it);
+    }
+}
+
 inline bool3d_ptr transpose(bool3d_ptr a)
 {
     PROFILE_FUNCTION();
@@ -782,6 +814,15 @@ inline bool3d_ptr transpose(bool3d_ptr a)
     }
 
     return r;
+}
+
+inline void transpose(std::list<bool3d_ptr> vl)
+{
+    PROFILE_FUNCTION();
+    FOR_EACH( it, vl )
+    {
+        (*it) = volume_utils::transpose(*it);
+    }
 }
 
 inline void normalize(double3d_ptr a)
@@ -1015,6 +1056,7 @@ inline void save_list( std::list<T> a, const std::string& fname )
     {
         std::string idx_str = boost::lexical_cast<std::string>(idx++);
         volume_utils::save(*it, fname + "." + idx_str);
+        export_size_info(size_of(*it), fname);
     }
 }
 

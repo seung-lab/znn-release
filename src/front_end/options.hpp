@@ -64,7 +64,7 @@ public:
 	std::string			dp_type;
 	std::string			cost_fn;
 	double				cost_fn_param;
-	bool				enable_aug;
+	bool				data_aug;
 	double 				cls_thresh;
 	bool				softmax;
 
@@ -151,7 +151,7 @@ private:
 	        ("TRAIN.dp_type",value<std::string>(&dp_type)->default_value("volume"),"Data provider")
 	        ("TRAIN.cost_fn",value<std::string>(&cost_fn)->default_value("square"),"Cost function")
 	        ("TRAIN.cost_fn_param",value<double>(&cost_fn_param)->default_value(0),"Cost function parameters")
-	        ("TRAIN.aug_data",value<bool>(&enable_aug)->default_value(false),"Augment data")
+	        ("TRAIN.data_aug",value<bool>(&data_aug)->default_value(false),"Data augmentation")
 	        ("TRAIN.cls_thresh",value<double>(&cls_thresh)->default_value(0.5),"Classification threshold")
 	        ("TRAIN.softmax",value<bool>(&softmax)->default_value(false),"Softmax")
 	        // UPDATE
@@ -269,7 +269,7 @@ public:
         		   << "dp_type=" << rhs.dp_type << '\n'
         		   << "cost_fn=" << rhs.cost_fn << '\n'
         		   << "cost_fn_param=" << rhs.cost_fn_param << '\n'
-        		   << "aug_data=" << rhs.enable_aug << '\n'
+        		   << "data_aug=" << rhs.data_aug << '\n'
         		   << "cls_thresh=" << rhs.cls_thresh << '\n'
         		   << "softmax=" << rhs.softmax << '\n'
         		   << "\n[UPDATE]\n"
