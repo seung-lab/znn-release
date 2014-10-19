@@ -35,8 +35,8 @@ Matlab functions for preparing training data and analyzing training results.
 ### [src](./src/)
 C++ source code.
 * [core](./src/core) -- core classes for constructing ConvNets and performing multi-core parallelized computations.
-* [cost_fn](./src/cost_fn/) -- cost functions for training ConvNets.
-* [error_fn](./src/error_fn/) -- linear or non-linear activation functions.
+* [cost_fn](./src/cost_fn/) -- cost (objective) functions for training ConvNets.
+* [error_fn](./src/error_fn/) -- linear and/or non-linear activation functions for neurons.
 * [front_end](./src/front_end/) -- an interface for specifying ConvNet architecure, training data, and training options.
 * [initializer](./src/initializer/) -- random initializers for weights of ConvNets.
 
