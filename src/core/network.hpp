@@ -96,7 +96,7 @@ private:
     {
         // data spec
         std::ostringstream ssbatch;
-        ssbatch << fname << "." << n << ".spec";
+        ssbatch << fname << n << ".spec";
 
         // loading
         std::cout << "[network] load_input" << std::endl;
@@ -166,7 +166,7 @@ private:
     {
         // data spec
         std::ostringstream ssbatch;
-        ssbatch << op->data_path << "." << n << ".spec";
+        ssbatch << op->data_path << n << ".spec";
         
         // inputs
         std::vector<vec3i> in_szs = net_->input_sizes();
