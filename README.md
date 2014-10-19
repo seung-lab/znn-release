@@ -1,6 +1,15 @@
 znn-release
 ===========
+Multi-core CPU implementation of deep learning for 2D and 3D convolutional networks (ConvNets).
 
+Required libraries
+------------------
+Currently we only support linux environments.
+
+|Library|Ubuntu package name|
+|:-----:|-------------------|
+|fftw   |libfftw-dev                   |
+|[boost](http://www.boost.org/)|libbost-all-dev    |
 
 
 Compile & clean
