@@ -8,8 +8,8 @@ Currently we only support linux environments.
 
 |Library|Ubuntu package name|
 |:-----:|-------------------|
-|fftw   |libfftw-dev                   |
-|[boost](http://www.boost.org/)|libbost-all-dev    |
+|[fftw](http://www.fftw.org/)|libfftw-dev|
+|[boost](http://www.boost.org/)|libbost-all-dev|
 
 
 Compile & clean
