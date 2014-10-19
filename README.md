@@ -26,13 +26,13 @@ If compile is successful, an executalbe named **znn** will be generated under th
 
 Directories
 -----------
-### [bin](./bin/)
+#### [bin](./bin/)
 An executable will be generated here.
 
-### [matlab](./matlab/)
+#### [matlab](./matlab/)
 Matlab functions for preparing training data and analyzing training results.
 
-### [src](./src/)
+#### [src](./src/)
 C++ source code.
 * [core](./src/core) -- core classes for constructing ConvNets and performing multi-core parallelized computations.
 * [cost_fn](./src/cost_fn/) -- cost (objective) functions for training ConvNets.
@@ -40,7 +40,7 @@ C++ source code.
 * [front_end](./src/front_end/) -- an interface for specifying ConvNet architecure, training data, and training options.
 * [initializer](./src/initializer/) -- random initializers for weights of ConvNets.
 
-### [zi](./zi/) 
+#### [zi](./zi/) 
 General purpose C++ library, written and maintained by Aleksander Zlateski.
 
 
