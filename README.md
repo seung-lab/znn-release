@@ -27,9 +27,13 @@ If compile is successful, an executalbe named **znn** will be generated under th
 Directories
 -----------
 ### [bin](./bin/)
-A directory for executables.
+An executable will be generated here.
+
 ### [matlab](./matlab/)
+Matlab functions for preparing training data and analyzing training results.
+
 ### [src](./src/)
+
 ### [zi](./zi/) 
 General purpose C++ library, written and maintained by Aleksander Zlateski.
 
