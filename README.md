@@ -2,6 +2,8 @@ znn-release
 ===========
 Multi-core CPU implementation of deep learning for 2D and 3D convolutional networks (ConvNets).
 
+
+
 Required libraries
 ------------------
 Currently we only support linux environments.
@@ -12,10 +14,28 @@ Currently we only support linux environments.
 |[boost](http://www.boost.org/)|libbost-all-dev|
 
 
+
 Compile & clean
 ---------------
-  
     make
     make clean
 
 If compile is successful, an executalbe named **znn** will be generated under the directory [bin](./bin/).
+
+
+
+Directories
+-----------
+### [bin](./bin/)
+A directory for executables.
+### [matlab](./matlab/)
+### [src](./src/)
+### [zi](./zi/) 
+General purpose C++ library, written and maintained by Aleksander Zlateski.
+
+
+
+Contact
+-------
+* Aleksander Zlateski \<zlateski@mit.edu\>
+* Kisuk Lee \<kisuklee@mit.edu\>
