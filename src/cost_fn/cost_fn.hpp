@@ -46,7 +46,8 @@ public:
         std::list<bool3d_ptr>::iterator mit = masks.begin();
         FOR_EACH( it, outputs )
         {
-            double3d_ptr err = volume_utils::classification_error(*it, *lit++, threshold);
+            double3d_ptr err = 
+                volume_utils::classification_error(*it, *lit++, threshold);
             volume_utils::elementwise_masking(err, *mit++);
             ret += volume_utils::sum_all(err);
         }

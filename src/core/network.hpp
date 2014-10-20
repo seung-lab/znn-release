@@ -394,10 +394,10 @@ public:
         // save network spec
         net_->save(op->save_path);
 
-        // load inputs
+        // load data batches for training
         load_inputs(op->data_path,op->get_batch_range());        
         
-        // learning rate, momentum, weight decay, linear output, fft ...
+        // learning rate, momentum, weight decay, fft ...
         prepare_training();
 
         std::cout << "Iterations: " << op->n_iters << std::endl;
@@ -411,7 +411,7 @@ public:
             std::list<double3d_ptr> v = run_forward(s->inputs);
            
             // update training monitor
-            train_monitor_->update(v,s->labels,s->masks,op->cls_thresh);
+            train_monitor_->update(v, s->labels, s->masks, op->cls_thresh);
 
             // backward pass
             run_backward(s->labels,s->masks);
@@ -623,13 +623,27 @@ public:
         // rebalancing
         if ( op->rebalance )
         {
-            std::list<double3d_ptr> rbmask = 
-                volume_utils::binomial_rebalance_mask(lbls);
-
-            std::list<double3d_ptr>::iterator rbmit = rbmask.begin();
-            FOR_EACH( it, grads )
+            // default cross-entropy is multinomial (1-of-K coding)
+            if ( op->cost_fn == "cross_entropy" )
             {
-                volume_utils::elementwise_mul_by(*it,*rbmit++);
+                double3d_ptr rbmask = 
+                    volume_utils::multinomial_rebalance_mask(lbls);
+
+                FOR_EACH( it, grads )
+                {
+                    volume_utils::elementwise_mul_by(*it,rbmask);
+                }
+            }
+            else
+            {
+                std::list<double3d_ptr> rbmask = 
+                    volume_utils::binomial_rebalance_mask(lbls);
+
+                std::list<double3d_ptr>::iterator rbmit = rbmask.begin();
+                FOR_EACH( it, grads )
+                {
+                    volume_utils::elementwise_mul_by(*it,*rbmit++);
+                }
             }
         }
 

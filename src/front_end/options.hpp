@@ -317,17 +317,26 @@ public:
 	cost_fn_ptr create_cost_function()
 	{
 		cost_fn_ptr ret;	
-	    if ( cost_fn == "cross_entropy" )
+		if ( cost_fn == "square" )
+		{
+			ret = cost_fn_ptr(new square_cost_fn);
+		}
+	    else if ( cost_fn == "cross_entropy" )
+	    {
 	        ret = cost_fn_ptr(new cross_entropy_cost_fn);
+	    }
 	    else if ( cost_fn == "binomial_cross_entropy" )
+	    {
 	        ret = cost_fn_ptr(new binomial_cross_entropy_cost_fn);
+	    }
 	    else if ( cost_fn == "square_square" )
+	    {
 	    	ret = cost_fn_ptr(new square_square_cost_fn(cost_fn_param));
+	    }
 	    else
 	    {
-	    	std::cout << "Unknown cost function: " << cost_fn << std::endl;
-	    	std::cout << "Default cost function: square" << std::endl;
-	        ret = cost_fn_ptr(new square_cost_fn);
+	    	std::string what = "Unknown cost function [" + cost_fn + "]";
+			throw std::invalid_argument(what);
 	    }
 	    return ret;
 	}

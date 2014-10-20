@@ -110,6 +110,8 @@ inline void elementwise_mul(complex3d_ptr r, complex3d_ptr a, complex3d_ptr b)
 
 inline void elementwise_masking(double3d_ptr a, bool3d_ptr b)
 {
+    if ( !b ) return;
+
     PROFILE_FUNCTION();
     ASSERT_SAME_SIZE(a,b);
     std::size_t n = a->num_elements();
@@ -676,7 +678,7 @@ inline double3d_ptr flipdim(double3d_ptr a, std::size_t dim)
     return r;
 }
 
-inline void flipdim(std::list<double3d_ptr> vl, std::size_t dim)
+inline void flipdim(std::list<double3d_ptr>& vl, std::size_t dim)
 {
     PROFILE_FUNCTION();
     FOR_EACH( it, vl )
@@ -752,7 +754,7 @@ inline bool3d_ptr flipdim(bool3d_ptr a, std::size_t dim)
     return r;
 }
 
-inline void flipdim(std::list<bool3d_ptr> vl, std::size_t dim)
+inline void flipdim(std::list<bool3d_ptr>& vl, std::size_t dim)
 {
     PROFILE_FUNCTION();
     FOR_EACH( it, vl )
@@ -784,7 +786,7 @@ inline double3d_ptr transpose(double3d_ptr a)
     return r;
 }
 
-inline void transpose(std::list<double3d_ptr> vl)
+inline void transpose(std::list<double3d_ptr>& vl)
 {
     PROFILE_FUNCTION();
     FOR_EACH( it, vl )
@@ -816,7 +818,7 @@ inline bool3d_ptr transpose(bool3d_ptr a)
     return r;
 }
 
-inline void transpose(std::list<bool3d_ptr> vl)
+inline void transpose(std::list<bool3d_ptr>& vl)
 {
     PROFILE_FUNCTION();
     FOR_EACH( it, vl )
@@ -1130,7 +1132,7 @@ inline std::list<double3d_ptr> softmax(std::list<double3d_ptr> vl)
     return ret;
 }
 
-// generic cross-entropy
+// for multinomial cross-entropy
 inline double3d_ptr cross_entropy( double3d_ptr v, double3d_ptr l )
 {
     ASSERT_SAME_SIZE(v,l);
@@ -1146,23 +1148,7 @@ inline double3d_ptr cross_entropy( double3d_ptr v, double3d_ptr l )
     return ret;
 }
 
-// different version of cross-entropy
-inline double3d_ptr binomial_cross_entropy( double3d_ptr v, double3d_ptr l )
-{
-    ASSERT_SAME_SIZE(v,l);
-
-    double3d_ptr ret = volume_pool.get_double3d(v);
-    
-    std::size_t n = v->num_elements();
-    for ( std::size_t i = 0; i < n; ++i )
-    {
-        ret->data()[i] = -(l->data()[i]*std::log(v->data()[i]))
-                         -(1 - l->data()[i])*std::log(1 - v->data()[i]);
-    }
-
-    return ret;
-}
-
+// multinomial cross-entropy
 inline double3d_ptr cross_entropy(std::list<double3d_ptr> vl, std::list<double3d_ptr> ll)
 {
     STRONG_ASSERT(!vl.empty());
@@ -1180,6 +1166,25 @@ inline double3d_ptr cross_entropy(std::list<double3d_ptr> vl, std::list<double3d
     return ret;
 }
 
+// binomial cross-entropy
+inline double3d_ptr binomial_cross_entropy( double3d_ptr v, double3d_ptr l )
+{
+    ASSERT_SAME_SIZE(v,l);
+
+    double3d_ptr ret = volume_pool.get_double3d(v);
+    
+    std::size_t n = v->num_elements();
+    for ( std::size_t i = 0; i < n; ++i )
+    {
+        ret->data()[i] = -(l->data()[i]*std::log(v->data()[i]))
+                         -(1 - l->data()[i])*std::log(1 - v->data()[i]);
+    }
+
+    return ret;
+}
+
+// binomial cross-entropy
+// each output node is considered to be an individudal binomial unit
 inline std::list<double3d_ptr> binomial_cross_entropy( std::list<double3d_ptr> vl, 
                                                        std::list<double3d_ptr> ll )
 {

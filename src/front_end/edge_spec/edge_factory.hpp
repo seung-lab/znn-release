@@ -202,9 +202,8 @@ private:
 		}
 		else
 		{
-			std::cout << "Unknown weight initialization type: " 
-					  << spec->init_type << std::endl;
-			STRONG_ASSERT(false);
+			std::string what = "Unknown initializer ["+ spec->init_type + "]";
+			throw std::invalid_argument(what);
 		}		
 		
 		return ret;

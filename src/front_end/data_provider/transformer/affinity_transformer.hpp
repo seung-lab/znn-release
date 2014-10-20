@@ -52,7 +52,7 @@ private:
     }
 
     template <typename T>
-    void crop_affinity( std::list<T> vl )
+    void crop_affinity( std::list<T>& vl )
     {
         FOR_EACH( it, vl )
         {

@@ -45,7 +45,7 @@ public:
 		{
 			volume_utils::flipdim(s->inputs, dim);
 			volume_utils::flipdim(s->labels, dim);
-			volume_utils::flipdim(s->masks, dim);
+			volume_utils::flipdim(s->masks,  dim);
 		}
     }
 

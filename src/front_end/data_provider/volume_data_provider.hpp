@@ -157,7 +157,7 @@ protected:
     		msks.push_back((*it)->get_patch(loc));
     	}
 
-    	sample_ptr s = sample_ptr(new sample(imgs,lbls,msks));
+    	sample_ptr s = sample_ptr(new sample(imgs, lbls, msks));
     	if ( trans_ ) trans_->transform(s);
     	return s;
     }
