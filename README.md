@@ -11,7 +11,7 @@ Currently we only support linux environments.
 |Library|Ubuntu package name|
 |:-----:|-------------------|
 |[fftw](http://www.fftw.org/)|libfftw-dev|
-|[boost](http://www.boost.org/)|libbost-all-dev|
+|[boost](http://www.boost.org/)|libboost-all-dev|
 
 
 
