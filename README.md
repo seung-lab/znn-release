@@ -10,7 +10,7 @@ Currently we only support linux environments.
 
 |Library|Ubuntu package name|
 |:-----:|-------------------|
-|[fftw](http://www.fftw.org/)|libfftw-dev|
+|[fftw](http://www.fftw.org/)|libfftw3-dev|
 |[boost](http://www.boost.org/)|libboost-all-dev|
 
 
