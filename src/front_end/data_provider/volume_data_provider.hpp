@@ -335,6 +335,11 @@ public:
 
 // constructor & destructor
 public:
+	volume_data_provider()
+		: initialized_(false)
+		, trans_()
+	{}
+
 	volume_data_provider( const std::string& fname, 
 						   std::vector<vec3i> in_szs,
 						   std::vector<vec3i> out_szs )

@@ -104,8 +104,14 @@ public:
 	affinity_data_provider( const std::string& fname, 
 						    std::vector<vec3i> in_szs,
 						    std::vector<vec3i> out_szs )
-		: volume_data_provider(fname, in_szs, out_szs)
-	{}
+		: volume_data_provider()
+	{
+		in_szs_ = in_szs;
+		out_szs_ = out_szs;
+
+		load(fname);
+		init();
+	}
 
 	virtual ~affinity_data_provider()
 	{}
