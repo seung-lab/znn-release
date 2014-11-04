@@ -57,9 +57,6 @@ protected:
 		
 		lbl->set_FoV(FoV,sft);
 		lbls_.push_back(lbl);
-
-		// std::cout << "<add_label()>" << std::endl;
-		// lbl->print(); std::cout << '\n';
 	}
 
 	virtual void add_mask( bvolume_data_ptr msk )
@@ -76,9 +73,6 @@ protected:
 		
 		msk->set_FoV(FoV,sft);
 		msks_.push_back(msk);
-
-		// std::cout << "<add_mask()>" << std::endl;
-		// msk->print(); std::cout << '\n';
 	}
 
 
@@ -87,8 +81,14 @@ public:
 	affinity_data_provider( const std::string& fname, 
 						    std::vector<vec3i> in_szs,
 						    std::vector<vec3i> out_szs )
-		: volume_data_provider(fname, in_szs, out_szs)
-	{}
+		: volume_data_provider()
+	{
+		in_szs_ = in_szs;
+		out_szs_ = out_szs;
+
+		load(fname);
+		init();
+	}
 
 	virtual ~affinity_data_provider()
 	{}
