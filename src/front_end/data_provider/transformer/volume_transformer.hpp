@@ -37,6 +37,7 @@ public:
     	{
     		volume_utils::transpose(s->inputs);
     		volume_utils::transpose(s->labels);
+            volume_utils::transpose(s->wmasks);
     		volume_utils::transpose(s->masks);
     	}
 
@@ -45,6 +46,7 @@ public:
 		{
 			volume_utils::flipdim(s->inputs, dim);
 			volume_utils::flipdim(s->labels, dim);
+            volume_utils::flipdim(s->wmasks, dim);
 			volume_utils::flipdim(s->masks,  dim);
 		}
     }

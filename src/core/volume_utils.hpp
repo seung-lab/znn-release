@@ -1486,7 +1486,7 @@ binomial_rebalance_mask( double3d_ptr lbl, double thresh = 0.5 )
         double wneg = static_cast<double>(1)/nneg;
         double sum  = wpos + wneg;
         
-        wpos /= sum; 
+        wpos /= sum;
         wneg /= sum;
         
         volume_utils::zero_out(ret);

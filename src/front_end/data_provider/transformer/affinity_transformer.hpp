@@ -36,6 +36,7 @@ public:
 
         // crop
         crop_affinity(s->labels);
+        crop_affinity(s->wmasks);
         crop_affinity(s->masks);
     }
 

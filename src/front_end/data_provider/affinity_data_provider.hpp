@@ -57,9 +57,6 @@ protected:
 		
 		lbl->set_FoV(FoV,sft);
 		lbls_.push_back(lbl);
-
-		// std::cout << "<add_label()>" << std::endl;
-		// lbl->print(); std::cout << '\n';
 	}
 
 	virtual void add_mask( bvolume_data_ptr msk )
@@ -76,9 +73,29 @@ protected:
 		
 		msk->set_FoV(FoV,sft);
 		msks_.push_back(msk);
+	}
 
-		// std::cout << "<add_mask()>" << std::endl;
-		// msk->print(); std::cout << '\n';
+	virtual void add_wmask( dvolume_data_ptr lbl )
+	{
+		std::size_t idx = wmsks_.size();
+		STRONG_ASSERT(idx < out_szs_.size());
+
+		vec3i FoV = out_szs_[idx];
+		vec3i sft = vec3i::zero;
+		
+		double3d_ptr wmsk = 
+			volume_utils::binomial_rebalance_mask(lbl->get_volume());
+
+		dvolume_data_ptr vd = 
+			dvolume_data_ptr(new dvolume_data(wmsk));
+
+		// for affinity graph transformation
+		FoV += vec3i::one;
+		sft += vec3i::one;
+		
+		vd->set_offset(lbl->get_offset());
+		vd->set_FoV(FoV,sft);
+		wmsks_.push_back(vd);
 	}
 
 

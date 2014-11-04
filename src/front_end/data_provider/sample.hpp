@@ -27,6 +27,7 @@ class sample
 public:
 	std::list<double3d_ptr>		inputs;
 	std::list<double3d_ptr> 	labels;
+	std::list<double3d_ptr>		wmasks;
 	std::list<bool3d_ptr>		masks ;
 
 public:
@@ -35,15 +36,18 @@ public:
 	{
 		volume_utils::save_list(inputs, fname + ".input");
 		volume_utils::save_list(labels, fname + ".label");
-		volume_utils::save_list(labels, fname + ".mask");
+		volume_utils::save_list(wmasks, fname + ".wmask");
+		volume_utils::save_list(masks,  fname + ".mask" );
 	}
 
 public:
 	sample( std::list<double3d_ptr> i,
 		   	std::list<double3d_ptr> l,
+		   	std::list<double3d_ptr> w,
 		   	std::list<bool3d_ptr>   m )
 		: inputs(i)
 		, labels(l)
+		, wmasks(w)
 		, masks(m)
 	{}
 

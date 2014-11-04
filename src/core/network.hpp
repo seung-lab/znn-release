@@ -225,7 +225,7 @@ private:
             if ( !scanning )
             {
                 // backward pass
-                run_backward(s->labels, s->masks);
+                run_backward(s);
             }
         }
 
@@ -414,7 +414,7 @@ public:
             train_monitor_->update(v, s->labels, s->masks, op->cls_thresh);
 
             // backward pass
-            run_backward(s->labels,s->masks);
+            run_backward(s);
 
             // updates/sec
             if ( n_iter_ % op->check_freq == 0 )
@@ -613,37 +613,20 @@ public:
         return ret;
     }
     
-    void run_backward( std::list<double3d_ptr> lbls, std::list<bool3d_ptr> msks )
+    void run_backward( sample_ptr s )
     {
         std::list<double3d_ptr> outs = net_->get_outputs(lastn_,op->softmax);
 
         // compute gradient using a given cost function
-        std::list<double3d_ptr> grads = cost_fn_->gradient(outs,lbls,msks);
+        std::list<double3d_ptr> grads = cost_fn_->gradient(outs,s->labels,s->masks);
         
         // rebalancing
         if ( op->rebalance )
         {
-            // default cross-entropy is multinomial (1-of-K coding)
-            if ( op->cost_fn == "cross_entropy" )
+            std::list<double3d_ptr>::iterator wit = s->wmasks.begin();
+            FOR_EACH( it, grads )
             {
-                double3d_ptr rbmask = 
-                    volume_utils::multinomial_rebalance_mask(lbls);
-
-                FOR_EACH( it, grads )
-                {
-                    volume_utils::elementwise_mul_by(*it,rbmask);
-                }
-            }
-            else
-            {
-                std::list<double3d_ptr> rbmask = 
-                    volume_utils::binomial_rebalance_mask(lbls);
-
-                std::list<double3d_ptr>::iterator rbmit = rbmask.begin();
-                FOR_EACH( it, grads )
-                {
-                    volume_utils::elementwise_mul_by(*it,*rbmit++);
-                }
+                volume_utils::elementwise_mul_by(*it, *wit++);
             }
         }
 

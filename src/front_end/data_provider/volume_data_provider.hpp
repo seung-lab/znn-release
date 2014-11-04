@@ -32,8 +32,11 @@ class volume_data_provider : virtual public data_provider
 {
 protected:
 	std::list<dvolume_data_ptr>	imgs_;
-	std::list<dvolume_data_ptr>	lbls_;
+	std::list<dvolume_data_ptr>	lbls_;	
 	std::list<bvolume_data_ptr>	msks_;
+
+	// rebalanced weight masks
+	std::list<dvolume_data_ptr>	wmsks_;
 
 	std::vector<vec3i>			in_szs_;
 	std::vector<vec3i>			out_szs_;
@@ -72,7 +75,7 @@ protected:
 			std::cout << std::endl;
 		}
 			
-		// labels
+		// labels (and rebalanced weight masks)
 		FOR_EACH( it, parser.label_specs )
 		{
 			std::cout << "Loading label [" << (*it)->name << "]" << std::endl;			
@@ -80,6 +83,7 @@ protected:
 			FOR_EACH( jt, vols )
 			{
 				add_label(*jt);
+				add_wmask(*jt);
 			}
 			std::cout << std::endl;
 		}
@@ -125,8 +129,6 @@ public:
 	virtual sample_ptr random_sample()
 	{
 		std::size_t e = get_random_index();
-		// std::cout << "[volume_data_provider]"
-		// 		  << " random index: " << e << std::endl;
         return get_sample(e);
 	}
 
@@ -150,6 +152,13 @@ protected:
     		lbls.push_back((*it)->get_patch(loc));
     	}
 
+    	// rebalance masks
+    	std::list<double3d_ptr> wmsks;
+    	FOR_EACH( it, wmsks_ )
+    	{
+    		wmsks.push_back((*it)->get_patch(loc));
+    	}
+
     	// masks
     	std::list<bool3d_ptr> msks;
     	FOR_EACH( it, msks_ )
@@ -157,7 +166,7 @@ protected:
     		msks.push_back((*it)->get_patch(loc));
     	}
 
-    	sample_ptr s = sample_ptr(new sample(imgs, lbls, msks));
+    	sample_ptr s = sample_ptr(new sample(imgs, lbls, wmsks, msks));
     	if ( trans_ ) trans_->transform(s);
     	return s;
     }
@@ -178,9 +187,6 @@ protected:
 		
 		img->set_FoV(in_szs_[idx]);
 		imgs_.push_back(img);
-
-		// std::cout << "<add_image()>" << std::endl;
-		// img->print(); std::cout << '\n';
 	}
 
 	virtual void add_label( dvolume_data_ptr lbl )
@@ -189,13 +195,9 @@ protected:
 		STRONG_ASSERT(idx < out_szs_.size());
 
 		vec3i FoV = out_szs_[idx];
-		vec3i sft = vec3i::zero;
 		
-		lbl->set_FoV(FoV,sft);
+		lbl->set_FoV(FoV);
 		lbls_.push_back(lbl);
-
-		// std::cout << "<add_label()>" << std::endl;
-		// lbl->print(); std::cout << '\n';
 	}
 
 	virtual void add_mask( bvolume_data_ptr msk )
@@ -204,13 +206,27 @@ protected:
 		STRONG_ASSERT(idx < out_szs_.size());
 
 		vec3i FoV = out_szs_[idx];
-		vec3i sft = vec3i::zero;
 		
-		msk->set_FoV(FoV,sft);
+		msk->set_FoV(FoV);
 		msks_.push_back(msk);
+	}
 
-		// std::cout << "<add_mask()>" << std::endl;
-		// msk->print(); std::cout << '\n';
+	virtual void add_wmask( dvolume_data_ptr lbl )
+	{
+		std::size_t idx = wmsks_.size();
+		STRONG_ASSERT(idx < out_szs_.size());
+
+		vec3i FoV = out_szs_[idx];
+		
+		double3d_ptr wmsk = 
+			volume_utils::binomial_rebalance_mask(lbl->get_volume());
+
+		dvolume_data_ptr vd = 
+			dvolume_data_ptr(new dvolume_data(wmsk));
+		
+		vd->set_offset(lbl->get_offset());
+		vd->set_FoV(FoV);
+		wmsks_.push_back(vd);
 	}
 
 	void update_range()
@@ -226,9 +242,6 @@ protected:
 		{
 			range_ = range_.intersect((*it)->get_range());
 		}
-
-		// std::cout << "[volume_data_provider]" << std::endl;
-		// std::cout << "Updated range: " << range_ << std::endl;
 	}
 
 
