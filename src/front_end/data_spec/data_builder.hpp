@@ -239,12 +239,12 @@ private:
 		std::size_t dim = 3;
 		double neg = static_cast<double>(0);
 		double pos = static_cast<double>(1);
-        if ( parsed && (args.size() >= 2) )
-        {
-        	neg = args[0];
+		if ( parsed && (args.size() >= 2) )
+		{
+			neg = args[0];
 			pos = args[1];
-        }
-        
+		}
+		
 		affinity_graph_ptr affin = 
 			affinity_graph_ptr(new affinity_graph(vol,dim,pos,neg));
 
@@ -291,8 +291,8 @@ private:
 	{
 		std::size_t dim = 3;
 
-        std::list<bool3d_ptr> ret;
-        if ( !spec->get_path().empty() )
+		std::list<bool3d_ptr> ret;
+		if ( !spec->get_path().empty() )
 		{
 			std::cout << "Affinity mask path: " << spec->get_path() << std::endl;
 

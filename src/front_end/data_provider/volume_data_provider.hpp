@@ -125,8 +125,6 @@ public:
 	virtual sample_ptr random_sample()
 	{
 		std::size_t e = get_random_index();
-		// std::cout << "[volume_data_provider]"
-		// 		  << " random index: " << e << std::endl;
         return get_sample(e);
 	}
 
@@ -158,7 +156,9 @@ protected:
     	}
 
     	sample_ptr s = sample_ptr(new sample(imgs, lbls, msks));
+
     	if ( trans_ ) trans_->transform(s);
+
     	return s;
     }
 
@@ -178,39 +178,24 @@ protected:
 		
 		img->set_FoV(in_szs_[idx]);
 		imgs_.push_back(img);
-
-		// std::cout << "<add_image()>" << std::endl;
-		// img->print(); std::cout << '\n';
 	}
 
 	virtual void add_label( dvolume_data_ptr lbl )
 	{
 		std::size_t idx = lbls_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
-
-		vec3i FoV = out_szs_[idx];
-		vec3i sft = vec3i::zero;
 		
-		lbl->set_FoV(FoV,sft);
+		lbl->set_FoV(out_szs_[idx]);
 		lbls_.push_back(lbl);
-
-		// std::cout << "<add_label()>" << std::endl;
-		// lbl->print(); std::cout << '\n';
 	}
 
 	virtual void add_mask( bvolume_data_ptr msk )
 	{
 		std::size_t idx = msks_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
-
-		vec3i FoV = out_szs_[idx];
-		vec3i sft = vec3i::zero;
 		
-		msk->set_FoV(FoV,sft);
+		msk->set_FoV(out_szs_[idx]);
 		msks_.push_back(msk);
-
-		// std::cout << "<add_mask()>" << std::endl;
-		// msk->print(); std::cout << '\n';
 	}
 
 	void update_range()
@@ -226,9 +211,6 @@ protected:
 		{
 			range_ = range_.intersect((*it)->get_range());
 		}
-
-		// std::cout << "[volume_data_provider]" << std::endl;
-		// std::cout << "Updated range: " << range_ << std::endl;
 	}
 
 

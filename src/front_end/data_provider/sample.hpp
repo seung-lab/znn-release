@@ -30,15 +30,6 @@ public:
 	std::list<bool3d_ptr>		masks ;
 
 public:
-	// for debugging purpose
-	void save( const std::string& fname )
-	{
-		volume_utils::save_list(inputs, fname + ".input");
-		volume_utils::save_list(labels, fname + ".label");
-		volume_utils::save_list(labels, fname + ".mask");
-	}
-
-public:
 	sample( std::list<double3d_ptr> i,
 		   	std::list<double3d_ptr> l,
 		   	std::list<bool3d_ptr>   m )
