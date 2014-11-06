@@ -19,7 +19,7 @@
 #ifndef ZNN_AFFINITY_TRANSFORMER_HPP_INCLUDED
 #define ZNN_AFFINITY_TRANSFORMER_HPP_INCLUDED
 
-#include "volume_transformer.hpp"
+#include "transformer.hpp"
 #include "../sample.hpp"
 #include "../../../core/volume_utils.hpp"
 
@@ -27,38 +27,42 @@
 namespace zi {
 namespace znn {
 
-class affinity_transformer: virtual public volume_transformer
+class affinity_transformer: virtual public transformer
 {
 public:
     virtual void transform( sample_ptr s )
     {
-    	volume_transformer::transform(s);
+    	// random transpose
+        if ( rand() % 2 )
+        {
+            volume_utils::transpose(s->inputs);
+            transpose_affinity(s->labels);
+            transpose_affinity(s->masks);
+        }
 
-        // crop
-        crop_affinity(s->labels);
-        crop_affinity(s->wmasks);
-        crop_affinity(s->masks);
+        // random flip
+        std::size_t dim = rand() % 8;
+        {
+            volume_utils::flipdim(s->inputs, dim);
+            volume_utils::flipdim(s->labels, dim);
+            volume_utils::flipdim(s->masks,  dim);
+        }
     }
 
 private:
     template <typename T>
-    T crop_affinity( T vol )
+    void transpose_affinity( std::list<T>& affs )
     {
-        vec3i sz = size_of(vol);
-        STRONG_ASSERT(sz[0] > 1);
-        STRONG_ASSERT(sz[1] > 1);
-        STRONG_ASSERT(sz[2] > 1);
+        STRONG_ASSERT(affs.size() == 3);
 
-        return volume_utils::crop(vol, vec3i::zero, sz-vec3i::one);
-    }
+        T xaff = affs.front(); affs.pop_front();
+        T yaff = affs.front(); affs.pop_front();
+        T zaff = affs.front(); affs.pop_front();
 
-    template <typename T>
-    void crop_affinity( std::list<T>& vl )
-    {
-        FOR_EACH( it, vl )
-        {
-            (*it) = crop_affinity(*it);
-        }
+        // x-affinity and y-affinity should be exchanged
+        affs.push_back(volume_utils::transpose(yaff));
+        affs.push_back(volume_utils::transpose(xaff));
+        affs.push_back(volume_utils::transpose(zaff));
     }
 
 }; // abstract class affinity_transformer

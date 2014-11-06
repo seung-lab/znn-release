@@ -168,7 +168,9 @@ protected:
     	}
 
     	sample_ptr s = sample_ptr(new sample(imgs, lbls, wmsks, msks));
+
     	if ( trans_ ) trans_->transform(s);
+
     	return s;
     }
 
@@ -194,10 +196,8 @@ protected:
 	{
 		std::size_t idx = lbls_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
-
-		vec3i FoV = out_szs_[idx];
 		
-		lbl->set_FoV(FoV);
+		lbl->set_FoV(out_szs_[idx]);
 		lbls_.push_back(lbl);
 	}
 
@@ -206,9 +206,7 @@ protected:
 		std::size_t idx = msks_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
 
-		vec3i FoV = out_szs_[idx];
-		
-		msk->set_FoV(FoV);
+		msk->set_FoV(out_szs_[idx]);
 		msks_.push_back(msk);
 	}
 
@@ -217,8 +215,6 @@ protected:
 		std::size_t idx = wmsks_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
 
-		vec3i FoV = out_szs_[idx];
-		
 		double3d_ptr wmsk = 
 			volume_utils::binomial_rebalance_mask(lbl->get_volume());
 
@@ -226,7 +222,7 @@ protected:
 			dvolume_data_ptr(new dvolume_data(wmsk));
 		
 		vd->set_offset(lbl->get_offset());
-		vd->set_FoV(FoV);
+		vd->set_FoV(out_szs_[idx]);
 		wmsks_.push_back(vd);
 	}
 
