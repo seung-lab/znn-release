@@ -144,8 +144,8 @@ public:
 		
 		rad_ = FoV_/vec3i(2,2,2);
 
-		set_shift(sft);
-		set_range();
+		// set_range() included
+		set_shift(sft);		
 	}
 
 	void set_offset( const vec3i& off )

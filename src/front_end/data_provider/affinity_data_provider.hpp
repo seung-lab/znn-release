@@ -64,6 +64,10 @@ protected:
 				add_label(yaff, vec3i(1,1,0));
 				add_label(zaff, vec3i(0,0,1));
 
+				add_wmask(xaff, vec3i(1,1,0));
+				add_wmask(yaff, vec3i(1,1,0));
+				add_wmask(zaff, vec3i(0,0,1));
+
 				std::cout << std::endl;
 			}
 		}
@@ -92,6 +96,7 @@ protected:
 		}
 	}
 
+
 // data augmentation
 public:
 	void data_augmentation( bool data_aug = false )
@@ -105,6 +110,7 @@ public:
 			trans_.reset();
 		}
 	}
+
 
 // sampling
 protected:
@@ -143,6 +149,7 @@ protected:
         affs.push_back(crop_affinity(zaff, vec3i(0,0,1)));
     }
 
+
 protected:
 	virtual void add_label( dvolume_data_ptr lbl, vec3i sft = vec3i::zero )
 	{
@@ -172,23 +179,21 @@ protected:
 		msks_.push_back(msk);
 	}
 
-	virtual void add_wmask( dvolume_data_ptr lbl )
+	virtual void add_wmask( dvolume_data_ptr lbl, vec3i sft = vec3i::zero )
 	{
 		std::size_t idx = wmsks_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
 
 		vec3i FoV = out_szs_[idx];
-		vec3i sft = vec3i::zero;
+
+		// for affinity graph transformation
+		FoV += sft;
 		
 		double3d_ptr wmsk = 
 			volume_utils::binomial_rebalance_mask(lbl->get_volume());
 
 		dvolume_data_ptr vd = 
 			dvolume_data_ptr(new dvolume_data(wmsk));
-
-		// for affinity graph transformation
-		FoV += vec3i::one;
-		sft += vec3i::one;
 		
 		vd->set_offset(lbl->get_offset());
 		vd->set_FoV(FoV,sft);
@@ -200,14 +205,15 @@ protected:
 public:
 	affinity_data_provider( const std::string& fname, 
 						    std::vector<vec3i> in_szs,
-						    std::vector<vec3i> out_szs )
+						    std::vector<vec3i> out_szs,
+						    bool mirroring = false )
 		: volume_data_provider()
 	{
 		in_szs_ = in_szs;
 		out_szs_ = out_szs;
-
+		set_FoVs();
 		load(fname);
-		init();
+		init(mirroring);
 	}
 
 	virtual ~affinity_data_provider()

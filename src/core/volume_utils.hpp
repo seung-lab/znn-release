@@ -1395,7 +1395,12 @@ std::list<double3d_ptr> encode_multiclass( double3d_ptr label, std::size_t n_cla
 
 inline 
 double3d_ptr mirror_boundary( double3d_ptr vol, vec3i RF )
-{    
+{
+    // not allowing even-sized receptive field
+    STRONG_ASSERT(RF[0] % 2);
+    STRONG_ASSERT(RF[1] % 2);
+    STRONG_ASSERT(RF[2] % 2);
+    
     std::size_t vx = vol->shape()[0];
     std::size_t vy = vol->shape()[1];
     std::size_t vz = vol->shape()[2];
@@ -1442,15 +1447,17 @@ double3d_ptr mirror_boundary( double3d_ptr vol, vec3i RF )
             {
                 (*r)[x][y][mz-z] = (*r)[x][y][mz+z];
                 (*r)[x][y][mz+vz-1+z] = (*r)[x][y][mz+vz-1-z];
-            }
+            }    
 
-    // handle boundary effect by even-sized receptive field
-    vec3i margin = vec3i::zero;
-    if ( RF[0] % 2 == 0 ) ++(margin[0]);
-    if ( RF[1] % 2 == 0 ) ++(margin[1]);
-    if ( RF[2] % 2 == 0 ) ++(margin[2]);
-    if ( margin != vec3i::zero )
-        r = volume_utils::crop(r,rx-margin[0],ry-margin[1],rz-margin[2]);
+    // // handle boundary effect by even-sized receptive field
+    // vec3i margin = vec3i::zero;
+    // if ( RF[0] % 2 == 0 ) ++(margin[0]);
+    // if ( RF[1] % 2 == 0 ) ++(margin[1]);
+    // if ( RF[2] % 2 == 0 ) ++(margin[2]);
+    // if ( margin != vec3i::zero )
+    // {
+    //     r = volume_utils::crop(r,rx-margin[0],ry-margin[1],rz-margin[2]);
+    // }
 
     return r;
 }
