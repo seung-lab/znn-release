@@ -40,6 +40,7 @@ protected:
 
 	std::vector<vec3i>			in_szs_;
 	std::vector<vec3i>			out_szs_;
+	std::vector<vec3i>			FoVs_;
 
 	box							range_;
 	std::vector<vec3i>         	locs_;
@@ -253,6 +254,9 @@ protected:
 	    STRONG_ASSERT(out_szs_.size() == lbls_.size());
 	    STRONG_ASSERT(out_szs_.size() == msks_.size());
 
+	    // boundary mirroring
+
+
         // valid locations
         collect_valid_locations();
 
@@ -286,6 +290,24 @@ protected:
         std::cout << "Number of valid samples: " << locs_.size() << std::endl;
 		std::cout << "Completed. (Elapsed time: " 
                   << wt.elapsed<double>() << " secs)\n" << std::endl;
+    }
+
+    void set_FoVs()
+    {
+		vec3i out_sz = out_szs_.front();
+
+		// [kisuklee]
+		// Currently, output sizes are assumed to be the same.
+		FOR_EACH( it, out_szs_ )
+		{
+			STRONG_ASSERT(*it == out_sz);
+		}
+
+		FoVs_.clear();
+		FOR_EACH( it, in_szs_ )
+		{
+			FoVs_.push_back(*it - out_sz);
+		}
     }
 
 
@@ -348,6 +370,7 @@ public:
 		, initialized_(false)
 		, trans_()
 	{
+		set_FoVs();
 		load(fname);
 		init();
 	}
