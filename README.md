@@ -45,6 +45,12 @@ General purpose C++ library, written and maintained by Aleksander Zlateski.
 
 
 
+Slides
+------
+* [Core Architecture](https://docs.google.com/presentation/d/1O1Xkyx71eUAZnNa784wvEKzqF7-lon7qSbAWZGRKg4E/edit)
+* [How to Tutorial](https://docs.google.com/presentation/d/1yPQ5xDkhHeyfL7Xt4TvoEiJzHkpoas-as5nWO48hjrQ/edit)
+
+
 Contact
 -------
 * Aleksander Zlateski \<zlateski@mit.edu\>
