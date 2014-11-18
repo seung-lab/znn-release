@@ -119,11 +119,11 @@ private:
              std::cout << (*it) << " ";
         }
         std::cout << "\n\n";
-        
+
         if ( op->dp_type == "volume" )
         {
             volume_data_provider* dp =
-                new volume_data_provider(ssbatch.str(),in_szs,out_szs);
+                new volume_data_provider(ssbatch.str(),in_szs,out_szs,op->mirroring);
             
             dp->data_augmentation(op->data_aug);
             
@@ -132,7 +132,7 @@ private:
         else if ( op->dp_type == "affinity" )
         {
             affinity_data_provider* dp =
-                new affinity_data_provider(ssbatch.str(),in_szs,out_szs);
+                new affinity_data_provider(ssbatch.str(),in_szs,out_szs,op->mirroring);
             
             dp->data_augmentation(op->data_aug);
             

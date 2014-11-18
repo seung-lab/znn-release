@@ -259,6 +259,8 @@ protected:
         initialized_ = true;
     }
 
+    // [11/15/2014 kisukee]
+    // Implementation is still not stable.
     virtual void boundary_mirroring()
     {
     	std::cout << "[volume_data_provider] boundary_mirroring" << std::endl;
@@ -285,25 +287,30 @@ protected:
 
     	std::list<dvolume_data_ptr>	mimgs;
     	std::vector<vec3i>::iterator fov = FoVs_.begin();
+    	std::vector<vec3i>::iterator insz = in_szs_.begin();
 		FOR_EACH( it, imgs_ )
 		{
 			dvolume_data_ptr img = *it;
+
+			// field of view
+			vec3i FoV = *fov++;
 			
 			// mirrored volume
 			double3d_ptr mimg = 
-				volume_utils::mirror_boundary(img->get_volume(),*fov++);
+				volume_utils::mirror_boundary(img->get_volume(),FoV);
+			std::cout << "msize = " << size_of(mimg) << std::endl;
 
 			// new data volume
 			dvolume_data_ptr 
 				vd = dvolume_data_ptr(new dvolume_data(mimg));
-				vd->set_offset(img->get_offset() + offset);				
-				vd->set_FoV(img->get_FoV());
+				vd->set_offset(img->get_offset() + offset - FoV/vec3i(2,2,2));
+				vd->set_FoV(*insz++);
 
 			mimgs.push_back(vd);
 		}
 
 		// swap with new mirrored image volumes
-		imgs_.swap(mimgs);		
+		imgs_.swap(mimgs);
 
 		// broadcast offset
 		FOR_EACH( it, lbls_ )
@@ -370,7 +377,8 @@ protected:
 		FoVs_.clear();
 		FOR_EACH( it, in_szs_ )
 		{
-			FoVs_.push_back(*it - out_sz);
+			vec3i in_sz = *it;
+			FoVs_.push_back(in_sz - out_sz + vec3i::one);
 		}
     }
 

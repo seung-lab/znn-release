@@ -72,16 +72,23 @@ public:
 	static
 	box intersect( const box& a, const box& b )
 	{
-		box ret;
+		// upper corner
+		vec3i uc;
+		vec3i uc1 = a.upper_corner();
+		vec3i uc2 = b.upper_corner();
+		uc[0] = std::max(uc1[0],uc2[0]);
+		uc[1] = std::max(uc1[1],uc2[1]);
+		uc[2] = std::max(uc1[2],uc2[2]);
 
-		if ( a.contains(b.uc) || b.contains(a.uc) )
-		{
-			ret.uc = (a.uc > b.uc ? a.uc : b.uc);
-			ret.lc = (a.lc < b.lc ? a.lc : b.lc);
-			ret.sz = ret.lc - ret.uc;
-		}
+		// lower corner
+		vec3i lc;
+		vec3i lc1 = a.lower_corner();
+		vec3i lc2 = b.lower_corner();
+		lc[0] = std::min(lc1[0],lc2[0]);
+		lc[1] = std::min(lc1[1],lc2[1]);
+		lc[2] = std::min(lc1[2],lc2[2]);
 
-		return ret;
+		return box(uc,lc);		
 	}
 
 	box intersect( const box& rhs ) const
