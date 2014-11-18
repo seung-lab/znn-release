@@ -204,12 +204,12 @@ protected:
 
 		FOR_EACH( it, imgs_ )
 		{
-			range_ = range_.intersect((*it)->get_range());
+			range_ = range_.intersect((*it)->get_range());			
 		}
 
 		FOR_EACH( it, lbls_ )
-		{
-			range_ = range_.intersect((*it)->get_range());
+		{			
+			range_ = range_.intersect((*it)->get_range());		
 		}
 	}
 

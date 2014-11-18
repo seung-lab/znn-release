@@ -44,7 +44,7 @@ private:
 private:
 	void load( const std::string& fname )
 	{
-		std::string smsk = fname + ".mask";
+		std::string smsk = fname;
 
         // size of the whole volume
     	vec3i msksz = import_size_info(fname);
@@ -176,12 +176,12 @@ public:
         {
         	std::cout << "Now processing " << i << "th mask..." << std::endl;
             std::ostringstream subname;
-            subname << fname << ".mask." << i++;
+            subname << fname << "." << i++;
 
             volume_utils::save((*it), subname.str());
         }
 
-        std::string ssz = fname + ".mask";
+        std::string ssz = fname;
         export_size_info( get_size(), ssz );
 
         std::cout << "Completed. (Elapsed time: " 

@@ -293,7 +293,7 @@ private:
 
 		std::list<bool3d_ptr> ret;
 		if ( !spec->get_path().empty() )
-		{
+		{			
 			std::cout << "Affinity mask path: " << spec->get_path() << std::endl;
 
 			bool3d_ptr vol = volume_pool.get_bool3d(spec->size);
