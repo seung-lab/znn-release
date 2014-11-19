@@ -1,9 +1,9 @@
 ODIR		=	./bin
 CPP		=	g++
-CPP_FLAGS	= 	-g -fopenmp
+CPP_FLAGS	= 	-g
 INC_FLAGS	=	-I. -I./src -I./zi
 OPT_FLAGS	=	-DNDEBUG -O2 
-OTH_FLAGS	=	-DZI_USE_OPENMP -Wall -Wextra -Wno-unused-result -Wno-unused-local-typedefs
+OTH_FLAGS	=	-Wall -Wextra -Wno-unused-result -Wno-unused-local-typedefs
 
 LIBS		=	-lfftw3 -lpthread -lrt -lfftw3_threads
 BOOST_LIBS	=	-lboost_program_options -lboost_regex -lboost_filesystem -lboost_system
