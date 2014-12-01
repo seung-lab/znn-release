@@ -706,7 +706,7 @@ template< class T, std::size_t N >
 const mat< T, N > mat< T, N >::eye( 1, detail::eye_init_tag() );
 
 template< class T, std::size_t N >
-const mat< T, N > mat< T, N >::identity( 1, typename mat< T, N >::eye_init_tag() );
+const mat< T, N > mat< T, N >::identity( 1, detail::eye_init_tag() );
 
 //
 // Comparison
