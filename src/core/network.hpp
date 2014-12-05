@@ -192,7 +192,8 @@ private:
                 volume_forward_scanner(ssbatch.str(),
                                        in_szs,out_szs,
                                        op->scan_offset,
-                                       op->subvol_dim));
+                                       op->subvol_dim,
+                                       op->mirroring));
         }
         else
         {

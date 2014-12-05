@@ -267,7 +267,7 @@ protected:
 
     	std::set<std::size_t> x;
     	std::set<std::size_t> y;
-    	std::set<std::size_t> z;    	
+    	std::set<std::size_t> z;
     	
     	FOR_EACH( it, FoVs_ )
     	{
