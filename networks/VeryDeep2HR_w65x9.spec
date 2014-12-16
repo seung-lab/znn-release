@@ -9,7 +9,7 @@ init_type=Uniform
 init_params=0.05
 size=3,3,1
 
-[INPUT_R1]
+[INPUT2_R1]
 init_type=Uniform
 init_params=0.05
 size=3,3,1
