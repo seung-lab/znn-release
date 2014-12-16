@@ -255,7 +255,7 @@ public:
 
 		FOR_EACH( it, in_ )
 		{
-			(*it)->set_sparse(in_sparse_);
+			// (*it)->set_sparse(in_sparse_);
 			vec3i new_size = in_size_ + (*it)->real_filter_size() - vec3i::one;
 			(*it)->source_->backward_init(new_size);
 		}

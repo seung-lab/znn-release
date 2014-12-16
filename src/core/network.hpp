@@ -621,13 +621,39 @@ public:
         // compute gradient using a given cost function
         std::list<double3d_ptr> grads = cost_fn_->gradient(outs,s->labels,s->masks);
         
-        // rebalancing
+        // rebalancing (global)
+        // if ( op->rebalance )
+        // {
+        //     std::list<double3d_ptr>::iterator wit = s->wmasks.begin();
+        //     FOR_EACH( it, grads )
+        //     {
+        //         volume_utils::elementwise_mul_by(*it, *wit++);
+        //     }
+        // }
+        // rebalancing (patch-wise)
         if ( op->rebalance )
         {
-            std::list<double3d_ptr>::iterator wit = s->wmasks.begin();
-            FOR_EACH( it, grads )
+            // default cross-entropy is multinomial (1-of-K coding)
+            if ( op->cost_fn == "cross_entropy" )
             {
-                volume_utils::elementwise_mul_by(*it, *wit++);
+                double3d_ptr rbmask = 
+                    volume_utils::multinomial_rebalance_mask(s->labels);
+
+                FOR_EACH( it, grads )
+                {
+                    volume_utils::elementwise_mul_by(*it,rbmask);
+                }
+            }
+            else
+            {
+                std::list<double3d_ptr> rbmask = 
+                    volume_utils::binomial_rebalance_mask(s->labels);
+
+                std::list<double3d_ptr>::iterator rbmit = rbmask.begin();
+                FOR_EACH( it, grads )
+                {
+                    volume_utils::elementwise_mul_by(*it,*rbmit++);
+                }
             }
         }
 
