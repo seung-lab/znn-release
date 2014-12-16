@@ -117,6 +117,6 @@ size=1,1,1
 load=0
 
 [OUTPUT]
-size=2
-activation=linear
+size=3
+activation=forward_logistic
 load=0
