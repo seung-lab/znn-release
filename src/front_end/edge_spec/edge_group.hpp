@@ -235,7 +235,7 @@ private:
 
 		// get length of the file
 		fin.seekg(0,fin.end);
-		int len = fin.tellg();
+		int64_t len = fin.tellg();
 		STRONG_ASSERT( len > 0 );
 		
 		// idx validity check
@@ -245,7 +245,7 @@ private:
 		STRONG_ASSERT( len/sz > idx );
 
 		// seek
-		int pos = sz*idx;
+		int64_t pos = sz*idx;
 		fin.seekg(pos,fin.beg);
 
 		return load_weight(fin);
