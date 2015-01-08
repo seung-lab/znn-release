@@ -236,16 +236,12 @@ protected:
 
 	void prepare_outputs()
 	{
-		// vec3i uc = scan_locs_.front();
-		// vec3i lc = scan_locs_.back();
 		vec3i uc = scan_offset_;
 		vec3i lc = uc + (scan_dim_ - vec3i::one)*scan_step_;
 
 		// [08/19/2014] temporary sanity check
 		STRONG_ASSERT(scan_locs_.front() == uc);
-		std::cout << scan_locs_.back() << std::endl;
-		std::cout << lc << std::endl;
-		STRONG_ASSERT(scan_locs_.back() == lc);
+		STRONG_ASSERT(scan_locs_.back()  == lc);
 
 		FOR_EACH( it, out_szs_ )
 		{
@@ -274,7 +270,7 @@ private:
 		std::size_t idx = outs_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
 
-		double3d_ptr vol = volume_pool.get_double3d(range.size());		
+		double3d_ptr vol = volume_pool.get_double3d(range.size());
 		vec3i offset = range.upper_corner();
 		vec3i FoV = out_szs_[idx];
 		rw_dvolume_data_ptr out =

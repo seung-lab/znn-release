@@ -1,12 +1,24 @@
 [INPUT]
 size=1
 
+[INPUT2]
+size=1
+
 [INPUT_C1]
 init_type=Uniform
 init_params=0.05
 size=3,3,1
 
+[INPUT2_R1]
+init_type=Uniform
+init_params=0.05
+size=3,3,3
+
 [C1]
+size=24
+activation=relu
+
+[R1]
 size=24
 activation=relu
 
@@ -15,11 +27,24 @@ init_type=Uniform
 init_params=0.05
 size=3,3,1
 
+[R1_R2]
+init_type=Uniform
+init_params=0.05
+size=3,3,3
+
 [C2]
 size=24
 activation=relu
 
+[R2]
+size=24
+activation=relu
+
 [C2_C3]
+init_type=normalized
+size=2,2,1
+
+[R2_C3]
 init_type=normalized
 size=2,2,1
 
