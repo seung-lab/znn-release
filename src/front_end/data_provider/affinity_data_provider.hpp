@@ -120,6 +120,7 @@ protected:
 
     	crop_affinity(s->labels);
     	crop_affinity(s->masks);
+    	crop_affinity(s->wmasks);
 
     	return s;
 	}
