@@ -4,6 +4,12 @@ size=1
 [INPUT2]
 size=1
 
+[INPUT3]
+size=1
+
+[INPUT4]
+size=1
+
 [INPUT_C1]
 init_type=Uniform
 init_params=0.05
@@ -14,11 +20,25 @@ init_type=Uniform
 init_params=0.05
 size=3,3,1
 
+[INPUT3_R1]
+init_type=Uniform
+init_params=0.05
+size=3,3,1
+
+[INPUT4_Z1]
+init_type=Uniform
+init_params=0.05
+size=3,3,1
+
 [C1]
 size=24
 activation=relu
 
 [R1]
+size=24
+activation=relu
+
+[Z1]
 size=24
 activation=relu
 
@@ -32,6 +52,11 @@ init_type=Uniform
 init_params=0.05
 size=3,3,1
 
+[Z1_Z2]
+init_type=Uniform
+init_params=0.05
+size=3,3,1
+
 [C2]
 size=24
 activation=relu
@@ -40,11 +65,19 @@ activation=relu
 size=24
 activation=relu
 
+[Z2]
+size=24
+activation=relu
+
 [C2_C3]
 init_type=normalized
 size=2,2,1
 
 [R2_C3]
+init_type=normalized
+size=2,2,1
+
+[Z2_C3]
 init_type=normalized
 size=2,2,1
 
@@ -124,16 +157,20 @@ filter_stride=1,1,1
 init_type=Uniform
 init_params=0.05
 size=3,3,3
+load=0
 
 [FC]
 size=200
 activation=relu
+load=0
 
 [FC_OUTPUT]
 init_type=Uniform
 init_params=0.05
 size=1,1,1
+load=0
 
 [OUTPUT]
 size=3
 activation=forward_logistic
+load=0
