@@ -37,6 +37,7 @@ protected:
 
 	std::vector<vec3i>			in_szs_;
 	std::vector<vec3i>			out_szs_;
+	std::vector<vec3i>			FoVs_;
 
 	box							range_;
 	std::vector<vec3i>         	locs_;
@@ -215,17 +216,88 @@ protected:
 
 
 protected:
-    virtual void init()
+    virtual void init( bool mirroring = false )
     {
     	// integrity check
     	STRONG_ASSERT(in_szs_.size()  == imgs_.size());    	
 	    STRONG_ASSERT(out_szs_.size() == lbls_.size());
 	    STRONG_ASSERT(out_szs_.size() == msks_.size());
 
+	    // boundary mirroring
+	    if ( mirroring ) boundary_mirroring();
+
         // valid locations
         collect_valid_locations();
 
         initialized_ = true;
+    }
+
+    // [1/10/2015 kisukee]
+    // Implementation is still not stable.
+    virtual void boundary_mirroring()
+    {
+    	std::cout << "[volume_data_provider] boundary_mirroring" << std::endl;
+
+    	std::set<std::size_t> x;
+    	std::set<std::size_t> y;
+    	std::set<std::size_t> z;
+    	
+    	FOR_EACH( it, FoVs_ )
+    	{
+    		vec3i FoV = *it;
+    		x.insert(FoV[0]/2);
+    		y.insert(FoV[1]/2);
+    		z.insert(FoV[2]/2);
+    	}
+
+    	STRONG_ASSERT(!x.empty());
+    	STRONG_ASSERT(!y.empty());
+    	STRONG_ASSERT(!z.empty());
+
+    	vec3i offset(*x.rbegin(), *y.rbegin(), *z.rbegin());
+
+    	std::cout << "offset = " << offset << std::endl;
+
+    	std::list<dvolume_data_ptr>	mimgs;
+    	std::vector<vec3i>::iterator fov = FoVs_.begin();
+    	std::vector<vec3i>::iterator insz = in_szs_.begin();
+		FOR_EACH( it, imgs_ )
+		{
+			dvolume_data_ptr img = *it;
+
+			// field of view
+			vec3i FoV = *fov++;
+			
+			// mirrored volume
+			double3d_ptr mimg = 
+				volume_utils::mirror_boundary(img->get_volume(),FoV);
+			std::cout << "msize = " << size_of(mimg) << std::endl;
+
+			// new data volume
+			dvolume_data_ptr 
+				vd = dvolume_data_ptr(new dvolume_data(mimg));
+				vd->set_offset(img->get_offset() + offset - FoV/vec3i(2,2,2));
+				vd->set_FoV(*insz++);
+
+			mimgs.push_back(vd);
+		}
+
+		// swap with new mirrored image volumes
+		imgs_.swap(mimgs);
+
+		// broadcast offset
+		FOR_EACH( it, lbls_ )
+		{
+			vec3i old = (*it)->get_offset();
+			(*it)->set_offset(old + offset);
+		}
+
+		// broadcast offset
+		FOR_EACH( it, msks_ )
+		{
+			vec3i old = (*it)->get_offset();
+			(*it)->set_offset(old + offset);
+		}
     }
 
     void collect_valid_locations()
@@ -255,6 +327,25 @@ protected:
         std::cout << "Number of valid samples: " << locs_.size() << std::endl;
 		std::cout << "Completed. (Elapsed time: " 
                   << wt.elapsed<double>() << " secs)\n" << std::endl;
+    }
+
+    void set_FoVs()
+    {
+		vec3i out_sz = out_szs_.front();
+
+		// [kisuklee]
+		// Currently, output sizes are assumed to be the same.
+		FOR_EACH( it, out_szs_ )
+		{
+			STRONG_ASSERT(*it == out_sz);
+		}
+
+		FoVs_.clear();
+		FOR_EACH( it, in_szs_ )
+		{
+			vec3i in_sz = *it;
+			FoVs_.push_back(in_sz - out_sz + vec3i::one);
+		}
     }
 
 
@@ -310,15 +401,17 @@ public:
 	{}
 
 	volume_data_provider( const std::string& fname, 
-						   std::vector<vec3i> in_szs,
-						   std::vector<vec3i> out_szs )
+					   	  std::vector<vec3i> in_szs,
+					   	  std::vector<vec3i> out_szs,
+					   	  bool mirroring = false )
 		: in_szs_(in_szs)
 		, out_szs_(out_szs)
 		, initialized_(false)
 		, trans_()
 	{
+		set_FoVs();
 		load(fname);
-		init();
+		init(mirroring);
 	}
 
 	virtual ~volume_data_provider()
