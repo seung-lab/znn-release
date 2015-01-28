@@ -67,6 +67,7 @@ public:
 	bool				data_aug;
 	double 				cls_thresh;
 	bool				softmax;
+	bool				mirroring;
 
 	// [UPDATE]
 	double				force_eta;
@@ -154,6 +155,7 @@ private:
 	        ("TRAIN.data_aug",value<bool>(&data_aug)->default_value(false),"Data augmentation")
 	        ("TRAIN.cls_thresh",value<double>(&cls_thresh)->default_value(0.5),"Classification threshold")
 	        ("TRAIN.softmax",value<bool>(&softmax)->default_value(false),"Softmax")
+	        ("TRAIN.mirroring",value<bool>(&mirroring)->default_value(false),"Boundary mirroring")
 	        // UPDATE
 	        ("UPDATE.force_eta",value<double>(&force_eta)->default_value(0),"Force the learning rate parameter")
 	        ("UPDATE.momentum",value<double>(&momentum)->default_value(0),"Momentum")
@@ -272,6 +274,7 @@ public:
         		   << "data_aug=" << rhs.data_aug << '\n'
         		   << "cls_thresh=" << rhs.cls_thresh << '\n'
         		   << "softmax=" << rhs.softmax << '\n'
+        		   << "mirroring=" << rhs.mirroring << '\n'
         		   << "\n[UPDATE]\n"
         		   << "force_eta=" << rhs.force_eta << '\n'
         		   << "momentum=" << rhs.momentum << '\n'
