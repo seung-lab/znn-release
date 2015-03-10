@@ -65,7 +65,7 @@ using ZI_TYPE_TRAITS_NAMESPACE::is_empty;
 using ZI_TYPE_TRAITS_NAMESPACE::is_polymorphic;
 using ZI_TYPE_TRAITS_NAMESPACE::is_abstract;
 //using ZI_TYPE_TRAITS_NAMESPACE::has_trivial_assign;
-using ZI_TYPE_TRAITS_NAMESPACE::has_trivial_destructor;
+//using ZI_TYPE_TRAITS_NAMESPACE::has_trivial_destructor;
 //using ZI_TYPE_TRAITS_NAMESPACE::has_nothrow_assign;
 using ZI_TYPE_TRAITS_NAMESPACE::has_virtual_destructor;
 using ZI_TYPE_TRAITS_NAMESPACE::is_signed;
@@ -91,28 +91,28 @@ using ZI_TYPE_TRAITS_NAMESPACE::aligned_storage;
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 
-template< typename T >
-struct has_trivial_constructor: std::has_trivial_default_constructor< T > {};
+// template< typename T >
+// struct has_trivial_constructor: std::has_trivial_default_constructor< T > {};
 
-template< typename T >
-struct has_trivial_copy: std::has_trivial_copy_constructor< T > {};
+// template< typename T >
+// struct has_trivial_copy: std::has_trivial_copy_constructor< T > {};
 
-template< typename T >
-struct has_nothrow_constructor: std::has_nothrow_default_constructor< T > {};
+// template< typename T >
+// struct has_nothrow_constructor: std::has_nothrow_default_constructor< T > {};
 
-template< typename T >
-struct has_nothrow_copy: std::has_nothrow_copy_constructor< T > {};
+// template< typename T >
+// struct has_nothrow_copy: std::has_nothrow_copy_constructor< T > {};
 
-template< typename T >
-struct add_reference: std::add_lvalue_reference< T > {};
+// template< typename T >
+// struct add_reference: std::add_lvalue_reference< T > {};
 
-#else
+// #else
 
-using ZI_TYPE_TRAITS_NAMESPACE::has_trivial_constructor;
-using ZI_TYPE_TRAITS_NAMESPACE::has_trivial_copy;
-using ZI_TYPE_TRAITS_NAMESPACE::has_nothrow_constructor;
-using ZI_TYPE_TRAITS_NAMESPACE::has_nothrow_copy;
-using ZI_TYPE_TRAITS_NAMESPACE::add_reference;
+// using ZI_TYPE_TRAITS_NAMESPACE::has_trivial_constructor;
+// using ZI_TYPE_TRAITS_NAMESPACE::has_trivial_copy;
+// using ZI_TYPE_TRAITS_NAMESPACE::has_nothrow_constructor;
+// using ZI_TYPE_TRAITS_NAMESPACE::has_nothrow_copy;
+// using ZI_TYPE_TRAITS_NAMESPACE::add_reference;
 
 #endif
 
