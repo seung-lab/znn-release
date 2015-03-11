@@ -477,90 +477,90 @@ public:
         destroy_long3d(); // [07/08/2013 kisuklee]
     }
 
-    shared_ptr<double3d>
+    boost::shared_ptr<double3d>
     get_double3d( std::size_t x, std::size_t y, std::size_t z )
     {
         return get_double3d_pool(vec3i(x,y,z))->get();
     }
 
-    shared_ptr<double3d>
-    get_double3d( shared_ptr<double3d> x )
+    boost::shared_ptr<double3d>
+    get_double3d( boost::shared_ptr<double3d> x )
     {
         return get_double3d(x->shape()[0], x->shape()[1], x->shape()[2] );
     }
 
-    shared_ptr<double3d>
+    boost::shared_ptr<double3d>
     get_double3d( const vec3i& v )
     {
         return get_double3d_pool(v)->get();
     }
 
-    shared_ptr<complex3d>
+    boost::shared_ptr<complex3d>
     get_complex3d( std::size_t x, std::size_t y, std::size_t z )
     {
         return get_complex3d_pool(vec3i(x,y,z/2+1))->get();
     }
 
-    shared_ptr<complex3d>
-    get_complex3d( shared_ptr<complex3d> x )
+    boost::shared_ptr<complex3d>
+    get_complex3d( boost::shared_ptr<complex3d> x )
     {
         return get_complex3d_pool(vec3i
                                   (x->shape()[0],x->shape()[1],x->shape()[2]))->get();
     }
 
-    shared_ptr<complex3d>
+    boost::shared_ptr<complex3d>
     get_complex3d( const vec3i& v )
     {
         vec3i vc(v[0], v[1], (v[2]/2)+1);
         return get_complex3d_pool(vc)->get();
     }
 
-    shared_ptr<complex3d>
-    get_complex3d( shared_ptr<double3d> x )
+    boost::shared_ptr<complex3d>
+    get_complex3d( boost::shared_ptr<double3d> x )
     {
         return get_complex3d(x->shape()[0], x->shape()[1], x->shape()[2] );
     }
 
     // [07/08/2013 kisuklee]
-    shared_ptr<bool3d>
+    boost::shared_ptr<bool3d>
     get_bool3d( std::size_t x, std::size_t y, std::size_t z )
     {
         return get_bool3d_pool(vec3i(x,y,z))->get();
     }
 
     // [07/08/2013 kisuklee]
-    shared_ptr<bool3d>
-    get_bool3d( shared_ptr<bool3d> x )
+    boost::shared_ptr<bool3d>
+    get_bool3d( boost::shared_ptr<bool3d> x )
     {
         return get_bool3d(x->shape()[0], x->shape()[1], x->shape()[2] );
     }
 
     // [07/08/2013 kisuklee]
-    shared_ptr<bool3d>
+    boost::shared_ptr<bool3d>
     get_bool3d( const vec3i& v )
     {
         return get_bool3d_pool(v)->get();
     }
 
-    shared_ptr<long3d>
+    boost::shared_ptr<long3d>
     get_long3d( std::size_t x, std::size_t y, std::size_t z )
     {
         return get_long3d_pool(vec3i(x,y,z))->get();
     }
 
-    shared_ptr<long3d>
-    get_long3d( shared_ptr<long3d> x )
+    boost::shared_ptr<long3d>
+    get_long3d( boost::shared_ptr<long3d> x )
     {
         return get_long3d(x->shape()[0], x->shape()[1], x->shape()[2] );
     }
 
-    shared_ptr<long3d>
-    get_long3d( shared_ptr<double3d> x )
+    boost::shared_ptr<long3d>
+    get_long3d( boost::shared_ptr<double3d> x )
     {
         return get_long3d(x->shape()[0], x->shape()[1], x->shape()[2] );
     }
 
-    shared_ptr<long3d>
+    boost::shared_ptr<long3d>
     get_long3d( const vec3i& v )
     {
         return get_long3d_pool(v)->get();
