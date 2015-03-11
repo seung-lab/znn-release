@@ -34,22 +34,22 @@ private:
 
 private:
 	std::list<dvolume_data_ptr>		imgs_;
-	std::list<rw_dvolume_data_ptr>	outs_;
+	std::list<rw_dvolume_data_ptr>   outs_;
 
-	std::vector<vec3i>				in_szs_ ;
-	std::vector<vec3i>				out_szs_;
-	std::vector<vec3i>				FoVs_	;
+	std::vector<vec3i>					in_szs_ ;
+	std::vector<vec3i>					out_szs_;
+	std::vector<vec3i>					FoVs_	;
 
-	box								range_;
+	box										range_;
 
-	vec3i							scan_offset_;
-	vec3i							scan_step_	;
-	vec3i							scan_dim_	;
-	std::vector<scan_coord>			scan_coords_;
-	std::set<vec3i>					scan_locs_	;
-	vec3i							scan_uc_	;
-	vec3i							scan_lc_	;
-	std::list<vec3i>				wait_queue_	;
+	vec3i										scan_offset_;
+	vec3i										scan_step_	;
+	vec3i										scan_dim_	;
+	std::vector<scan_coord>				scan_coords_;
+	std::set<vec3i>						scan_locs_	;
+	vec3i										scan_uc_	;
+	vec3i										scan_lc_	;
+	std::list<vec3i>						wait_queue_	;
 
 
 protected:
@@ -83,10 +83,10 @@ protected:
 		set_scanning_locations();
 
 		std::cout << "[volume_forward_scanner]"			<< '\n'
-		  		  << "offset:    " << scan_offset_ 		<< '\n'
-		  		  << "step size: " << scan_step_ 		<< '\n'
-		  		  << "dimension: " << scan_dim_			<< '\n'
-		  		  << "num locs:  " << scan_locs_.size() << std::endl;
+		  		    << "offset:    " << scan_offset_ 		<< '\n'
+		  		  	 << "step size: " << scan_step_ 			<< '\n'
+		  		  	 << "dimension: " << scan_dim_			<< '\n'
+		  		    << "num locs:  " << scan_locs_.size() << std::endl;
 
 		// build output volumes
 		prepare_outputs();
@@ -97,9 +97,9 @@ protected:
 
 protected:
 	// [12/02/2014 kisukee]
-    // Implementation is still not stable.
-    virtual void boundary_mirroring()
-    {
+   // Implementation is still not stable.
+   virtual void boundary_mirroring()
+   {
     	std::cout << "[volume_forward_scanner] boundary_mirroring" << std::endl;
 
     	std::set<std::size_t> x;
@@ -148,10 +148,10 @@ protected:
 
 		// swap with new mirrored image volumes
 		imgs_.swap(mimgs);
-    }
+   }
 
-    void set_FoVs()
-    {
+   void set_FoVs()
+   {
 		vec3i out_sz = out_szs_.front();
 
 		// [kisuklee]
@@ -167,7 +167,7 @@ protected:
 			vec3i in_sz = *it;
 			FoVs_.push_back(in_sz - out_sz + vec3i::one);
 		}
-    }
+   }
 
 private:
 	void set_scanning_offset()
@@ -343,16 +343,24 @@ public:
 
 	virtual void save( const std::string& fpath ) const
 	{
-		// outputs
-		std::size_t cnt = 0;
+		// // output by volume
+		// std::size_t cnt = 0;
+		// FOR_EACH( it, outs_ )
+		// {
+		// 	std::string idx = boost::lexical_cast<std::string>(cnt++);
+		// 	std::string fname = fpath + "." + idx;
+		// 	double3d_ptr out = (*it)->get_volume();
+		// 	volume_utils::save(out,fname);
+		// 	export_size_info(size_of(out),fname);
+		// }
+
+		// output by tensor
+		std::vector<double3d_ptr> tensor;
 		FOR_EACH( it, outs_ )
 		{
-			std::string idx = boost::lexical_cast<std::string>(cnt++);
-			std::string fname = fpath + "." + idx;
-			double3d_ptr out = (*it)->get_volume();
-			volume_utils::save(out,fname);
-			export_size_info(size_of(out),fname);
+			tensor.push_back((*it)->get_volume());
 		}
+		volume_utils::save_tensor(tensor, fpath);
 	}
 
 

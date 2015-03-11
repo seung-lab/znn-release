@@ -36,7 +36,7 @@ inline vec3i size_of( const T& a )
     return vec3i(a->shape()[0],a->shape()[1],a->shape()[2]);
 };
 
-void export_size_info( const vec3i& sz, const std::string& fname )
+void export_size_info( const vec3i& sz, const std::string& fname, std::size_t n = 0 )
 {
     std::string ssz = fname + ".size";
     std::ofstream fsz(ssz.c_str(), (std::ios::out | std::ios::binary) );
@@ -48,6 +48,12 @@ void export_size_info( const vec3i& sz, const std::string& fname )
     fsz.write( reinterpret_cast<char*>(&u), sizeof(uint32_t) );
     u = static_cast<uint32_t>(sz[2]);
     fsz.write( reinterpret_cast<char*>(&u), sizeof(uint32_t) );
+    
+    if ( n > 0 )
+    {
+        u = static_cast<uint32_t>(n);
+        fsz.write( reinterpret_cast<char*>(&u), sizeof(uint32_t) );
+    }
 }
 
 vec3i import_size_info( const std::string& fname )

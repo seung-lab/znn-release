@@ -1040,6 +1040,17 @@ inline void save_append( T a, const std::string& fname )
 }
 
 template <typename T>
+inline void save_tensor( T a, const std::string& fname )
+{
+    FOR_EACH( it, a )
+    {
+        ASSERT_SAME_SIZE(*it, a.front());
+        volume_utils::save_append(*it, fname);
+    }
+    export_size_info(size_of(a.front()), fname, a.size());
+}
+
+template <typename T>
 inline void load_list( std::list<T> a, const std::string& fname )
 {
     std::size_t idx = 0;
