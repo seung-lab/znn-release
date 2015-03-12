@@ -57,7 +57,7 @@ private:
 
 private:
     zi::mutex   m_;
-    std::size_t max_memory_;
+//    std::size_t max_memory_;
     std::size_t used_memory_;
     std::size_t cached_memory_;
     pools_map   map_;
@@ -65,7 +65,7 @@ private:
 public:
     cache_manager_impl()
         : m_()
-        , max_memory_(static_cast<std::size_t>(48)*1024*1024*1024)
+//        , max_memory_(static_cast<std::size_t>(48)*1024*1024*1024)
         , used_memory_(0)
         , cached_memory_(0)
         , map_()

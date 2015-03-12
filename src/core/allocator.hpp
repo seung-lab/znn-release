@@ -77,7 +77,7 @@ public:
     void destroy(pointer p)
     { p->~value_type(); }
 
-    void operator=(const allocator&x)
+    void operator=(const allocator&)
     { }
 };
 

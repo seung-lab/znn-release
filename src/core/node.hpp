@@ -52,11 +52,11 @@ private:
     node_ptr        out_   ;
     double3d_ptr    W_     ;
     complex3d_ptr   fft_   ;
-    vec3i           sparse_;    
+    vec3i           sparse_;
 
     // norm
     double          norm_;
-    
+
     // update
     double          eta_;    // learning rate parameter
     double          mom_;    // momentum parameter
@@ -73,31 +73,31 @@ public:
         , out_(out)
         , W_(volume_pool.get_double3d(x,y,z))
         , fft_()
-        , sparse_(vec3i::one)        
+        , sparse_(vec3i::one)
         , norm_(0.0)
         , eta_(eta)
         , mom_(mom)
         , V_(volume_pool.get_double3d(x,y,z))
         , wc_(wc)
-        , szB_(szB)        
+        , szB_(szB)
     {
         volume_utils::zero_out(V_);
     }
 
-    edge(node_ptr in, node_ptr out, double3d_ptr W, double eta = 0.01, 
+    edge(node_ptr in, node_ptr out, double3d_ptr W, double eta = 0.01,
          double mom = 0.0, double wc = 0.0, double szB = 1.0)
         : size_(W->shape()[0],W->shape()[1],W->shape()[2])
         , in_(in)
         , out_(out)
-        , W_(W)        
+        , W_(W)
         , fft_()
-        , sparse_(vec3i::one)        
+        , sparse_(vec3i::one)
         , norm_(0.0)
         , eta_(eta)
         , mom_(mom)
         , V_(volume_pool.get_double3d(W))
         , wc_(wc)
-        , szB_(szB)        
+        , szB_(szB)
     {
         volume_utils::zero_out(V_);
     }
@@ -106,7 +106,7 @@ public:
     {
         in_.reset();
         out_.reset();
-        W_.reset();        
+        W_.reset();
         V_.reset();
         fft_.reset();
     }
@@ -121,7 +121,7 @@ public:
         ASSERT_SAME_SIZE(W_,W);
         W_ = W;
         set_sparse(s);
-    }    
+    }
 
     void set_sparse( vec3i s = vec3i::one )
     {
@@ -148,7 +148,7 @@ public:
             std::cout << "reset_W: something bad happend." << std::endl;
         }
     }
-    
+
     void reset_V()
     {
         volume_utils::zero_out(V_);
@@ -165,7 +165,7 @@ public:
     }
 
     void set_minibatch_size( double sz )
-    {        
+    {
         szB_ = std::max(1.0, sz);
     }
 
@@ -222,7 +222,7 @@ private:
     double3d_ptr f_   ;
     long3d_ptr   filter_indices_;
     double3d_ptr dEdX_;
-    double       dEdB_;
+//    double       dEdB_;
     double       eta_ ;
 
     // fft
@@ -244,7 +244,7 @@ private:
     friend class edge;
 
     std::size_t layer_no_;
-    std::size_t neuron_no_;    
+    std::size_t neuron_no_;
 
     vec3i filter_size_;
     vec3i sparse_     ;
@@ -254,9 +254,9 @@ private:
 
     double mom_;
     double v_  ;
-    double wc_ ;    
+    double wc_ ;
     double szB_;
-    
+
 public:
     node(const std::string& name, double bias = 0.01, double eta = 0.0001,
          std::size_t layer_no = 0, std::size_t neuron_no = 0,
@@ -272,7 +272,7 @@ public:
         , f_()
         , filter_indices_()
         , dEdX_()
-        , dEdB_(0)
+//        , dEdB_(0)
         , eta_(eta)
         , fft_()
         , dEdX_fft_()
@@ -438,7 +438,7 @@ public:
     {
         bias_ = bias;
     }
-    
+
     // momentum for bias
     void set_v(double v)
     {
@@ -479,7 +479,7 @@ public:
 
     // for average gradient update
     void set_minibatch_size( double sz )
-    {        
+    {
         szB_ = std::max(1.0, sz);
     }
 
@@ -521,7 +521,7 @@ private:
     void forward_edge(edge_ptr e, Manager task_manager)
     {
         zi::guard g(*e);
-        
+
         if ( sends_fft_ )
         {
             ZI_ASSERT(e->out_->receives_fft_);
@@ -562,7 +562,7 @@ private:
         if ( receives_fft_ )
         {
             ZI_ASSERT(e->in_->sends_fft_);
-            
+
             complex3d_ptr dEdW_fft
                 = volume_utils::elementwise_mul(e->in_->fft_, dEdX_fft_);
 
@@ -582,16 +582,16 @@ private:
         else
         {
             ZI_ASSERT(!e->in_->sends_fft_);
-            
+
             if ( e->size_ == vec3i::one )
-            {                
+            {
                 dEdW = volume_pool.get_double3d(1,1,1);
                 (*dEdW)[0][0][0] = bf_conv_flipped_constant(e->in_->f_, dEdX_);
                 double3d_ptr grad = bf_conv_inverse_constant(dEdX_, (*e->W_)[0][0][0]);
                 e->in_->template receive_grad<Manager>(grad, task_manager);
             }
             else
-            {                
+            {
                 if ( e->sparse_ == vec3i::one )
                 {
                     dEdW = bf_conv_flipped(e->in_->f_, dEdX_);
@@ -613,7 +613,7 @@ private:
     void update_edge(edge_ptr e, double3d_ptr dEdW)
     {
         // update weight
-        volume_utils::elementwise_mul_by(e->V_, e->mom_);        
+        volume_utils::elementwise_mul_by(e->V_, e->mom_);
         volume_utils::elementwise_div_by(dEdW, szB_);
         volume_utils::mul_add_to(-(e->eta_), dEdW, e->V_);
         volume_utils::mul_add_to(-(e->wc_*e->eta_), e->W_, e->V_);
@@ -624,7 +624,7 @@ private:
         {
             e->W_ = volume_utils::zero_out_nongrid(e->W_,e->sparse_);
         }
-        
+
         // updated L2 norm
         e->norm_ = volume_utils::square_sum(e->W_);
 
@@ -822,7 +822,7 @@ private:
             {
                 out_received_ = 0;
                 ZI_ASSERT(dEdX_fft_);
-                
+
                     dEdX_ = volume_utils::normalize_flip(fftw::backward(dEdX_fft_,
                                                                         out_size()));
 
@@ -852,7 +852,7 @@ private:
             f_ = fandi.first;
             filter_indices_ = fandi.second;
         }
-        
+
         ZI_ASSERT((in_received_==0)&&(out_received_==0));
         ++pass_no_;
 
@@ -891,13 +891,13 @@ private:
             ZI_ASSERT(filter_indices_);
             dEdX_ = do_filter_backprop(dEdX_,filter_indices_,real_filter_size_);
         }
-        
+
         double dEdB = volume_utils::sum_all(dEdX_);
 
         // average gradients over the pixels in a minibatch
         double avg_dEdB = dEdB/szB_;
 
-        // momentum & weight decay        
+        // momentum & weight decay
         v_ = (mom_*v_) - (eta_*wc_*bias_) - (eta_*avg_dEdB);
 
         // bias update
@@ -963,7 +963,7 @@ public:
         }
 
         if ( pass_no_ == n )
-        {            
+        {
             return f_;
         }
         else
@@ -1058,7 +1058,7 @@ public:
         FOR_EACH( it, in_edges_ )
         {
             (*it)->in_->sends_fft_ = b;
-        }   
+        }
     }
 
     bool sends_fft() const
