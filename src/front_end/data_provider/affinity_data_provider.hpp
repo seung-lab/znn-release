@@ -144,7 +144,7 @@ protected:
     }
 
 protected:
-	virtual void add_label( dvolume_data_ptr lbl, vec3i sft = vec3i::zero )
+	void add_label( dvolume_data_ptr lbl, vec3i sft )
 	{
 		std::size_t idx = lbls_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
@@ -158,7 +158,7 @@ protected:
 		lbls_.push_back(lbl);
 	}
 
-	virtual void add_mask( bvolume_data_ptr msk, vec3i sft = vec3i::zero )
+	void add_mask( bvolume_data_ptr msk, vec3i sft )
 	{
 		std::size_t idx = msks_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
