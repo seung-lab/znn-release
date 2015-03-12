@@ -40,7 +40,7 @@
 #  include <sys/sysctl.h>
 #  include <mach/task.h>
 #  include <mach/mach_init.h>
-#  include <mach/shared_memory_server.h>
+#  include <mach/shared_region.h>
 #
 #elif defined( ZI_OS_LINUX )
 #  include <sys/sysinfo.h>

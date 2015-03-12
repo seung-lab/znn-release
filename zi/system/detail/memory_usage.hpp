@@ -59,8 +59,8 @@ inline int64_t memory_usage( bool virt = false )
 
     memory_used = static_cast< int64_t >( virt
                                           ? (ti.virtual_size -
-                                             SHARED_TEXT_REGION_SIZE -
-                                             SHARED_DATA_REGION_SIZE)
+                                             SHARED_REGION_BASE -
+                                             SHARED_REGION_SIZE)
                                           : ti.resident_size );
 
 #elif defined ( ZI_OS_WINDOWS )

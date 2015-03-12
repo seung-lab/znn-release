@@ -27,7 +27,7 @@ namespace vl {
 template< class T, std::size_t N >
 inline
 typename detail::enable_if< is_integral< T >, T >::type
-invert( mat< T, N >& m )
+invert( mat< T, N >& )
 {
     return 0;
 }

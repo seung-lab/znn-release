@@ -260,7 +260,7 @@ pow( const mat< T, N >& m, int p )
 
 template< class T, std::size_t N >
 inline mat< typename detail::promote< T >::type, N >
-pow( const mat< T, N >& m, typename detail::promote< T >::type p )
+pow( const mat< T, N >& m, typename detail::promote< T >::type )
 {
     typedef typename detail::promote< T >::type promoted_type;
 

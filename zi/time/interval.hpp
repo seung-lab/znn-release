@@ -36,7 +36,7 @@ private:
 
     int64_t value_;
 
-    interval_tpl( int64_t v, void* distinguish_constructor ): value_( v )
+    interval_tpl( int64_t v, void* /*distinguish_constructor*/ ): value_( v )
     {
     }
 
