@@ -181,7 +181,7 @@ protected:
 		imgs_.push_back(img);
 	}
 
-	virtual void add_label( dvolume_data_ptr lbl )
+	void add_label( dvolume_data_ptr lbl )
 	{
 		std::size_t idx = lbls_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
@@ -190,7 +190,7 @@ protected:
 		lbls_.push_back(lbl);
 	}
 
-	virtual void add_mask( bvolume_data_ptr msk )
+	void add_mask( bvolume_data_ptr msk )
 	{
 		std::size_t idx = msks_.size();
 		STRONG_ASSERT(idx < out_szs_.size());
