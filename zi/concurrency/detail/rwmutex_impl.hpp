@@ -185,6 +185,8 @@ public:
                 return true;
             }
         }
+        has_writer_ = true;
+        return true;
     }
 
     bool timed_acquire_write( int64_t ttl ) const
@@ -295,6 +297,10 @@ public:
                 return true;
             }
         }
+
+        ++reader_count_;
+        upgratable_ = true;
+        return true;
     }
 
     bool timed_acquire_undecided( int64_t ttl ) const
