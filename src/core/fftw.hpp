@@ -21,6 +21,7 @@
 
 #include "types.hpp"
 #include "volume_pool.hpp"
+#include "volume_utils.hpp"
 #include "fftw_plans.hpp"
 #include "utils.hpp"
 #include "measure.hpp"
@@ -195,6 +196,16 @@ public:
         volume_utils::zero_pad(pin, in);
         return fftw::forward(pin);
     }
+
+    // static complex3d_ptr forward_sparse_pad( const double3d_ptr& in,
+    //                                          const vec3i& sparse,
+    //                                          const vec3i& pad )
+    // {
+    //     PROFILE_FUNCTION();
+    //     double3d_ptr pin = .get_double3d(pad);
+    //     volume_utils::zero_pad(pin, in);
+    //     return fftw::forward(pin);
+    // }
 
 }; // class fftw
 

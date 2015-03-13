@@ -25,14 +25,17 @@
 #include <zi/vl/vl.hpp>
 #include <zi/cstdint.hpp>
 
+#include <type_traits>
+
 #include "allocator.hpp"
 
 
 namespace zi {
 namespace znn {
 
-typedef boost::multi_array<double, 3, allocator< double > >                             double3d ;
-typedef boost::multi_array<std::complex<double>, 3, allocator< std::complex<double> > > complex3d;
+typedef boost::multi_array<double, 3, allocator< double > >    double3d ;
+typedef boost::multi_array<std::complex<double>, 3,
+                           allocator< std::complex<double> > > complex3d;
 
 typedef boost::shared_ptr<double3d>   double3d_ptr ;
 typedef boost::shared_ptr<complex3d>  complex3d_ptr;
@@ -51,6 +54,24 @@ typedef zi::vl::vec<std::size_t,3> vec3i;
 typedef boost::multi_array_types::index_range range;
 
 typedef int64_t long_t;
+
+typedef std::complex<double> complex;
+
+template <typename T>
+struct is_float: std::is_floating_point<T> {};
+
+template <typename T>
+struct is_float<std::complex<T>>: std::is_floating_point<T> {};
+
+template <typename T>
+using vol = boost::multi_array<T, 3, typename std::conditional<
+                                         is_float<T>::value,
+                                         allocator<T>,
+                                         std::allocator<T>>::type >;
+
+template <typename T>
+using vol_p = boost::shared_ptr<vol<T>>;
+
 
 }} // namespace zi::znn
 

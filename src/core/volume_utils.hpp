@@ -918,7 +918,7 @@ inline bool3d_ptr sparse_compress(bool3d_ptr a, const vec3i& s)
     std::size_t x = a->shape()[0];
     std::size_t y = a->shape()[1];
     std::size_t z = a->shape()[2];
-    
+
     std::size_t rx = (s[0] == 1 ? x : x/s[0]+1);
     std::size_t ry = (s[1] == 1 ? y : y/s[1]+1);
     std::size_t rz = (s[2] == 1 ? z : z/s[2]+1);
@@ -965,6 +965,27 @@ inline double3d_ptr sparse_decompress(double3d_ptr a, const vec3i& s)
     return r;
 }
 
+// inline double3d_ptr sparse_decompress_pad(double3d_ptr a, const vec3i& s,
+//                                           const vec3i& out_sz)
+// {
+//     double3d_ptr r = volume_pool.get_double3d(out_sz);
+//     zero_out(r);
+
+//     for ( std::size_t i = 0, ii = 0; ii < x; i+=s[0], ++ii )
+//     {
+//         for ( std::size_t j = 0, jj = 0; jj < y; j+=s[1], ++jj )
+//         {
+//             for ( std::size_t k = 0, kk = 0; kk < z; k+=s[2], ++kk )
+//             {
+//                 (*r)[i][j][k] = (*a)[ii][jj][kk];
+//             }
+//         }
+//     }
+
+//     return r;
+// }
+
+
 inline bool3d_ptr sparse_decompress(bool3d_ptr a, const vec3i& s)
 {
     PROFILE_FUNCTION();
@@ -990,6 +1011,27 @@ inline bool3d_ptr sparse_decompress(bool3d_ptr a, const vec3i& s)
 
     return r;
 }
+
+// inline bool3d_ptr sparse_decompress_pad(bool3d_ptr a, const vec3i& s,
+//                                         const vec3i& out_sz)
+// {
+//     bool3d_ptr r = volume_pool.get_bool3d(out_sz);
+//     zero_out(r);
+
+//     for ( std::size_t i = 0, ii = 0; ii < x; i+=s[0], ++ii )
+//     {
+//         for ( std::size_t j = 0, jj = 0; jj < y; j+=s[1], ++jj )
+//         {
+//             for ( std::size_t k = 0, kk = 0; kk < z; k+=s[2], ++kk )
+//             {
+//                 (*r)[i][j][k] = (*a)[ii][jj][kk];
+//             }
+//         }
+//     }
+
+//     return r;
+// }
+
 
 // volume file input/output
 template <typename T>
@@ -1073,7 +1115,7 @@ inline void save_list( std::list<T> a, const std::string& fname )
     }
 }
 
-inline void add_list_to( std::list<double3d_ptr> a, 
+inline void add_list_to( std::list<double3d_ptr> a,
                          std::list<double3d_ptr> b )
 {
     std::list<double3d_ptr>::iterator at = a.begin();
@@ -1089,17 +1131,17 @@ inline double3d_ptr classification_error(double3d_ptr prob, double3d_ptr lbl, do
     ASSERT_SAME_SIZE(prob,lbl);
     vec3i sz = size_of(prob);
     std::size_t n = lbl->num_elements();
-    
+
     double3d_ptr ret = volume_pool.get_double3d(sz);
     for ( std::size_t i = 0; i < n; ++i )
     {
-        double pred = (prob->data()[i] > thresh ? 
+        double pred = (prob->data()[i] > thresh ?
                         static_cast<double>(1):static_cast<double>(-1));
         double truth = (lbl->data()[i] > thresh ?
                         static_cast<double>(1):static_cast<double>(-1));
-        
+
         // binary classification
-        ret->data()[i] = 
+        ret->data()[i] =
             ((pred * truth > static_cast<double>(0)) ?
                 static_cast<double>(0):static_cast<double>(1));
     }
@@ -1147,9 +1189,9 @@ inline std::list<double3d_ptr> softmax(std::list<double3d_ptr> vl)
 inline double3d_ptr cross_entropy( double3d_ptr v, double3d_ptr l )
 {
     ASSERT_SAME_SIZE(v,l);
-    
+
     double3d_ptr ret = volume_pool.get_double3d(v);
-    
+
     std::size_t n = v->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
@@ -1183,7 +1225,7 @@ inline double3d_ptr binomial_cross_entropy( double3d_ptr v, double3d_ptr l )
     ASSERT_SAME_SIZE(v,l);
 
     double3d_ptr ret = volume_pool.get_double3d(v);
-    
+
     std::size_t n = v->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
@@ -1196,7 +1238,7 @@ inline double3d_ptr binomial_cross_entropy( double3d_ptr v, double3d_ptr l )
 
 // binomial cross-entropy
 // each output node is considered to be an individudal binomial unit
-inline std::list<double3d_ptr> binomial_cross_entropy( std::list<double3d_ptr> vl, 
+inline std::list<double3d_ptr> binomial_cross_entropy( std::list<double3d_ptr> vl,
                                                        std::list<double3d_ptr> ll )
 {
     STRONG_ASSERT(!vl.empty());
@@ -1282,7 +1324,7 @@ inline void unit_transform(double3d_ptr a)
     double range = max_val - min_val;
 
     // std::cout << "Transform from [" << min_val << "," << max_val << "] ";
-    
+
     for ( std::size_t i = 0; i < n; ++i )
     {
         a->data()[i] = (a->data()[i] - min_val)/range;
@@ -1305,7 +1347,7 @@ inline void transform(double3d_ptr a, double upper_bound, double lower_bound)
     double new_range = upper_bound - lower_bound;
 
     std::cout << "Transform from [" << min_val << "," << max_val << "] ";
-    
+
     for ( std::size_t i = 0; i < n; ++i )
     {
         a->data()[i] = new_range*((a->data()[i] - min_val)/old_range) + lower_bound;
@@ -1348,7 +1390,7 @@ inline double cross_correlation(double3d_ptr a, double3d_ptr b)
 inline void binarize(double3d_ptr a, double thresh = 0.5)
 {
     PROFILE_FUNCTION();
-    
+
     std::size_t n = a->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
@@ -1361,7 +1403,7 @@ inline bool3d_ptr binary_mask(double3d_ptr a, double thresh = 0.5)
 {
     PROFILE_FUNCTION();
 
-    bool3d_ptr r = volume_pool.get_bool3d(size_of(a));    
+    bool3d_ptr r = volume_pool.get_bool3d(size_of(a));
     std::size_t n = a->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
@@ -1374,7 +1416,7 @@ template <typename T>
 inline void random_initialization(T& generator, double3d_ptr a)
 {
     PROFILE_FUNCTION();
-    
+
     std::size_t n = a->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
     {
@@ -1391,27 +1433,27 @@ std::list<double3d_ptr> encode_multiclass( double3d_ptr label, std::size_t n_cla
         volume_utils::zero_out(lbl);
         vret.push_back(lbl);
     }
-    
+
     std::size_t n = label->num_elements();
     for ( std::size_t i = 0; i < n; ++i )
-    {            
+    {
         std::size_t idx = static_cast<std::size_t>(label->data()[i] + 0.5);
         STRONG_ASSERT( idx < n_class );
         vret[idx]->data()[i] = static_cast<double>(1);
-    }   
-    
+    }
+
     std::list<double3d_ptr> ret(vret.begin(),vret.end());
     return ret;
 }
 
-inline 
+inline
 double3d_ptr mirror_boundary( double3d_ptr vol, vec3i RF )
 {
     // not allowing even-sized receptive field
     STRONG_ASSERT(RF[0] % 2);
     STRONG_ASSERT(RF[1] % 2);
     STRONG_ASSERT(RF[2] % 2);
-    
+
     std::size_t vx = vol->shape()[0];
     std::size_t vy = vol->shape()[1];
     std::size_t vz = vol->shape()[2];
@@ -1426,7 +1468,7 @@ double3d_ptr mirror_boundary( double3d_ptr vol, vec3i RF )
 
     double3d_ptr r = volume_pool.get_double3d(rx,ry,rz);
     volume_utils::zero_out(r);
-    
+
     // copy original volume
     for ( std::size_t x = 0; x < vx; ++x )
         for ( std::size_t y = 0; y < vy; ++y )
@@ -1471,7 +1513,7 @@ double3d_ptr mirror_boundary( double3d_ptr vol, vec3i RF )
     return r;
 }
 
-inline double3d_ptr 
+inline double3d_ptr
 binomial_rebalance_mask( double3d_ptr lbl, double thresh = 0.5 )
 {
     double3d_ptr pos = volume_pool.get_double3d(lbl);
@@ -1501,10 +1543,10 @@ binomial_rebalance_mask( double3d_ptr lbl, double thresh = 0.5 )
         double wpos = static_cast<double>(1)/npos;
         double wneg = static_cast<double>(1)/nneg;
         double sum  = wpos + wneg;
-        
-        wpos /= sum; 
+
+        wpos /= sum;
         wneg /= sum;
-        
+
         volume_utils::zero_out(ret);
         volume_utils::mul_add_to(wpos,pos,ret);
         volume_utils::mul_add_to(wneg,neg,ret);
@@ -1513,7 +1555,7 @@ binomial_rebalance_mask( double3d_ptr lbl, double thresh = 0.5 )
     return ret;
 }
 
-inline std::list<double3d_ptr> 
+inline std::list<double3d_ptr>
 binomial_rebalance_mask( std::list<double3d_ptr> lbls, double thresh = 0.5 )
 {
     std::list<double3d_ptr> ret;
@@ -1553,7 +1595,7 @@ multinomial_rebalance_mask( std::list<double3d_ptr> lbls )
     else
     {
         volume_utils::zero_out(ret);
-        
+
         std::size_t idx = 0;
         FOR_EACH( it, lbls )
         {

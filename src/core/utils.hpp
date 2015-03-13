@@ -40,7 +40,7 @@ void export_size_info( const vec3i& sz, const std::string& fname, std::size_t n 
 {
     std::string ssz = fname + ".size";
     std::ofstream fsz(ssz.c_str(), (std::ios::out | std::ios::binary) );
-    
+
     uint32_t u;
     u = static_cast<uint32_t>(sz[0]);
     fsz.write( reinterpret_cast<char*>(&u), sizeof(uint32_t) );
@@ -48,7 +48,7 @@ void export_size_info( const vec3i& sz, const std::string& fname, std::size_t n 
     fsz.write( reinterpret_cast<char*>(&u), sizeof(uint32_t) );
     u = static_cast<uint32_t>(sz[2]);
     fsz.write( reinterpret_cast<char*>(&u), sizeof(uint32_t) );
-    
+
     if ( n > 0 )
     {
         u = static_cast<uint32_t>(n);
@@ -61,7 +61,7 @@ vec3i import_size_info( const std::string& fname )
     vec3i ret = vec3i::zero;
     std::string ssz = fname + ".size";
     FILE* fp = fopen(ssz.c_str(), "r");
-    
+
     // size of the whole volume
     if ( fp )
     {
@@ -136,6 +136,17 @@ std::string strip_brackets( const std::string& s )
 #define ASSERT_SAME_SIZE(a,b)                                   \
     STRONG_ASSERT(::zi::znn::volume_utils::volume_size(a)==     \
                   ::zi::znn::volume_utils::volume_size(b))
+
+
+#define DIE(message)                                                    \
+    {                                                                   \
+        std::cout << "message: " << message << std::endl                \
+                  << "file: " << __FILE__ << " line: "                  \
+                  << __LINE__ << std::endl;                             \
+        abort();                                                        \
+    }                                                                   \
+    static_cast<void>(0)
+
 
 template <class T>
 struct sort_functor
