@@ -29,12 +29,12 @@ class filter
 {
 private:
     vol<double>   W_;
+    vol<double>   mom_volume_;
 
     // weight update stuff
-    double        eta_          ;
-    double        momentum_     ;
-    vol<double>   mom_volume_   ;
-    double        weight_decay_ ;
+    double        eta_          = 0.1 ;
+    double        momentum_     = 0.0 ;
+    double        weight_decay_ = 0.0 ;
 
 public:
     const vol<double>& W() const
@@ -71,7 +71,7 @@ public:
             W_ += mom_volume_;
         }
     }
-};
+}; // class filter
 
 }} // namespace zi::znn
 

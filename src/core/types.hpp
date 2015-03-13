@@ -20,6 +20,7 @@
 #define ZNN_TYPES_HPP_INCLUDED
 
 #include <complex>
+#include <mutex>
 #include <boost/multi_array.hpp>
 #include <boost/shared_ptr.hpp>
 #include <zi/vl/vl.hpp>
@@ -32,6 +33,8 @@
 
 namespace zi {
 namespace znn {
+
+typedef std::lock_guard<std::mutex> mutex_guard;
 
 typedef boost::multi_array<double, 3, allocator< double > >    double3d ;
 typedef boost::multi_array<std::complex<double>, 3,
@@ -72,6 +75,19 @@ using vol = boost::multi_array<T, 3, typename std::conditional<
 template <typename T>
 using vol_p = boost::shared_ptr<vol<T>>;
 
+namespace conv
+{
+    struct fft    {};
+    struct direct {};
+}
+
+typedef std::size_t size_t;
+
+template<typename T>
+struct identity
+{
+    typedef T type;
+};
 
 }} // namespace zi::znn
 

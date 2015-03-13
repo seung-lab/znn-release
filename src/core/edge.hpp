@@ -58,6 +58,24 @@ namespace znn {
 
 ****************************************************************************/
 
+template< class Net >
+class edge_base
+{
+protected:
+    std::mutex mutex_;
+
+    vec3i size_    ;
+    vec3i sparse_  ;
+    vec3i in_size_ ;
+    vec3i out_size_;
+
+    edge_base( const vec3i& size, const vec3i& sparse, const vec3i& in_size)
+        : size_(size)
+        , sparse_(sparse)
+        , in_size_(in_size)
+        , out_size_(
+};
+
 class znode;
 
 class zedge

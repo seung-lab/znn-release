@@ -495,6 +495,14 @@ public:
         return get_double3d_pool(v)->get();
     }
 
+    template<typename T>
+    typename std::enable_if<std::is_same<T,double>::value,
+                            vol_p<double>>::type
+    get( const vec3i& v)
+    {
+        return get_double3d_pool(v)->get();
+    }
+
     boost::shared_ptr<complex3d>
     get_complex3d( std::size_t x, std::size_t y, std::size_t z )
     {
@@ -584,6 +592,12 @@ detail::volume_pools& volume_pools =
 detail::volume_pools& volume_pool =
     zi::singleton<detail::volume_pools>::instance();
 } // anonymous namespace
+
+template<typename T>
+inline vol_p<T> get_volume(const vec3i& s)
+{
+    return volume_pool.get<T>(s);
+}
 
 }} // namespace zi::znn
 

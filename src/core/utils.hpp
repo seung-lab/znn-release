@@ -26,6 +26,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <limits>
+#include <algorithm>
 
 namespace zi {
 namespace znn {
@@ -35,6 +36,13 @@ inline vec3i size_of( const T& a )
 {
     return vec3i(a->shape()[0],a->shape()[1],a->shape()[2]);
 };
+
+template <typename T>
+inline vec3i size( const vol<T>& a )
+{
+    return vec3i(a.shape()[0],a.shape()[1],a.shape()[2]);
+};
+
 
 void export_size_info( const vec3i& sz, const std::string& fname, std::size_t n = 0 )
 {

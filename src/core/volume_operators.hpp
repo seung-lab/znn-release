@@ -186,6 +186,14 @@ inline void mad_to(double a, vol<double>& o) noexcept
     detail::mad_to(a, o.data(), o.num_elements());
 }
 
+template< typename T,
+          class = typename
+          std::enable_if<std::is_convertible<T,double>::value>::type >
+inline void fill( vol<double>& v, const T& c) noexcept
+{
+    std::fill_n(v.data(), v.num_elements(), c);
+}
+
 
 }} // namespace zi::znn
 
