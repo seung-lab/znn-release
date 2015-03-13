@@ -30,10 +30,10 @@ namespace znn {
 template< typename T >
 inline void convolve_add( const vol<T>& a, const vol<T>& b, vol<T>& r) noexcept
 {
-    // TODO check for a constant!
     if ( b.num_elements() == 1 )
     {
-        // const
+        convolve_constant_add(a,b.data()[0],r);
+        return;
     }
 
     size_t ax = a.shape()[0];
@@ -64,10 +64,9 @@ inline void convolve_add( const vol<T>& a, const vol<T>& b, vol<T>& r) noexcept
 template< typename T >
 inline void convolve( const vol<T>& a, const vol<T>& b, vol<T>& r) noexcept
 {
-    // TODO check for a constant!
     if ( b.num_elements() == 1 )
     {
-        // const
+        convolve_constant(a,b.data()[0],r);
     }
 
     fill(r,0);
@@ -93,10 +92,11 @@ template< typename T >
 inline void
 convolve_flipped_add( const vol<T>& a, const vol<T>& b, vol<T>& r) noexcept
 {
-    // TODO check for a constant!
     if ( size(a) == size(b) )
     {
-        // const
+        ZI_ASSERT(r.num_elements()==1);
+        r.data()[0] += convolve_constant_flipped(a,b);
+        return;
     }
 
     size_t ax = a.shape()[0];
@@ -132,10 +132,11 @@ template< typename T >
 inline void
 convolve_flipped( const vol<T>& a, const vol<T>& b, vol<T>& r) noexcept
 {
-    // TODO check for a constant!
     if ( size(a) == size(b) )
     {
-        // const
+        ZI_ASSERT(r.num_elements()==1);
+        r.data()[0] = convolve_constant_flipped(a,b);
+        return;
     }
 
     fill(r,0);
@@ -162,10 +163,10 @@ template< typename T >
 inline void
 convolve_inverse_add( const vol<T>& a, const vol<T>& b, vol<T>& r) noexcept
 {
-    // TODO check for a constant!
     if ( size(b) == vec3i::one )
     {
-        // const
+        convolve_constant_inverse_add(a,b.data()[0],r);
+        return;
     }
 
     size_t ax = a.shape()[0];
@@ -205,10 +206,10 @@ template< typename T >
 inline void
 convolve_inverse( const vol<T>& a, const vol<T>& b, vol<T>& r) noexcept
 {
-    // TODO check for a constant!
     if ( size(b) == vec3i::one )
     {
-        // const
+        convolve_constant_inverse(a,b.data()[0],r);
+        return;
     }
 
     fill(r,0);
