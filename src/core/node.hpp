@@ -906,9 +906,9 @@ private:
         if ( receives_fft_ && in_edges_.size() )
         {
             vec3i s = in_edges_.front()->in_->out_size();
-            dEdX_ = volume_utils::flip(dEdX_);
+            volume_utils::flip(*dEdX_);
             dEdX_fft_ = fftw::forward_pad(dEdX_, s);
-        }
+         }
 
         FOR_EACH(it, in_edges_)
         {
@@ -1005,7 +1005,7 @@ public:
             ret *= count_out_edges();
         }
         return ret;
-    }
+      }
 
 
 // for exporting net

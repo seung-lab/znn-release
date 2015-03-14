@@ -28,6 +28,7 @@
 
 #include <type_traits>
 
+#include "meta.hpp"
 #include "allocator.hpp"
 
 
@@ -75,19 +76,7 @@ using vol = boost::multi_array<T, 3, typename std::conditional<
 template <typename T>
 using vol_p = boost::shared_ptr<vol<T>>;
 
-namespace conv
-{
-    struct fft    {};
-    struct direct {};
-}
-
 typedef std::size_t size_t;
-
-template<typename T>
-struct identity
-{
-    typedef T type;
-};
 
 }} // namespace zi::znn
 
