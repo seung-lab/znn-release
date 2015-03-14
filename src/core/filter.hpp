@@ -42,7 +42,7 @@ public:
         return W_;
     }
 
-    void update(const vol<double>& dEdW, double patch_size = 0 )
+    void update(const vol<double>& dEdW, double patch_size = 0 ) noexcept
     {
         double delta = ( patch_size != 0 ) ? -eta_/patch_size : -eta_;
 

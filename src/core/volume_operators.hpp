@@ -146,7 +146,7 @@ operator*=(vol<double>& v, double c) noexcept
 inline vol<double>&
 operator/=(vol<double>& v, double c) noexcept
 {
-    double one_over_c = static_cast<long double>(0) / c;
+    double one_over_c = static_cast<long double>(1) / c;
     detail::mul_with(v.data(), one_over_c, v.num_elements());
     return v;
 }

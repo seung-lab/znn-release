@@ -542,6 +542,12 @@ inline void zero_pad(double3d_ptr r, double3d_ptr a)
 
 }
 
+template< typename T >
+inline void flip(vol<T>& a)
+{
+    std::reverse(a.data(), a.data() + a.num_elements());
+}
+
 inline double3d_ptr flip(double3d_ptr a)
 {
     PROFILE_FUNCTION();
@@ -565,28 +571,28 @@ inline double3d_ptr flip(double3d_ptr a)
     return r;
 }
 
-inline complex3d_ptr flip(complex3d_ptr a)
-{
-    PROFILE_FUNCTION();
-    std::size_t x = a->shape()[0];
-    std::size_t y = a->shape()[1];
-    std::size_t z = a->shape()[2];
+// inline complex3d_ptr flip(complex3d_ptr a)
+// {
+//     PROFILE_FUNCTION();
+//     std::size_t x = a->shape()[0];
+//     std::size_t y = a->shape()[1];
+//     std::size_t z = a->shape()[2];
 
-    complex3d_ptr r = volume_pool.get_complex3d(a);
+//     complex3d_ptr r = volume_pool.get_complex3d(a);
 
-    for ( std::size_t i = 0; i < x; ++i )
-    {
-        for ( std::size_t j = 0; j < y; ++j )
-        {
-            for ( std::size_t k = 0; k < z; ++k )
-            {
-                (*r)[x-i-1][y-j-1][z-k-1] = std::conj((*a)[i][j][k]);
-            }
-        }
-    }
+//     for ( std::size_t i = 0; i < x; ++i )
+//     {
+//         for ( std::size_t j = 0; j < y; ++j )
+//         {
+//             for ( std::size_t k = 0; k < z; ++k )
+//             {
+//                 (*r)[x-i-1][y-j-1][z-k-1] = std::conj((*a)[i][j][k]);
+//             }
+//         }
+//     }
 
-    return r;
-}
+//     return r;
+// }
 
 inline bool3d_ptr flip(bool3d_ptr a)
 {

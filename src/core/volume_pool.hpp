@@ -503,6 +503,31 @@ public:
         return get_double3d_pool(v)->get();
     }
 
+    template<typename T>
+    typename std::enable_if<std::is_same<T,complex>::value,
+                            vol_p<complex>>::type
+    get( const vec3i& v)
+    {
+        return get_complex3d_pool(v)->get();
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_same<T,long_t>::value,
+                            vol_p<long_t>>::type
+    get( const vec3i& v)
+    {
+        return get_long3d_pool(v)->get();
+    }
+
+
+    template<typename T>
+    typename std::enable_if<std::is_same<T,bool>::value,
+                            vol_p<bool>>::type
+    get( const vec3i& v)
+    {
+        return get_bool3d_pool(v)->get();
+    }
+
     boost::shared_ptr<complex3d>
     get_complex3d( std::size_t x, std::size_t y, std::size_t z )
     {

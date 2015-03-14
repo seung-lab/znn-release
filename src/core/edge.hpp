@@ -22,6 +22,7 @@
 #include "types.hpp"
 #include "fftw.hpp"
 #include "utils.hpp"
+#include "filter.hpp"
 
 namespace zi {
 namespace znn {
@@ -58,10 +59,116 @@ namespace znn {
 
 ****************************************************************************/
 
-template< class Net >
+class znode;
+
+class transfer_function_interface
+{
+public:
+    virtual void apply(vol<double>&) noexcept = 0;
+    virtual void apply(vol<double>&, double) noexcept = 0;
+    virtual void apply_grad(vol<double>&, vol<double>&) noexcept = 0;
+};
+
+template<class F>
+class transfer_function_wrapper: public transfer_function_interface
+{
+private:
+    F f_;
+
+public:
+    explicit transfer_function_wrapper(F f = F())
+        : f_(f)
+    {}
+
+    void apply(vol<double>& v) noexcept override
+    {
+        double* d = v.data();
+        size_t  n = v.num_elements();
+        for ( size_t i = 0; i < n; ++i )
+            d[i] = f_(d[i]);
+    }
+
+    void apply(vol<double>& v, double bias) noexcept override
+    {
+        double* d = v.data();
+        size_t  n = v.num_elements();
+        for ( size_t i = 0; i < n; ++i )
+            d[i] = f_(d[i] + bias);
+    }
+
+    void apply_grad(vol<double>& g, vol<double>& f) noexcept override
+    {
+        ZI_ASSERT(size(g)==size(f));
+        double* gp = g.data();
+        double* fp = f.data();
+        size_t  n = g.num_elements();
+        for ( size_t i = 0; i < n; ++i )
+            gp[i] *= f_.grad(gp[i]);
+    }
+};
+
+class transfer_function
+{
+private:
+    std::unique_ptr<transfer_function_interface> f_;
+
+public:
+    transfer_function()
+        : f_()
+    {}
+
+    template<typename F>
+    explicit transfer_function(F f)
+        : f_(new transfer_function_wrapper<F>(f))
+    {}
+
+    template<typename F>
+    transfer_function& operator=(F f)
+    {
+        f_ = std::unique_ptr<transfer_function_interface>
+            (new transfer_function_wrapper<F>(f));
+        return *this;
+    }
+
+    void apply(vol<double>& v) noexcept
+    {
+        f_->apply(v);
+    }
+
+    void apply(vol<double>& v, double bias) noexcept
+    {
+        f_->apply(v, bias);
+    }
+
+    void apply_grad(vol<double>& g, vol<double>& f) noexcept
+    {
+        f_->apply_grad(g,f);
+    }
+};
+
+struct sigmoid
+{
+    inline double operator()(double x) const noexcept
+    {
+        return static_cast<double>(1) / (static_cast<double>(1) + std::exp(-x));
+    }
+
+    inline double grad(double f) const noexcept
+    {
+        return f * (static_cast<double>(1) - f);
+    }
+
+}; // struct sigmoid
+
+template< class Net, class In, class Out >
 class edge_base
 {
 protected:
+    Net*    net_;
+    In*     in_ ;
+    Out*    out_;
+    filter* W_;
+
     std::mutex mutex_;
 
     vec3i size_    ;
@@ -69,11 +176,25 @@ protected:
     vec3i in_size_ ;
     vec3i out_size_;
 
-    edge_base( const vec3i& size, const vec3i& sparse, const vec3i& in_size)
-        : size_(size)
+    edge_base( Net* net, In* in, Out* out, filter* W,
+               const vec3i& size, const vec3i& sparse, const vec3i& in_size)
+        : net_(net)
+        , in_(in)
+        , out_(out)
+        , W_(W)
+        , size_(size)
         , sparse_(sparse)
         , in_size_(in_size)
-        , out_size_(
+        , out_size_(in_size-(size-vec3i::one)*sparse)
+    {}
+};
+
+template< class Net, class In, class Out >
+class simple_edge: edge_base<Net,In,Out>
+{
+private:
+    typedef edge_base<Net,In,Out> base;
+
 };
 
 class znode;
