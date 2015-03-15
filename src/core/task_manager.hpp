@@ -1,6 +1,6 @@
 //
 // Copyright (C) 2015-present  Aleksandar Zlateski <zlateski@mit.edu>
-// ----------------------------------------------------------
+// ------------------------------------------------------------------
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <iostream>
+#include <limits>
 
 #include <zi/utility/singleton.hpp>
 
@@ -35,211 +36,187 @@ namespace znn {
 template< typename F, typename A >
 void trivial_callback_function(const F& f, const A& a)
 {
-   f(a());
+    f(a());
 }
 
-class async_thread_pool
+class task_manager
 {
 private:
-   std::map<std::size_t, std::list<std::function<void()>>> tasks_;
+    std::map<std::size_t, std::list<std::function<void()>>> tasks_;
 
-   std::size_t spawned_threads_;
-   std::size_t concurrency_    ;
-   std::size_t idle_threads_   ;
+    std::size_t spawned_threads_;
+    std::size_t concurrency_    ;
+    std::size_t idle_threads_   ;
 
-   std::mutex              mutex_;
-   std::condition_variable manager_cv_;
-   std::condition_variable workers_cv_;
+    std::mutex              mutex_;
+    std::condition_variable manager_cv_;
+    std::condition_variable workers_cv_;
 
 private:
-   void worker_loop()
-   {
-       {
-           std::unique_lock<std::mutex> g(mutex_);
+    void worker_loop()
+    {
+        {
+            std::lock_guard<std::mutex> g(mutex_);
 
-           if ( spawned_threads_ >= concurrency_ )
-           {
-               return;
-           }
+            if ( spawned_threads_ >= concurrency_ )
+            {
+                return;
+            }
 
-           ++spawned_threads_;
-           if ( spawned_threads_ == concurrency_ )
-           {
-               manager_cv_.notify_all();
-           }
-       }
+            ++spawned_threads_;
+            if ( spawned_threads_ == concurrency_ )
+            {
+                manager_cv_.notify_all();
+            }
+        }
 
-       while (true)
-       {
-           std::function<void()> f;
+        while (true)
+        {
+            std::function<void()> f;
 
-           {
-               std::unique_lock<std::mutex> g(mutex_);
+            {
+                std::unique_lock<std::mutex> g(mutex_);
 
-               while ( tasks_.empty() && concurrency_ >= spawned_threads_ )
-               {
-                   ++idle_threads_;
-                   workers_cv_.wait(g);
-                   --idle_threads_;
-               }
+                while ( tasks_.empty() && concurrency_ >= spawned_threads_ )
+                {
+                    ++idle_threads_;
+                    workers_cv_.wait(g);
+                    --idle_threads_;
+                }
 
-               if ( tasks_.empty() )
-               {
-                   --spawned_threads_;
-                   if ( spawned_threads_ == concurrency_ )
-                   {
-                       manager_cv_.notify_all();
-                   }
-                   return;
-               }
+                if ( tasks_.empty() )
+                {
+                    --spawned_threads_;
+                    if ( spawned_threads_ == concurrency_ )
+                    {
+                        manager_cv_.notify_all();
+                    }
+                    return;
+                }
 
-               f = std::move(next_task());
-           }
+                f = std::move(next_task());
+            }
 
-           f();
-       }
-   }
+            f();
+        }
+    }
 
 public:
-   async_thread_pool()
-       : spawned_threads_{0}
-       , concurrency_{0}
-       , idle_threads_{0}
-   {
-       set_concurrency(std::thread::hardware_concurrency());
-   }
+    task_manager(std::size_t concurrency = std::thread::hardware_concurrency())
+        : spawned_threads_{0}
+        , concurrency_{0}
+        , idle_threads_{0}
+    {
+        set_concurrency(concurrency);
+    }
 
-   async_thread_pool(const async_thread_pool&) = delete;
-   async_thread_pool& operator=(const async_thread_pool&) = delete;
+    task_manager(const task_manager&) = delete;
+    task_manager& operator=(const task_manager&) = delete;
 
-   async_thread_pool(async_thread_pool&&) = delete;
-   async_thread_pool& operator=(async_thread_pool&&) = delete;
+    task_manager(task_manager&& other) = delete;
+    task_manager& operator=(task_manager&&) = delete;
 
-   ~async_thread_pool()
-   {
-       set_concurrency(0);
-   }
+    ~task_manager()
+    {
+        set_concurrency(0);
+    }
 
-   std::size_t set_concurrency(std::size_t n)
-   {
-       std::unique_lock<std::mutex> g(mutex_);
+    std::size_t set_concurrency(std::size_t n)
+    {
+        std::unique_lock<std::mutex> g(mutex_);
 
-       if ( concurrency_ != spawned_threads_ )
-       {
-           return concurrency_;
-       }
+        if ( concurrency_ != spawned_threads_ )
+        {
+            return concurrency_;
+        }
 
-       std::size_t to_spawn = (n > concurrency_) ? ( n - concurrency_ ) : 0;
-       concurrency_ = n;
+        std::size_t to_spawn = (n > concurrency_) ? ( n - concurrency_ ) : 0;
+        concurrency_ = n;
 
-       for ( std::size_t i = 0; i < to_spawn; ++i )
-       {
-           std::thread t(&async_thread_pool::worker_loop, this);
-           t.detach();
-       }
+        for ( std::size_t i = 0; i < to_spawn; ++i )
+        {
+            std::thread t(&task_manager::worker_loop, this);
+            t.detach();
+        }
 
-       workers_cv_.notify_all();
+        workers_cv_.notify_all();
 
-       while ( concurrency_ != spawned_threads_ )
-       {
-           manager_cv_.wait(g);
-       }
+        while ( concurrency_ != spawned_threads_ )
+        {
+            manager_cv_.wait(g);
+        }
 
-       return concurrency_;
-   }
+        return concurrency_;
+    }
 
-   std::size_t get_concurrency()
-   {
-       std::unique_lock<std::mutex> g(mutex_);
-       return concurrency_;
-   }
+    std::size_t get_concurrency()
+    {
+        std::lock_guard<std::mutex> g(mutex_);
+        return concurrency_;
+    }
 
-   std::size_t idle_threads()
-   {
-       std::unique_lock<std::mutex> g(mutex_);
-       return idle_threads_;
-   }
+    std::size_t idle_threads()
+    {
+        std::lock_guard<std::mutex> g(mutex_);
+        return idle_threads_;
+    }
 
-   std::size_t active_threads()
-   {
-       std::unique_lock<std::mutex> g(mutex_);
-       return concurrency_ - idle_threads_;
-   }
+    std::size_t active_threads()
+    {
+        std::lock_guard<std::mutex> g(mutex_);
+        return concurrency_ - idle_threads_;
+    }
 
 private:
-   std::function<void()> next_task()
-   {
-       std::function<void()> f = std::move(tasks_.rbegin()->second.front());
+    std::function<void()> next_task()
+    {
+        std::function<void()> f = std::move(tasks_.rbegin()->second.front());
 
-       tasks_.rbegin()->second.pop_front();
-       if ( tasks_.rbegin()->second.size() == 0 )
-       {
-           tasks_.erase(tasks_.rbegin()->first);
-       }
-       return f;
-   }
+        tasks_.rbegin()->second.pop_front();
+        if ( tasks_.rbegin()->second.size() == 0 )
+        {
+            tasks_.erase(tasks_.rbegin()->first);
+        }
+        return f;
+    }
 
 public:
-   void add_task(std::size_t priority, std::function<void()>&& f)
-   {
-       std::unique_lock<std::mutex> g(mutex_);
-       tasks_[priority].emplace_back(std::forward<std::function<void()>>(f));
-       if ( idle_threads_ > 0 ) workers_cv_.notify_all();
-   }
+    template<typename... Args>
+    void schedule(std::size_t priority, Args&&... args)
+    {
+        std::lock_guard<std::mutex> g(mutex_);
+        tasks_[priority].emplace_front(std::bind(std::forward<Args>(args)...));
+        if ( idle_threads_ > 0 ) workers_cv_.notify_all();
+    }
 
-}; // class async_thread_pool
+    template<typename... Args>
+    void schedule_asap(Args&&... args)
+    {
+        std::lock_guard<std::mutex> g(mutex_);
+        tasks_[std::numeric_limits<std::size_t>::max()].
+            emplace_front(std::bind(std::forward<Args>(args)...));
+        if ( idle_threads_ > 0 ) workers_cv_.notify_all();
+    }
 
-namespace {
-async_thread_pool& async_thread_pool_instance =
-   singleton<async_thread_pool>::instance();
-}
+    template<typename... Args>
+    void schedule_eventually(Args&&... args)
+    {
+        std::lock_guard<std::mutex> g(mutex_);
+        tasks_[0].emplace_back(std::bind(std::forward<Args>(args)...));
+        if ( idle_threads_ > 0 ) workers_cv_.notify_all();
+    }
 
-template<typename... Args>
-void async(Args&&... args)
-{
-   async_thread_pool_instance.add_task
-       (0, std::bind(std::forward<Args>(args)...));
-}
+    void add_task(std::size_t priority, std::function<void()>&& f)
+    {
+        std::lock_guard<std::mutex> g(mutex_);
+        tasks_[priority].emplace_back(std::forward<std::function<void()>>(f));
+        if ( idle_threads_ > 0 ) workers_cv_.notify_all();
+    }
 
-template<typename... Args>
-void async_priority(std::size_t priority, Args&&... args)
-{
-   async_thread_pool_instance.add_task
-       (priority, std::bind(std::forward<Args>(args)...));
-}
-
-template<typename F, typename... Args>
-void async_cb(F&& f, Args&&... args)
-{
-   async_thread_pool_instance.add_task
-       (0, std::bind(std::forward<F>(f),
-                     std::bind(std::forward<Args>(args)...)));
-}
-
-template<typename F, typename... Args>
-void async_priority_cb(F&& f, std::size_t priority, Args&&... args)
-{
-   async_thread_pool_instance.add_task
-       (priority, std::bind(std::forward<F>(f),
-                            std::bind(std::forward<Args>(args)...)));
-}
+}; // class task_manager
 
 
-std::size_t get_concurrency()
-{
-   return async_thread_pool_instance.get_concurrency();
-}
-
-std::size_t set_concurrency(std::size_t n)
-{
-   return async_thread_pool_instance.set_concurrency(n);
-}
-
-
-} // namespace zi::znn
-
-}
-
+}} // namespace zi::znn
 
 
 #endif //ZI_ZNN_CORE_TASK_MANAGER_HPP_INCLUDED
