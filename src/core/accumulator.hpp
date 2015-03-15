@@ -19,69 +19,244 @@
 #ifndef ZNN_CORE_ACCUMULATOR_HPP_INCLUDED
 #define ZNN_CORE_ACCUMULATOR_HPP_INCLUDED
 
+#include "types.hpp"
+#include "volume_operators.hpp"
+#include "volume_utils.hpp"
+#include "fftw.hpp"
+
 #include <mutex>
 #include <cstddef>
-
-#include <unistd.h>
 
 namespace zi {
 namespace znn {
 
-template<typename T>
-class accumulator
+class fft_accumulator
 {
 private:
-    std::size_t count_  = 0;
-    T           value_  = T();
-    std::mutex  mutex_;
+    const vec3i  size_;
 
-public:
-    std::size_t add(T val)
+    size_t total_  ;
+    size_t current_;
+
+    vol_p<complex> value_;
+    std::mutex     mutex_;
+
+    bool add(vol_p<complex> val, size_t n)
     {
-        std::size_t count = 1;
-        T           value;
+        vol_p<complex> value;
 
         while (1)
         {
             {
-                std::unique_lock<std::mutex> g(mutex_);
-                if ( count_ == 0 )
+                mutex_guard g(mutex_);
+                if ( current_ == 0 )
                 {
-                    count_ = count;
-                    value_ = val;
-                    return count_;
+                    current_ = n;
+                    value_ = std::move(val);
+                    return current_ == total_;
                 }
 
-                count += count_;
-                count_ = 0;
+                n += current_;
+                current_ = 0;
                 std::swap(value, value_);
             }
 
-            usleep(1111);
-            val += value;
+            *val += *value;
         }
     }
 
-    T get()
+
+public:
+    explicit fft_accumulator(const vec3i& size, size_t total = 0)
+        : size_(size)
+        , total_(total)
+        , current_(0)
+        , value_()
+        , mutex_()
+    {}
+
+    const vec3i& size() const
     {
-        std::unique_lock<std::mutex> g(mutex_);
-        return value_;
+        return size_;
     }
 
-    T get_count()
+    size_t grow(size_t n)
     {
-        std::unique_lock<std::mutex> g(mutex_);
-        return count_;
+        mutex_guard g(mutex_);
+        ZI_ASSERT(current_ == 0);
+        total_ += n;
+        return total_;
     }
 
-    void reset()
+    bool add(const vol_p<complex>& v)
     {
-        std::unique_lock<std::mutex> g(mutex_);
-        value_ = T();
-        count_ = 0;
+        return add(v, 1);
     }
 
+    bool add(const vol_p<complex>& f, const vol_p<complex>& w)
+    {
+        vol_p<complex> v;
+        size_t         n;
+
+        {
+            mutex_guard g(mutex_);
+            v.swap(value_);
+            n = current_;
+            current_ = 0;
+        }
+
+        if ( n )
+        {
+            mad_to(*f,*w,*v);
+        }
+        else
+        {
+            v = (*f) * (*w);
+        }
+
+        return add(v, n + 1);
+    }
+
+    vol_p<double> reset()
+    {
+        mutex_guard g(mutex_);
+        ZI_ASSERT(current_==total_);
+
+        vol_p<double> r = fftw::backward(value_, size_);
+        current_ = 0;
+        value_.reset();
+        return r;
+    }
+
+    double weight() const
+    {
+        return size_[0] * size_[1] * size_[2];
+    }
 };
+
+
+class accumulator
+{
+private:
+    vec3i size_    ;
+    bool  backward_;
+
+    std::map<vec3i,size_t>                        bucket_map_;
+    std::vector<std::unique_ptr<fft_accumulator>> buckets_   ;
+
+    size_t current_;
+    size_t total_  ;
+
+    vol_p<double> value_;
+    std::mutex    mutex_;
+
+    bool add(vol_p<double> val, size_t n)
+    {
+        vol_p<double> value;
+
+        while (1)
+        {
+            {
+                mutex_guard g(mutex_);
+                if ( current_ == 0 )
+                {
+                    current_ = n;
+                    value_ = std::move(val);
+                    return current_ == total_;
+                }
+
+                n += current_;
+                current_ = 0;
+                std::swap(value, value_);
+            }
+
+            *val += *value;
+        }
+    }
+
+    bool merge_bucket(size_t b)
+    {
+        vol_p<double> f = buckets_[b]->reset();
+
+        if ( backward_ )
+        {
+            flipdims(*f);
+        }
+        else
+        {
+            f = volume_utils::crop_right(f, size_);
+
+        }
+
+        *f /= buckets_[b]->weight();
+        return add(f,1);
+    }
+
+public:
+    explicit accumulator(const vec3i& size, std::size_t n = 0,
+                         bool backward = false)
+        : size_(size)
+        , backward_(backward)
+        , bucket_map_()
+        , buckets_()
+        , current_(0)
+        , total_(n)
+        , value_()
+        , mutex_()
+    { }
+
+    size_t grow(size_t n)
+    {
+        mutex_guard g(mutex_);
+        ZI_ASSERT(current_ == 0);
+        total_ += n;
+        return total_;
+    }
+
+    size_t grow_fft(const vec3i& size, size_t n)
+    {
+        mutex_guard g(mutex_);
+        ZI_ASSERT(current_ == 0);
+
+        if ( bucket_map_.count(size) == 0 )
+        {
+            bucket_map_[size] = buckets_.size();
+            buckets_.emplace_back(new fft_accumulator(size,n));
+        }
+        else
+        {
+            buckets_[bucket_map_[size]]->grow(n);
+        }
+
+        return bucket_map_[size];
+    }
+
+    bool add(const vol_p<double>& f)
+    {
+        return add(f,1);
+    }
+
+    bool add_fft(size_t bucket, const vol_p<complex>& f)
+    {
+        if ( buckets_[bucket]->add(f) )
+        {
+            return merge_bucket(bucket);
+        }
+        return false;
+    }
+
+    bool add_fft(size_t bucket,
+                 const vol_p<complex>& f,
+                 const vol_p<complex>& w)
+    {
+        if ( buckets_[bucket]->add(f,w) )
+        {
+            return merge_bucket(bucket);
+        }
+        return false;
+    }
+};
+
 
 }} // namespace zi::znn
 

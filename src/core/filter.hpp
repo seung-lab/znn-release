@@ -37,7 +37,12 @@ private:
     double        weight_decay_ = 0.0 ;
 
 public:
-    const vol<double>& W() const
+    double& eta()
+    {
+        return eta_;
+    }
+
+    vol<double>& W()
     {
         return W_;
     }
