@@ -1,6 +1,7 @@
 //
-// Copyright (C) 2014  Aleksandar Zlateski <zlateski@mit.edu>
-// ----------------------------------------------------------
+// Copyright (C) 2014-present  Aleksandar Zlateski <zlateski@mit.edu>
+//                             Kisuk Lee           <kisuklee@mit.edu>
+// ------------------------------------------------------------------
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -33,63 +34,6 @@
 namespace zi {
 namespace znn {
 
-class zfft
-{
-public:
-    static complex3d_ptr forward( const boost::shared_ptr<double3d>& in,
-                                  vec3i pad = vec3i(0,0,0), bool measure = false )
-    {
-        PROFILE_FUNCTION();
-        double3d_ptr  fft_in  ;
-        complex3d_ptr fft_out ;
-        fftw_plan     fft_plan;
-
-        if ( pad[0] )
-        {
-            fft_in  = volume_pool.get_double3d(pad);
-            fft_out = volume_pool.get_complex3d(pad);
-
-            {
-                zi::class_mutex<zfft>::guard g;
-
-                fft_plan = fftw_plan_dft_r2c_3d
-                    ( pad[0], pad[1], pad[2],
-                      reinterpret_cast<double*>(fft_in->data()),
-                      reinterpret_cast<fftw_complex*>(fft_out->data()),
-                      measure ? FFTW_MEASURE : FFTW_ESTIMATE );
-            }
-
-            volume_utils::zero_out(fft_in);
-            (*fft_in)[boost::indices[range(0,pad[0])][range(0,pad[1])][range(0,pad[2])]]
-                = (*in);
-        }
-        else
-        {
-            fft_in  = volume_pool.get_double3d(in);
-            fft_out = volume_pool.get_complex3d(in);
-
-            {
-                zi::class_mutex<zfft>::guard g;
-
-                fft_plan = fftw_plan_dft_r2c_3d
-                    ( fft_in->shape()[0], fft_in->shape()[1], fft_in->shape()[2],
-                      reinterpret_cast<double*>(fft_in->data()),
-                      reinterpret_cast<fftw_complex*>(fft_out->data()),
-                      measure ? FFTW_MEASURE : FFTW_ESTIMATE );
-            }
-
-            (*fft_in) = (*in);
-        }
-
-        fftw_execute(fft_plan);
-        fftw_destroy_plan(fft_plan);
-
-        return fft_out;
-    }
-
-}; // zfft
-
-
 class fftw_stats_impl
 {
 private:
@@ -121,10 +65,6 @@ public:
         zi::mutex::guard g(m_);
         ++total_;
         total_time_ += time;
-        // if ( total_ % 10000 == 0 )
-        // {
-        //     std::cout << "Total spent on ffts: " << total_time_ << std::endl;
-        // }
     }
 };
 
@@ -146,17 +86,20 @@ public:
         fftw_plan plan = fftw_plans.get_forward(
             vec3i(in->shape()[0],in->shape()[1],in->shape()[2]));
 
+#ifdef MEASURE_FFT_RUNTIME
         zi::wall_timer wt;
+#endif
         fftw_execute_dft_r2c(plan,
                              reinterpret_cast<double*>(in->data()),
                              reinterpret_cast<fftw_complex*>(out->data()));
+#ifdef MEASURE_FFT_RUNTIME
         fftw_stats.add(wt.elapsed<double>());
+#endif
     }
 
     static void backward( const boost::shared_ptr<complex3d>& in,
                           const boost::shared_ptr<double3d>& out )
     {
-        PROFILE_FUNCTION();
         ZI_ASSERT(in->shape()[0]==out->shape()[0]);
         ZI_ASSERT(in->shape()[1]==out->shape()[1]);
         ZI_ASSERT((out->shape()[2]/2+1)==in->shape()[2]);
@@ -164,16 +107,19 @@ public:
         fftw_plan plan = fftw_plans.get_backward(
             vec3i(out->shape()[0],out->shape()[1],out->shape()[2]));
 
+#ifdef MEASURE_FFT_RUNTIME
         zi::wall_timer wt;
+#endif
         fftw_execute_dft_c2r(plan,
                              reinterpret_cast<fftw_complex*>(in->data()),
                              reinterpret_cast<double*>(out->data()));
+#ifdef MEASURE_FFT_RUNTIME
         fftw_stats.add(wt.elapsed<double>());
+#endif
     }
 
     static complex3d_ptr forward( const boost::shared_ptr<double3d>& in )
     {
-        PROFILE_FUNCTION();
         complex3d_ptr ret = volume_pool.get_complex3d(in);
         fftw::forward( in, ret );
         return ret;
@@ -182,7 +128,6 @@ public:
     static double3d_ptr backward( const complex3d_ptr& in,
                                   const vec3i& s )
     {
-        PROFILE_FUNCTION();
         double3d_ptr ret = volume_pool.get_double3d(s);
         fftw::backward( in, ret );
         return ret;
@@ -191,82 +136,12 @@ public:
     static complex3d_ptr forward_pad( const double3d_ptr& in,
                                       const vec3i& pad )
     {
-        PROFILE_FUNCTION();
         double3d_ptr pin = volume_pool.get_double3d(pad);
         volume_utils::zero_pad(pin, in);
         return fftw::forward(pin);
     }
 
-    // static complex3d_ptr forward_sparse_pad( const double3d_ptr& in,
-    //                                          const vec3i& sparse,
-    //                                          const vec3i& pad )
-    // {
-    //     PROFILE_FUNCTION();
-    //     double3d_ptr pin = .get_double3d(pad);
-    //     volume_utils::zero_pad(pin, in);
-    //     return fftw::forward(pin);
-    // }
-
 }; // class fftw
-
-class fft_transform
-{
-private:
-    const size_t x, y, z;
-    const boost::shared_ptr<double3d>  inb ;
-    const boost::shared_ptr<complex3d> outb;
-    fftw_plan forward_plan;
-    fftw_plan backward_plan;
-
-public:
-    static std::size_t r2c_size( std::size_t z )
-    {
-        return (z/2)+1;
-    }
-
-public:
-    fft_transform( const boost::shared_ptr<double3d>& in,
-                   const boost::shared_ptr<complex3d>& out,
-                   bool measure = true )
-        : x(in->shape()[0])
-        , y(in->shape()[1])
-        , z(in->shape()[2])
-    {
-        zi::class_mutex<fft_transform>::guard g;
-        forward_plan = fftw_plan_dft_r2c_3d
-            ( x,y,z,
-              reinterpret_cast<double*>(in->data()),
-              reinterpret_cast<fftw_complex*>(out->data()),
-              measure ? FFTW_MEASURE : FFTW_ESTIMATE );
-
-        backward_plan = fftw_plan_dft_c2r_3d
-            ( x,y,z,
-              reinterpret_cast<fftw_complex*>(out->data()),
-              reinterpret_cast<double*>(in->data()),
-              measure ? FFTW_MEASURE : FFTW_ESTIMATE );
-
-        ZI_ASSERT(in->shape()[0]==out->shape()[0]);
-        ZI_ASSERT(in->shape()[1]==out->shape()[1]);
-        ZI_ASSERT((in->shape()[2]/2+1)==out->shape()[2]);
-    }
-
-    ~fft_transform()
-    {
-        zi::class_mutex<fft_transform>::guard g;
-        fftw_destroy_plan(forward_plan);
-        fftw_destroy_plan(backward_plan);
-    }
-
-    void forward()
-    {
-        fftw_execute(forward_plan);
-    }
-
-    void backward()
-    {
-        fftw_execute(backward_plan);
-    }
-};
 
 
 }} // namespace zi::znn
