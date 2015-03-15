@@ -1,0 +1,1 @@
+** remove locks from fftw_plans by knowing all the sizes in advance

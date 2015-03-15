@@ -22,6 +22,7 @@
 #include "types.hpp"
 #include "volume_operators.hpp"
 #include "volume_utils.hpp"
+#include "convolution/convolution.hpp"
 #include "fftw.hpp"
 
 #include <mutex>
@@ -29,6 +30,8 @@
 
 namespace zi {
 namespace znn {
+
+namespace detail {
 
 class fft_accumulator
 {
@@ -134,6 +137,7 @@ public:
     }
 };
 
+} // namespace detail
 
 class accumulator
 {
@@ -141,8 +145,8 @@ private:
     vec3i size_    ;
     bool  backward_;
 
-    std::map<vec3i,size_t>                        bucket_map_;
-    std::vector<std::unique_ptr<fft_accumulator>> buckets_   ;
+    std::map<vec3i,size_t>                                bucket_map_;
+    std::vector<std::unique_ptr<detail::fft_accumulator>> buckets_   ;
 
     size_t current_;
     size_t total_  ;
@@ -185,7 +189,6 @@ private:
         else
         {
             f = volume_utils::crop_right(f, size_);
-
         }
 
         *f /= buckets_[b]->weight();
@@ -221,7 +224,7 @@ public:
         if ( bucket_map_.count(size) == 0 )
         {
             bucket_map_[size] = buckets_.size();
-            buckets_.emplace_back(new fft_accumulator(size,n));
+            buckets_.emplace_back(new detail::fft_accumulator(size,n));
         }
         else
         {
@@ -234,6 +237,49 @@ public:
     bool add(const vol_p<double>& f)
     {
         return add(f,1);
+    }
+
+    // adds f convolved with w
+    bool add(const vol_p<double>& f, const vol_p<double>& w,
+             const vec3i& sparse = vec3i::one )
+    {
+        vol_p<double> v;
+        size_t        n;
+
+        {
+            mutex_guard g(mutex_);
+            v.swap(value_);
+            n = current_;
+            current_ = 0;
+        }
+
+        if ( n )
+        {
+            // can convolve_add
+            if ( backward_ )
+            {
+                convolve_sparse_inverse_add(*f, *w, sparse, *v);
+            }
+            else
+            {
+                convolve_sparse_add(*f, *w, sparse, *v);
+            }
+        }
+        else
+        {
+            // convolve to temp v
+            if ( backward_ )
+            {
+                v = convolve_sparse_inverse(*f, *w, sparse);
+            }
+            else
+            {
+                v = convolve_sparse(*f, *w, sparse);
+            }
+        }
+
+        return add(v, n + 1);
+
     }
 
     bool add_fft(size_t bucket, const vol_p<complex>& f)
