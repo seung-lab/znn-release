@@ -33,16 +33,13 @@
 namespace zi {
 namespace znn {
 
-template< typename F, typename A >
-void trivial_callback_function(const F& f, const A& a)
-{
-    f(a());
-}
-
 class task_manager
 {
 private:
-    std::map<std::size_t, std::list<std::function<void()>>> tasks_;
+    typedef std::function<void()> callable_t;
+
+private:
+    std::map<std::size_t, std::list<callable_t*>> tasks_;
 
     std::size_t spawned_threads_;
     std::size_t concurrency_    ;
@@ -72,7 +69,7 @@ private:
 
         while (true)
         {
-            std::function<void()> f;
+            callable_t* f = nullptr;
 
             {
                 std::unique_lock<std::mutex> g(mutex_);
@@ -94,10 +91,11 @@ private:
                     return;
                 }
 
-                f = std::move(next_task());
+                f = next_task();
             }
 
-            f();
+            (*f)();
+            delete f;;
         }
     }
 
@@ -168,9 +166,9 @@ public:
     }
 
 private:
-    std::function<void()> next_task()
+    callable_t* next_task()
     {
-        std::function<void()> f = std::move(tasks_.rbegin()->second.front());
+        callable_t* f = tasks_.rbegin()->second.front();
 
         tasks_.rbegin()->second.pop_front();
         if ( tasks_.rbegin()->second.size() == 0 )
@@ -184,33 +182,25 @@ public:
     template<typename... Args>
     void schedule(std::size_t priority, Args&&... args)
     {
-        std::lock_guard<std::mutex> g(mutex_);
-        tasks_[priority].emplace_front(std::bind(std::forward<Args>(args)...));
-        if ( idle_threads_ > 0 ) workers_cv_.notify_all();
+        callable_t* fn = new callable_t(std::bind(std::forward<Args>(args)...));
+        {
+            std::lock_guard<std::mutex> g(mutex_);
+            tasks_[priority].emplace_front(fn);
+            if ( idle_threads_ > 0 ) workers_cv_.notify_all();
+        }
     }
 
     template<typename... Args>
     void schedule_asap(Args&&... args)
     {
-        std::lock_guard<std::mutex> g(mutex_);
-        tasks_[std::numeric_limits<std::size_t>::max()].
-            emplace_front(std::bind(std::forward<Args>(args)...));
-        if ( idle_threads_ > 0 ) workers_cv_.notify_all();
+        schedule(std::numeric_limits<std::size_t>::max(),
+                 std::forward<Args>(args)...);
     }
 
     template<typename... Args>
     void schedule_eventually(Args&&... args)
     {
-        std::lock_guard<std::mutex> g(mutex_);
-        tasks_[0].emplace_back(std::bind(std::forward<Args>(args)...));
-        if ( idle_threads_ > 0 ) workers_cv_.notify_all();
-    }
-
-    void add_task(std::size_t priority, std::function<void()>&& f)
-    {
-        std::lock_guard<std::mutex> g(mutex_);
-        tasks_[priority].emplace_back(std::forward<std::function<void()>>(f));
-        if ( idle_threads_ > 0 ) workers_cv_.notify_all();
+        schedule(0, std::forward<Args>(args)...);
     }
 
 }; // class task_manager
