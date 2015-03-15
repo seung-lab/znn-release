@@ -143,4 +143,4 @@ fftw_plans_impl& fftw_plans =
 
 }} // namespace zi::znn
 
-#endif // ZNN_FFTW_PLANS_HPP_INCLUDED
+#endif // ZNN_CORE_FFT_FFTW_PLANS_HPP_INCLUDED

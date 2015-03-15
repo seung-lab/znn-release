@@ -16,8 +16,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef ZI_ZNN_CORE_TASK_MANAGER_HPP_INCLUDED
-#define ZI_ZNN_CORE_TASK_MANAGER_HPP_INCLUDED
+#ifndef ZNN_CORE_TASK_MANAGER_HPP_INCLUDED
+#define ZNN_CORE_TASK_MANAGER_HPP_INCLUDED
 
 #include <functional>
 #include <thread>
@@ -209,4 +209,4 @@ public:
 }} // namespace zi::znn
 
 
-#endif //ZI_ZNN_CORE_TASK_MANAGER_HPP_INCLUDED
+#endif // ZNN_CORE_TASK_MANAGER_HPP_INCLUDED

@@ -86,6 +86,8 @@ inline T convolve_constant_flipped( const vol<T>& a, const vol<T>& b ) noexcept
 
     for ( size_t i = 0; i < a.num_elements(); ++i )
         r += ap[i] * bp[i];
+
+    return r;
 }
 
 

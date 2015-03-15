@@ -1,6 +1,6 @@
 //
-// Copyright (C) 2014  Aleksandar Zlateski <zlateski@mit.edu>
-// ----------------------------------------------------------
+// Copyright (C) 2015-present  Aleksandar Zlateski <zlateski@mit.edu>
+// ------------------------------------------------------------------
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 #include "volume_operators.hpp"
 #include "volume_utils.hpp"
 #include "convolution/convolution.hpp"
-#include "fftw.hpp"
+#include "fft/fftw.hpp"
 
 #include <mutex>
 #include <cstddef>

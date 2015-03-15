@@ -146,4 +146,4 @@ public:
 
 }} // namespace zi::znn
 
-#endif // ZNN_FFTW_HPP_INCLUDED
+#endif // ZNN_CORE_FFT_FFTW_HPP_INCLUDED

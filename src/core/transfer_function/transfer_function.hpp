@@ -62,7 +62,7 @@ private:
         const double* fp = f.data();
         size_t  n = g.num_elements();
         for ( size_t i = 0; i < n; ++i )
-            gp[i] *= fn.grad(gp[i]);
+            gp[i] *= fn.grad(fp[i]);
     }
 
     template<typename T>

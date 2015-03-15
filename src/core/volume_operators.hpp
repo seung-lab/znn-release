@@ -299,6 +299,18 @@ inline void flipdims(vol<T>& v) noexcept
     std::reverse(v.data(), v.data() + v.num_elements());
 }
 
+template<typename T>
+inline T max(const vol<T>& v) noexcept
+{
+    return *std::max_element(v.data(), v.data() + v.num_elements());
+}
+
+template<typename T>
+inline T min(const vol<T>& v) noexcept
+{
+    return *std::min_element(v.data(), v.data() + v.num_elements());
+}
+
 
 }} // namespace zi::znn
 

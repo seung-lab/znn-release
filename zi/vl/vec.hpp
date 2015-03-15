@@ -30,6 +30,7 @@
 #include <zi/bits/type_traits.hpp>
 
 #include <limits>
+#include <initializer_list>
 #include <cstddef>
 #include <stdexcept>
 #include <algorithm>
@@ -68,6 +69,14 @@ public:
     // Constructors
     // ---------------------------------------------------------------------
     //
+
+    // c++11 initializer list
+    template<typename V>
+    vec( std::initializer_list<V> v )
+    {
+        ZI_ASSERT( N == v.size() );
+        std::copy(v.begin(), v.end(), d);
+    }
 
     explicit vec( const T& rcp = T() )
     {
@@ -735,12 +744,12 @@ template< class T, std::size_t N, class CharT, class Traits >
 operator<<( ::std::basic_ostream< CharT, Traits >& os,
             const vec< T, N >& v )
 {
-    os << "[ " << v[ 0 ];
+    os << v[ 0 ];
     for ( std::size_t i = 1; i < N; ++i )
     {
-        os << ", " << v[ i ];
+        os << "," << v[ i ];
     }
-    return os << " ]";
+    return os;
 }
 
 template< std::size_t I, class T, std::size_t N >
