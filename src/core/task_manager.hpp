@@ -21,9 +21,12 @@
 
 #include <functional>
 #include <thread>
+#include <atomic>
 #include <map>
+#include <set>
 #include <list>
 #include <mutex>
+#include <memory>
 #include <condition_variable>
 #include <iostream>
 #include <limits>
@@ -33,13 +36,36 @@
 namespace zi {
 namespace znn {
 
+
+
 class task_manager
 {
 private:
     typedef std::function<void()> callable_t;
 
 private:
-    std::map<std::size_t, std::list<callable_t*>> tasks_;
+    struct unprivileged_task: std::enable_shared_from_this<unprivileged_task>
+    {
+    public:
+        std::function<void()>  fn_  ;
+        callable_t*            then_ = nullptr;
+
+    public:
+        template<class... Args>
+        explicit unprivileged_task(Args&&... args)
+            : fn_(std::bind(std::forward<Args>(args)...))
+        {}
+    };
+
+public:
+    typedef unprivileged_task* task_handle;
+
+private:
+    std::map<std::size_t, std::list<callable_t*>> tasks_       ;
+    std::set<unprivileged_task*>                  unprivileged_;
+
+    // executing in one of the task manager's threads!
+    std::set<unprivileged_task*>                  executing_   ;
 
     std::size_t spawned_threads_;
     std::size_t concurrency_    ;
@@ -69,19 +95,22 @@ private:
 
         while (true)
         {
-            callable_t* f = nullptr;
+            callable_t* f1         = nullptr;
+            unprivileged_task* f2  = nullptr;
 
             {
                 std::unique_lock<std::mutex> g(mutex_);
 
-                while ( tasks_.empty() && concurrency_ >= spawned_threads_ )
+                while ( tasks_.empty() &&
+                        unprivileged_.empty() &&
+                        concurrency_ >= spawned_threads_ )
                 {
                     ++idle_threads_;
                     workers_cv_.wait(g);
                     --idle_threads_;
                 }
 
-                if ( tasks_.empty() )
+                if ( tasks_.empty() && unprivileged_.empty() )
                 {
                     --spawned_threads_;
                     if ( spawned_threads_ == concurrency_ )
@@ -91,12 +120,50 @@ private:
                     return;
                 }
 
-                f = next_task();
+                if ( tasks_.size() )
+                {
+                    f1 = next_task();
+                }
+                else
+                {
+                    f1 = nullptr;
+                    f2 = next_unprivileged_task();
+                }
+
             }
 
-            (*f)();
-            delete f;;
+            if ( f1 )
+            {
+                (*f1)();
+                delete f1;
+            }
+            else
+            {
+                execute_unprivileged_task(f2);
+            }
         }
+    }
+
+private:
+    // executing in one of the manaer's threads
+    void execute_unprivileged_task(unprivileged_task* t)
+    {
+        t->fn_();
+        callable_t* after = nullptr;
+
+        {
+            std::unique_lock<std::mutex> g(mutex_);
+            after    = t->then_;
+            executing_.erase(t);
+        }
+
+        if ( after )
+        {
+            (*after)();
+            delete after;
+        }
+
+        delete t;
     }
 
 public:
@@ -175,7 +242,15 @@ private:
         {
             tasks_.erase(tasks_.rbegin()->first);
         }
+
         return f;
+    }
+
+    unprivileged_task* next_unprivileged_task()
+    {
+        auto x = unprivileged_.cbegin();
+        unprivileged_.erase(x);
+        return *x;
     }
 
 public:
@@ -191,16 +266,50 @@ public:
     }
 
     template<typename... Args>
-    void schedule_asap(Args&&... args)
+    void require_done(unprivileged_task* t, Args&&... args)
     {
-        schedule(std::numeric_limits<std::size_t>::max(),
-                 std::forward<Args>(args)...);
+        unprivileged_task* stolen = nullptr;
+
+        {
+            std::lock_guard<std::mutex> g(mutex_);
+            if ( unprivileged_.erase(t) )
+            {
+                stolen = t;
+            }
+            else
+            {
+                if ( executing_.count(t) )
+                {
+                    ZI_ASSERT(t->then_==nullptr);
+                    t->then_ =
+                        new callable_t(std::bind(std::forward<Args>(args)...));
+                    return;
+                }
+            }
+        }
+
+        if ( stolen )
+        {
+            stolen->fn_();
+            delete stolen;
+        }
+
+        std::bind(std::forward<Args>(args)...)();
     }
 
+
     template<typename... Args>
-    void schedule_eventually(Args&&... args)
+    task_handle schedule_unprivileged(Args&&... args)
     {
-        schedule(0, std::forward<Args>(args)...);
+        unprivileged_task* t =
+            new unprivileged_task(std::forward<Args>(args)...);
+        {
+            std::lock_guard<std::mutex> g(mutex_);
+            unprivileged_.insert(t);
+            if ( idle_threads_ > 0 ) workers_cv_.notify_all();
+        }
+
+        return t;
     }
 
 }; // class task_manager

@@ -73,8 +73,23 @@ using vol = boost::multi_array<T, 3, typename std::conditional<
                                          allocator<T>,
                                          std::allocator<T>>::type >;
 
+#ifdef NDEBUG
+
+template <typename T>
+using cvol = vol<T>;
+
+#else
+
+template <typename T>
+using cvol = const vol<T>;
+
+#endif
+
 template <typename T>
 using vol_p = boost::shared_ptr<vol<T>>;
+
+template <typename T>
+using cvol_p = boost::shared_ptr<cvol<T>>;
 
 typedef std::size_t size_t;
 

@@ -96,7 +96,7 @@ public:
         return add(v, 1);
     }
 
-    bool add(const vol_p<complex>& f, const vol_p<complex>& w)
+    bool add(const cvol_p<complex>& f, const cvol_p<complex>& w)
     {
         vol_p<complex> v;
         size_t         n;
@@ -240,7 +240,7 @@ public:
     }
 
     // adds f convolved with w
-    bool add(const vol_p<double>& f, const vol_p<double>& w,
+    bool add(const cvol_p<double>& f, const cvol_p<double>& w,
              const vec3i& sparse = vec3i::one )
     {
         vol_p<double> v;
@@ -292,8 +292,8 @@ public:
     }
 
     bool add_fft(size_t bucket,
-                 const vol_p<complex>& f,
-                 const vol_p<complex>& w)
+                 const cvol_p<complex>& f,
+                 const cvol_p<complex>& w)
     {
         if ( buckets_[bucket]->add(f,w) )
         {
