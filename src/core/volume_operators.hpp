@@ -157,6 +157,15 @@ inline void mul_with(T* a, const T* v, std::size_t s) noexcept
         a[i] *= v[i];
 }
 
+template<typename T>
+inline T sum(const T* a, std::size_t s) noexcept
+{
+    T r = T();
+    for ( std::size_t i = 0; i < s; ++i )
+        r += a[i];
+    return r;
+}
+
 
 } // namespace detail
 
@@ -293,10 +302,10 @@ inline void fill( vol<T>& v, const typename identity<T>::type & c) noexcept
 }
 
 
-template<typename T>
-inline void flipdims(vol<T>& v) noexcept
+inline void flip_vol(vol<double>& v) noexcept
 {
-    std::reverse(v.data(), v.data() + v.num_elements());
+    double* data = v.data();
+    std::reverse(data, data + v.num_elements());
 }
 
 template<typename T>
@@ -311,6 +320,62 @@ inline T min(const vol<T>& v) noexcept
     return *std::min_element(v.data(), v.data() + v.num_elements());
 }
 
+template<typename T>
+inline T sum(const vol<T>& v) noexcept
+{
+    return detail::sum(v.data(), v.num_elements());
+}
+
+
+template<typename T>
+inline vol_p<T> sparse_explode(const vol<T>& v, const vec3i& sparse,
+                               const vec3i& s )
+{
+    vec3i vs = size(v);
+    vol_p<T> r = get_volume<T>(s);
+    fill(*r,0);
+
+    vol<T>& rr = *r;
+
+    for ( size_t xv = 0, rx = 0; xv < vs[0]; ++xv, rx += sparse[0] )
+        for ( size_t yv = 0, ry = 0; yv < vs[1]; ++yv, ry += sparse[1] )
+            for ( size_t zv = 0, rz = 0; zv < vs[2]; ++zv, rz += sparse[2] )
+                rr[rx][ry][rz] = v[xv][yv][zv];
+
+    return r;
+}
+
+
+template<typename T>
+inline vol_p<T> sparse_implode(const vol<T>& r, const vec3i& sparse,
+                               const vec3i& vs )
+{
+    vol_p<T> vp = get_volume<T>(vs);
+    vol<T>& v = *vp;
+
+    for ( size_t xv = 0, rx = 0; xv < vs[0]; ++xv, rx += sparse[0] )
+        for ( size_t yv = 0, ry = 0; yv < vs[1]; ++yv, ry += sparse[1] )
+            for ( size_t zv = 0, rz = 0; zv < vs[2]; ++zv, rz += sparse[2] )
+                v[xv][yv][zv] = r[rx][ry][rz];
+
+    return vp;
+}
+
+
+inline vol_p<double> pad_zeros( const cvol<double>& v, const vec3i& s )
+{
+    vol_p<double> r = get_volume<double>(s);
+
+    std::size_t ox = v.shape()[0];
+    std::size_t oy = v.shape()[1];
+    std::size_t oz = v.shape()[2];
+
+    fill(*r, 0);
+
+    (*r)[boost::indices[range(0,ox)][range(0,oy)][range(0,oz)]] = v;
+
+    return r;
+}
 
 }} // namespace zi::znn
 

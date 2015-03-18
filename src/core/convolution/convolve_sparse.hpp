@@ -203,6 +203,7 @@ inline void convolve_sparse_inverse_add( const vol<T>& a, const vol<T>& b,
     size_t by = b.shape()[1];
     size_t bz = b.shape()[2];
 
+#ifndef NDEBUG
     size_t rbx = (bx-1) * s[0] + 1;
     size_t rby = (by-1) * s[1] + 1;
     size_t rbz = (bz-1) * s[2] + 1;
@@ -214,6 +215,7 @@ inline void convolve_sparse_inverse_add( const vol<T>& a, const vol<T>& b,
     ZI_ASSERT(r.shape()[0]==rx);
     ZI_ASSERT(r.shape()[1]==ry);
     ZI_ASSERT(r.shape()[2]==rz);
+#endif
 
     for ( size_t wx = 0; wx < bx; ++wx )
         for ( size_t wy = 0; wy < by; ++wy )

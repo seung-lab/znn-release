@@ -24,6 +24,7 @@
 #include "../types.hpp"
 #include "../volume_pool.hpp"
 #include "../volume_utils.hpp"
+#include "../volume_operators.hpp"
 #include "../utils.hpp"
 #include "../measure.hpp"
 
@@ -75,71 +76,118 @@ fftw_stats_impl& fftw_stats = zi::singleton<fftw_stats_impl>::instance();
 class fftw
 {
 public:
-    static void forward( const boost::shared_ptr<double3d>& in,
-                         const boost::shared_ptr<complex3d>& out )
+    static void forward( vol<double>& in,
+                         vol<complex>& out )
     {
-        PROFILE_FUNCTION();
-        ZI_ASSERT(in->shape()[0]==out->shape()[0]);
-        ZI_ASSERT(in->shape()[1]==out->shape()[1]);
-        ZI_ASSERT((in->shape()[2]/2+1)==out->shape()[2]);
+        ZI_ASSERT(in.shape()[0]==out.shape()[0]);
+        ZI_ASSERT(in.shape()[1]==out.shape()[1]);
+        ZI_ASSERT((in.shape()[2]/2+1)==out.shape()[2]);
 
         fftw_plan plan = fftw_plans.get_forward(
-            vec3i(in->shape()[0],in->shape()[1],in->shape()[2]));
+            vec3i(in.shape()[0],in.shape()[1],in.shape()[2]));
 
 #ifdef MEASURE_FFT_RUNTIME
         zi::wall_timer wt;
 #endif
         fftw_execute_dft_r2c(plan,
-                             reinterpret_cast<double*>(in->data()),
-                             reinterpret_cast<fftw_complex*>(out->data()));
+                             reinterpret_cast<double*>(in.data()),
+                             reinterpret_cast<fftw_complex*>(out.data()));
 #ifdef MEASURE_FFT_RUNTIME
         fftw_stats.add(wt.elapsed<double>());
 #endif
     }
 
-    static void backward( const boost::shared_ptr<complex3d>& in,
-                          const boost::shared_ptr<double3d>& out )
+    static void backward( vol<complex>& in,
+                          vol<double>& out )
     {
-        ZI_ASSERT(in->shape()[0]==out->shape()[0]);
-        ZI_ASSERT(in->shape()[1]==out->shape()[1]);
-        ZI_ASSERT((out->shape()[2]/2+1)==in->shape()[2]);
+        ZI_ASSERT(in.shape()[0]==out.shape()[0]);
+        ZI_ASSERT(in.shape()[1]==out.shape()[1]);
+        ZI_ASSERT((out.shape()[2]/2+1)==in.shape()[2]);
 
         fftw_plan plan = fftw_plans.get_backward(
-            vec3i(out->shape()[0],out->shape()[1],out->shape()[2]));
+            vec3i(out.shape()[0],out.shape()[1],out.shape()[2]));
 
 #ifdef MEASURE_FFT_RUNTIME
         zi::wall_timer wt;
 #endif
         fftw_execute_dft_c2r(plan,
-                             reinterpret_cast<fftw_complex*>(in->data()),
-                             reinterpret_cast<double*>(out->data()));
+                             reinterpret_cast<fftw_complex*>(in.data()),
+                             reinterpret_cast<double*>(out.data()));
 #ifdef MEASURE_FFT_RUNTIME
         fftw_stats.add(wt.elapsed<double>());
 #endif
     }
 
-    static complex3d_ptr forward( const boost::shared_ptr<double3d>& in )
+    static void forward( const vol_p<double>& in,
+                         const vol_p<complex>& out )
     {
-        complex3d_ptr ret = volume_pool.get_complex3d(in);
-        fftw::forward( in, ret );
+        forward(*in, *out);
+    }
+
+    static void backward( const vol_p<complex>& in,
+                          const vol_p<double>& out )
+    {
+        backward(*in, *out);
+    }
+
+    static vol_p<complex> forward( const cvol_p<double>& in )
+    {
+        vol_p<double> in_copy = get_volume<double>(size(*in));
+        *in_copy = *in;
+
+        vol_p<complex> ret = get_fft_volume<complex>(size(*in));
+        fftw::forward( *in_copy, *ret );
         return ret;
     }
 
-    static double3d_ptr backward( const complex3d_ptr& in,
-                                  const vec3i& s )
+    static vol_p<complex> forward( vol_p<double>&& in )
     {
-        double3d_ptr ret = volume_pool.get_double3d(s);
-        fftw::backward( in, ret );
+        vol_p<complex> ret = get_fft_volume<complex>(size(*in));
+        fftw::forward( *in, *ret );
         return ret;
     }
 
-    static complex3d_ptr forward_pad( const double3d_ptr& in,
-                                      const vec3i& pad )
+    static vol_p<double> backward( vol_p<complex>&& in, const vec3i& s )
     {
-        double3d_ptr pin = volume_pool.get_double3d(pad);
-        volume_utils::zero_pad(pin, in);
-        return fftw::forward(pin);
+        vol_p<double> ret = get_volume<double>(s);
+        fftw::backward( *in, *ret );
+        return ret;
     }
+
+    static vol_p<complex> forward_pad( const cvol_p<double>& in,
+                                       const vec3i& pad )
+    {
+        if ( pad == size(*in) ) return fftw::forward(in);
+
+        vol_p<double> pin = pad_zeros(*in, pad);
+        return fftw::forward(std::move(pin));
+    }
+
+    // static vol_p<complex> forward( const cvol<double>& in )
+    // {
+    //     vol_p<complex> ret = get_volume<complex>(size(in));
+    //     fftw::forward( in, *ret );
+    //     return ret;
+    // }
+
+    // static vol_p<double> backward( const cvol<complex>& in,
+    //                                const vec3i& s )
+    // {
+    //     vol_p<double> ret = get_volume<double>(s);
+    //     fftw::backward( in, *ret );
+    //     return ret;
+    // }
+
+    // static vol_p<complex> forward_pad( const cvol<double>& in,
+    //                                    const vec3i& s )
+    // {
+    //     if ( s == size(in) )
+    //     {
+    //         return fftw::forward(in);
+    //     }
+    //     return fftw::forward(pad_zeros(in,s));
+    // }
+
 
 }; // class fftw
 

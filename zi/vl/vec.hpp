@@ -721,6 +721,19 @@ ZI_VL_INLINE_BINARY_OPERATOR( / )
 #undef ZI_VL_INLINE_BINARY_OPERATOR_TYPE_SCALAR
 
 template< class T, std::size_t N >
+inline typename vec< T, N >::type
+operator %( const vec< T, N >& lhs, const vec< T, N >& rhs )
+{
+    vec< T, N > res( lhs );
+    for ( std::size_t i = 0; i < N; ++i )
+    {
+        res[ i ] %= rhs.elem( i );
+    }
+    return res;
+}
+
+
+template< class T, std::size_t N >
 inline
 vec< T, N > operator+( const vec< T, N >& rhs )
 {

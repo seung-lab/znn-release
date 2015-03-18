@@ -16,29 +16,39 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef ZNN_CORE_META_HPP_INCLUDED
-#define ZNN_CORE_META_HPP_INCLUDED
+#ifndef ZNN_CORE_NETWORK_EDGE_EDGE_OPTIONS_HPP
+#define ZNN_CORE_NETWORK_EDGE_EDGE_OPTIONS_HPP
 
-#include <type_traits>
+#include "../../meta.hpp"
 
-namespace zi { namespace znn {
+namespace zi {
+namespace znn {
 
-template<typename T>
-struct identity { typedef T type; };
+template<class... Args>
+struct contains_tag: std::false_type {};
 
-template<bool B>
-using bool_constant = std::integral_constant<bool,B>;
+template<class X, class... Args>
+struct contains_tag<X,X,Args...>: std::true_type {};
 
-template<class...>
-struct void_t_helper_struct { typedef void type; };
+template<class X, class Y, class... Args>
+struct contains_tag<X,Y,Args...>: contains_tag<X,Args...> {};
 
-template<class... Ts>
-using void_t = typename void_t_helper_struct<Ts...>::type;
+struct works_on_ffts {};
+struct async_forward {};
+struct async_backward{};
+struct is_convolving {};
+struct async_zap     {};
+struct is_dummy      {};
 
-template<bool B, class T = void>
-using if_t = typename std::enable_if<B,T>::type;
+template<class... Args>
+struct edge_options
+{
+    template<typename Tag>
+    using contains = contains_tag<Tag,Args...>;
+};
+
 
 }} // namespace zi::znn
 
 
-#endif // ZNN_CORE_META_HPP_INCLUDED
+#endif // ZNN_CORE_NETWORK_EDGE_EDGE_OPTIONS_HPP

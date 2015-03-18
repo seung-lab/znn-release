@@ -146,9 +146,9 @@ std::string strip_brackets( const std::string& s )
                   ::zi::znn::volume_utils::volume_size(b))
 
 
-#define DIE(message)                                                    \
+#define UNIMPLEMENTED()                                                 \
     {                                                                   \
-        std::cout << "message: " << message << std::endl                \
+        std::cout << "unimplemented function" << std::endl              \
                   << "file: " << __FILE__ << " line: "                  \
                   << __LINE__ << std::endl;                             \
         abort();                                                        \

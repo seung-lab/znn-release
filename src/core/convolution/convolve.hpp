@@ -177,13 +177,9 @@ convolve_inverse_add( const vol<T>& a, const vol<T>& b, vol<T>& r) noexcept
     size_t by = b.shape()[1];
     size_t bz = b.shape()[2];
 
-    size_t rx = ax + bx - 1;
-    size_t ry = ay + by - 1;
-    size_t rz = az + bz - 1;
-
-    ZI_ASSERT(r.shape()[0]==rx);
-    ZI_ASSERT(r.shape()[1]==ry);
-    ZI_ASSERT(r.shape()[2]==rz);
+    ZI_ASSERT(r.shape()[0]==ax + bx - 1);
+    ZI_ASSERT(r.shape()[1]==ay + by - 1);
+    ZI_ASSERT(r.shape()[2]==az + bz - 1);
 
     for ( size_t dx = 0; dx < bx; ++dx )
         for ( size_t dy = 0; dy < by; ++dy )

@@ -46,9 +46,11 @@ private:
 private:
     struct unprivileged_task: std::enable_shared_from_this<unprivileged_task>
     {
-    public:
+    private:
         std::function<void()>  fn_  ;
         callable_t*            then_ = nullptr;
+
+        friend class task_manager;
 
     public:
         template<class... Args>
@@ -266,8 +268,25 @@ public:
     }
 
     template<typename... Args>
+    void asap(Args&&... args)
+    {
+        callable_t* fn = new callable_t(std::bind(std::forward<Args>(args)...));
+        {
+            std::lock_guard<std::mutex> g(mutex_);
+            tasks_[std::numeric_limits<std::size_t>::max()].emplace_front(fn);
+            if ( idle_threads_ > 0 ) workers_cv_.notify_all();
+        }
+    }
+
+    template<typename... Args>
     void require_done(unprivileged_task* t, Args&&... args)
     {
+        if ( t == nullptr )
+        {
+            std::bind(std::forward<Args>(args)...)();
+            return;
+        }
+
         unprivileged_task* stolen = nullptr;
 
         {

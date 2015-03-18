@@ -57,6 +57,10 @@ typedef zi::vl::vec<std::size_t,3> vec3i;
 
 typedef boost::multi_array_types::index_range range;
 
+namespace {
+decltype(boost::indices) indices;
+}
+
 typedef int64_t long_t;
 
 typedef std::complex<double> complex;

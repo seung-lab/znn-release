@@ -16,6 +16,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#if 0
+
 #ifndef ZNN_CORE_ACCUMULATOR_HPP_INCLUDED
 #define ZNN_CORE_ACCUMULATOR_HPP_INCLUDED
 
@@ -305,5 +307,7 @@ public:
 
 
 }} // namespace zi::znn
+
+#endif
 
 #endif // ZNN_CORE_ACCUMULATOR_HPP_INCLUDED

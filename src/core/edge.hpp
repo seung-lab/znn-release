@@ -20,209 +20,67 @@
 #define ZNN_CORE_EDGE_HPP_INCLUDED
 
 #include "types.hpp"
-#include "fftw.hpp"
 #include "utils.hpp"
 #include "filter.hpp"
 
 namespace zi {
 namespace znn {
 
-/****************************************************************************
 
-       +------------------+
-       |     created      |
-       +--------+---------+
-                |
-       +--------v---------+
-       |  uninitialized   |
-       +--------+---------+
-                |
-       +--------v---------+        +------------------+
-       |   initializing   |        |     updating     <-------+
-       +---+----+---------+        +---------+----+---+       |
-           |    |                            |    |           |
-           |    |    +------------------+    |    |           |
-           |    +---->      ready       <----+    |           |
-           |         +-+------+-------+-+         |           |
-           |           |      |       |           |           |
-     +-----v-----------v+     |      +v-----------v-----+     |
-     |  init_and_fwd    |     |      |  update_and_fwd  |     |
-     +--------+---------+     |      +----------+-------+     |
-              |               |                 |             |
-              |      +--------v---------+       |             |
-              +------>     fwd_done     <-------+             |
-                     +--------+---------+                     |
-                              |                               |
-                     +--------v---------+                     |
-                     |     bwd_done     +---------------------+
-                     +------------------+
+class nodes;
 
-****************************************************************************/
-
-class znode;
-
-struct sigmoid
-{
-    inline double operator()(double x) const noexcept
-    {
-        return static_cast<double>(1) / (static_cast<double>(1) + std::exp(-x));
-    }
-
-    inline double grad(double f) const noexcept
-    {
-        return f * (static_cast<double>(1) - f);
-    }
-
-}; // struct sigmoid
-
-template< class Net, class In, class Out >
-class edge_base
-{
-protected:
-    Net*    net_;
-    In*     in_ ;
-    Out*    out_;
-    filter* W_;
-
-    std::mutex mutex_;
-
-    vec3i size_    ;
-    vec3i sparse_  ;
-    vec3i in_size_ ;
-    vec3i out_size_;
-
-    edge_base( Net* net, In* in, Out* out, filter* W,
-               const vec3i& size, const vec3i& sparse, const vec3i& in_size)
-        : net_(net)
-        , in_(in)
-        , out_(out)
-        , W_(W)
-        , size_(size)
-        , sparse_(sparse)
-        , in_size_(in_size)
-        , out_size_(in_size-(size-vec3i::one)*sparse)
-    {}
-};
-
-template< class Net, class In, class Out >
-class simple_edge: edge_base<Net,In,Out>
+template<typename E>
+class znn_edgee
 {
 private:
-    typedef edge_base<Net,In,Out> base;
+    static_assert(!E::works_on_ffts_tag::value, "Use znn_fft_edge<T>");
+
+private:
+    nodes* in_     ;
+    size_t in_n_   ;
+    nodes* out_    ;
+    size_t out_n_  ;
+    bool   no_back_;
+
+    template<typename Dummy = E>
+    if_t<E::async_forward::value&&E::is_convolving::value>
+    forward_callback( const cvol_p<double>& f, const cvol_p<double>& w,
+                      const vec3i& sparse = vec3i::one )
+    {
+        out_->receive_featuremap(out_n_, f, w, sparse);
+    }
+
+    template<typename Dummy = E>
+    if_t<E::async_forward::value&&!E::is_convolving::value>
+    forward_callback( vol_p<double>&& f )
+    {
+        out_->receive_featuremap(out_n_, std::move(f));
+    }
+
+
+    template<typename Dummy = E>
+    if_t<E::async_backward::value&&E::is_convolving::value>
+    forward_callback( const cvol_p<double>& f, const cvol_p<double>& w,
+                      const vec3i& sparse = vec3i::one )
+    {
+        if ( no_back_ )
+        {
+            in_->receive_gradient(in_n_, f, w, sparse);
+        }
+
+    }
+
+    template<typename Dummy = E>
+    if_t<E::async_backward::value&&!E::is_convolving::value>
+    forward_callback( vol_p<double>&& f )
+    {
+        in_->receive_gradient(in_n_, std::move(f));
+    }
+
 
 };
 
-class znode;
 
-class zedge
-{
-private:
-    enum class state
-    {
-        created,
-        uninitialized,
-        initializing,
-        init_and_fwd,
-        fwd_done,
-        bwd_done,
-        updating,
-        update_and_fwd,
-        ready
-    };
-
-    struct weight_update_task
-    {
-        vol_p<double>  F;
-        vol_p<complex> F_fft;
-        vol_p<double>  G;
-        vol_p<complex> G_fft;
-    };
-
-    struct initialization_task {};
-
-private:
-    std::mutex mutex_;
-
-    znode* in_ ;
-    znode* out_;
-
-    state  state_  = state::created;
-    bool   is_fft_ = false;
-
-    vec3i  size_  ;
-    vec3i  sparse_;
-
-    vec3i  in_size_ ;
-    vec3i  out_size_;
-
-    vol_p<double>  W_;
-    vol_p<complex> W_fft_;
-
-    vol_p<double>  F_in_;
-    vol_p<complex> F_in_fft_;
-
-    // owned by the thread possibly doing the update/init
-    weight_update_task*  update_task_     = nullptr;
-    initialization_task* initialize_task_ = nullptr;
-
-    // weight update stuff
-    double        eta_;
-
-    // weight update additional
-    double        momenum_      ;
-    vol_p<double> mom_volume_   ;
-    double        weight_decay_ ;
-    std::size_t   patch_sz_     ;
-
-private:
-    void do_initialize_work()
-    {
-        // check rep
-        ZI_ASSERT((!F_in_)&&(!F_in_fft_)&&(!W_fft_));
-        ZI_ASSERT(initialize_task_==nullptr);
-        ZI_ASSERT(in_size_!=vec3i::zero);
-
-        if (is_fft_)
-        {
-            // if ( sparse_ != vec3i::one )
-            //     W_fft_ = fftw::forward_sparse_pad(W_, sparse_, in_size_);
-            // else
-            //     W_fft_ = fftw::forward_pad(W_, in_size_);
-            // momentum volume logic
-        }
-    }
-
-public:
-
-    void forward( const vol_p<double>& F )
-    {
-        ZI_ASSERT(!is_fft_);
-
-        bool should_init = false;
-        bool should_fwd  = false;
-
-        {
-            std::unique_lock<std::mutex> guard(mutex_);
-
-            switch (state_)
-            {
-            case state::ready:
-                // out_->forward(F,W_);
-                break;
-
-            case state::uninitialized:
-                ZI_ASSERT(initialize_task_);
-                initialize_task_ = nullptr;
-                break;
-
-
-            default:
-                DIE("In illegal state on forward");
-            }
-        }
-    }
-
-}; // class node_base
 
 }} // namespace zi::znn
 

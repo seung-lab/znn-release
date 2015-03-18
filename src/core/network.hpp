@@ -47,9 +47,9 @@ namespace znn {
 
 class network
 {
-private:    
+private:
     net_ptr net_;
-    
+
     zi::task_manager::prioritized tm_;
 
     std::size_t lastn_;
@@ -60,12 +60,12 @@ private:
     // forward scanner
     std::map<int,forward_scanner_ptr> scanners_;
 
-    // option parser    
-    options_ptr op;    
+    // option parser
+    options_ptr op;
 
     // iteration number
     std::size_t n_iter_;
-    
+
     // cost function
     cost_fn_ptr cost_fn_;
 
@@ -88,7 +88,7 @@ private:
         if ( inputs_.empty() )
         {
             std::string what = "No training data";
-            throw std::logic_error(what);
+             throw std::logic_error(what);
         }
     }
 
@@ -101,7 +101,7 @@ private:
         // loading
         std::cout << "[network] load_input" << std::endl;
         std::cout << "Loading [" << ssbatch.str() << "]" << std::endl;
-        
+
         // inputs
         std::vector<vec3i> in_szs = net_->input_sizes();
         std::cout << "Input sizes:  ";
@@ -119,24 +119,24 @@ private:
              std::cout << (*it) << " ";
         }
         std::cout << "\n\n";
-        
+
         if ( op->dp_type == "volume" )
         {
             volume_data_provider* dp =
                 new volume_data_provider(ssbatch.str(),in_szs,out_szs,op->mirroring);
-            
+
             dp->data_augmentation(op->data_aug);
-            
+
             inputs_[n] = data_provider_ptr(dp);
         }
         else if ( op->dp_type == "affinity" )
         {
             affinity_data_provider* dp =
                 new affinity_data_provider(ssbatch.str(),in_szs,out_szs,op->mirroring);
-            
+
             dp->data_augmentation(op->data_aug);
-            
-            inputs_[n] = data_provider_ptr(dp);   
+
+            inputs_[n] = data_provider_ptr(dp);
         }
         else
         {
@@ -146,12 +146,12 @@ private:
     }
 
     void load_test_inputs()
-    {        
+    {
         FOR_EACH( it, op->test_range )
         {
             int n = *it;
             std::cout << "batch" << n << std::endl;
-            load_test_input(n);            
+            load_test_input(n);
             std::cout << "batch" << n << " loaded." << std::endl;
         }
 
@@ -167,7 +167,7 @@ private:
         // data spec
         std::ostringstream ssbatch;
         ssbatch << op->data_path << n << ".spec";
-        
+
         // inputs
         std::vector<vec3i> in_szs = net_->input_sizes();
         std::cout << "Input sizes: ";
@@ -185,10 +185,10 @@ private:
              std::cout << (*it) << " ";
         }
         std::cout << std::endl;
-        
+
         if ( op->scanner == "volume" )
         {
-            scanners_[n] = forward_scanner_ptr(new 
+            scanners_[n] = forward_scanner_ptr(new
                 volume_forward_scanner(ssbatch.str(),
                                        in_szs,out_szs,
                                        op->scan_offset,
@@ -200,7 +200,7 @@ private:
             std::string what = "Unknown forward scanner type [" + op->scanner + "]";
             throw std::invalid_argument(what);
         }
-    }    
+    }
 
 
 // input sampling
@@ -237,13 +237,13 @@ private:
     {
         net_->force_fft(b);
     }
-    
+
     // enable the optimization for scanning
     void optimize_for_training( bool scanning = false )
     {
         // force fft
         force_fft(true);
-        
+
         // warming up
         sample_ptr sample;
         if ( scanning )
@@ -255,7 +255,7 @@ private:
             sample = random_sample(op->test_range);
         }
         std::cout << "Warmup ffts (make fftplans): "
-                  << run_n_times(1, sample, scanning) << std::endl;        
+                  << run_n_times(1, sample, scanning) << std::endl;
 
         double approx = run_n_times(1, sample, scanning);
         std::size_t run_times = static_cast<std::size_t>(static_cast<double>(5)/approx);
@@ -266,8 +266,8 @@ private:
         std::cout << "Will run " << run_times << " iterations per test." << std::endl;
 
         double best = run_n_times(run_times, sample, scanning);
-        std::cout << "Best so far (all ffts): " << best << std::endl;        
-        
+        std::cout << "Best so far (all ffts): " << best << std::endl;
+
         // temporary solution for layer-wise fft opimization
         // should be refactored
         FOR_EACH( it, net_->node_groups_ )
@@ -276,7 +276,7 @@ private:
             {
                 std::cout << "Testing node_group [" << (*it)->name() << "] ..." << std::endl;
                 (*it)->receives_fft(false);
-                
+
                 double t = run_n_times(run_times, sample, scanning);
                 std::cout << "   when using ffts   : " << best << "\n"
                           << "   when using bf_conv: " << t;
@@ -291,7 +291,7 @@ private:
                     std::cout << "   will use ffts" << std::endl;
                     (*it)->receives_fft(true);
                 }
-            }   
+            }
         }
 
         std::cout << "Optimization done." << std::endl;
@@ -299,18 +299,18 @@ private:
 
 
 // training parameters
-private:    
+private:
     void force_eta( double eta )
     {
         std::cout << "Force learning rate parameter to be " << eta << std::endl;
-        
+
         net_->set_learning_rate(eta);
     }
 
     void set_momentum( double mom )
     {
         std::cout << "Momentum: " << mom << std::endl;
-        
+
         if ( mom > static_cast<double>(0) )
         {
             net_->set_momentum(mom);
@@ -320,7 +320,7 @@ private:
     void set_weight_decay( double wc )
     {
         std::cout << "Weight decay: " << wc << std::endl;
-        
+
         net_->set_weight_decay(wc);
     }
 
@@ -328,7 +328,7 @@ private:
 public:
     void prepare_training()
     {
-        // resume training        
+        // resume training
         {
             n_iter_ = train_monitor_->load_state(op->load_path);
             n_iter_ = n_iter_ + 1;
@@ -345,7 +345,7 @@ public:
 
         // weight decay setting
         set_weight_decay(op->wc_factor);
-        
+
         // This must precede the setup_fft() routine
         // set minibatch size
         if ( op->minibatch )
@@ -363,7 +363,7 @@ public:
     }
 
     void set_minibatch_size( double B )
-    {        
+    {
         net_->set_minibatch_size(B);
     }
 
@@ -379,13 +379,13 @@ public:
             {
                 optimize_for_training();
 
-                // Since optimization screws up the weights, 
+                // Since optimization screws up the weights,
                 // re-initializes the weights again.
                 net_->initialize_weight();
                 net_->initialize_momentum();
                 net_->save(op->save_path);
             }
-        }        
+        }
     }
 
 
@@ -396,8 +396,8 @@ public:
         net_->save(op->save_path);
 
         // load data batches for training
-        load_inputs(op->data_path,op->get_batch_range());        
-        
+        load_inputs(op->data_path,op->get_batch_range());
+
         // learning rate, momentum, weight decay, fft ...
         prepare_training();
 
@@ -410,7 +410,7 @@ public:
 
             // forward pass
             std::list<double3d_ptr> v = run_forward(s->inputs);
-           
+
             // update training monitor
             train_monitor_->update(v, s->labels, s->masks, op->cls_thresh);
 
@@ -420,7 +420,7 @@ public:
             // updates/sec
             if ( n_iter_ % op->check_freq == 0 )
             {
-                std::cout << "[Iter: " << std::setw(count_digit(op->n_iters)) 
+                std::cout << "[Iter: " << std::setw(count_digit(op->n_iters))
                             << n_iter_ << "] ";
                 std::cout << (wt.elapsed<double>()/tick) << " secs/update\t";
             }
@@ -440,7 +440,7 @@ public:
             // test
             if ( n_iter_ % op->test_freq == 0 )
             {
-                test_check();                
+                test_check();
                 net_->save(op->save_path,true);
                 wt.restart();
                 tick = 0;
@@ -454,7 +454,7 @@ public:
             }
         }
     }
-   
+
     void forward_scan()
     {
         // load inputs for forward scanning
@@ -509,7 +509,7 @@ public:
 
             // forward pass
             std::list<double3d_ptr> v = run_forward(s->inputs);
-            
+
             // error computation
             test_monitor_->update(v, s->labels, s->masks);
         }
@@ -518,7 +518,7 @@ public:
         test_monitor_->check(op->save_path, n_iter_);
         std::cout << "<<<<<<<<<<<<< TEST >>>>>>>>>>>>>" << std::endl;
     }
-    
+
 
 private:
     void prepare_testing()
@@ -550,14 +550,14 @@ private:
     void export_train_information()
     {
         STRONG_ASSERT(op->test_freq * op->check_freq > 0);
-                
+
         std::size_t test_idx  = op->weight_idx;
         std::size_t train_idx = op->weight_idx * op->test_freq / op->check_freq;
 
         std::cout << "train index: " << train_idx << std::endl;
         train_monitor_->load_state(op->load_path,train_idx);
         train_monitor_->save_state(op->hist_path);
-        
+
         std::cout << "test  index: " << test_idx << std::endl;
         test_monitor_->load_state(op->load_path,test_idx);
         test_monitor_->save_state(op->hist_path);
@@ -566,7 +566,7 @@ private:
 
 public:
     network( options_ptr _op )
-        : net_(new net)        
+        : net_(new net)
         , tm_(_op->n_threads)
         , lastn_(0)
         , inputs_()
@@ -575,7 +575,7 @@ public:
         , cost_fn_(_op->create_cost_function())
         , train_monitor_(new learning_monitor("train",_op->create_cost_function()))
         , test_monitor_(new learning_monitor("test",_op->create_cost_function()))
-        , eta_(0.01)        
+        , eta_(0.01)
     {
         if ( !construct_network() )
         {
@@ -613,21 +613,21 @@ public:
         ret = net_->get_outputs(lastn_,op->softmax);
         return ret;
     }
-    
+
     void run_backward( std::list<double3d_ptr> lbls, std::list<bool3d_ptr> msks )
     {
         std::list<double3d_ptr> outs = net_->get_outputs(lastn_,op->softmax);
 
         // compute gradient using a given cost function
         std::list<double3d_ptr> grads = cost_fn_->gradient(outs,lbls,msks);
-        
+
         // rebalancing
         if ( op->rebalance )
         {
             // default cross-entropy is multinomial (1-of-K coding)
             if ( op->cost_fn == "cross_entropy" )
             {
-                double3d_ptr rbmask = 
+                double3d_ptr rbmask =
                     volume_utils::multinomial_rebalance_mask(lbls);
 
                 FOR_EACH( it, grads )
@@ -637,7 +637,7 @@ public:
             }
             else
             {
-                std::list<double3d_ptr> rbmask = 
+                std::list<double3d_ptr> rbmask =
                     volume_utils::binomial_rebalance_mask(lbls);
 
                 std::list<double3d_ptr>::iterator rbmit = rbmask.begin();
@@ -654,11 +654,11 @@ public:
             {
                 volume_utils::normalize(*it);
             }
-        }        
+        }
 
         std::list<double3d_ptr>::iterator git = grads.begin();
         FOR_EACH( it, net_->outputs_ )
-        {            
+        {
             lastn_ = (*it)->run_backward(*git++,&tm_);
         }
 
@@ -690,10 +690,10 @@ private:
     }
 
 
-public:    
+public:
     // test loop: test whatever you want
     void test_loop()
-    {   
+    {
     }
 
 }; // class network

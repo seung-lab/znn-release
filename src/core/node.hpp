@@ -908,7 +908,7 @@ private:
             vec3i s = in_edges_.front()->in_->out_size();
             volume_utils::flip(*dEdX_);
             dEdX_fft_ = fftw::forward_pad(dEdX_, s);
-         }
+        }
 
         FOR_EACH(it, in_edges_)
         {

@@ -508,7 +508,7 @@ public:
                             vol_p<complex>>::type
     get( const vec3i& v)
     {
-        return get_complex3d_pool(v)->get();
+        return get_complex3d_pool(vec3i(v[0],v[1],v[2]/2+1))->get();
     }
 
     template<typename T>
@@ -519,11 +519,42 @@ public:
         return get_long3d_pool(v)->get();
     }
 
-
     template<typename T>
     typename std::enable_if<std::is_same<T,bool>::value,
                             vol_p<bool>>::type
     get( const vec3i& v)
+    {
+        return get_bool3d_pool(v)->get();
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_same<T,double>::value,
+                            vol_p<double>>::type
+    get_exact( const vec3i& v)
+    {
+        return get_double3d_pool(v)->get();
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_same<T,complex>::value,
+                            vol_p<complex>>::type
+    get_exact( const vec3i& v)
+    {
+        return get_complex3d_pool(vec3i(v[0],v[1],v[2]))->get();
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_same<T,long_t>::value,
+                            vol_p<long_t>>::type
+    get_exact( const vec3i& v)
+    {
+        return get_long3d_pool(v)->get();
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_same<T,bool>::value,
+                            vol_p<bool>>::type
+    get_exact( const vec3i& v)
     {
         return get_bool3d_pool(v)->get();
     }
@@ -619,10 +650,17 @@ detail::volume_pools& volume_pool =
 } // anonymous namespace
 
 template<typename T>
-inline vol_p<T> get_volume(const vec3i& s)
+inline vol_p<T> get_fft_volume(const vec3i& s)
 {
     return volume_pool.get<T>(s);
 }
+
+template<typename T>
+inline vol_p<T> get_volume(const vec3i& s)
+{
+    return volume_pool.get_exact<T>(s);
+}
+
 
 }} // namespace zi::znn
 

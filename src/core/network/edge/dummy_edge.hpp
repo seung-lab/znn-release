@@ -16,29 +16,19 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef ZNN_CORE_META_HPP_INCLUDED
-#define ZNN_CORE_META_HPP_INCLUDED
+#ifndef ZNN_CORE_NETWORK_EDGE_DUMMY_EDGE_HPP
+#define ZNN_CORE_NETWORK_EDGE_DUMMY_EDGE_HPP
 
-#include <type_traits>
+#include "edge_options.hpp"
 
-namespace zi { namespace znn {
+namespace zi {
+namespace znn {
 
-template<typename T>
-struct identity { typedef T type; };
 
-template<bool B>
-using bool_constant = std::integral_constant<bool,B>;
+struct dummy_edge: edge_options<is_dummy>{};
 
-template<class...>
-struct void_t_helper_struct { typedef void type; };
-
-template<class... Ts>
-using void_t = typename void_t_helper_struct<Ts...>::type;
-
-template<bool B, class T = void>
-using if_t = typename std::enable_if<B,T>::type;
 
 }} // namespace zi::znn
 
 
-#endif // ZNN_CORE_META_HPP_INCLUDED
+#endif // ZNN_CORE_NETWORK_EDGE_DUMMY_EDGE_HPP

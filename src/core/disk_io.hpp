@@ -1,6 +1,6 @@
 //
 // Copyright (C) 2015-present  Aleksandar Zlateski <zlateski@mit.edu>
-// ----------------------------------------------------------
+// ------------------------------------------------------------------
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,29 +16,29 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef ZNN_CORE_META_HPP_INCLUDED
-#define ZNN_CORE_META_HPP_INCLUDED
+#ifndef ZNN_CORE_DISK_IO_HPP_INCLUDED
+#define ZNN_CORE_DISK_IO_HPP_INCLUDED
 
-#include <type_traits>
+#include <string>
+#include <fstream>
 
-namespace zi { namespace znn {
+namespace zi {
+namespace znn {
+namespace io {
 
-template<typename T>
-struct identity { typedef T type; };
+std::string file_get_contents(const std::string& fname)
+{
+    std::ifstream fin(fname.c_str());
+    if ( !fin ) return "";
 
-template<bool B>
-using bool_constant = std::integral_constant<bool,B>;
+    std::string str( (std::istreambuf_iterator<char>(fin)),
+                     (std::istreambuf_iterator<char>()) );
+    fin.close();
 
-template<class...>
-struct void_t_helper_struct { typedef void type; };
+    return str;
+}
 
-template<class... Ts>
-using void_t = typename void_t_helper_struct<Ts...>::type;
-
-template<bool B, class T = void>
-using if_t = typename std::enable_if<B,T>::type;
-
-}} // namespace zi::znn
+}}} // namespace zi::znn::io
 
 
-#endif // ZNN_CORE_META_HPP_INCLUDED
+#endif // ZNN_CORE_DISK_IO_HPP_INCLUDED

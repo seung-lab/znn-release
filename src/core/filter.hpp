@@ -31,7 +31,7 @@ private:
     vol<double>   W_;
     vol<double>   mom_volume_;
 
-    // weight update stuff
+    // weight update stufftw
     double        eta_          = 0.1 ;
     double        momentum_     = 0.0 ;
     double        weight_decay_ = 0.0 ;
