@@ -44,6 +44,41 @@ operator<<( ::std::basic_ostream< CharT, Traits >& os,
     return os << "\n\n";
 }
 
+template< class T, class CharT, class Traits >
+std::basic_ostream< CharT, Traits >&
+operator<<( ::std::basic_ostream< CharT, Traits >& os,
+            cube<std::pair<T,int>> const & a )
+{
+    std::size_t rx = a.shape()[0];
+    std::size_t ry = a.shape()[1];
+    std::size_t rz = a.shape()[2];
+
+    for ( std::size_t z = 0; z < rz; ++z )
+    {
+        if ( z > 0 )
+        {
+            os << "\n\n";
+        }
+        for ( std::size_t x = 0; x < rx; ++x )
+        {
+            if ( x > 0 )
+            {
+                os << "\n";
+            }
+            for ( std::size_t y = 0; y < ry; ++y )
+            {
+                if ( y > 0 )
+                {
+                    os << ' ';
+                }
+                os << a[x][y][z].first << '[' << a[x][y][z].second << ']';
+            }
+        }
+    }
+    return os << "\n\n";
+}
+
+
 namespace detail {
 
 
@@ -357,5 +392,33 @@ inline cube_p<double> pad_zeros( const ccube<double>& v, const vec3i& s )
 
     return r;
 }
+
+template<typename T>
+inline cube_p<T> crop( const ccube<T>& c, const vec3i& s )
+{
+    auto ret = get_cube<T>(s);
+    *ret = c[indices[range(0,s[0])][range(0,s[1])][range(0,s[2])]];
+    return ret;
+}
+
+template<typename T>
+inline cube_p<T> crop_left( const ccube<T>& c, const vec3i& s )
+{
+    return crop(c,s);
+}
+
+
+template<typename T>
+inline cube_p<T> crop_right( const ccube<T>& c, const vec3i& s )
+{
+    vec3i off = size(c) - s;
+    auto ret = get_cube<T>(s);
+    *ret = c[indices
+             [range(off[0],s[0]+off[0])]
+             [range(off[1],s[1]+off[1])]
+             [range(off[2],s[2]+off[2])]];
+    return ret;
+}
+
 
 }} // namespace znn::v4

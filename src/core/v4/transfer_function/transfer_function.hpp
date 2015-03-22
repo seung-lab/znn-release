@@ -135,8 +135,7 @@ public:
 
 };
 
-transfer_function
-get_transfer_function( const options& op )
+transfer_function get_transfer_function( const options& op )
 {
     std::string fn = op.require_as<std::string>("function");
 
