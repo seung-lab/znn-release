@@ -587,7 +587,7 @@ private:
             {
                 dEdW = volume_pool.get_double3d(1,1,1);
                 (*dEdW)[0][0][0] = bf_conv_flipped_constant(e->in_->f_, dEdX_);
-                double3d_ptr grad = bf_conv_invMaerse_constant(dEdX_, (*e->W_)[0][0][0]);
+                double3d_ptr grad = bf_conv_inverse_constant(dEdX_, (*e->W_)[0][0][0]);
                 e->in_->template receive_grad<Manager>(grad, task_manager);
             }
             else
