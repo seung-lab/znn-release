@@ -2,7 +2,7 @@ ODIR		=	./bin
 CPP		=	g++
 CPP_FLAGS	= 	-g
 INC_FLAGS	=	-I. -I./src -I./zi
-OPT_FLAGS	=	-DNDEBUG -O2 
+OPT_FLAGS	=	-DNDEBUG -O3 -std=c++11
 OTH_FLAGS	=	-Wall -Wextra -Wno-unused-result -Wno-unused-local-typedefs
 
 LIBS		=	-lfftw3 -lpthread -lrt -lfftw3_threads

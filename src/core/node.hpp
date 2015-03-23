@@ -568,7 +568,7 @@ private:
 
             vec3i s = in_edges_.front()->in_->out_size();
 
-            dEdW = fftw::backward(dEdW_fft,s);
+            dEdW = fftw::backward(std::move(dEdW_fft),s);
 
             // [TODO: zlateski]  normalize after cropping
             dEdW = volume_utils::normalize_flip(dEdW);
@@ -587,7 +587,7 @@ private:
             {
                 dEdW = volume_pool.get_double3d(1,1,1);
                 (*dEdW)[0][0][0] = bf_conv_flipped_constant(e->in_->f_, dEdX_);
-                double3d_ptr grad = bf_conv_inverse_constant(dEdX_, (*e->W_)[0][0][0]);
+                double3d_ptr grad = bf_conv_invMaerse_constant(dEdX_, (*e->W_)[0][0][0]);
                 e->in_->template receive_grad<Manager>(grad, task_manager);
             }
             else
@@ -719,7 +719,7 @@ private:
                 ZI_ASSERT(fft_);
                 vec3i s = in_edges_.front()->in_->out_size();
 
-                double3d_ptr x = fftw::backward(fft_,s);
+                double3d_ptr x = fftw::backward(std::move(fft_),s);
 
                 // [TODO: zlateski]  normalize after cropping
 
@@ -823,7 +823,7 @@ private:
                 out_received_ = 0;
                 ZI_ASSERT(dEdX_fft_);
 
-                    dEdX_ = volume_utils::normalize_flip(fftw::backward(dEdX_fft_,
+                dEdX_ = volume_utils::normalize_flip(fftw::backward(std::move(dEdX_fft_),
                                                                         out_size()));
 
                 this->template run_backward<Manager>(task_manager);
@@ -858,7 +858,7 @@ private:
 
         if ( sends_fft_ && out_edges_.size() )
         {
-            fft_ = fftw::forward(f_);
+            fft_ = fftw::forward(std::move(f_));
         }
 
         FOR_EACH( it, out_edges_ )

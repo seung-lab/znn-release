@@ -1,6 +1,5 @@
 //
 // Copyright (C) 2014-present  Aleksandar Zlateski <zlateski@mit.edu>
-//                             Kisuk Lee           <kisuklee@mit.edu>
 // ------------------------------------------------------------------
 //
 // This program is free software: you can redistribute it and/or modify
@@ -34,6 +33,20 @@
 
 namespace zi {
 namespace znn {
+
+inline vec3i fft_complex_size(const vec3i& s)
+{
+    auto r = s;
+    r[2] /= 2;
+    r[2] += 1;
+    return r;
+}
+
+template< typename T >
+inline vec3i fft_complex_size(const vol<T>& c)
+{
+    return fft_complex_size(size(c));
+}
 
 class fftw_stats_impl
 {
@@ -75,6 +88,66 @@ fftw_stats_impl& fftw_stats = zi::singleton<fftw_stats_impl>::instance();
 
 class fftw
 {
+
+public:
+    class transformer
+    {
+    private:
+        vec3i     sz           ;
+        fftw_plan forward_plan ;
+        fftw_plan backward_plan;
+
+    public:
+        transformer(const vec3i& s)
+            : sz(s)
+            , forward_plan(fftw_plans.get_forward(s))
+            , backward_plan(fftw_plans.get_backward(s))
+        {}
+
+        void forward( vol<double>& in,
+                      vol<complex>& out )
+        {
+            ZI_ASSERT(size(out)==fft_complex_size(in));
+            ZI_ASSERT(size(in)==sz);
+
+            fftw_execute_dft_r2c(forward_plan,
+                                 reinterpret_cast<double*>(in.data()),
+                                 reinterpret_cast<fftw_complex*>(out.data()));
+        }
+
+        void backward( vol<complex>& in,
+                       vol<double>& out )
+        {
+            ZI_ASSERT(size(in)==fft_complex_size(out));
+            ZI_ASSERT(size(out)==sz);
+
+            fftw_execute_dft_c2r(backward_plan,
+                                 reinterpret_cast<fftw_complex*>(in.data()),
+                                 reinterpret_cast<double*>(out.data()));
+        }
+
+        vol_p<complex> forward( vol_p<double>&& in )
+        {
+            vol_p<complex> ret = get_volume<complex>(fft_complex_size(*in));
+            forward( *in, *ret );
+            return ret;
+        }
+
+        vol_p<complex> forward_pad( const cvol_p<double>& in )
+        {
+            vol_p<double> pin = pad_zeros(*in, sz);
+            return forward(std::move(pin));
+        }
+
+        vol_p<double> backward( vol_p<complex>&& in )
+        {
+            vol_p<double> ret = get_volume<double>(sz);
+            backward( *in, *ret );
+            return ret;
+        }
+    };
+
+
 public:
     static void forward( vol<double>& in,
                          vol<complex>& out )
@@ -118,31 +191,9 @@ public:
 #endif
     }
 
-    static void forward( const vol_p<double>& in,
-                         const vol_p<complex>& out )
-    {
-        forward(*in, *out);
-    }
-
-    static void backward( const vol_p<complex>& in,
-                          const vol_p<double>& out )
-    {
-        backward(*in, *out);
-    }
-
-    static vol_p<complex> forward( const cvol_p<double>& in )
-    {
-        vol_p<double> in_copy = get_volume<double>(size(*in));
-        *in_copy = *in;
-
-        vol_p<complex> ret = get_fft_volume<complex>(size(*in));
-        fftw::forward( *in_copy, *ret );
-        return ret;
-    }
-
     static vol_p<complex> forward( vol_p<double>&& in )
     {
-        vol_p<complex> ret = get_fft_volume<complex>(size(*in));
+        vol_p<complex> ret = get_volume<complex>(fft_complex_size(*in));
         fftw::forward( *in, *ret );
         return ret;
     }
@@ -157,37 +208,9 @@ public:
     static vol_p<complex> forward_pad( const cvol_p<double>& in,
                                        const vec3i& pad )
     {
-        if ( pad == size(*in) ) return fftw::forward(in);
-
         vol_p<double> pin = pad_zeros(*in, pad);
         return fftw::forward(std::move(pin));
     }
-
-    // static vol_p<complex> forward( const cvol<double>& in )
-    // {
-    //     vol_p<complex> ret = get_volume<complex>(size(in));
-    //     fftw::forward( in, *ret );
-    //     return ret;
-    // }
-
-    // static vol_p<double> backward( const cvol<complex>& in,
-    //                                const vec3i& s )
-    // {
-    //     vol_p<double> ret = get_volume<double>(s);
-    //     fftw::backward( in, *ret );
-    //     return ret;
-    // }
-
-    // static vol_p<complex> forward_pad( const cvol<double>& in,
-    //                                    const vec3i& s )
-    // {
-    //     if ( s == size(in) )
-    //     {
-    //         return fftw::forward(in);
-    //     }
-    //     return fftw::forward(pad_zeros(in,s));
-    // }
-
 
 }; // class fftw
 

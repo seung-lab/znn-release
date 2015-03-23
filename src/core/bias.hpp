@@ -44,6 +44,21 @@ public:
         return b_;
     }
 
+    double& momentum_value()
+    {
+        return v_;
+    }
+
+    double& momentum()
+    {
+        return mom_;
+    }
+
+    double& weight_decay()
+    {
+        return wd_;
+    }
+
     void update(double dEdB, double patch_size = 1 ) noexcept
     {
         v_ = (mom_*v_) - (eta_*wd_*b_) - (eta_*dEdB/patch_size);

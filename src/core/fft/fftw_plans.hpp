@@ -31,6 +31,8 @@
 #include <map>
 #include <iostream>
 
+#define ZNN_FFTW_PLANNING_MODE FFTW_PATIENT
+
 namespace zi {
 namespace znn {
 
@@ -41,7 +43,6 @@ private:
     std::map<vec3i, fftw_plan> fwd_       ;
     std::map<vec3i, fftw_plan> bwd_       ;
     double                     time_      ;
-    bool                       threads_   ;
 
 public:
     ~fftw_plans_impl()
@@ -55,7 +56,6 @@ public:
         {
             fftw_destroy_plan(it->second);
         }
-        fftw_cleanup_threads();
     }
 
     fftw_plans_impl()
@@ -63,19 +63,7 @@ public:
         , fwd_()
         , bwd_()
         , time_(0)
-        , threads_(0)
-    {
-        if ( fftw_init_threads() == 0 )
-        {
-            throw std::runtime_error("FFT Threads can't be initialized!");
-        }
-        else
-        {
-            std::cout << "FFT Threads initialized\n";
-            threads_ = 1;
-            //fftw_plan_with_nthreads(4);
-        }
-    }
+    { }
 
     fftw_plan get_forward( const vec3i& s )
     {
@@ -95,12 +83,13 @@ public:
             ( s[0], s[1], s[2],
               reinterpret_cast<double*>(in->data()),
               reinterpret_cast<fftw_complex*>(out->data()),
-              FFTW_ESTIMATE );
+              ZNN_FFTW_PLANNING_MODE );
 
         fwd_[s] = ret;
         time_ += wt.elapsed<double>();
 
-        std::cout << "Total time spent creating fftw plans: " << time_ << std::endl;
+        std::cout << "Total time spent creating fftw plans: "
+                  << time_ << std::endl;
 
         return ret;
     }
@@ -123,12 +112,13 @@ public:
             ( s[0], s[1], s[2],
               reinterpret_cast<fftw_complex*>(in->data()),
               reinterpret_cast<double*>(out->data()),
-              FFTW_ESTIMATE );
+              ZNN_FFTW_PLANNING_MODE );
 
         bwd_[s] = ret;
         time_ += wt.elapsed<double>();
 
-        std::cout << "Total time spent creating fftw plans: " << time_ << std::endl;
+        std::cout << "Total time spent creating fftw plans: "
+                  << time_ << std::endl;
 
         return ret;
     }

@@ -370,7 +370,7 @@ inline vol_p<double> pad_zeros( const cvol<double>& v, const vec3i& s )
     std::size_t oy = v.shape()[1];
     std::size_t oz = v.shape()[2];
 
-    fill(*r, 0);
+    if ( size(v) != s ) fill(*r, 0);
 
     (*r)[boost::indices[range(0,ox)][range(0,oy)][range(0,oz)]] = v;
 
