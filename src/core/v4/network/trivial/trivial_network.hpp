@@ -1,22 +1,23 @@
 #pragma once
 
-#include "../../transfer_function/transfer_functions.hpp"
-#include "../../types.hpp"
+#include "../../assert.hpp"
 #include "../../cube/cube.hpp"
 #include "../../cube/cube_operators.hpp"
-#include "../../assert.hpp"
+#include "../../options/options.hpp"
+#include "../../convolution/convolution.hpp"
+#include "../../transfer_function/transfer_functions.hpp"
+#include "../../types.hpp"
 #include "../bias.hpp"
 #include "../filter.hpp"
-#include "../../options/options.hpp"
 #include "utils.hpp"
 
-#include <vector>
 #include <map>
 #include <string>
-
+#include <vector>
 
 namespace znn { namespace v4 {
 
+// Forward definition
 class trivial_edge;
 
 class trivial_nodes
@@ -55,16 +56,147 @@ public:
 
 class trivial_edge
 {
+protected:
+    trivial_nodes * in_nodes;
+    size_t          in_num;
+    trivial_nodes * out_nodes;
+    size_t          out_num;
+
 public:
+    trivial_edge( trivial_nodes* in,
+                  size_t inn,
+                  trivial_nodes* out,
+                  size_t outn )
+        : in_nodes(in)
+        , in_num(inn)
+        , out_nodes(out)
+        , out_num(outn)
+    {
+    }
+
     virtual ~trivial_edge();
 
     // perform forward computation
     // can't modify the featuremap
-    virtual void forward(const ccube_p<double>&);
+    virtual void forward( ccube_p<double> const & );
 
     // perform forward computation
     // can't modify the gradient
-    virtual void backward(const ccube_p<double>&);
+    virtual void backward( ccube_p<double> const & );
+};
+
+template< typename E >
+class trivial_edge_of: public trivial_edge
+{
+private:
+    E impl;
+
+public:
+    template<class... Args>
+    trivial_edge_of( trivial_nodes* in,
+                     size_t inn,
+                     trivial_nodes* out,
+                     size_t outn,
+                     Args&&... args )
+        : trivial_edge(in, inn, out, outn)
+        , impl(std::forward<Args>(args)...)
+    {
+        // attach myself
+        in->attach_out_edge(inn, this);
+        out->attach_in_edge(outn, this);
+    }
+
+    ~trivial_edge_of() override {}
+
+    void forward( ccube_p<double> const & f ) override
+    {
+        out_nodes->forward(out_num, impl.forward(f));
+    }
+
+    void backward( ccube_p<double> const & g ) override
+    {
+        in_nodes->backward(in_num, impl.backward(g));
+    }
+};
+
+struct trivial_dummy_edge
+{
+    cube_p<double> forward( ccube_p<double> const & f )
+    {
+        return get_copy(*f);
+    }
+
+    cube_p<double> backward( ccube_p<double> const & g )
+    {
+        return get_copy(*g);
+    }
+};
+
+class trivial_max_pooling_edge
+{
+private:
+    vec3i filter_size;
+    vec3i filter_stride;
+
+    cube_p<int> indices;
+    vec3i       insize ;
+
+public:
+    trivial_max_pooling_edge( vec3i const & size,
+                              vec3i const & stride )
+        : filter_size(size), filter_stride(stride)
+    {
+    }
+
+    cube_p<double> forward( ccube_p<double> const & f )
+    {
+        insize = size(*f);
+        auto r = pooling_filter(get_copy(*f),
+                                [](double a, double b){ return a>b; },
+                                filter_size,
+                                filter_stride);
+        indices = r.second;
+        return r.first;
+    }
+
+    cube_p<double> backward( ccube_p<double> const & g )
+    {
+        ZI_ASSERT(indices);
+        ZI_ASSERT(insize == size(*g) + (filter_size - vec3i::one) * filter_stride);
+
+        return pooling_backprop(insize, *g, *indices);
+    }
+};
+
+
+class trivial_filter_edge
+{
+private:
+    vec3i    filter_stride;
+    filter * filter_;
+
+    ccube_p<double> last_input;
+
+public:
+    trivial_filter_edge( vec3i const & stride, filter * f )
+        : filter_stride(stride), filter_(f)
+    {
+    }
+
+    cube_p<double> forward( ccube_p<double> const & f )
+    {
+        last_input = f;
+        return convolve_sparse(*f, filter_->W(), filter_stride);
+    }
+
+    cube_p<double> backward( ccube_p<double> const & g )
+    {
+        ZI_ASSERT(last_input);
+        auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
+        auto ret  = convolve_sparse_inverse(*g, filter_->W(), filter_stride);
+        filter_->update(*dEdW);
+        return ret;
+    }
 };
 
 
@@ -109,7 +241,6 @@ public:
         return ret;
     }
 };
-
 
 
 class trivial_summing_nodes: public trivial_nodes

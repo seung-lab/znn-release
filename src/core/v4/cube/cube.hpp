@@ -60,16 +60,31 @@ template <typename T> using cqube_p = std::shared_ptr<cqube<T>>;
 //       probaby one using jemalloc
 
 template <typename T>
-inline vec3i size( const cube<T>& a )
+inline vec3i size( cube<T> const & a )
 {
     return vec3i(a.shape()[0],a.shape()[1],a.shape()[2]);
 };
 
 template <typename T>
-inline vec4i size( const qube<T>& a )
+inline vec4i size( qube<T> const & a )
 {
     return vec4i(a.shape()[0],a.shape()[1],a.shape()[2],a.shape()[3]);
 };
 
+template <typename T>
+inline cube_p<T> get_copy( cube<T> const & c )
+{
+    auto r = get_cube<T>(size(c));
+    *r = c;
+    return r;
+}
+
+template <typename T>
+inline qube_p<T> get_copy( qube<T> const & c )
+{
+    auto r = get_qube<T>(size(c));
+    *r = c;
+    return r;
+}
 
 }} // namespace znn::v4

@@ -116,7 +116,7 @@ inline void convolve_flipped_add( cube<T> const & a,
 template< typename T >
 inline void convolve_flipped( cube<T> const & a,
                               cube<T> const & b,
-                              cube<T> const & r) noexcept
+                              cube<T> & r) noexcept
 {
     if ( size(a) == size(b) )
     {

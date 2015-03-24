@@ -95,7 +95,7 @@ inline void pooling_filter_pass( double *  head1,
 
     if ( size == 4 )
     {
-        pooling_filter_pass_3(head1, end, head2, stride, cmp);
+        pooling_filter_pass_4(head1, end, head2, stride, cmp);
         return;
     }
 
