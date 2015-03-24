@@ -3,9 +3,13 @@
 #include <complex>
 #include <memory>
 #include <type_traits>
+#include <array>
 
 #include <boost/multi_array.hpp>
+#include <boost/lockfree/stack.hpp>
+#include <zi/utility/singleton.hpp>
 #include <jemalloc/jemalloc.h>
+
 
 #include "cube_allocator.hpp"
 #include "../types.hpp"
@@ -24,17 +28,13 @@ template <typename T>
 struct needs_fft_allocator<std::complex<T>>: std::is_floating_point<T> {};
 
 
-template <typename T>
-using cube = boost::multi_array<T, 3, typename std::conditional<
-                                          needs_fft_allocator<T>::value,
-                                          cube_allocator<T>,
-                                          std::allocator<T>>::type >;
-
-template <typename T>
-using qube = boost::multi_array<T, 4, typename std::conditional<
-                                          needs_fft_allocator<T>::value,
-                                          cube_allocator<T>,
-                                          std::allocator<T>>::type >;
+#ifdef DUMMY_CUBE
+#  include "dummy_cube.hpp"
+#elif defined ZNN_ARENA_CUBE
+#  include "znn_arena_cube.hpp"
+#else
+#  include "znn_malloc_cube.hpp"
+#endif
 
 
 #ifdef NDEBUG
@@ -58,18 +58,6 @@ template <typename T> using cqube_p = std::shared_ptr<cqube<T>>;
 
 // TODO: to be replaced with an efficient cube arena
 //       probaby one using jemalloc
-
-template<typename T>
-cube_p<T> get_cube(const vec3i& s)
-{
-    return cube_p<T>(new cube<T>(extents[s[0]][s[1]][s[2]]));
-}
-
-template<typename T>
-qube_p<T> get_qube(const vec4i& s)
-{
-    return qube_p<T>(new qube<T>(extents[s[0]][s[1]][s[2]][s[3]]));
-}
 
 template <typename T>
 inline vec3i size( const cube<T>& a )

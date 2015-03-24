@@ -107,4 +107,6 @@ inline cube_p<double> pooling_backprop( vec3i         const & sz,
 }
 
 
+
+
 }} // namespace znn:v4

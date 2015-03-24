@@ -13,8 +13,8 @@ namespace detail {
 
 struct random_number_generator_impl: std::mutex
 {
-    std::mt19937 rng = std::mt19937(std::time(0));
-    //     std::mt19937 rng = std::mt19937(std::random_device(0));
+    std::mt19937 rng = std::mt19937(1234);
+    // std::mt19937 rng = std::mt19937(std::random_device(0));
 }; // class random_number_generator_impl
 
 } // namespace detail
@@ -23,7 +23,7 @@ class initializator
 {
 protected:
     template <typename T>
-    static void initialize_with_distribution(T& dis, double* v, size_t n) noexcept
+    static void initialize_with_distribution(T&& dis, double* v, size_t n) noexcept
     {
         static detail::random_number_generator_impl& rng =
             zi::singleton<detail::random_number_generator_impl>::instance();
@@ -37,9 +37,10 @@ protected:
     }
 
     template <typename T>
-    static void initialize_with_distribution(T& dis, cube<double>& v) noexcept
+    static void initialize_with_distribution(T&& dis, cube<double>& v) noexcept
     {
-        initialize_with_distribution(dis, v.data(), v.num_elements());
+        initialize_with_distribution(std::forward<T>(dis),
+                                     v.data(), v.num_elements());
     }
 
 

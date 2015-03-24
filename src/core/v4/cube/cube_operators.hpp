@@ -41,140 +41,105 @@ operator<<( ::std::basic_ostream< CharT, Traits >& os,
             }
         }
     }
-    return os << "\n\n";
-}
-
-template< class T, class CharT, class Traits >
-std::basic_ostream< CharT, Traits >&
-operator<<( ::std::basic_ostream< CharT, Traits >& os,
-            cube<std::pair<T,int>> const & a )
-{
-    std::size_t rx = a.shape()[0];
-    std::size_t ry = a.shape()[1];
-    std::size_t rz = a.shape()[2];
-
-    for ( std::size_t z = 0; z < rz; ++z )
-    {
-        if ( z > 0 )
-        {
-            os << "\n\n";
-        }
-        for ( std::size_t x = 0; x < rx; ++x )
-        {
-            if ( x > 0 )
-            {
-                os << "\n";
-            }
-            for ( std::size_t y = 0; y < ry; ++y )
-            {
-                if ( y > 0 )
-                {
-                    os << ' ';
-                }
-                os << a[x][y][z].first << '[' << a[x][y][z].second << ']';
-            }
-        }
-    }
-    return os << "\n\n";
+    return os;
 }
 
 
 namespace detail {
 
-
 template<typename T>
-inline void add_two(const T* a, const T* b, T* r, std::size_t s) noexcept
+inline void add_two(T const * a, T const * b, T * r, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
         r[i] = a[i] + b[i];
 }
 
 template<typename T>
-inline void sub_two(const T* a, const T* b, T* r, std::size_t s) noexcept
+inline void sub_two(T const * a, T const * b, T * r, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
         r[i] = a[i] - b[i];
 }
 
 template<typename T>
-inline void mul_two(const T* a, const T* b, T* r, std::size_t s) noexcept
+inline void mul_two(T const * a, T const * b, T * r, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
         r[i] = a[i] * b[i];
 }
 
 template<typename T>
-inline void div_two(const T* a, const T* b, T* r, std::size_t s) noexcept
+inline void div_two(T const * a, T const * b, T * r, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
         r[i] = a[i] / b[i];
 }
 
 template<typename T>
-inline void add_to(T* a, const T& v, std::size_t s) noexcept
+inline void add_to(T * a, T const& v, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
         a[i] += v;
 }
 
 template<typename T>
-inline void sub_val(T* a, const T& v, std::size_t s) noexcept
+inline void sub_val(T * a, T const& v, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
         a[i] -= v;
 }
 
 template<typename T>
-inline void mul_with(T* a, const T& v, std::size_t s) noexcept
+inline void mul_with(T * a, T const& v, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
         a[i] *= v;
 }
 
 template<typename T>
-inline void add_to(T* a, const T* v, std::size_t s) noexcept
+inline void add_to(T * a, T const * v, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
         a[i] += v[i];
 }
 
 template<typename T>
-inline void mad_to(double a, const T* x, T* o, std::size_t s) noexcept
+inline void mad_to(double a, T const * x, T * o, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
         o[i] += a * x[i];
 }
 
 template<typename T>
-inline void mad_to(const T* a, const T* b, T* r, std::size_t s) noexcept
+inline void mad_to(T const * a, T const * b, T * r, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
         r[i] += a[i] * b[i];
 }
 
 template<typename T>
-inline void mad_to(double a, T* o, std::size_t s) noexcept
+inline void mad_to(double a, T * o, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
         o[i] += a * o[i];
 }
 
 template<typename T>
-inline void sub_val(T* a, const T* v, std::size_t s) noexcept
+inline void sub_val(T * a, T const * v, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
         a[i] -= v[i];
 }
 
 template<typename T>
-inline void mul_with(T* a, const T* v, std::size_t s) noexcept
+inline void mul_with(T * a, T const * v, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
         a[i] *= v[i];
 }
 
 template<typename T>
-inline T sum(const T* a, std::size_t s) noexcept
+inline T sum(T const * a, std::size_t s) noexcept
 {
     T r = T();
     for ( std::size_t i = 0; i < s; ++i )
@@ -186,32 +151,32 @@ inline T sum(const T* a, std::size_t s) noexcept
 } // namespace detail
 
 template<typename T>
-inline cube<T>&
-operator+=(cube<T>& v, typename identity<T>::type c) noexcept
+inline cube<T> &
+operator+=( cube<T> & v, identity_t<T> c ) noexcept
 {
     detail::add_to(v.data(), c, v.num_elements());
     return v;
 }
 
 template<typename T>
-inline cube<T>&
-operator-=(cube<T>& v, typename identity<T>::type c) noexcept
+inline cube<T> &
+operator-=( cube<T> & v, identity_t<T> c ) noexcept
 {
     detail::sub_val(v.data(), c, v.num_elements());
     return v;
 }
 
 template<typename T>
-inline cube<T>&
-operator*=(cube<T>& v, typename identity<T>::type c) noexcept
+inline cube<T> &
+operator*=( cube<T> & v, identity_t<T> c ) noexcept
 {
     detail::mul_with(v.data(), c, v.num_elements());
     return v;
 }
 
 template<typename T>
-inline cube<T>&
-operator/=(cube<T>& v, typename identity<T>::type c) noexcept
+inline cube<T> &
+operator/=( cube<T> & v, identity<T> c ) noexcept
 {
     double one_over_c = static_cast<long double>(1) / c;
     detail::mul_with(v.data(), one_over_c, v.num_elements());
@@ -219,8 +184,8 @@ operator/=(cube<T>& v, typename identity<T>::type c) noexcept
 }
 
 template<typename T>
-inline cube<T>&
-operator+=(cube<T>& v, const cube<T>& c) noexcept
+inline cube<T> &
+operator+=( cube<T> & v, cube<T> const & c ) noexcept
 {
     ZI_ASSERT(v.num_elements()==c.num_elements());
     detail::add_to(v.data(), c.data(), v.num_elements());
@@ -228,8 +193,8 @@ operator+=(cube<T>& v, const cube<T>& c) noexcept
 }
 
 template<typename T>
-inline cube<T>&
-operator-=(cube<T>& v, const cube<T>& c) noexcept
+inline cube<T> &
+operator-=( cube<T> & v, cube<T> const & c ) noexcept
 {
     ZI_ASSERT(v.num_elements()==c.num_elements());
     detail::sub_val(v.data(), c.data(), v.num_elements());
@@ -237,8 +202,8 @@ operator-=(cube<T>& v, const cube<T>& c) noexcept
 }
 
 template<typename T>
-inline cube<T>&
-operator*=(cube<T>& v, const cube<T>& c) noexcept
+inline cube<T> &
+operator*=( cube<T> & v, cube<T> const & c ) noexcept
 {
     ZI_ASSERT(v.num_elements()==c.num_elements());
     detail::mul_with(v.data(), c.data(), v.num_elements());
@@ -248,7 +213,7 @@ operator*=(cube<T>& v, const cube<T>& c) noexcept
 
 template<typename T>
 inline cube_p<T>
-operator+(const cube<T>& a, const cube<T>& b)
+operator+( cube<T> const & a, cube<T> const & b)
 {
     ZI_ASSERT(size(a)==size(b));
     cube_p<T> r = get_cube<T>(size(a));
@@ -258,7 +223,7 @@ operator+(const cube<T>& a, const cube<T>& b)
 
 template<typename T>
 inline cube_p<T>
-operator-(const cube<T>& a, const cube<T>& b)
+operator-( cube<T> const & a, cube<T> const & b)
 {
     ZI_ASSERT(size(a)==size(b));
     cube_p<T> r = get_cube<T>(size(a));
@@ -268,7 +233,7 @@ operator-(const cube<T>& a, const cube<T>& b)
 
 template<typename T>
 inline cube_p<T>
-operator*(const cube<T>& a, const cube<T>& b)
+operator*( cube<T> const & a, cube<T> const & b)
 {
     ZI_ASSERT(size(a)==size(b));
     cube_p<T> r = get_cube<T>(size(a));
@@ -278,7 +243,7 @@ operator*(const cube<T>& a, const cube<T>& b)
 
 template<typename T>
 inline cube_p<T>
-operator/(const cube<T>& a, const cube<T>& b)
+operator/( cube<T> const & a, cube<T> const & b)
 {
     ZI_ASSERT(size(a)==size(b));
     cube_p<T> r = get_cube<T>(size(a));
@@ -287,15 +252,15 @@ operator/(const cube<T>& a, const cube<T>& b)
 }
 
 template<typename T>
-inline void mad_to(typename identity<T>::type a,
-                   const cube<T>& x, cube<T>& o) noexcept
+inline void mad_to(identity_t<T> a,
+                   cube<T> const & x, cube<T> & o) noexcept
 {
     ZI_ASSERT(x.num_elements()==o.num_elements());
     detail::mad_to(a, x.data(), o.data(), o.num_elements());
 }
 
 template<typename T>
-inline void mad_to(const cube<T>& a, const cube<T>& b, cube<T>& o) noexcept
+inline void mad_to(cube<T> const & a, cube<T> const & b, cube<T> & o) noexcept
 {
     ZI_ASSERT(a.num_elements()==b.num_elements());
     ZI_ASSERT(b.num_elements()==o.num_elements());
@@ -304,7 +269,7 @@ inline void mad_to(const cube<T>& a, const cube<T>& b, cube<T>& o) noexcept
 
 
 template<typename T>
-inline void mad_to(typename identity<T>::type a, cube<T>& o) noexcept
+inline void mad_to(identity_t<T> a, cube<T> & o) noexcept
 {
     detail::mad_to(a, o.data(), o.num_elements());
 }
@@ -312,46 +277,63 @@ inline void mad_to(typename identity<T>::type a, cube<T>& o) noexcept
 template< typename T,
           class = typename
           std::enable_if<std::is_convertible<T,double>::value>::type >
-inline void fill( cube<T>& v, const typename identity<T>::type & c) noexcept
+inline void fill( cube<T> & v, const identity_t<T> & c) noexcept
 {
     std::fill_n(v.data(), v.num_elements(), c);
 }
 
-
-inline void flip_vol(cube<double>& v) noexcept
+inline void flip(cube<double>& v) noexcept
 {
     double* data = v.data();
     std::reverse(data, data + v.num_elements());
 }
 
 template<typename T>
-inline T max(const cube<T>& v) noexcept
+inline T max(cube<T> const & v) noexcept
 {
     return *std::max_element(v.data(), v.data() + v.num_elements());
 }
 
 template<typename T>
-inline T min(const cube<T>& v) noexcept
+inline T min(cube<T> const & v) noexcept
 {
     return *std::min_element(v.data(), v.data() + v.num_elements());
 }
 
 template<typename T>
-inline T sum(const cube<T>& v) noexcept
+inline T sum(cube<T> const & v) noexcept
 {
     return detail::sum(v.data(), v.num_elements());
 }
 
 
 template<typename T>
-inline cube_p<T> sparse_explode(const cube<T>& v, const vec3i& sparse,
-                                const vec3i& s )
+inline cube_p<T> sparse_explode( cube<T> const & v,
+                                 vec3i const & sparse,
+                                 vec3i const & s )
 {
     vec3i vs = size(v);
     cube_p<T> r = get_cube<T>(s);
     fill(*r,0);
 
-    cube<T>& rr = *r;
+    (*r)[indices
+         [range(0,sparse[0]*vs[0],sparse[0])]
+         [range(0,sparse[1]*vs[1],sparse[1])]
+         [range(0,sparse[2]*vs[2],sparse[2])]] = v;
+
+    return r;
+}
+
+template<typename T>
+inline cube_p<T> sparse_explode_slow( cube<T> const & v,
+                                      vec3i const & sparse,
+                                      vec3i const & s )
+{
+    vec3i vs = size(v);
+    cube_p<T> r = get_cube<T>(s);
+    fill(*r,0);
+
+    cube<T> & rr = *r;
 
     for ( long_t xv = 0, rx = 0; xv < vs[0]; ++xv, rx += sparse[0] )
         for ( long_t yv = 0, ry = 0; yv < vs[1]; ++yv, ry += sparse[1] )
@@ -363,11 +345,12 @@ inline cube_p<T> sparse_explode(const cube<T>& v, const vec3i& sparse,
 
 
 template<typename T>
-inline cube_p<T> sparse_implode(const cube<T>& r, const vec3i& sparse,
-                                const vec3i& vs )
+inline cube_p<T> sparse_implode_slow( cube<T> const & r,
+                                      vec3i const & sparse,
+                                      vec3i const & vs )
 {
     cube_p<T> vp = get_cube<T>(vs);
-    cube<T>& v = *vp;
+    cube<T> & v = *vp;
 
     for ( long_t xv = 0, rx = 0; xv < vs[0]; ++xv, rx += sparse[0] )
         for ( long_t yv = 0, ry = 0; yv < vs[1]; ++yv, ry += sparse[1] )
@@ -377,8 +360,21 @@ inline cube_p<T> sparse_implode(const cube<T>& r, const vec3i& sparse,
     return vp;
 }
 
+template<typename T>
+inline cube_p<T> sparse_implode( cube<T> const & r,
+                                 vec3i const & sparse,
+                                 vec3i const & vs )
+{
+    auto vp = get_cube<T>(vs);
+    (*vp) = r[indices
+              [range(0,sparse[0]*vs[0],sparse[0])]
+              [range(0,sparse[1]*vs[1],sparse[1])]
+              [range(0,sparse[2]*vs[2],sparse[2])]];
+    return vp;
+}
 
-inline cube_p<double> pad_zeros( const ccube<double>& v, const vec3i& s )
+
+inline cube_p<double> pad_zeros( const cube<double>& v, vec3i const & s )
 {
     cube_p<double> r = get_cube<double>(s);
 
@@ -388,13 +384,13 @@ inline cube_p<double> pad_zeros( const ccube<double>& v, const vec3i& s )
 
     if ( size(v) != s ) fill(*r, 0);
 
-    (*r)[boost::indices[range(0,ox)][range(0,oy)][range(0,oz)]] = v;
+    (*r)[indices[range(0,ox)][range(0,oy)][range(0,oz)]] = v;
 
     return r;
 }
 
 template<typename T>
-inline cube_p<T> crop( const ccube<T>& c, const vec3i& s )
+inline cube_p<T> crop( cube<T> const & c, vec3i const & s )
 {
     auto ret = get_cube<T>(s);
     *ret = c[indices[range(0,s[0])][range(0,s[1])][range(0,s[2])]];
@@ -402,14 +398,14 @@ inline cube_p<T> crop( const ccube<T>& c, const vec3i& s )
 }
 
 template<typename T>
-inline cube_p<T> crop_left( const ccube<T>& c, const vec3i& s )
+inline cube_p<T> crop_left( cube<T> const & c, vec3i const & s )
 {
     return crop(c,s);
 }
 
 
 template<typename T>
-inline cube_p<T> crop_right( const ccube<T>& c, const vec3i& s )
+inline cube_p<T> crop_right( cube<T> const & c, vec3i const & s )
 {
     vec3i off = size(c) - s;
     auto ret = get_cube<T>(s);

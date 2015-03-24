@@ -62,7 +62,7 @@ inline void load_filters( std::vector<std::unique_ptr<filter>> const & fs,
 
     for ( size_t i = 0; i < fs.size(); ++i )
     {
-        fs[i]->W().resize(extents[s[0]][s[1]][s[2]]);
+        ZI_ASSERT(size(fs[i]->W())==s);
         for ( long_t z = 0; z < s[2]; ++z )
             for ( long_t y = 0; y < s[1]; ++y )
                 for ( long_t x = 0; x < s[0]; ++x )
@@ -73,7 +73,8 @@ inline void load_filters( std::vector<std::unique_ptr<filter>> const & fs,
     {
         for ( size_t i = 0; i < fs.size(); ++i )
         {
-            fs[i]->momentum_volume().resize(extents[s[0]][s[1]][s[2]]);
+            //fs[i]->momentum_volume().resize(extents[s[0]][s[1]][s[2]]);
+            ZI_ASSERT(size(fs[i]->momentum_volume())==s);
             for ( long_t z = 0; z < s[2]; ++z )
                 for ( long_t y = 0; y < s[1]; ++y )
                     for ( long_t x = 0; x < s[0]; ++x )

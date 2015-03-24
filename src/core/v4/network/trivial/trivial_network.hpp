@@ -236,7 +236,10 @@ public:
     options serialize() const
     {
         options ret;
-        ret.push("type", "transfer").push("size", size_);
+        ret.push("type", "transfer").
+            push("size", size_).
+            push(func_.serialize()).
+            push("biases", save_biases(biases_));
         return ret;
     }
 

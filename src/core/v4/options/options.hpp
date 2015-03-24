@@ -27,6 +27,15 @@ public:
         return *this;
     }
 
+    options& push(options&& other)
+    {
+        for ( auto& x: other )
+        {
+            (*this)[x.first] = x.second;
+        }
+        return *this;
+    }
+
     void dump()
     {
         for ( auto& p: (*this) )

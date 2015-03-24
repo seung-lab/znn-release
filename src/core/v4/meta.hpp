@@ -7,6 +7,9 @@ namespace znn { namespace v4 {
 template<typename T>
 struct identity { typedef T type; };
 
+template<typename T>
+using identity_t = typename identity<T>::type;
+
 template<bool B>
 using bool_constant = std::integral_constant<bool,B>;
 
