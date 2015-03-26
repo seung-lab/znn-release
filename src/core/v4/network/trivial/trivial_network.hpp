@@ -405,11 +405,13 @@ class trivial_input_nodes: public trivial_nodes
 private:
     size_t                                  size_   ;
     std::vector<std::vector<trivial_edge*>> outputs_;
+    options                                 opts_   ;
 
 public:
-    trivial_input_nodes(size_t s)
+    trivial_input_nodes(size_t s, options const & op)
         : size_(s)
         , outputs_(s)
+        , opts_(op)
     {}
 
     void forward(size_t n, cube_p<double>&& f) override
@@ -442,9 +444,7 @@ public:
 
     options serialize() const
     {
-        options ret;
-        ret.push("type", "input").push("size", size_);
-        return ret;
+        return opts_;
     }
 };
 
@@ -458,15 +458,17 @@ private:
     std::vector<size_t>                     received_;
     std::vector<cube_p<double>>             fs_      ;
     std::vector<cube_p<double>>             gs_      ;
+    options                                 opts_   ;
 
 public:
-    trivial_summing_nodes(size_t s)
+    trivial_summing_nodes(size_t s, options const & op)
         : size_(s)
         , inputs_(s)
         , outputs_(s)
         , received_(s)
         , fs_(s)
         , gs_(s)
+        , opts_(op)
     {}
 
     void set_eta( double ) override {}
@@ -475,9 +477,7 @@ public:
 
     options serialize() const
     {
-        options ret;
-        ret.push("type", "sum").push("size", size_);
-        return ret;
+        return opts_;
     }
 
     std::vector<cube_p<double>>& get_featuremaps() override
@@ -851,11 +851,11 @@ private:
         if ( type == "input" )
         {
             input_nodes_[name] = ns;
-            ns->nodes = std::make_unique<trivial_input_nodes>(sz);
+            ns->nodes = std::make_unique<trivial_input_nodes>(sz,op);
         }
         else if ( type == "sum" )
         {
-            ns->nodes = std::make_unique<trivial_summing_nodes>(sz);
+            ns->nodes = std::make_unique<trivial_summing_nodes>(sz,op);
         }
         else if ( type == "transfer" )
         {
@@ -1016,6 +1016,20 @@ public:
         return ret;
     }
 
+
+
+    std::pair<std::vector<options>,std::vector<options>> serialize() const
+    {
+        std::pair<std::vector<options>,std::vector<options>> ret;
+
+        for ( auto & n: nodes_ )
+            ret.first.push_back(n.second->nodes->serialize());
+
+        for ( auto & e: edges_ )
+            ret.second.push_back(e.second->edges->serialize());
+
+        return ret;
+    }
 
 };
 

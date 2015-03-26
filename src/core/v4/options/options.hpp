@@ -40,7 +40,14 @@ public:
     {
         for ( auto& p: (*this) )
         {
-            std::cout << p.first << '=' << p.second << '\n';
+            if ( p.first != "filters" && p.first != "biases" )
+            {
+                std::cout << p.first << '=' << p.second << '\n';
+            }
+            else
+            {
+                std::cout << p.first << '=' << "[binary]" << '\n';
+            }
         }
     }
 

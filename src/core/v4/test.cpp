@@ -140,7 +140,21 @@ int main()
         }
     }
 
+    auto state = tn.serialize();
 
+    std::cout << "Node Groups: " << std::endl;
+    for ( auto & n: state.first )
+    {
+        n.dump();
+        std::cout << "\n";
+    }
+
+    std::cout << "Edge Groups: " << std::endl;
+    for ( auto & n: state.second )
+    {
+        n.dump();
+        std::cout << "\n";
+    }
 
     return 0;
 }
