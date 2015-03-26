@@ -955,6 +955,18 @@ public:
         for ( auto & n: nodes_ ) n.second->nodes->set_eta(eta);
     }
 
+    void set_momentum( double mom )
+    {
+        for ( auto & e: edges_ ) e.second->edges->set_momentum(mom);
+        for ( auto & n: nodes_ ) n.second->nodes->set_momentum(mom);
+    }
+
+    void set_weight_decay( double wd )
+    {
+        for ( auto & e: edges_ ) e.second->edges->set_weight_decay(wd);
+        for ( auto & n: nodes_ ) n.second->nodes->set_weight_decay(wd);
+    }
+
     vec3i fov() const
     {
         return input_nodes_.begin()->second->fov;
@@ -1030,6 +1042,9 @@ public:
         return ret;
     }
 
+    void zap()
+    {
+    }
 };
 
 }}} // namespace znn::v4::trivial_network
