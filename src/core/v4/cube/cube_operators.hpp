@@ -176,7 +176,7 @@ operator*=( cube<T> & v, identity_t<T> c ) noexcept
 
 template<typename T>
 inline cube<T> &
-operator/=( cube<T> & v, identity<T> c ) noexcept
+operator/=( cube<T> & v, identity_t<T> c ) noexcept
 {
     double one_over_c = static_cast<long double>(1) / c;
     detail::mul_with(v.data(), one_over_c, v.num_elements());
@@ -277,7 +277,7 @@ inline void mad_to(identity_t<T> a, cube<T> & o) noexcept
 template< typename T,
           class = typename
           std::enable_if<std::is_convertible<T,double>::value>::type >
-inline void fill( cube<T> & v, const identity_t<T> & c) noexcept
+inline void fill( cube<T> & v, identity_t<T> c) noexcept
 {
     std::fill_n(v.data(), v.num_elements(), c);
 }

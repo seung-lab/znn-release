@@ -1,4 +1,6 @@
+#include "utils/accumulator.hpp"
 #include "network/trivial/trivial_network.hpp"
+#include "network/trivial/trivial_fft_network.hpp"
 
 using namespace znn::v4;
 
@@ -115,9 +117,21 @@ int main()
     trivial_network::network tn(nodes, edges, {1,1,1});
     tn.set_eta(0.1);
 
-    std::map<std::string, std::vector<cube_p<double>>> in;
+    std::map<std::string, std::vector<cube_p<double>>> in, in2;
     in["input"].push_back(get_cube<double>({65,65,3}));
 
+    uniform_init init(1);
+    init.initialize(*in["input"][0]);
+
+    in2["input"].push_back(get_copy(*in["input"][0]));
+
+    auto nd = tn.serialize();
+
+    trivial_fft_network::network tn2(nd.first, nd.second, {1,1,3});
+
+    std::cout << "QURAC\n\n";
+
+    auto r2 = tn2.forward(std::move(in2));
     auto r = tn.forward(std::move(in));
 
     for ( auto & it: r )
@@ -125,11 +139,69 @@ int main()
         std::cout << it.first << "\n";
         for ( auto & v: it.second )
         {
-            std::cout << size(*v) << "\n\n";
+            std::cout << *v << "\n\n";
         }
     }
 
+
+    for ( auto & it: r2 )
+    {
+        std::cout << it.first << "\n";
+        for ( auto & v: it.second )
+        {
+            std::cout << *v << "\n\n";
+        }
+    }
+
+
     r = tn.backward(std::move(r));
+    r2 = tn2.backward(std::move(r2));
+
+    std::map<std::string, std::vector<cube_p<double>>> inx1, inx2;
+    inx1["input"].push_back(get_cube<double>({65,65,3}));
+
+
+    init.initialize(*inx1["input"][0]);
+
+    inx2["input"].push_back(get_copy(*inx1["input"][0]));
+
+
+    r = tn.forward(std::move(inx1));
+    r2 = tn2.forward(std::move(inx2));
+
+    for ( auto & it: r )
+    {
+        std::cout << it.first << "\n";
+        for ( auto & v: it.second )
+        {
+            std::cout << *v << "\n\n";
+        }
+    }
+
+
+    for ( auto & it: r2 )
+    {
+        std::cout << it.first << "\n";
+        for ( auto & v: it.second )
+        {
+            std::cout << *v << "\n\n";
+        }
+    }
+
+    std::cout << "HERE\n\n\n\n";
+
+    //int i;
+    //std::cin >> i;
+
+
+    std::cout << "HERE\n\n\n\n";
+
+    //int i;
+    //std::cin >> i;
+
+    //std::cout << (*r["input"][0]) << "\n\n\n\n"; // - *r2["input"][0]);
+
+    return 0;
 
     for ( auto & it: r )
     {

@@ -21,6 +21,7 @@
 
 #include "types.hpp"
 #include "volume_operators.hpp"
+#include "volume_pool.hpp"
 
 namespace zi {
 namespace znn {
@@ -28,8 +29,8 @@ namespace znn {
 class filter
 {
 private:
-    vol<double>   W_;
-    vol<double>   mom_volume_;
+    vol_p<double> W_;
+    vol_p<double> mom_volume_;
 
     // weight update stufftw
     double        eta_          = 0.1 ;
@@ -37,12 +38,23 @@ private:
     double        weight_decay_ = 0.0 ;
 
 public:
+    filter( const vec3i& sz, double eta = 0.1,
+            double momentum = 0, double weight_decay = 0 )
+        : W_(get_volume<double>(sz))
+        , mom_volume_(get_volume<double>(sz))
+        , eta_(eta)
+        , momentum_(momentum)
+        , weight_decay_(weight_decay)
+    {
+        fill(*mom_volume_,0);
+    }
+
     double& eta()
     {
         return eta_;
     }
 
-    vol<double>& W()
+    vol_p<double>& W()
     {
         return W_;
     }
@@ -58,22 +70,22 @@ public:
 
             if ( weight_decay_ != 0 )
             {
-                W_ *= static_cast<double>(1) - eta_ * weight_decay_;
+                *W_ *= static_cast<double>(1) - eta_ * weight_decay_;
             }
 
-            mad_to( delta, dEdW, W_ );
+            mad_to( delta, dEdW, *W_ );
         }
         else
         {
-            mom_volume_ *= momentum_;
-            mad_to( delta, dEdW, mom_volume_ );
+            *mom_volume_ *= momentum_;
+            mad_to( delta, dEdW, *mom_volume_ );
 
             if ( weight_decay_ != 0 )
             {
-                mad_to( -eta_ * weight_decay_, W_, mom_volume_ );
+                mad_to( -eta_ * weight_decay_, *W_, *mom_volume_ );
             }
 
-            W_ += mom_volume_;
+            *W_ += *mom_volume_;
         }
     }
 }; // class filter

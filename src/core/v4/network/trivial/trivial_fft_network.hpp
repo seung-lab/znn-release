@@ -8,6 +8,8 @@
 #include "../../options/options.hpp"
 #include "../../convolution/convolution.hpp"
 #include "../../transfer_function/transfer_functions.hpp"
+#include "../../utils/dispatcher.hpp"
+#include "../../utils/accumulator.hpp"
 #include "../../types.hpp"
 #include "../bias.hpp"
 #include "../filter.hpp"
@@ -17,13 +19,22 @@
 #include <string>
 #include <vector>
 
-namespace znn { namespace v4 { namespace trivial_network {
+namespace znn { namespace v4 { namespace trivial_fft_network {
 
 // Forward definition
 class edge;
 
 class nodes
 {
+private:
+    vec3i const fsize_;
+
+protected:
+    nodes( vec3i const & fsize ): fsize_(fsize) {}
+
+public:
+    vec3i const & fsize() const { return fsize_; }
+
 public:
     virtual ~nodes() {}
 
@@ -36,6 +47,17 @@ public:
     // gradient is absorbed
     virtual void backward(size_t, cube_p<double>&&)
     { UNIMPLEMENTED(); }
+
+    // receive a featuremap for the i-th input
+    // featuremap is absorbed
+    virtual void forward(size_t, size_t, cube_p<complex>&&)
+    { UNIMPLEMENTED(); }
+
+    // receive a gradient for the i-th output
+    // gradient is absorbed
+    virtual void backward(size_t, size_t, cube_p<complex>&&)
+    { UNIMPLEMENTED(); }
+
 
     virtual std::vector<cube_p<double>>& get_featuremaps()
     { UNIMPLEMENTED(); }
@@ -50,6 +72,12 @@ public:
     { UNIMPLEMENTED(); }
 
     virtual void attach_in_edge(size_t, edge*)
+    { UNIMPLEMENTED(); }
+
+    virtual size_t attach_out_fft_edge(size_t, edge*)
+    { UNIMPLEMENTED(); }
+
+    virtual size_t attach_in_fft_edge(size_t, edge*, vec3i const &)
     { UNIMPLEMENTED(); }
 
     virtual void set_eta( double )
@@ -68,6 +96,8 @@ public:
 
 };
 
+
+
 class edge
 {
 public:
@@ -75,11 +105,19 @@ public:
 
     // perform forward computation
     // can't modify the featuremap
-    virtual void forward( ccube_p<double> const & ) = 0;
+    virtual void forward( ccube_p<double> const & )
+    { UNIMPLEMENTED(); }
 
     // perform forward computation
     // can't modify the gradient
-    virtual void backward( ccube_p<double> const & ) = 0;
+    virtual void backward( ccube_p<double> const & )
+    { UNIMPLEMENTED(); }
+
+    virtual void forward( ccube_p<complex> const & )
+    { UNIMPLEMENTED(); }
+
+    virtual void backward( ccube_p<complex> const & )
+    { UNIMPLEMENTED(); }
 };
 
 class edge_base: public virtual edge
@@ -217,6 +255,62 @@ public:
     }
 };
 
+class fft_filter_edge: public edge_base
+{
+private:
+    vec3i    filter_stride;
+    filter & filter_;
+
+    ccube_p<complex> w_fft;
+    ccube_p<complex> last_input;
+
+    size_t fwd_bucket_;
+    size_t bwd_bucket_;
+
+public:
+    fft_filter_edge( nodes* in,
+                     size_t inn,
+                     nodes* out,
+                     size_t outn,
+                     vec3i const & stride,
+                     filter & flt )
+        : edge_base(in, inn, out, outn)
+        , filter_stride(stride)
+        , filter_(flt)
+    {
+        // attach myself
+
+        bwd_bucket_ = in->attach_out_fft_edge(inn, this);
+        fwd_bucket_ = out->attach_in_fft_edge(outn, this, in->fsize());
+    }
+
+    void forward( ccube_p<complex> const & f ) override
+    {
+        last_input = f;
+        auto w_tmp = sparse_explode(filter_.W(), filter_stride, in_nodes->fsize());
+        w_fft = fftw::forward(std::move(w_tmp));
+        auto fw = *w_fft * *f;
+        out_nodes->forward(out_num, fwd_bucket_, std::move(fw));
+    }
+
+    void backward( ccube_p<complex> const & g ) override
+    {
+        auto dEdW_fft = *last_input * *g;
+        auto dEdW = fftw::backward(std::move(dEdW_fft), in_nodes->fsize());
+        double norm = dEdW->num_elements();
+
+        flip(*dEdW);
+        dEdW = sparse_implode(*dEdW, filter_stride, size(filter_.W()));
+        *dEdW /= norm;
+
+        auto grad = *w_fft * *g;
+        filter_.update(*dEdW);
+
+        in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
+    }
+};
+
+
 class edges
 {
 public:
@@ -312,7 +406,7 @@ class filter_edges: public edges
 private:
     options                                           options_;
     std::vector<std::unique_ptr<filter>>              filters_;
-    std::vector<std::unique_ptr<edge>>        edges_  ;
+    std::vector<std::unique_ptr<edge>>                edges_  ;
     vec3i                                             size_   ;
 
 public:
@@ -363,7 +457,96 @@ public:
 
             auto initf = get_initializator(opts);
 
-            std::cout << "here\n";
+
+            initf->initialize( filters_raw, n*m*size_[0]*size_[1]*size_[2] );
+            delete [] filters_raw;
+
+            filter_values = std::string( reinterpret_cast<char*>(filters_raw),
+                                         sizeof(double) * n_values );
+        }
+
+        load_filters(filters_, size_, filter_values);
+    }
+
+    void set_eta( double eta ) override
+    {
+        for ( auto & f: filters_ ) f->eta() = eta;
+    }
+
+    void set_momentum( double mom ) override
+    {
+        for ( auto & f: filters_ ) f->momentum() = mom;
+    }
+
+    void set_weight_decay( double wd ) override
+    {
+        for ( auto & f: filters_ ) f->weight_decay() = wd;
+    }
+
+    options serialize() const
+    {
+        options ret = options_;
+        ret.push("filters", save_filters(filters_, size_));
+        return ret;
+    }
+};
+
+
+class fft_filter_edges: public edges
+{
+private:
+    options                                           options_;
+    std::vector<std::unique_ptr<filter>>              filters_;
+    std::vector<std::unique_ptr<edge>>                edges_  ;
+    vec3i                                             size_   ;
+
+public:
+    fft_filter_edges( nodes * in,
+                      nodes * out,
+                      options const & opts,
+                      vec3i const & stride )
+        : options_(opts)
+    {
+        size_t n = in->num_out_nodes();
+        size_t m = out->num_in_nodes();
+
+        ZI_ASSERT((n>0)&&m>0);
+
+        edges_.resize(n*m);
+        filters_.resize(n*m);
+
+        double eta    = opts.optional_as<double>("eta", 0.1);
+        double mom    = opts.optional_as<double>("momentum", 0.0);
+        double wd     = opts.optional_as<double>("weight_decay", 0.0);
+        auto   sz     = opts.require_as<ovec3i>("size");
+
+        size_ = sz;
+
+        for ( size_t i = 0, k = 0; i < n; ++i )
+        {
+            for ( size_t j = 0; j < m; ++j, ++k )
+            {
+                filters_[k] = std::make_unique<filter>(sz, eta, mom, wd);
+                edges_[k]
+                    = std::make_unique<fft_filter_edge>
+                    (in, i, out, j, stride, *filters_[k]);
+            }
+        }
+
+        std::string filter_values;
+
+        opts.dump();
+
+        if ( opts.contains("filters") )
+        {
+            filter_values = opts.require_as<std::string>("filters");
+        }
+        else
+        {
+            size_t n_values = n*m*size_[0]*size_[1]*size_[2];
+            double * filters_raw = new double[n_values];
+
+            auto initf = get_initializator(opts);
 
             initf->initialize( filters_raw, n*m*size_[0]*size_[1]*size_[2] );
             delete [] filters_raw;
@@ -400,33 +583,41 @@ public:
 
 
 
+
 class input_nodes: public nodes
 {
 private:
-    size_t                                  size_   ;
-    std::vector<std::vector<edge*>> outputs_;
-    options                                 opts_   ;
+    size_t                                          size_   ;
+    dispatcher_group<forward_dispatcher<edge,edge>> outputs_;
+    options                                         opts_   ;
 
 public:
-    input_nodes(size_t s, options const & op)
-        : size_(s)
+    input_nodes(size_t s, vec3i const & fsize, options const & op)
+        : nodes(fsize)
+        , size_(s)
         , outputs_(s)
         , opts_(op)
     {}
 
     void forward(size_t n, cube_p<double>&& f) override
     {
+        std::cout << "fwd layer: " << opts_.require_as<std::string>("name")
+                  << ": " << n << " / " << size_ << " ...\n";
+
         ZI_ASSERT(n<size_);
-        for ( auto& e: outputs_[n] )
-        {
-            e->forward(f);
-        }
+        outputs_.dispatch(n,f);
     }
 
-    void backward(size_t i, cube_p<double>&& g) override
+    void backward(size_t, cube_p<double>&&) override
     {
-        std::cout << "input node: " << i << " received grad of size: "
-                  << size(*g) << std::endl;
+        //std::cout << "input node: " << i << " received grad of size: "
+        //          << size(*g) << std::endl;
+    }
+
+    void backward(size_t, size_t, cube_p<complex>&&) override
+    {
+        //std::cout << "input node: " << i << " received grad of size: "
+        //          << size(*g) << std::endl;
     }
 
     size_t num_out_nodes() override { return size_; }
@@ -435,7 +626,14 @@ public:
     void attach_out_edge(size_t i, edge* e) override
     {
         ZI_ASSERT(i<size_);
-        outputs_[i].push_back(e);
+        outputs_.sign_up(i,e);
+    }
+
+    size_t attach_out_fft_edge(size_t i, edge* e) override
+    {
+        ZI_ASSERT(i<size_);
+        outputs_.sign_up(i,nodes::fsize(),e);
+        return 0;
     }
 
     void set_eta( double ) override {}
@@ -453,23 +651,36 @@ class summing_nodes: public nodes
 {
 private:
     size_t                                  size_    ;
-    std::vector<std::vector<edge*>> inputs_  ;
-    std::vector<std::vector<edge*>> outputs_ ;
-    std::vector<size_t>                     received_;
+
+    dispatcher_group<forward_dispatcher<edge,edge>>  fwd_dispatch_;
+    dispatcher_group<backward_dispatcher<edge,edge>> bwd_dispatch_;
+
+    std::vector<std::unique_ptr<forward_accumulator>>  fwd_accumulators_;
+    std::vector<std::unique_ptr<backward_accumulator>> bwd_accumulators_;
     std::vector<cube_p<double>>             fs_      ;
     std::vector<cube_p<double>>             gs_      ;
     options                                 opts_   ;
 
 public:
-    summing_nodes(size_t s, options const & op)
-        : size_(s)
-        , inputs_(s)
-        , outputs_(s)
-        , received_(s)
+    summing_nodes(size_t s, vec3i const & fsize, options const & op)
+        : nodes(fsize)
+        , size_(s)
+        , fwd_dispatch_(s)
+        , bwd_dispatch_(s)
+        , fwd_accumulators_(s)
+        , bwd_accumulators_(s)
         , fs_(s)
         , gs_(s)
         , opts_(op)
-    {}
+    {
+        for ( size_t i = 0; i < s; ++i )
+        {
+            fwd_accumulators_[i]
+                = std::make_unique<forward_accumulator>(fsize);
+            bwd_accumulators_[i]
+                = std::make_unique<backward_accumulator>(fsize);
+        }
+    }
 
     void set_eta( double ) override {}
     void set_momentum( double ) override {}
@@ -487,26 +698,14 @@ public:
 
     void forward(size_t n, cube_p<double>&& f) override
     {
+        std::cout << "fwd layer: " << opts_.require_as<std::string>("name")
+                  << ": " << n << " / " << size_ << " ...\n";
+
         ZI_ASSERT(n<size_);
-        if ( received_[n] == 0 )
+        if ( fwd_accumulators_[n]->add(std::move(f)) )
         {
-            fs_[n] = f;
-        }
-        else
-        {
-            *fs_[n] += *f;
-        }
-
-        if ( ++received_[n] == inputs_[n].size() )
-        {
-            std::cout << "summing node done: " << outputs_[n].size() << std::endl;
-            std::cout << "summing featuremap size: " << size(*fs_[n]) << std::endl;
-
-            for ( auto& e: outputs_[n] )
-            {
-                e->forward(fs_[n]);
-            }
-            received_[n] = 0;
+            fs_[n] = fwd_accumulators_[n]->reset();
+            fwd_dispatch_.dispatch(n, fs_[n]);
             fs_[n].reset();
         }
     }
@@ -514,26 +713,50 @@ public:
     void backward(size_t n, cube_p<double>&& g) override
     {
         ZI_ASSERT(n<size_);
-        if ( received_[n] == 0 )
+        if ( bwd_accumulators_[n]->required() == 0 )
         {
             gs_[n] = g;
         }
         else
         {
-            *gs_[n] += *g;
+            if ( bwd_accumulators_[n]->add(std::move(g)) )
+            {
+                gs_[n] = bwd_accumulators_[n]->reset();
+            }
         }
 
-        if (( ++received_[n] == outputs_[n].size() ) ||
-            ( outputs_[n].size() == 0 ))
+        if ( gs_[n] )
         {
-            for ( auto& e: inputs_[n] )
-            {
-                e->backward(gs_[n]);
-            }
-            received_[n] = 0;
+            bwd_dispatch_.dispatch(n,gs_[n]);
             gs_[n].reset();
         }
     }
+
+    void forward(size_t n, size_t b, cube_p<complex>&& f) override
+    {
+        std::cout << "fwd fft layer: " << opts_.require_as<std::string>("name")
+                  << ": " << n << " / " << size_ << " ...\n";
+
+        ZI_ASSERT(n<size_);
+        if ( fwd_accumulators_[n]->add(b, std::move(f)) )
+        {
+            fs_[n] = fwd_accumulators_[n]->reset();
+            fwd_dispatch_.dispatch(n, fs_[n]);
+            fs_[n].reset();
+        }
+    }
+
+    void backward(size_t n, size_t b, cube_p<complex>&& g) override
+    {
+        ZI_ASSERT(n<size_);
+        if ( bwd_accumulators_[n]->add(b,std::move(g)) )
+        {
+            gs_[n] = bwd_accumulators_[n]->reset();
+            bwd_dispatch_.dispatch(n,gs_[n]);
+            gs_[n].reset();
+        }
+    }
+
 
     size_t num_out_nodes() override { return size_; }
     size_t num_in_nodes()  override { return size_; }
@@ -541,14 +764,31 @@ public:
     void attach_in_edge(size_t i, edge* e) override
     {
         ZI_ASSERT(i<size_);
-        inputs_[i].push_back(e);
+        bwd_dispatch_.sign_up(i,e);
+        fwd_accumulators_[i]->grow(1);
     }
 
     void attach_out_edge(size_t i, edge* e) override
     {
         ZI_ASSERT(i<size_);
-        outputs_[i].push_back(e);
+        fwd_dispatch_.sign_up(i,e);
+        bwd_accumulators_[i]->grow(1);
     }
+
+    size_t attach_out_fft_edge(size_t n, edge* e) override
+    {
+        ZI_ASSERT(n<size_);
+        fwd_dispatch_.sign_up(n,nodes::fsize(),e);
+        return bwd_accumulators_[n]->grow_fft(nodes::fsize(),1);
+    }
+
+    size_t attach_in_fft_edge(size_t n, edge* e, vec3i const & s) override
+    {
+        ZI_ASSERT(n<size_);
+        bwd_dispatch_.sign_up(n,s,e);
+        return fwd_accumulators_[n]->grow_fft(s,1);
+    }
+
 };
 
 
@@ -558,25 +798,39 @@ private:
     size_t                                  size_    ;
     std::vector<std::unique_ptr<bias>>      biases_  ;
     transfer_function                       func_    ;
-    std::vector<std::vector<edge*>> inputs_  ;
-    std::vector<std::vector<edge*>> outputs_ ;
-    std::vector<size_t>                     received_;
+
+    dispatcher_group<forward_dispatcher<edge,edge>>  fwd_dispatch_;
+    dispatcher_group<backward_dispatcher<edge,edge>> bwd_dispatch_;
+
+    std::vector<std::unique_ptr<forward_accumulator>>  fwd_accumulators_;
+    std::vector<std::unique_ptr<backward_accumulator>> bwd_accumulators_;
+
     std::vector<cube_p<double>>             fs_      ;
     std::vector<cube_p<double>>             gs_      ;
     options                                 options_ ;
 
 public:
-    transfer_nodes( options const & opts )
-        : size_(opts.require_as<size_t>("size"))
+    transfer_nodes( vec3i const & fsize, options const & opts )
+        : nodes(fsize)
+        , size_(opts.require_as<size_t>("size"))
         , biases_(size_)
         , func_()
-        , inputs_(size_)
-        , outputs_(size_)
-        , received_(size_)
+        , fwd_dispatch_(size_)
+        , bwd_dispatch_(size_)
+        , fwd_accumulators_(size_)
+        , bwd_accumulators_(size_)
         , fs_(size_)
         , gs_(size_)
         , options_(opts)
     {
+        for ( size_t i = 0; i < size_; ++i )
+        {
+            fwd_accumulators_[i]
+                = std::make_unique<forward_accumulator>(fsize);
+            bwd_accumulators_[i]
+                = std::make_unique<backward_accumulator>(fsize);
+        }
+
         func_ = get_transfer_function(opts);
 
         // initialize biases
@@ -645,62 +899,75 @@ public:
 
     void forward(size_t n, cube_p<double>&& f) override
     {
+
+        std::cout << "fwd layer: " << options_.require_as<std::string>("name")
+                  << ": " << n << " / " << size_ << " ...\n";
+
         ZI_ASSERT(n<size_);
-        if ( received_[n] == 0 )
+        if ( fwd_accumulators_[n]->add(std::move(f)) )
         {
-            fs_[n] = f;
-        }
-        else
-        {
-            *fs_[n] += *f;
-        }
-
-        if ( ++received_[n] == inputs_[n].size() )
-        {
-
-            std::cout << "layer: " << options_.require_as<std::string>("name")
-                      << ": " << n << " / " << size_ << " done\n";
-
-            std::cout << "  out edges: " << outputs_[n].size() << std::endl;
-            std::cout << "  size: " << size(*fs_[n]) << std::endl;
-
+            fs_[n] = fwd_accumulators_[n]->reset();
             func_.apply(*fs_[n], biases_[n]->b());
-            for ( auto& e: outputs_[n] )
-            {
-                e->forward(fs_[n]);
-            }
-            received_[n] = 0;
+            fwd_dispatch_.dispatch(n,fs_[n]);
         }
     }
 
     void backward(size_t n, cube_p<double>&& g) override
     {
         ZI_ASSERT(n<size_);
-        if ( received_[n] == 0 )
+        if ( bwd_accumulators_[n]->required() == 0 )
         {
             gs_[n] = g;
         }
         else
         {
-            *gs_[n] += *g;
+            if ( bwd_accumulators_[n]->add(std::move(g)) )
+            {
+                gs_[n] = bwd_accumulators_[n]->reset();
+            }
         }
 
-        if ( (++received_[n] == outputs_[n].size()) ||
-             (outputs_[n].size() == 0 ) )
+        if ( gs_[n] )
         {
             func_.apply_grad(*gs_[n], *fs_[n]);
             biases_[n]->update(sum(*gs_[n]));
-
-            for ( auto& e: inputs_[n] )
-            {
-                e->backward(gs_[n]);
-            }
-
-            received_[n] = 0;
+            bwd_dispatch_.dispatch(n,gs_[n]);
             gs_[n].reset();
             fs_[n].reset();
         }
     }
+
+
+    void forward(size_t n, size_t b, cube_p<complex>&& f) override
+    {
+
+        std::cout << "fwd fft layer: " << options_.require_as<std::string>("name")
+                  << ": " << n << " / " << size_ << " done\n";
+
+
+        ZI_ASSERT(n<size_);
+        if ( fwd_accumulators_[n]->add(b, std::move(f)) )
+        {
+            fs_[n] = fwd_accumulators_[n]->reset();
+            func_.apply(*fs_[n], biases_[n]->b());
+            fwd_dispatch_.dispatch(n, fs_[n]);
+        }
+    }
+
+    void backward(size_t n, size_t b, cube_p<complex>&& g) override
+    {
+        ZI_ASSERT(n<size_);
+        if ( bwd_accumulators_[n]->add(b,std::move(g)) )
+        {
+            gs_[n] = bwd_accumulators_[n]->reset();
+            func_.apply_grad(*gs_[n], *fs_[n]);
+            biases_[n]->update(sum(*gs_[n]));
+            bwd_dispatch_.dispatch(n,gs_[n]);
+            gs_[n].reset();
+            fs_[n].reset();
+        }
+    }
+
 
     size_t num_out_nodes() override { return size_; }
     size_t num_in_nodes()  override { return size_; }
@@ -708,14 +975,32 @@ public:
     void attach_in_edge(size_t i, edge* e) override
     {
         ZI_ASSERT(i<size_);
-        inputs_[i].push_back(e);
+        bwd_dispatch_.sign_up(i,e);
+        fwd_accumulators_[i]->grow(1);
     }
 
     void attach_out_edge(size_t i, edge* e) override
     {
         ZI_ASSERT(i<size_);
-        outputs_[i].push_back(e);
+        fwd_dispatch_.sign_up(i,e);
+        bwd_accumulators_[i]->grow(1);
     }
+
+
+    size_t attach_out_fft_edge(size_t n, edge* e) override
+    {
+        ZI_ASSERT(n<size_);
+        fwd_dispatch_.sign_up(n,nodes::fsize(),e);
+        return bwd_accumulators_[n]->grow_fft(nodes::fsize(),1);
+    }
+
+    size_t attach_in_fft_edge(size_t n, edge* e, vec3i const & s) override
+    {
+        ZI_ASSERT(n<size_);
+        bwd_dispatch_.sign_up(n,s,e);
+        return fwd_accumulators_[n]->grow_fft(s,1);
+    }
+
 };
 
 class network
@@ -744,6 +1029,8 @@ private:
         vec3i fov       = vec3i::zero;
         vec3i stride    = vec3i::zero;
         vec3i fsize     = vec3i::zero;
+
+        options const * opts;
 
         std::unique_ptr<nodes> nodes;
         std::vector<nedges *> in, out;
@@ -842,29 +1129,15 @@ private:
     {
         auto name = op.require_as<std::string>("name");
         auto type = op.require_as<std::string>("type");
-        auto sz   = op.require_as<size_t>("size");
 
-        ZI_ASSERT(sz>0);
         ZI_ASSERT(nodes_.count(name)==0);
         nnodes* ns   = new nnodes;
+        ns->opts = &op;
         nodes_[name] = ns;
 
         if ( type == "input" )
         {
             input_nodes_[name] = ns;
-            ns->nodes = std::make_unique<input_nodes>(sz,op);
-        }
-        else if ( type == "sum" )
-        {
-            ns->nodes = std::make_unique<summing_nodes>(sz,op);
-        }
-        else if ( type == "transfer" )
-        {
-            ns->nodes = std::make_unique<transfer_nodes>(op);
-        }
-        else
-        {
-            throw std::logic_error(HERE() + "unknown nodes type: " + type);
         }
     }
 
@@ -883,8 +1156,11 @@ private:
             }
             else if ( type == "conv" )
             {
-                e.second->edges = std::make_unique<filter_edges>
+                //e.second->edges = std::make_unique<filter_edges>
+                //    ( in, out, *e.second->opts, e.second->in_stride );
+                e.second->edges = std::make_unique<fft_filter_edges>
                     ( in, out, *e.second->opts, e.second->in_stride );
+
             }
             else if ( type == "dummy" )
             {
@@ -899,6 +1175,43 @@ private:
             e.second->opts = nullptr;
         }
     }
+
+
+    void create_nodes()
+    {
+        for ( auto & n: nodes_ )
+        {
+            auto type = n.second->opts->require_as<std::string>("type");
+            auto sz   = n.second->opts->require_as<size_t>("size");
+
+            ZI_ASSERT(sz>0);
+
+            if ( type == "input" )
+            {
+                n.second->nodes = std::make_unique<input_nodes>
+                    (sz,n.second->fsize,*n.second->opts);
+            }
+            else if ( type == "sum" )
+            {
+                n.second->nodes
+                    = std::make_unique<summing_nodes>
+                    (sz,n.second->fsize,*n.second->opts);
+            }
+            else if ( type == "transfer" )
+            {
+                n.second->nodes
+                    = std::make_unique<transfer_nodes>
+                    (n.second->fsize, *n.second->opts);
+            }
+            else
+            {
+                throw std::logic_error(HERE() + "unknown nodes type: " + type);
+            }
+
+            n.second->opts = nullptr;
+        }
+    }
+
 
     void add_edges( options const & op )
     {
@@ -948,6 +1261,7 @@ public:
         for ( auto& n: ns ) add_nodes(n);
         for ( auto& e: es ) add_edges(e);
         init(outsz);
+        create_nodes();
         create_edges();
     }
 
@@ -1034,4 +1348,4 @@ public:
 
 };
 
-}}} // namespace znn::v4::trivial_network
+}}} // namespace znn::v4::trivial_fft_network
