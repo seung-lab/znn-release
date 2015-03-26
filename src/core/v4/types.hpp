@@ -24,7 +24,3 @@ typedef std::lock_guard<std::mutex> guard;
 typedef int64_t long_t;
 
 }} // namespace znn::v4
-
-
-#include "cube/cube.hpp"
-#include "cube/cube_operators.hpp"

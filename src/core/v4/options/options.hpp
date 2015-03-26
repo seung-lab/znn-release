@@ -36,7 +36,7 @@ public:
         return *this;
     }
 
-    void dump()
+    void dump() const
     {
         for ( auto& p: (*this) )
         {
@@ -51,7 +51,7 @@ public:
     }
 
     template<typename T>
-    T optional_as(const std::string& k, const T& v)
+    T optional_as(const std::string& k, const T& v) const
     {
         auto x = this->find(k);
         if ( x != this->end() )
@@ -78,6 +78,11 @@ public:
             return boost::lexical_cast<T>(x->second);
         else
             throw std::logic_error("missing parameter: " + k);
+    }
+
+    bool contains( std::string const & k ) const
+    {
+        return this->count(k);
     }
 
     template< class CharT, class Traits >
