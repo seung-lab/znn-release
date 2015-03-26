@@ -17,15 +17,15 @@
 #include <string>
 #include <vector>
 
-namespace znn { namespace v4 {
+namespace znn { namespace v4 { namespace trivial_network {
 
 // Forward definition
-class trivial_edge;
+class edge;
 
-class trivial_nodes
+class nodes
 {
 public:
-    virtual ~trivial_nodes() {}
+    virtual ~nodes() {}
 
     // receive a featuremap for the i-th input
     // featuremap is absorbed
@@ -46,10 +46,10 @@ public:
     virtual size_t num_in_nodes()
     { UNIMPLEMENTED(); }
 
-    virtual void attach_out_edge(size_t, trivial_edge*)
+    virtual void attach_out_edge(size_t, edge*)
     { UNIMPLEMENTED(); }
 
-    virtual void attach_in_edge(size_t, trivial_edge*)
+    virtual void attach_in_edge(size_t, edge*)
     { UNIMPLEMENTED(); }
 
     virtual void set_eta( double )
@@ -68,10 +68,10 @@ public:
 
 };
 
-class trivial_edge
+class edge
 {
 public:
-    virtual ~trivial_edge() {}
+    virtual ~edge() {}
 
     // perform forward computation
     // can't modify the featuremap
@@ -82,19 +82,19 @@ public:
     virtual void backward( ccube_p<double> const & ) = 0;
 };
 
-class trivial_edge_base: public virtual trivial_edge
+class edge_base: public virtual edge
 {
 protected:
-    trivial_nodes * in_nodes;
-    size_t          in_num;
-    trivial_nodes * out_nodes;
-    size_t          out_num;
+    nodes * in_nodes ;
+    size_t  in_num   ;
+    nodes * out_nodes;
+    size_t  out_num  ;
 
 public:
-    trivial_edge_base( trivial_nodes* in,
-                       size_t inn,
-                       trivial_nodes* out,
-                       size_t outn )
+    edge_base( nodes* in,
+               size_t inn,
+               nodes* out,
+               size_t outn )
         : in_nodes(in)
         , in_num(inn)
         , out_nodes(out)
@@ -106,19 +106,19 @@ public:
 
 
 template< typename E >
-class trivial_edge_of: public trivial_edge_base
+class edge_of: public edge_base
 {
 private:
     E impl;
 
 public:
     template<class... Args>
-    trivial_edge_of( trivial_nodes* in,
-                     size_t inn,
-                     trivial_nodes* out,
-                     size_t outn,
-                     Args&&... args )
-        : trivial_edge_base(in, inn, out, outn)
+    edge_of( nodes* in,
+             size_t inn,
+             nodes* out,
+             size_t outn,
+             Args&&... args )
+        : edge_base(in, inn, out, outn)
         , impl(std::forward<Args>(args)...)
     {
         // attach myself
@@ -137,7 +137,7 @@ public:
     }
 };
 
-struct trivial_dummy_edge
+struct dummy_edge
 {
     cube_p<double> forward( ccube_p<double> const & f )
     {
@@ -150,7 +150,7 @@ struct trivial_dummy_edge
     }
 };
 
-class trivial_max_pooling_edge
+class max_pooling_edge
 {
 private:
     vec3i filter_size;
@@ -160,8 +160,8 @@ private:
     vec3i       insize ;
 
 public:
-    trivial_max_pooling_edge( vec3i const & size,
-                              vec3i const & stride )
+    max_pooling_edge( vec3i const & size,
+                      vec3i const & stride )
         : filter_size(size), filter_stride(stride)
     {
     }
@@ -187,7 +187,7 @@ public:
 };
 
 
-class trivial_filter_edge
+class filter_edge
 {
 private:
     vec3i    filter_stride;
@@ -196,7 +196,7 @@ private:
     ccube_p<double> last_input;
 
 public:
-    trivial_filter_edge( vec3i const & stride, filter & f )
+    filter_edge( vec3i const & stride, filter & f )
         : filter_stride(stride), filter_(f)
     {
     }
@@ -217,10 +217,10 @@ public:
     }
 };
 
-class trivial_edges
+class edges
 {
 public:
-    virtual ~trivial_edges() {}
+    virtual ~edges() {}
 
     virtual void set_eta( double )
     { UNIMPLEMENTED(); }
@@ -234,16 +234,16 @@ public:
     virtual options serialize() const = 0;
 };
 
-class trivial_dummy_edges: public trivial_edges
+class dummy_edges: public edges
 {
 private:
     options                                    options_;
-    std::vector<std::unique_ptr<trivial_edge>> edges_  ;
+    std::vector<std::unique_ptr<edge>> edges_  ;
 
 public:
-    trivial_dummy_edges( trivial_nodes * in,
-                         trivial_nodes * out,
-                         options const & opts )
+    dummy_edges( nodes * in,
+                 nodes * out,
+                 options const & opts )
         : options_(opts)
     {
         ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
@@ -253,7 +253,7 @@ public:
 
         for ( size_t i = 0; i < n; ++i )
         {
-            edges_[i] = std::make_unique<trivial_edge_of<trivial_dummy_edge>>
+            edges_[i] = std::make_unique<edge_of<dummy_edge>>
                 (in, i, out, i);
         }
     }
@@ -268,17 +268,17 @@ public:
     }
 };
 
-class trivial_max_pooling_edges: public trivial_edges
+class max_pooling_edges: public edges
 {
 private:
     options                                    options_;
-    std::vector<std::unique_ptr<trivial_edge>> edges_  ;
+    std::vector<std::unique_ptr<edge>> edges_  ;
 
 public:
-    trivial_max_pooling_edges( trivial_nodes * in,
-                               trivial_nodes * out,
-                               options const & opts,
-                               vec3i const & stride )
+    max_pooling_edges( nodes * in,
+                       nodes * out,
+                       options const & opts,
+                       vec3i const & stride )
         : options_(opts)
     {
         ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
@@ -291,7 +291,7 @@ public:
         for ( size_t i = 0; i < n; ++i )
         {
             edges_[i]
-                = std::make_unique<trivial_edge_of<trivial_max_pooling_edge>>
+                = std::make_unique<edge_of<max_pooling_edge>>
                 (in, i, out, i, sz, stride);
         }
     }
@@ -307,19 +307,19 @@ public:
 };
 
 
-class trivial_filter_edges: public trivial_edges
+class filter_edges: public edges
 {
 private:
     options                                           options_;
     std::vector<std::unique_ptr<filter>>              filters_;
-    std::vector<std::unique_ptr<trivial_edge>>        edges_  ;
+    std::vector<std::unique_ptr<edge>>        edges_  ;
     vec3i                                             size_   ;
 
 public:
-    trivial_filter_edges( trivial_nodes * in,
-                          trivial_nodes * out,
-                          options const & opts,
-                          vec3i const & stride )
+    filter_edges( nodes * in,
+                  nodes * out,
+                  options const & opts,
+                  vec3i const & stride )
         : options_(opts)
     {
         size_t n = in->num_out_nodes();
@@ -343,7 +343,7 @@ public:
             {
                 filters_[k] = std::make_unique<filter>(sz, eta, mom, wd);
                 edges_[k]
-                    = std::make_unique<trivial_edge_of<trivial_filter_edge>>
+                    = std::make_unique<edge_of<filter_edge>>
                     (in, i, out, j, stride, *filters_[k]);
             }
         }
@@ -400,15 +400,15 @@ public:
 
 
 
-class trivial_input_nodes: public trivial_nodes
+class input_nodes: public nodes
 {
 private:
     size_t                                  size_   ;
-    std::vector<std::vector<trivial_edge*>> outputs_;
+    std::vector<std::vector<edge*>> outputs_;
     options                                 opts_   ;
 
 public:
-    trivial_input_nodes(size_t s, options const & op)
+    input_nodes(size_t s, options const & op)
         : size_(s)
         , outputs_(s)
         , opts_(op)
@@ -432,7 +432,7 @@ public:
     size_t num_out_nodes() override { return size_; }
     size_t num_in_nodes()  override { return size_; }
 
-    void attach_out_edge(size_t i, trivial_edge* e) override
+    void attach_out_edge(size_t i, edge* e) override
     {
         ZI_ASSERT(i<size_);
         outputs_[i].push_back(e);
@@ -449,19 +449,19 @@ public:
 };
 
 
-class trivial_summing_nodes: public trivial_nodes
+class summing_nodes: public nodes
 {
 private:
     size_t                                  size_    ;
-    std::vector<std::vector<trivial_edge*>> inputs_  ;
-    std::vector<std::vector<trivial_edge*>> outputs_ ;
+    std::vector<std::vector<edge*>> inputs_  ;
+    std::vector<std::vector<edge*>> outputs_ ;
     std::vector<size_t>                     received_;
     std::vector<cube_p<double>>             fs_      ;
     std::vector<cube_p<double>>             gs_      ;
     options                                 opts_   ;
 
 public:
-    trivial_summing_nodes(size_t s, options const & op)
+    summing_nodes(size_t s, options const & op)
         : size_(s)
         , inputs_(s)
         , outputs_(s)
@@ -537,13 +537,13 @@ public:
     size_t num_out_nodes() override { return size_; }
     size_t num_in_nodes()  override { return size_; }
 
-    void attach_in_edge(size_t i, trivial_edge* e) override
+    void attach_in_edge(size_t i, edge* e) override
     {
         ZI_ASSERT(i<size_);
         inputs_[i].push_back(e);
     }
 
-    void attach_out_edge(size_t i, trivial_edge* e) override
+    void attach_out_edge(size_t i, edge* e) override
     {
         ZI_ASSERT(i<size_);
         outputs_[i].push_back(e);
@@ -551,21 +551,21 @@ public:
 };
 
 
-class trivial_transfer_nodes: public trivial_nodes
+class transfer_nodes: public nodes
 {
 private:
     size_t                                  size_    ;
     std::vector<std::unique_ptr<bias>>      biases_  ;
     transfer_function                       func_    ;
-    std::vector<std::vector<trivial_edge*>> inputs_  ;
-    std::vector<std::vector<trivial_edge*>> outputs_ ;
+    std::vector<std::vector<edge*>> inputs_  ;
+    std::vector<std::vector<edge*>> outputs_ ;
     std::vector<size_t>                     received_;
     std::vector<cube_p<double>>             fs_      ;
     std::vector<cube_p<double>>             gs_      ;
     options                                 options_ ;
 
 public:
-    trivial_transfer_nodes( options const & opts )
+    transfer_nodes( options const & opts )
         : size_(opts.require_as<size_t>("size"))
         , biases_(size_)
         , func_()
@@ -704,25 +704,25 @@ public:
     size_t num_out_nodes() override { return size_; }
     size_t num_in_nodes()  override { return size_; }
 
-    void attach_in_edge(size_t i, trivial_edge* e) override
+    void attach_in_edge(size_t i, edge* e) override
     {
         ZI_ASSERT(i<size_);
         inputs_[i].push_back(e);
     }
 
-    void attach_out_edge(size_t i, trivial_edge* e) override
+    void attach_out_edge(size_t i, edge* e) override
     {
         ZI_ASSERT(i<size_);
         outputs_[i].push_back(e);
     }
 };
 
-class trivial_network
+class network
 {
 private:
-    struct nodes;
+    struct nnodes;
 
-    struct edges
+    struct nedges
     {
         vec3i width     = vec3i::one  ;
         vec3i stride    = vec3i::one  ;
@@ -730,45 +730,45 @@ private:
         vec3i in_stride = vec3i::zero ;
         vec3i in_fsize  = vec3i::zero ;
 
-        nodes * in;
-        nodes * out;
+        nnodes * in;
+        nnodes * out;
 
         options const * opts;
 
-        std::unique_ptr<trivial_edges> edges;
+        std::unique_ptr<edges> edges;
     };
 
-    struct nodes
+    struct nnodes
     {
         vec3i fov       = vec3i::zero;
         vec3i stride    = vec3i::zero;
         vec3i fsize     = vec3i::zero;
 
-        std::unique_ptr<trivial_nodes> nodes;
-        std::vector<edges *> in, out;
+        std::unique_ptr<nodes> nodes;
+        std::vector<nedges *> in, out;
     };
 
 private:
-    trivial_network( trivial_network const & ) = delete;
-    trivial_network& operator=( trivial_network const & ) = delete;
+    network( network const & ) = delete;
+    network& operator=( network const & ) = delete;
 
-    trivial_network( trivial_network && ) = delete;
-    trivial_network& operator=( trivial_network && ) = delete;
+    network( network && ) = delete;
+    network& operator=( network && ) = delete;
 
 public:
-    ~trivial_network()
+    ~network()
     {
         for ( auto& n: nodes_ ) delete n.second;
         for ( auto& e: edges_ ) delete e.second;
     }
 
 private:
-    std::map<std::string, edges*> edges_;
-    std::map<std::string, nodes*> nodes_;
-    std::map<std::string, nodes*> input_nodes_;
-    std::map<std::string, nodes*> output_nodes_;
+    std::map<std::string, nedges*> edges_;
+    std::map<std::string, nnodes*> nodes_;
+    std::map<std::string, nnodes*> input_nodes_;
+    std::map<std::string, nnodes*> output_nodes_;
 
-    void fov_pass(nodes* n, const vec3i& fov, const vec3i& fsize )
+    void fov_pass(nnodes* n, const vec3i& fov, const vec3i& fsize )
     {
         if ( n->fov != vec3i::zero )
         {
@@ -792,7 +792,7 @@ private:
         }
     }
 
-    void stride_pass(nodes* n, const vec3i& stride )
+    void stride_pass(nnodes* n, const vec3i& stride )
     {
         if ( n->stride != vec3i::zero )
         {
@@ -845,21 +845,21 @@ private:
 
         ZI_ASSERT(sz>0);
         ZI_ASSERT(nodes_.count(name)==0);
-        nodes* ns    = new nodes;
+        nnodes* ns   = new nnodes;
         nodes_[name] = ns;
 
         if ( type == "input" )
         {
             input_nodes_[name] = ns;
-            ns->nodes = std::make_unique<trivial_input_nodes>(sz,op);
+            ns->nodes = std::make_unique<input_nodes>(sz,op);
         }
         else if ( type == "sum" )
         {
-            ns->nodes = std::make_unique<trivial_summing_nodes>(sz,op);
+            ns->nodes = std::make_unique<summing_nodes>(sz,op);
         }
         else if ( type == "transfer" )
         {
-            ns->nodes = std::make_unique<trivial_transfer_nodes>(op);
+            ns->nodes = std::make_unique<transfer_nodes>(op);
         }
         else
         {
@@ -872,22 +872,22 @@ private:
         for ( auto & e: edges_ )
         {
             auto type = e.second->opts->require_as<std::string>("type");
-            trivial_nodes * in  = e.second->in->nodes.get();
-            trivial_nodes * out = e.second->out->nodes.get();
+            nodes * in  = e.second->in->nodes.get();
+            nodes * out = e.second->out->nodes.get();
 
             if ( type == "max_filter" )
             {
-                e.second->edges = std::make_unique<trivial_max_pooling_edges>
+                e.second->edges = std::make_unique<max_pooling_edges>
                     ( in, out, *e.second->opts, e.second->in_stride );
             }
             else if ( type == "conv" )
             {
-                e.second->edges = std::make_unique<trivial_filter_edges>
+                e.second->edges = std::make_unique<filter_edges>
                     ( in, out, *e.second->opts, e.second->in_stride );
             }
             else if ( type == "dummy" )
             {
-                e.second->edges = std::make_unique<trivial_dummy_edges>
+                e.second->edges = std::make_unique<dummy_edges>
                     ( in, out, *e.second->opts );
             }
             else
@@ -909,7 +909,7 @@ private:
         ZI_ASSERT(edges_.count(name)==0);
         ZI_ASSERT(nodes_.count(in)&&nodes_.count(out));
 
-        edges * es = new edges;
+        nedges * es = new nedges;
         es->opts = &op;
         es->in   = nodes_[in];
         es->out  = nodes_[out];
@@ -940,9 +940,9 @@ private:
 
 
 public:
-    trivial_network( std::vector<options> const & ns,
-                     std::vector<options> const & es,
-                     vec3i const & outsz )
+    network( std::vector<options> const & ns,
+             std::vector<options> const & es,
+             vec3i const & outsz )
     {
         for ( auto& n: ns ) add_nodes(n);
         for ( auto& e: es ) add_edges(e);
@@ -1033,4 +1033,4 @@ public:
 
 };
 
-}} // namespace znn::v4
+}}} // namespace znn::v4::trivial_network

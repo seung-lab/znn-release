@@ -112,7 +112,7 @@ int main()
 
 
 
-    trivial_network tn(nodes, edges, {1,1,1});
+    trivial_network::network tn(nodes, edges, {1,1,1});
     tn.set_eta(0.1);
 
     std::map<std::string, std::vector<cube_p<double>>> in;
