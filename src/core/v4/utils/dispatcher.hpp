@@ -71,8 +71,7 @@ public:
             t->backward(v);
         }
 
-        cube_p<double> vp = get_cube<double>(size(*v));
-        *vp = *v;
+        cube_p<double> vp = get_copy(*v);
         flip(*vp);
 
         for ( auto& fft_target: fft_targets_ )

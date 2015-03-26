@@ -4,6 +4,43 @@
 
 using namespace znn::v4;
 
+void compare_options( options const & a, options const & b )
+{
+    std::string sa, sb;
+    if ( a.contains("biases") )
+    {
+        std::cout << "found biases\n";
+        sa = a.require_as<std::string>("biases");
+        sb = b.require_as<std::string>("biases");
+    }
+    if ( a.contains("filters") )
+    {
+        std::cout << "found filters\n";
+        sa = a.require_as<std::string>("filters");
+        sb = b.require_as<std::string>("filters");
+    }
+
+    size_t s = sa.size();
+
+    if ( s == 0 ) return;
+
+
+    std::cout << "Found string of size: " << s << " " << sb.size() << std::endl;
+
+    s /= sizeof(double);
+
+    double maxx = 0;
+
+    const double * pa = reinterpret_cast<const double*>(sa.data());
+    const double * pb = reinterpret_cast<const double*>(sb.data());
+
+    for ( size_t i = 0; i < s; ++i )
+        maxx = std::max(maxx, std::abs(pa[i]-pb[i]));
+
+    std::cout << "MAX DIFF: " << maxx << std::endl;
+
+}
+
 int main()
 {
 
@@ -115,7 +152,7 @@ int main()
 
 
     trivial_network::network tn(nodes, edges, {1,1,1});
-    tn.set_eta(0.1);
+    //tn.set_eta(0.1);
 
     std::map<std::string, std::vector<cube_p<double>>> in, in2;
     in["input"].push_back(get_cube<double>({65,65,3}));
@@ -155,7 +192,14 @@ int main()
 
 
     r = tn.backward(std::move(r));
+
+    std::cout << "-----------" << std::endl;
+
     r2 = tn2.backward(std::move(r2));
+
+
+
+    //return 0;
 
     std::map<std::string, std::vector<cube_p<double>>> inx1, inx2;
     inx1["input"].push_back(get_cube<double>({65,65,3}));
@@ -187,6 +231,27 @@ int main()
             std::cout << *v << "\n\n";
         }
     }
+
+
+    r = tn.backward(std::move(r));
+    std::cout << "-----------" << std::endl;
+    r2 = tn2.backward(std::move(r2));
+
+    auto net1 = tn.serialize();
+    auto net2 = tn2.serialize();
+
+    std::cout << "Will compare\n";
+
+    for ( int i = 0; i < net1.first.size(); ++i )
+    {
+        compare_options(net1.first[i], net2.first[i]);
+    }
+
+    for ( int i = 0; i < net1.second.size(); ++i )
+    {
+        compare_options(net1.second[i], net2.second[i]);
+    }
+
 
     std::cout << "HERE\n\n\n\n";
 

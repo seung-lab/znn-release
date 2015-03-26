@@ -287,7 +287,8 @@ public:
     void forward( ccube_p<complex> const & f ) override
     {
         last_input = f;
-        auto w_tmp = sparse_explode(filter_.W(), filter_stride, in_nodes->fsize());
+        auto w_tmp = sparse_explode_slow(filter_.W(), filter_stride,
+                                         in_nodes->fsize());
         w_fft = fftw::forward(std::move(w_tmp));
         auto fw = *w_fft * *f;
         out_nodes->forward(out_num, fwd_bucket_, std::move(fw));
@@ -300,11 +301,13 @@ public:
         double norm = dEdW->num_elements();
 
         flip(*dEdW);
-        dEdW = sparse_implode(*dEdW, filter_stride, size(filter_.W()));
+        dEdW = sparse_implode_slow(*dEdW, filter_stride, size(filter_.W()));
         *dEdW /= norm;
 
         auto grad = *w_fft * *g;
         filter_.update(*dEdW);
+
+        //std::cout << "FILTER: " << in_num << ' ' << out_num << std::endl << filter_.W() << std::endl;
 
         in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
     }
@@ -601,9 +604,6 @@ public:
 
     void forward(size_t n, cube_p<double>&& f) override
     {
-        std::cout << "fwd layer: " << opts_.require_as<std::string>("name")
-                  << ": " << n << " / " << size_ << " ...\n";
-
         ZI_ASSERT(n<size_);
         outputs_.dispatch(n,f);
     }
@@ -698,9 +698,6 @@ public:
 
     void forward(size_t n, cube_p<double>&& f) override
     {
-        std::cout << "fwd layer: " << opts_.require_as<std::string>("name")
-                  << ": " << n << " / " << size_ << " ...\n";
-
         ZI_ASSERT(n<size_);
         if ( fwd_accumulators_[n]->add(std::move(f)) )
         {
@@ -734,9 +731,6 @@ public:
 
     void forward(size_t n, size_t b, cube_p<complex>&& f) override
     {
-        std::cout << "fwd fft layer: " << opts_.require_as<std::string>("name")
-                  << ": " << n << " / " << size_ << " ...\n";
-
         ZI_ASSERT(n<size_);
         if ( fwd_accumulators_[n]->add(b, std::move(f)) )
         {
@@ -899,10 +893,6 @@ public:
 
     void forward(size_t n, cube_p<double>&& f) override
     {
-
-        std::cout << "fwd layer: " << options_.require_as<std::string>("name")
-                  << ": " << n << " / " << size_ << " ...\n";
-
         ZI_ASSERT(n<size_);
         if ( fwd_accumulators_[n]->add(std::move(f)) )
         {
@@ -931,6 +921,8 @@ public:
         {
             func_.apply_grad(*gs_[n], *fs_[n]);
             biases_[n]->update(sum(*gs_[n]));
+            //std::cout << "Bias: " << options_.require_as<std::string>("name")
+            //          << ' ' << n << ' ' << biases_[n]->b() << std::endl;
             bwd_dispatch_.dispatch(n,gs_[n]);
             gs_[n].reset();
             fs_[n].reset();
@@ -940,11 +932,6 @@ public:
 
     void forward(size_t n, size_t b, cube_p<complex>&& f) override
     {
-
-        std::cout << "fwd fft layer: " << options_.require_as<std::string>("name")
-                  << ": " << n << " / " << size_ << " done\n";
-
-
         ZI_ASSERT(n<size_);
         if ( fwd_accumulators_[n]->add(b, std::move(f)) )
         {
@@ -962,6 +949,10 @@ public:
             gs_[n] = bwd_accumulators_[n]->reset();
             func_.apply_grad(*gs_[n], *fs_[n]);
             biases_[n]->update(sum(*gs_[n]));
+
+            //std::cout << "Bias: " << options_.require_as<std::string>("name")
+            //          << ' ' << n << ' ' << biases_[n]->b() << std::endl;
+
             bwd_dispatch_.dispatch(n,gs_[n]);
             gs_[n].reset();
             fs_[n].reset();

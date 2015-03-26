@@ -213,6 +213,10 @@ public:
         auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
         auto ret  = convolve_sparse_inverse(*g, filter_.W(), filter_stride);
         filter_.update(*dEdW);
+
+
+        //std::cout << "FILTER: " <<  filter_.W() << std::endl;
+
         return ret;
     }
 };
@@ -363,7 +367,7 @@ public:
 
             auto initf = get_initializator(opts);
 
-            std::cout << "here\n";
+            //std::cout << "here\n";
 
             initf->initialize( filters_raw, n*m*size_[0]*size_[1]*size_[2] );
             delete [] filters_raw;
@@ -423,10 +427,10 @@ public:
         }
     }
 
-    void backward(size_t i, cube_p<double>&& g) override
+    void backward(size_t, cube_p<double>&&) override
     {
-        std::cout << "input node: " << i << " received grad of size: "
-                  << size(*g) << std::endl;
+        //std::cout << "input node: " << i << " received grad of size: "
+        //          << size(*g) << std::endl;
     }
 
     size_t num_out_nodes() override { return size_; }
@@ -499,9 +503,6 @@ public:
 
         if ( ++received_[n] == inputs_[n].size() )
         {
-            std::cout << "summing node done: " << outputs_[n].size() << std::endl;
-            std::cout << "summing featuremap size: " << size(*fs_[n]) << std::endl;
-
             for ( auto& e: outputs_[n] )
             {
                 e->forward(fs_[n]);
@@ -658,12 +659,6 @@ public:
         if ( ++received_[n] == inputs_[n].size() )
         {
 
-            std::cout << "layer: " << options_.require_as<std::string>("name")
-                      << ": " << n << " / " << size_ << " done\n";
-
-            std::cout << "  out edges: " << outputs_[n].size() << std::endl;
-            std::cout << "  size: " << size(*fs_[n]) << std::endl;
-
             func_.apply(*fs_[n], biases_[n]->b());
             for ( auto& e: outputs_[n] )
             {
@@ -690,6 +685,9 @@ public:
         {
             func_.apply_grad(*gs_[n], *fs_[n]);
             biases_[n]->update(sum(*gs_[n]));
+
+            //std::cout << "Bias: " << options_.require_as<std::string>("name")
+            //          << ' ' << n << ' ' << biases_[n]->b() << std::endl;
 
             for ( auto& e: inputs_[n] )
             {
@@ -983,7 +981,7 @@ public:
         std::map<std::string, std::vector<cube_p<double>>> ret;
         for ( auto & l: output_nodes_ )
         {
-            std::cout << "Collecting for: " << l.first << "\n";
+            //std::cout << "Collecting for: " << l.first << "\n";
             ret[l.first] = l.second->nodes->get_featuremaps();
         }
 

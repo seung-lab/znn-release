@@ -16,7 +16,7 @@ private:
     size_t              required_;
     std::atomic<size_t> current_ ;
 
-    cube_p<complex>      sum_  ;
+    cube_p<complex>     sum_  ;
     std::mutex          mutex_;
 
     void do_add(cube_p<complex>&& to_add)
@@ -89,6 +89,7 @@ public:
         ZI_ASSERT(current_.load()==required_);
 
         cube_p<double> r = fftw::backward(std::move(sum_), size_);
+        sum_.reset();
         current_ = 0;
 
         return r;
