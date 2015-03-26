@@ -381,16 +381,19 @@ public:
 
     void set_eta( double eta ) override
     {
+        options_.push("eta", eta);
         for ( auto & f: filters_ ) f->eta() = eta;
     }
 
     void set_momentum( double mom ) override
     {
+        options_.push("momentum", mom);
         for ( auto & f: filters_ ) f->momentum() = mom;
     }
 
     void set_weight_decay( double wd ) override
     {
+        options_.push("weight_decay", wd);
         for ( auto & f: filters_ ) f->weight_decay() = wd;
     }
 
@@ -619,16 +622,19 @@ public:
 
     void set_eta( double eta ) override
     {
+        options_.push("eta", eta);
         for ( auto& b: biases_ ) b->eta() = eta;
     }
 
     void set_momentum( double mom ) override
     {
+        options_.push("momentum", mom);
         for ( auto& b: biases_ ) b->momentum() = mom;
     }
 
     void set_weight_decay( double wd ) override
     {
+        options_.push("weight_decay", wd);
         for ( auto& b: biases_ ) b->weight_decay() = wd;
     }
 

@@ -274,9 +274,7 @@ inline void mad_to(identity_t<T> a, cube<T> & o) noexcept
     detail::mad_to(a, o.data(), o.num_elements());
 }
 
-template< typename T,
-          class = typename
-          std::enable_if<std::is_convertible<T,double>::value>::type >
+template< typename T >
 inline void fill( cube<T> & v, identity_t<T> c) noexcept
 {
     std::fill_n(v.data(), v.num_elements(), c);

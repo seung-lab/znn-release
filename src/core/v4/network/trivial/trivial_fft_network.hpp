@@ -218,7 +218,7 @@ public:
     cube_p<double> backward( ccube_p<double> const & g )
     {
         ZI_ASSERT(indices);
-        ZI_ASSERT(insize == size(*g) + (filter_size - vec3i::one) * filter_stride);
+        ZI_ASSERT(insize==size(*g)+(filter_size-vec3i::one)*filter_stride);
 
         return pooling_backprop(insize, *g, *indices);
     }
@@ -287,8 +287,11 @@ public:
     void forward( ccube_p<complex> const & f ) override
     {
         last_input = f;
-        auto w_tmp = sparse_explode_slow(filter_.W(), filter_stride,
-                                         in_nodes->fsize());
+        // TODO(zlateski): WTH was happening with sparse_exploce before
+        //                 when I had to use sparse_explode_slow,
+        //                 ony happened on my laptop
+        auto w_tmp = sparse_explode(filter_.W(), filter_stride,
+                                    in_nodes->fsize());
         w_fft = fftw::forward(std::move(w_tmp));
         auto fw = *w_fft * *f;
         out_nodes->forward(out_num, fwd_bucket_, std::move(fw));
@@ -301,13 +304,14 @@ public:
         double norm = dEdW->num_elements();
 
         flip(*dEdW);
-        dEdW = sparse_implode_slow(*dEdW, filter_stride, size(filter_.W()));
+        // TODO(zlateski): WTH was happening with sparse_implode before
+        //                 when I had to use sparse_implode_slow
+        //                 ony happened on my laptop
+        dEdW = sparse_implode(*dEdW, filter_stride, size(filter_.W()));
         *dEdW /= norm;
 
         auto grad = *w_fft * *g;
         filter_.update(*dEdW);
-
-        //std::cout << "FILTER: " << in_num << ' ' << out_num << std::endl << filter_.W() << std::endl;
 
         in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
     }
@@ -473,16 +477,19 @@ public:
 
     void set_eta( double eta ) override
     {
+        options_.push("eta", eta);
         for ( auto & f: filters_ ) f->eta() = eta;
     }
 
     void set_momentum( double mom ) override
     {
+        options_.push("momentum", mom);
         for ( auto & f: filters_ ) f->momentum() = mom;
     }
 
     void set_weight_decay( double wd ) override
     {
+        options_.push("weight_decay", wd);
         for ( auto & f: filters_ ) f->weight_decay() = wd;
     }
 
@@ -563,16 +570,19 @@ public:
 
     void set_eta( double eta ) override
     {
+        options_.push("eta", eta);
         for ( auto & f: filters_ ) f->eta() = eta;
     }
 
     void set_momentum( double mom ) override
     {
+        options_.push("momentum", mom);
         for ( auto & f: filters_ ) f->momentum() = mom;
     }
 
     void set_weight_decay( double wd ) override
     {
+        options_.push("weight_decay", wd);
         for ( auto & f: filters_ ) f->weight_decay() = wd;
     }
 
@@ -652,14 +662,14 @@ class summing_nodes: public nodes
 private:
     size_t                                  size_    ;
 
-    dispatcher_group<forward_dispatcher<edge,edge>>  fwd_dispatch_;
-    dispatcher_group<backward_dispatcher<edge,edge>> bwd_dispatch_;
-
+    dispatcher_group<forward_dispatcher<edge,edge>>    fwd_dispatch_;
+    dispatcher_group<backward_dispatcher<edge,edge>>   bwd_dispatch_;
     std::vector<std::unique_ptr<forward_accumulator>>  fwd_accumulators_;
     std::vector<std::unique_ptr<backward_accumulator>> bwd_accumulators_;
+
     std::vector<cube_p<double>>             fs_      ;
     std::vector<cube_p<double>>             gs_      ;
-    options                                 opts_   ;
+    options                                 opts_    ;
 
 public:
     summing_nodes(size_t s, vec3i const & fsize, options const & op)
@@ -866,16 +876,19 @@ public:
 
     void set_eta( double eta ) override
     {
+        options_.push("eta", eta);
         for ( auto& b: biases_ ) b->eta() = eta;
     }
 
     void set_momentum( double mom ) override
     {
+        options_.push("momentum", mom);
         for ( auto& b: biases_ ) b->momentum() = mom;
     }
 
     void set_weight_decay( double wd ) override
     {
+        options_.push("weight_decay", wd);
         for ( auto& b: biases_ ) b->weight_decay() = wd;
     }
 
@@ -921,8 +934,6 @@ public:
         {
             func_.apply_grad(*gs_[n], *fs_[n]);
             biases_[n]->update(sum(*gs_[n]));
-            //std::cout << "Bias: " << options_.require_as<std::string>("name")
-            //          << ' ' << n << ' ' << biases_[n]->b() << std::endl;
             bwd_dispatch_.dispatch(n,gs_[n]);
             gs_[n].reset();
             fs_[n].reset();
@@ -949,10 +960,6 @@ public:
             gs_[n] = bwd_accumulators_[n]->reset();
             func_.apply_grad(*gs_[n], *fs_[n]);
             biases_[n]->update(sum(*gs_[n]));
-
-            //std::cout << "Bias: " << options_.require_as<std::string>("name")
-            //          << ' ' << n << ' ' << biases_[n]->b() << std::endl;
-
             bwd_dispatch_.dispatch(n,gs_[n]);
             gs_[n].reset();
             fs_[n].reset();
