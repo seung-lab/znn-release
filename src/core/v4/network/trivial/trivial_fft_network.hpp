@@ -89,9 +89,6 @@ public:
     virtual void set_weight_decay( double )
     { UNIMPLEMENTED(); }
 
-    virtual void initialize()
-    { UNIMPLEMENTED(); }
-
     virtual options serialize() const = 0;
 
 };

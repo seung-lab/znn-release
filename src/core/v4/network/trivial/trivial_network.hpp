@@ -61,9 +61,6 @@ public:
     virtual void set_weight_decay( double )
     { UNIMPLEMENTED(); }
 
-    virtual void initialize()
-    { UNIMPLEMENTED(); }
-
     virtual options serialize() const = 0;
 
 };
@@ -411,7 +408,7 @@ class input_nodes: public nodes
 {
 private:
     size_t                                  size_   ;
-    std::vector<std::vector<edge*>> outputs_;
+    std::vector<std::vector<edge*>>         outputs_;
     options                                 opts_   ;
 
 public:

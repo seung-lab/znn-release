@@ -3,6 +3,7 @@
 #include "types.hpp"
 
 #include <map>
+#include <initializer_list>
 #include <utility>
 #include <iostream>
 
@@ -11,6 +12,18 @@ namespace znn { namespace v4 {
 class options: std::map<std::string,std::string>
 {
 public:
+
+    options() {}
+
+    options( std::initializer_list<std::pair<std::string,std::string>> l)
+    {
+        for ( auto & p: l )
+        {
+            (*this)[boost::lexical_cast<std::string>(p.first)]
+                = boost::lexical_cast<std::string>(p.second);
+        }
+    }
+
     template<typename V>
     options& push(const std::string& k, const V& v)
     {
