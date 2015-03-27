@@ -13,18 +13,39 @@ class edge;
 class nodes
 {
 private:
-    vec3i const    fsize_       ;
+    size_t const   size_        ;
+    vec3i  const   fsize_       ;
     task_manager & task_manager_;
+    options        options_     ;
+    bool           is_input_    ;
+    bool           is_output_   ;
 
 protected:
-    nodes( vec3i const & fsize, task_manager & tm )
-        : fsize_(fsize), task_manager_(tm)
+    nodes( size_t sz,
+           vec3i const & fsize,
+           options const & op,
+           task_manager & tm,
+           bool is_in = false,
+           bool is_out = false )
+        : size_(sz)
+        ,  fsize_(fsize)
+        , task_manager_(tm)
+        , options_(op)
+        , is_input_(is_in)
+        , is_output_(is_out)
     {
     }
 
+    options & opts() { return options_; }
+    options const & opts() const { return options_; }
+
 public:
+    bool is_input()  { return is_input_ ; }
+    bool is_output() { return is_output_; }
+
     vec3i const &  fsize() const { return fsize_;        }
     task_manager & manager()     { return task_manager_; }
+    size_t         size() const  { return size_;         }
 
 public:
     virtual ~nodes() {}
@@ -107,11 +128,8 @@ public:
     virtual void set_weight_decay( double )
     { UNIMPLEMENTED(); }
 
-    virtual bool is_input() const
-    { return false; }
-
-    virtual bool is_output() const
-    { return false; }
+    virtual void wait()
+    { UNIMPLEMENTED(); }
 
     virtual void zap() = 0;
     virtual options serialize() const = 0;
