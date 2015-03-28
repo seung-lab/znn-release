@@ -167,7 +167,7 @@ private:
 
         for ( auto& t: targets )
         {
-            manager.asap(&FFTEdge::backward,t,x);
+            manager.asap([t,x](){t->backward(x);});
         }
     }
 
@@ -175,7 +175,7 @@ public:
     void dispatch(const ccube_p<double>& v, task_manager& manager) const
     {
         for ( auto& t: targets_ )
-            manager.asap(&Edge::backward,t,v);
+            manager.asap([t,v](){t->backward(v);});
 
         for ( auto& fft_target: fft_targets_ )
             manager.asap(&this_type::fft_dispatch,this,v,fft_target.first,

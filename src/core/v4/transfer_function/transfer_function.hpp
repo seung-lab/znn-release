@@ -100,6 +100,11 @@ public:
         : f_()
     {}
 
+    explicit operator bool() const
+    {
+        return static_cast<bool>(f_);
+    }
+
     template<typename F>
     transfer_function(const F& f)
         : f_(new transfer_function_wrapper<F>(f))
@@ -115,22 +120,29 @@ public:
 
     void apply(cube<double>& v) noexcept
     {
-        f_->apply(v);
+        if ( f_ ) f_->apply(v);
     }
 
     void apply(cube<double>& v, double bias) noexcept
     {
-        f_->apply(v, bias);
+        if ( f_ ) f_->apply(v, bias);
     }
 
     void apply_grad(cube<double>& g, const cube<double>& f) noexcept
     {
-        f_->apply_grad(g,f);
+        if ( f_ ) f_->apply_grad(g,f);
     }
 
     options serialize() const
     {
-        return f_->serialize();
+        if ( f_ )
+        {
+            return f_->serialize();
+        }
+        else
+        {
+            return options();
+        }
     }
 
 };

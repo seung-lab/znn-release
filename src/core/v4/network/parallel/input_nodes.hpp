@@ -18,7 +18,7 @@ public:
                  vec3i const & fsize,
                  options const & op,
                  task_manager & tm )
-        : nodes(s,fsize,op,tm)
+        : nodes(s,fsize,op,tm,true)
         , outputs_(s)
         , waiter_()
     {
@@ -77,7 +77,6 @@ public:
     }
 
     void wait() override { waiter_.wait(); }
-
 
 
 }; // class input_nodes
