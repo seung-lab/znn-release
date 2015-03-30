@@ -2,6 +2,7 @@
 
 #include "../types.hpp"
 #include "../cube/cube.hpp"
+#include "../cube/cube_operators.hpp"
 
 
 #include <utility>

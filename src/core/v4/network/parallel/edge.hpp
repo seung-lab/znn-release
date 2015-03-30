@@ -22,7 +22,7 @@ protected:
     task_manager & manager;
 
 public:
-    edge( nodes * in, size_t inn, nodes * out, size_t outn, tasks_manager & m )
+    edge( nodes * in, size_t inn, nodes * out, size_t outn, task_manager & m )
         : in_nodes(in), in_num(inn), out_nodes(out), out_num(outn), manager(m)
     {
     }

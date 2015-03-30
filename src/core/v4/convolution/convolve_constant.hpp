@@ -1,6 +1,8 @@
 #pragma once
 
+#include "../cube/cube.hpp"
 #include "../types.hpp"
+#include "../meta.hpp"
 
 namespace znn { namespace v4 {
 

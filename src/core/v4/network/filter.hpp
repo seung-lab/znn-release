@@ -2,6 +2,8 @@
 
 #include "../types.hpp"
 #include "../cube/cube.hpp"
+#include "../cube/cube_operators.hpp"
+
 
 namespace znn { namespace v4 {
 

@@ -31,6 +31,14 @@ public:
         ++required_;
     }
 
+    void set(size_t n)
+    {
+        std::unique_lock<std::mutex> g(mutex_);
+        ZI_ASSERT(current_==0);
+        required_ = n;
+    }
+
+
     void one_done()
     {
         std::unique_lock<std::mutex> g(mutex_);
