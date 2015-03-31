@@ -1,6 +1,6 @@
 #pragma once
 
-#include "edges.hpp"
+#include "edges_fwd.hpp"
 #include "nodes.hpp"
 #include "../../pooling/pooling.hpp"
 

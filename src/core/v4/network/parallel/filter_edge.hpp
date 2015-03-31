@@ -1,6 +1,7 @@
 #pragma once
 
-#include "edges.hpp"
+#include "edge.hpp"
+#include "edges_fwd.hpp"
 #include "nodes.hpp"
 
 #include "../../convolution/convolution.hpp"
@@ -26,6 +27,8 @@ public:
                  filter & f )
         : edge(in,inn,out,outn,tm), filter_stride(stride), filter_(f)
     {
+        in->attach_out_edge(inn,this);
+        out->attach_out_edge(outn,this);
     }
 
     void forward( ccube_p<double> const & f ) override

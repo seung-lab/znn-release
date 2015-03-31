@@ -1,6 +1,6 @@
 #pragma once
 
-#include "edges.hpp"
+#include "edges_fwd.hpp"
 #include "nodes.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
