@@ -1012,7 +1012,7 @@ private:
 
         options const * opts;
 
-        std::unique_ptr<edges> edges;
+        std::unique_ptr<edges> dedges;
     };
 
     struct nnodes
@@ -1023,7 +1023,7 @@ private:
 
         options const * opts;
 
-        std::unique_ptr<nodes> nodes;
+        std::unique_ptr<nodes> dnodes;
         std::vector<nedges *> in, out;
     };
 
@@ -1137,25 +1137,25 @@ private:
         for ( auto & e: edges_ )
         {
             auto type = e.second->opts->require_as<std::string>("type");
-            nodes * in  = e.second->in->nodes.get();
-            nodes * out = e.second->out->nodes.get();
+            nodes * in  = e.second->in->dnodes.get();
+            nodes * out = e.second->out->dnodes.get();
 
             if ( type == "max_filter" )
             {
-                e.second->edges = std::make_unique<max_pooling_edges>
+                e.second->dedges = std::make_unique<max_pooling_edges>
                     ( in, out, *e.second->opts, e.second->in_stride );
             }
             else if ( type == "conv" )
             {
-                //e.second->edges = std::make_unique<filter_edges>
+                //e.second->dedges = std::make_unique<filter_edges>
                 //    ( in, out, *e.second->opts, e.second->in_stride );
-                e.second->edges = std::make_unique<fft_filter_edges>
+                e.second->dedges = std::make_unique<fft_filter_edges>
                     ( in, out, *e.second->opts, e.second->in_stride );
 
             }
             else if ( type == "dummy" )
             {
-                e.second->edges = std::make_unique<dummy_edges>
+                e.second->dedges = std::make_unique<dummy_edges>
                     ( in, out, *e.second->opts );
             }
             else
@@ -1179,18 +1179,18 @@ private:
 
             if ( type == "input" )
             {
-                n.second->nodes = std::make_unique<input_nodes>
+                n.second->dnodes = std::make_unique<input_nodes>
                     (sz,n.second->fsize,*n.second->opts);
             }
             else if ( type == "sum" )
             {
-                n.second->nodes
+                n.second->dnodes
                     = std::make_unique<summing_nodes>
                     (sz,n.second->fsize,*n.second->opts);
             }
             else if ( type == "transfer" )
             {
-                n.second->nodes
+                n.second->dnodes
                     = std::make_unique<transfer_nodes>
                     (n.second->fsize, *n.second->opts);
             }
@@ -1258,20 +1258,20 @@ public:
 
     void set_eta( double eta )
     {
-        for ( auto & e: edges_ ) e.second->edges->set_eta(eta);
-        for ( auto & n: nodes_ ) n.second->nodes->set_eta(eta);
+        for ( auto & e: edges_ ) e.second->dedges->set_eta(eta);
+        for ( auto & n: nodes_ ) n.second->dnodes->set_eta(eta);
     }
 
     void set_momentum( double mom )
     {
-        for ( auto & e: edges_ ) e.second->edges->set_momentum(mom);
-        for ( auto & n: nodes_ ) n.second->nodes->set_momentum(mom);
+        for ( auto & e: edges_ ) e.second->dedges->set_momentum(mom);
+        for ( auto & n: nodes_ ) n.second->dnodes->set_momentum(mom);
     }
 
     void set_weight_decay( double wd )
     {
-        for ( auto & e: edges_ ) e.second->edges->set_weight_decay(wd);
-        for ( auto & n: nodes_ ) n.second->nodes->set_weight_decay(wd);
+        for ( auto & e: edges_ ) e.second->dedges->set_weight_decay(wd);
+        for ( auto & n: nodes_ ) n.second->dnodes->set_weight_decay(wd);
     }
 
     vec3i fov() const
@@ -1287,7 +1287,7 @@ public:
         {
             ZI_ASSERT(input_nodes_.count(in.first));
 
-            auto& in_layer = input_nodes_[in.first]->nodes;
+            auto& in_layer = input_nodes_[in.first]->dnodes;
 
             ZI_ASSERT(in_layer->num_in_nodes()==in.second.size());
 
@@ -1300,7 +1300,7 @@ public:
         std::map<std::string, std::vector<cube_p<double>>> ret;
         for ( auto & l: output_nodes_ )
         {
-            ret[l.first] = l.second->nodes->get_featuremaps();
+            ret[l.first] = l.second->dnodes->get_featuremaps();
         }
 
         return ret;
@@ -1314,7 +1314,7 @@ public:
         {
             ZI_ASSERT(output_nodes_.count(out.first));
 
-            auto& out_layer = output_nodes_[out.first]->nodes;
+            auto& out_layer = output_nodes_[out.first]->dnodes;
 
             ZI_ASSERT(out_layer->num_out_nodes()==out.second.size());
 
@@ -1338,10 +1338,10 @@ public:
         std::pair<std::vector<options>,std::vector<options>> ret;
 
         for ( auto & n: nodes_ )
-            ret.first.push_back(n.second->nodes->serialize());
+            ret.first.push_back(n.second->dnodes->serialize());
 
         for ( auto & e: edges_ )
-            ret.second.push_back(e.second->edges->serialize());
+            ret.second.push_back(e.second->dedges->serialize());
 
         return ret;
     }
