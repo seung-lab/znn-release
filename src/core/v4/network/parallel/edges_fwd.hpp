@@ -35,6 +35,10 @@ public:
     edges( nodes *, nodes *, options const &, vec3i const &, vec3i const &,
            task_manager &, max_pooling_tag );
 
+    std::string name() const
+    {
+        return options_.require_as<std::string>("name");
+    }
 
     void set_eta( double eta )
     {

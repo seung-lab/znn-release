@@ -38,9 +38,6 @@ public:
     // For the forward pass only this function us supported
     void forward(size_t n, cube_p<double> && f) override
     {
-        std::cout << "Input node FWD\n";
-        nodes::opts().dump();
-        std::cout << "\n\n";
         ZI_ASSERT(n<nodes::size());
         outputs_.dispatch(n,f,nodes::manager());
     }

@@ -28,7 +28,7 @@ protected:
            bool is_in = false,
            bool is_out = false )
         : size_(sz)
-        ,  fsize_(fsize)
+        , fsize_(fsize)
         , task_manager_(tm)
         , options_(op)
         , is_input_(is_in)
@@ -46,6 +46,11 @@ public:
     vec3i const &  fsize() const { return fsize_;        }
     task_manager & manager()     { return task_manager_; }
     size_t         size() const  { return size_;         }
+
+    std::string name() const
+    {
+        return options_.require_as<std::string>("name");
+    }
 
 public:
     virtual ~nodes() {}

@@ -2,6 +2,7 @@
 
 #include "edges_fwd.hpp"
 #include "filter_edge.hpp"
+#include "fft_filter_edge.hpp"
 #include "dummy_edge.hpp"
 #include "max_pooling_edge.hpp"
 #include "nodes.hpp"
@@ -32,10 +33,10 @@ inline edges::edges( nodes * in,
     filters_.resize(n*m);
     waiter_.set(n*m);
 
-    double eta    = opts.optional_as<double>("eta", 0.1);
-    double mom    = opts.optional_as<double>("momentum", 0.0);
-    double wd     = opts.optional_as<double>("weight_decay", 0.0);
-    auto   sz     = opts.require_as<ovec3i>("size");
+    double eta  = opts.optional_as<double>("eta", 0.1);
+    double mom  = opts.optional_as<double>("momentum", 0.0);
+    double wd   = opts.optional_as<double>("weight_decay", 0.0);
+    auto   sz   = opts.require_as<ovec3i>("size");
 
     size_ = sz;
 
@@ -44,9 +45,6 @@ inline edges::edges( nodes * in,
         for ( size_t j = 0; j < m; ++j, ++k )
         {
             filters_[k] = std::make_unique<filter>(sz, eta, mom, wd);
-            edges_[k]
-                = std::make_unique<filter_edge>
-                (in, i, out, j, tm_, stride, *filters_[k]);
         }
     }
 
@@ -74,6 +72,20 @@ inline edges::edges( nodes * in,
     }
 
     load_filters(filters_, size_, filter_values);
+
+
+    for ( size_t i = 0, k = 0; i < n; ++i )
+    {
+        for ( size_t j = 0; j < m; ++j, ++k )
+        {
+            edges_[k]
+                = std::make_unique<fft_filter_edge>
+                (in, i, out, j, tm_, stride, *filters_[k]);
+        }
+    }
+
+
+
 }
 
 inline edges::edges( nodes * in,
@@ -88,6 +100,7 @@ inline edges::edges( nodes * in,
 
     size_t n = in->num_out_nodes();
     edges_.resize(n);
+    waiter_.set(n);
 
     for ( size_t i = 0; i < n; ++i )
     {
@@ -108,15 +121,13 @@ inline edges::edges( nodes * in,
     , size_(in_size)
     , tm_(tm)
 {
-    std::cout << "MAKING MAX POOLING EDGES\n\n";
-    opts.dump();
-    std::cout << std::endl;
     ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
 
     size_t n = in->num_out_nodes();
     edges_.resize(n);
+    waiter_.set(n);
 
-    auto sz     = opts.require_as<ovec3i>("size");
+    auto sz = opts.require_as<ovec3i>("size");
 
     for ( size_t i = 0; i < n; ++i )
     {

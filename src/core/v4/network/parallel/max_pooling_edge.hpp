@@ -29,14 +29,13 @@ public:
         , filter_stride(stride)
     {
         insize = in->fsize();
+
         in->attach_out_edge(inn,this);
-        out->attach_out_edge(outn,this);
+        out->attach_in_edge(outn,this);
     }
 
     void forward( ccube_p<double> const & f ) override
     {
-        std::cout << "MAX POOL EDGE FWD\n";
-
         ZI_ASSERT(size(*f)==insize);
         auto r = pooling_filter(get_copy(*f),
                                 [](double a, double b){ return a>b; },

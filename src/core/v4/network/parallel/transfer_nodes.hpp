@@ -151,10 +151,6 @@ public:
 private:
     void do_forward(size_t n)
     {
-        std::cout << "PARALLEL NODE DONE: " << n << "\n";
-        nodes::opts().dump();
-        std::cout << "\n\n";
-
         fs_[n] = fwd_accumulators_[n]->reset();
 
         if ( func_ )
@@ -176,10 +172,6 @@ public:
 
     void forward(size_t n, cube_p<double>&& f) override
     {
-        std::cout << "PARALLEL NODE FWD: " << n << "\n";
-        nodes::opts().dump();
-        std::cout << "\n\n";
-
         ZI_ASSERT(n<nodes::size());
         if ( fwd_accumulators_[n]->add(std::move(f)) )
         {

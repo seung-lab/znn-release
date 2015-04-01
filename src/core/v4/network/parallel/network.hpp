@@ -199,10 +199,9 @@ private:
             }
             else if ( (type == "sum") || (type == "transfer") )
             {
-                n.second->nodes
-                    = std::make_unique<transfer_nodes>
-                    (sz,n.second->fsize,*n.second->opts,tm_,
-                     n.second->out.size()==0);
+                n.second->nodes = std::make_unique<transfer_nodes>
+                    ( sz, n.second->fsize, *n.second->opts, tm_,
+                      n.second->out.size()==0 );
             }
             else
             {
@@ -313,7 +312,6 @@ public:
         for ( auto & l: output_nodes_ )
         {
             l.second->nodes->wait();
-            std::cout << "Collecting for: " << l.first << "\n";
             ret[l.first] = l.second->nodes->get_featuremaps();
         }
 
@@ -348,8 +346,9 @@ public:
         return ret;
     }
 
-    std::pair<std::vector<options>,std::vector<options>> serialize() const
+    std::pair<std::vector<options>,std::vector<options>> serialize()
     {
+        zap();
         std::pair<std::vector<options>,std::vector<options>> ret;
 
         for ( auto & n: nodes_ )
@@ -373,4 +372,4 @@ public:
 };
 
 
-}}} // namespace znn::v4::trivial_fft_network
+}}} // namespace znn::v4::parallel_network

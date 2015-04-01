@@ -287,8 +287,8 @@ public:
         // TODO(zlateski): WTH was happening with sparse_exploce before
         //                 when I had to use sparse_explode_slow,
         //                 ony happened on my laptop
-        auto w_tmp = sparse_explode(filter_.W(), filter_stride,
-                                    in_nodes->fsize());
+        auto w_tmp = sparse_explode_slow(filter_.W(), filter_stride,
+                                         in_nodes->fsize());
         w_fft = fftw::forward(std::move(w_tmp));
         auto fw = *w_fft * *f;
         out_nodes->forward(out_num, fwd_bucket_, std::move(fw));
@@ -304,7 +304,7 @@ public:
         // TODO(zlateski): WTH was happening with sparse_implode before
         //                 when I had to use sparse_implode_slow
         //                 ony happened on my laptop
-        dEdW = sparse_implode(*dEdW, filter_stride, size(filter_.W()));
+        dEdW = sparse_implode_slow(*dEdW, filter_stride, size(filter_.W()));
         *dEdW /= norm;
 
         auto grad = *w_fft * *g;
@@ -617,14 +617,10 @@ public:
 
     void backward(size_t, cube_p<double>&&) override
     {
-        //std::cout << "input node: " << i << " received grad of size: "
-        //          << size(*g) << std::endl;
     }
 
     void backward(size_t, size_t, cube_p<complex>&&) override
     {
-        //std::cout << "input node: " << i << " received grad of size: "
-        //          << size(*g) << std::endl;
     }
 
     size_t num_out_nodes() override { return size_; }
@@ -1304,7 +1300,6 @@ public:
         std::map<std::string, std::vector<cube_p<double>>> ret;
         for ( auto & l: output_nodes_ )
         {
-            std::cout << "Collecting for: " << l.first << "\n";
             ret[l.first] = l.second->nodes->get_featuremaps();
         }
 

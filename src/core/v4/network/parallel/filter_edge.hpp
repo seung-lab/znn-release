@@ -17,6 +17,24 @@ private:
 
     ccube_p<double> last_input;
 
+    task_manager::task_handle pending_ = 0;
+
+    std::mutex m;
+
+private:
+    void do_forward( ccube_p<double> const & f )
+    {
+        last_input = f;
+        out_nodes->forward(out_num,
+                           convolve_sparse(*f, filter_.W(), filter_stride));
+    }
+
+    void do_update( ccube_p<double> const & g )
+    {
+        auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
+        filter_.update(*dEdW);
+    }
+
 public:
     filter_edge( nodes * in,
                  size_t inn,
@@ -28,31 +46,33 @@ public:
         : edge(in,inn,out,outn,tm), filter_stride(stride), filter_(f)
     {
         in->attach_out_edge(inn,this);
-        out->attach_out_edge(outn,this);
+        out->attach_in_edge(outn,this);
     }
 
     void forward( ccube_p<double> const & f ) override
     {
-        std::cout << "EDGE FWD\n";
-        last_input = f;
-        out_nodes->forward(out_num,
-                           convolve_sparse(*f, filter_.W(), filter_stride));
+        guard gg(m);
+        manager.require_done( pending_, &filter_edge::do_forward, this, f );
     }
 
     void backward( ccube_p<double> const & g )
     {
+        guard gg(m);
         ZI_ASSERT(last_input);
-        auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
-        filter_.update(*dEdW);
         in_nodes->backward(in_num,
                            convolve_sparse_inverse(*g,
                                                    filter_.W(),
                                                    filter_stride));
+
+        pending_
+            = manager.schedule_unprivileged(&filter_edge::do_update, this, g);
     }
 
     void zap(edges* e)
     {
-        e->edge_zapped();
+        // guard gg(m);
+        manager.require_done(pending_,&edges::edge_zapped,e);
+        //e->edge_zapped();
     }
 };
 
