@@ -288,6 +288,7 @@ int main()
         .push("type", "conv")
         .push("init", "uniform")
         .push("size", "1,1,1")
+        .push("fft", "0")
         .push("input", "nl4")
         .push("output", "output");
 
@@ -306,7 +307,13 @@ int main()
     tn1.set_eta(0.00001);
     auto nd = tn1.serialize();
 
+    parallel_network::network::optimize(nd.first, nd.second, {11,11,2}, 8);
+
+    return 0;
+
     parallel_network::network tn2(nd.first, nd.second, {11,11,2}, 16);
+
+
 
 
     std::vector<std::map<std::string, std::vector<cube_p<double>>>>

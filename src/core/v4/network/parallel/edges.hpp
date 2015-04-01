@@ -73,14 +73,24 @@ inline edges::edges( nodes * in,
 
     load_filters(filters_, size_, filter_values);
 
+    int does_fft = options_.optional_as<int>("fft", "1");
 
     for ( size_t i = 0, k = 0; i < n; ++i )
     {
         for ( size_t j = 0; j < m; ++j, ++k )
         {
-            edges_[k]
-                = std::make_unique<fft_filter_edge>
-                (in, i, out, j, tm_, stride, *filters_[k]);
+            if ( does_fft )
+            {
+                edges_[k]
+                    = std::make_unique<fft_filter_edge>
+                    (in, i, out, j, tm_, stride, *filters_[k]);
+            }
+            else
+            {
+                edges_[k]
+                    = std::make_unique<filter_edge>
+                    (in, i, out, j, tm_, stride, *filters_[k]);
+            }
         }
     }
 
