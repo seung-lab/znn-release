@@ -30,8 +30,7 @@ public:
     edges( nodes *, nodes *, options const &, vec3i const &, vec3i const &,
            task_manager &, filter_tag );
 
-    edges( nodes *, nodes *, options const &, vec3i const &, vec3i const &,
-           task_manager &, dummy_tag );
+    edges( nodes *, nodes *, options const &, task_manager &, dummy_tag );
 
     edges( nodes *, nodes *, options const &, vec3i const &, vec3i const &,
            task_manager &, max_pooling_tag );

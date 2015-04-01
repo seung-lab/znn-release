@@ -93,6 +93,7 @@ public:
 
     bool add(cube_p<double>&& f)
     {
+        ZI_ASSERT(current_<required_);
         do_add(std::move(f));
         return ++current_ == required_;
     }
@@ -101,6 +102,8 @@ public:
     bool add(const ccube_p<double>& f, const ccube_p<double>& w,
              const vec3i& sparse = vec3i::one )
     {
+        ZI_ASSERT(current_<required_);
+
         cube_p<double> previous_sum;
 
         {
@@ -140,6 +143,8 @@ public:
 
     bool add(size_t bucket, cube_p<complex>&& f)
     {
+        ZI_ASSERT(current_<required_);
+
         if ( buckets_[bucket]->add(std::move(f)) )
         {
             merge_bucket(bucket);
@@ -150,6 +155,8 @@ public:
 
     bool add(size_t bucket, const ccube_p<complex>& f, const ccube_p<complex>& w)
     {
+        ZI_ASSERT(current_<required_);
+
         if ( buckets_[bucket]->add(f,w) )
         {
             merge_bucket(bucket);

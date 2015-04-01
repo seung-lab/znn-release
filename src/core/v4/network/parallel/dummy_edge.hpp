@@ -22,6 +22,8 @@ public:
                 task_manager & tm )
         : edge(in,inn,out,outn,tm)
     {
+        in->attach_out_edge(inn,this);
+        out->attach_out_edge(outn,this);
     }
 
     void forward( ccube_p<double> const & f ) override

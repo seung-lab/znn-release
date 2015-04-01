@@ -1,9 +1,6 @@
 #pragma once
 
-#include "edges_fwd.hpp"
-#include "nodes.hpp"
-#include "../../pooling/pooling.hpp"
-
+#include "edge.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 
@@ -28,34 +25,25 @@ public:
         , filter_size(size)
         , filter_stride(stride)
     {
-        insize = in->fsize();
-        in->attach_out_edge(inn,this);
-        out->attach_out_edge(outn,this);
     }
 
     void forward( ccube_p<double> const & f ) override
     {
-        std::cout << "MAX POOL EDGE FWD\n";
-
-        ZI_ASSERT(size(*f)==insize);
+        insize = size(*f);
         auto r = pooling_filter(get_copy(*f),
                                 [](double a, double b){ return a>b; },
                                 filter_size,
                                 filter_stride);
         indices = r.second;
-        out_nodes->forward(out_num,std::move(r.first));
+        out_nodes->forward(out_num,std::move(r));
     }
 
     void backward( ccube_p<double> const & g )
     {
         ZI_ASSERT(indices);
         ZI_ASSERT(insize==size(*g)+(filter_size-vec3i::one)*filter_stride);
-        in_nodes->backward(in_num, pooling_backprop(insize, *g, *indices));
-    }
 
-    void zap(edges* e)
-    {
-        e->edge_zapped();
+        in_nodes->backward(in_num, pooling_backprop(insize, *g, *indices));
     }
 };
 

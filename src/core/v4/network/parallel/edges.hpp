@@ -19,7 +19,8 @@ inline edges::edges( nodes * in,
                      vec3i const & in_size,
                      task_manager & tm,
                      filter_tag )
-    : size_(in_size)
+    : options_(opts)
+    , size_(in_size)
     , tm_(tm)
 {
     size_t n = in->num_out_nodes();
@@ -73,6 +74,57 @@ inline edges::edges( nodes * in,
     }
 
     load_filters(filters_, size_, filter_values);
+}
+
+inline edges::edges( nodes * in,
+                     nodes * out,
+                     options const & opts,
+                     task_manager & tm,
+                     dummy_tag )
+    : options_(opts)
+    , tm_(tm)
+{
+    ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
+
+    size_t n = in->num_out_nodes();
+    edges_.resize(n);
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        edges_[i] = std::make_unique<dummy_edge>
+            (in, i, out, i, tm);
+    }
+}
+
+
+inline edges::edges( nodes * in,
+                     nodes * out,
+                     options const & opts,
+                     vec3i const & stride,
+                     vec3i const & in_size,
+                     task_manager & tm,
+                     max_pooling_tag )
+    : options_(opts)
+    , size_(in_size)
+    , tm_(tm)
+{
+    std::cout << "MAKING MAX POOLING EDGES\n\n";
+    opts.dump();
+    std::cout << std::endl;
+    ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
+
+    size_t n = in->num_out_nodes();
+    edges_.resize(n);
+
+    auto sz     = opts.require_as<ovec3i>("size");
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        edges_[i]
+            = std::make_unique<max_pooling_edge>
+            (in, i, out, i, tm_, sz, stride);
+    }
+
 }
 
 }}} // namespace znn::v4::parallel_network

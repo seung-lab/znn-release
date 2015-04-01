@@ -33,6 +33,7 @@ public:
 
     void forward( ccube_p<double> const & f ) override
     {
+        std::cout << "EDGE FWD\n";
         last_input = f;
         out_nodes->forward(out_num,
                            convolve_sparse(*f, filter_.W(), filter_stride));

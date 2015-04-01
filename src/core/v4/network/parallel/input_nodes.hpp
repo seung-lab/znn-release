@@ -18,7 +18,7 @@ public:
                  vec3i const & fsize,
                  options const & op,
                  task_manager & tm )
-        : nodes(s,fsize,op,tm,true)
+        : nodes(s,fsize,op,tm,true,false)
         , outputs_(s)
         , waiter_()
     {
@@ -38,6 +38,9 @@ public:
     // For the forward pass only this function us supported
     void forward(size_t n, cube_p<double> && f) override
     {
+        std::cout << "Input node FWD\n";
+        nodes::opts().dump();
+        std::cout << "\n\n";
         ZI_ASSERT(n<nodes::size());
         outputs_.dispatch(n,f,nodes::manager());
     }
@@ -78,6 +81,7 @@ public:
 
     void wait() override { waiter_.wait(); }
 
+    void zap() override {}
 
 }; // class input_nodes
 
