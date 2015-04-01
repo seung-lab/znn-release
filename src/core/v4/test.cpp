@@ -151,29 +151,49 @@ int main()
 
     // return 0;
 
-    std::vector<options> nodes(11);
-    std::vector<options> edges(12);
+    std::vector<options> nodes(9);
+    std::vector<options> edges(8);
 
+    std::vector<options> nodes2(2);
+    std::vector<options> edges2(1);
 
-    edges[10].push("name", "conv1a")
+    nodes2[0].push("name", "input")
+        .push("type", "input")
+        .push("size", 48);
+
+    edges2[0].push("name", "conv1")
         .push("type", "conv")
         .push("init", "uniform")
-        .push("size", "2,2,1")
+        .push("size", "1,5,5")
         .push("input", "input")
-        .push("output", "nl1a");
+        .push("output", "nl1");
 
-    nodes[10].push("name", "nl1a")
+    nodes2[1].push("name", "nl1")
         .push("type", "transfer")
         .push("function", "tanh")
         .push("function_args", "1.7159,0.6666")
-        .push("size", 8);
+        .push("size", 48);
 
-    edges[11].push("name", "conv1b")
-        .push("type", "conv")
-        .push("init", "uniform")
-        .push("size", "2,2,1")
-        .push("input", "nl1a")
-        .push("output", "nl1");
+
+    // edges[10].push("name", "conv1a")
+    //     .push("type", "conv")
+    //     .push("init", "uniform")
+    //     .push("size", "2,2,1")
+    //     .push("input", "input")
+    //     .push("output", "nl1a");
+
+    // nodes[10].push("name", "nl1a")
+    //     .push("type", "transfer")
+    //     .push("function", "tanh")
+    //     .push("function_args", "1.7159,0.6666")
+    //     .push("size", 8);
+
+    // edges[11].push("name", "conv1b")
+    //     .push("type", "conv")
+    //     .push("init", "uniform")
+    //     .push("size", "2,2,1")
+    //     .push("input", "nl1a")
+    //     .push("output", "nl1");
 
     nodes[0].push("name", "input")
         .push("type", "input")
@@ -182,7 +202,7 @@ int main()
     edges[0].push("name", "conv1")
         .push("type", "conv")
         .push("init", "uniform")
-        .push("size", "3,3,1")
+        .push("size", "1,3,3")
         .push("input", "input")
         .push("output", "nl1");
 
@@ -192,32 +212,32 @@ int main()
         .push("function_args", "1.7159,0.6666")
         .push("size", 48);
 
-    edges[8].push("name", "conv1x")
-        .push("type", "conv")
-        .push("init", "uniform")
-        .push("size", "3,3,1")
-        .push("input", "input")
-        .push("output", "nl1x");
+    // edges[8].push("name", "conv1x")
+    //     .push("type", "conv")
+    //     .push("init", "uniform")
+    //     .push("size", "3,3,1")
+    //     .push("input", "input")
+    //     .push("output", "nl1x");
 
-    nodes[9].push("name", "nl1x")
-        .push("type", "transfer")
-        .push("function", "tanh")
-        .push("function_args", "1.7159,0.6666")
-        .push("size", 48);
+    // nodes[9].push("name", "nl1x")
+    //     .push("type", "transfer")
+    //     .push("function", "tanh")
+    //     .push("function_args", "1.7159,0.6666")
+    //     .push("size", 48);
 
     edges[1].push("name", "pool1")
         .push("type", "max_filter")
-        .push("size", "3,3,1")
-        .push("stride", "3,3,1")
+        .push("size", "1,3,3")
+        .push("stride", "1,3,3")
         .push("input", "nl1")
         .push("output", "mp1");
 
-    edges[9].push("name", "pool1x")
-        .push("type", "max_filter")
-        .push("size", "3,3,1")
-        .push("stride", "3,3,1")
-        .push("input", "nl1x")
-        .push("output", "mp1");
+    // edges[9].push("name", "pool1x")
+    //     .push("type", "max_filter")
+    //     .push("size", "3,3,1")
+    //     .push("stride", "3,3,1")
+    //     .push("input", "nl1x")
+    //     .push("output", "mp1");
 
     nodes[2].push("name", "mp1")
         .push("type", "sum")
@@ -226,7 +246,7 @@ int main()
     edges[2].push("name", "conv2")
         .push("type", "conv")
         .push("init", "uniform")
-        .push("size", "4,4,1")
+        .push("size", "1,4,4")
         .push("input", "mp1")
         .push("output", "nl2");
 
@@ -238,8 +258,8 @@ int main()
 
     edges[3].push("name", "pool2")
         .push("type", "max_filter")
-        .push("size", "2,2,1")
-        .push("stride", "2,2,1")
+        .push("size", "1,2,2")
+        .push("stride", "1,2,2")
         .push("input", "nl2")
         .push("output", "mp2");
 
@@ -250,7 +270,7 @@ int main()
     edges[4].push("name", "conv3")
         .push("type", "conv")
         .push("init", "uniform")
-        .push("size", "4,4,1")
+        .push("size", "1,4,4")
         .push("input", "mp2")
         .push("output", "nl3");
 
@@ -262,8 +282,8 @@ int main()
 
     edges[5].push("name", "pool3")
         .push("type", "max_filter")
-        .push("size", "2,2,1")
-        .push("stride", "2,2,1")
+        .push("size", "1,2,2")
+        .push("stride", "1,2,2")
         .push("input", "nl3")
         .push("output", "mp3");
 
@@ -274,7 +294,7 @@ int main()
     edges[6].push("name", "conv4")
         .push("type", "conv")
         .push("init", "uniform")
-        .push("size", "3,3,1")
+        .push("size", "1,3,3")
         .push("input", "mp3")
         .push("output", "nl4");
 
@@ -307,7 +327,11 @@ int main()
     tn1.set_eta(0.00001);
     auto nd = tn1.serialize();
 
-    parallel_network::network::optimize(nd.first, nd.second, {11,11,2}, 8);
+    parallel_network::network::optimize(nodes2, edges2, {100,100,100}, 9);
+
+    return 0;
+
+    parallel_network::network::optimize(nd.first, nd.second, {1,100,100}, 9);
 
     return 0;
 

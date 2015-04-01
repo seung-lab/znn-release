@@ -50,7 +50,6 @@ inline edges::edges( nodes * in,
 
     std::string filter_values;
 
-    opts.dump();
 
     if ( opts.contains("filters") )
     {

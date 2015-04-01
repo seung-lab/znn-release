@@ -139,13 +139,13 @@ private:
         for ( auto& o: output_nodes_ )
             fov_pass(o.second, vec3i::one, outsz);
 
-        for ( auto& o: nodes_ )
-        {
-            std::cout << "NODE GROUP: " << o.first << "\n    "
-                      << "FOV: " << o.second->fov << "\n    "
-                      << "STRIDE: " << o.second->stride << "\n    "
-                      << "SIZE: " << o.second->fsize << '\n';
-        }
+        // for ( auto& o: nodes_ )
+        // {
+        //     std::cout << "NODE GROUP: " << o.first << "\n    "
+        //               << "FOV: " << o.second->fov << "\n    "
+        //               << "STRIDE: " << o.second->stride << "\n    "
+        //               << "SIZE: " << o.second->fsize << '\n';
+        // }
 
         // for ( auto& o: edges_ )
         // {
