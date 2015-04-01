@@ -523,6 +523,8 @@ public:
                       << " ..." << std::flush;
             e->push("fft","0");
 
+            network net(ns,es,outsz,n_threads);
+
             auto is = copy_samples(allins);
             auto os = copy_samples(allouts);
 
