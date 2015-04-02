@@ -40,12 +40,9 @@ inline edges::edges( nodes * in,
 
     size_ = sz;
 
-    for ( size_t i = 0, k = 0; i < n; ++i )
+    for ( size_t k = 0; k < n*m; ++k )
     {
-        for ( size_t j = 0; j < m; ++j, ++k )
-        {
-            filters_[k] = std::make_unique<filter>(sz, eta, mom, wd);
-        }
+        filters_[k] = std::make_unique<filter>(sz, eta, mom, wd);
     }
 
     std::string filter_values;

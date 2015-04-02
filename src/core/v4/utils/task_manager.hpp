@@ -15,6 +15,8 @@
 
 #include <zi/utility/singleton.hpp>
 
+#include "log.hpp"
+
 namespace znn { namespace v4 {
 
 class task_manager
@@ -44,8 +46,9 @@ public:
     typedef size_t task_handle;
 
 private:
-    std::map<std::size_t, std::list<callable_t*>> tasks_       ;
-    std::map<std::size_t, unprivileged_task*>     unprivileged_;
+    std::map<std::size_t, std::list<callable_t*>> tasks_         ;
+    size_t                                        tot_tasks_ = 0 ;
+    std::map<std::size_t, unprivileged_task*>     unprivileged_  ;
 
     // executing in one of the task manager's threads!
     std::map<std::size_t, unprivileged_task*>     executing_   ;
@@ -228,6 +231,10 @@ private:
             tasks_.erase(tasks_.rbegin()->first);
         }
 
+        --tot_tasks_;
+        // LOG(info) << tot_tasks_
+        //           << ", " << unprivileged_.size() << ";";
+
         return f;
     }
 
@@ -236,6 +243,10 @@ private:
         auto x = *unprivileged_.rbegin();
         unprivileged_.erase(x.first);
         executing_.insert(x);
+
+        // LOG(info) << tot_tasks_
+        //           << ", " << unprivileged_.size() << ";";
+
         return x;
     }
 
@@ -247,6 +258,7 @@ public:
         {
             std::lock_guard<std::mutex> g(mutex_);
             tasks_[priority].emplace_front(fn);
+            ++tot_tasks_;
             if ( idle_threads_ > 0 ) workers_cv_.notify_all();
         }
     }
@@ -258,6 +270,7 @@ public:
         {
             std::lock_guard<std::mutex> g(mutex_);
             tasks_[std::numeric_limits<std::size_t>::max()].emplace_front(fn);
+            ++tot_tasks_;
             if ( idle_threads_ > 0 ) workers_cv_.notify_all();
         }
     }

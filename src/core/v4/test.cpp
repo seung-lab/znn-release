@@ -1,3 +1,4 @@
+#include "utils/log.hpp"
 #include "network/parallel/network.hpp"
 #include "network/parallel/nodes.hpp"
 #include "utils/accumulator.hpp"
@@ -159,20 +160,23 @@ int main()
 
     nodes2[0].push("name", "input")
         .push("type", "input")
-        .push("size", 48);
+        .push("size", 3);
 
     edges2[0].push("name", "conv1")
         .push("type", "conv")
         .push("init", "uniform")
-        .push("size", "1,5,5")
+        .push("size", "1,11,11")
         .push("input", "input")
         .push("output", "nl1");
 
     nodes2[1].push("name", "nl1")
         .push("type", "transfer")
-        .push("function", "tanh")
-        .push("function_args", "1.7159,0.6666")
-        .push("size", 48);
+        .push("function", "rectify_linear")
+        .push("size", 96);
+
+
+//    std::vector<options> nodes3(2);
+//    std::vector<options> edges3(1);
 
 
     // edges[10].push("name", "conv1a")
@@ -327,11 +331,11 @@ int main()
     tn1.set_eta(0.00001);
     auto nd = tn1.serialize();
 
-    parallel_network::network::optimize(nodes2, edges2, {100,100,100}, 9);
+    parallel_network::network::optimize(nodes2, edges2, {1,118,118}, 9);
 
     return 0;
 
-    parallel_network::network::optimize(nd.first, nd.second, {1,100,100}, 9);
+    parallel_network::network::optimize(nd.first, nd.second, {128,118,118}, 9);
 
     return 0;
 

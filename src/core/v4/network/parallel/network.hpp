@@ -557,6 +557,146 @@ public:
             }
         }
     }
+
+    static void optimize_forward( std::vector<options> & ns,
+                                  std::vector<options> & es,
+                                  vec3i const & outsz,
+                                  size_t n_threads = 1 )
+    {
+        std::vector<options*> edge_groups;
+        for ( auto & e: es )
+        {
+            if ( e.require_as<std::string>("type") == "conv" )
+            {
+                edge_groups.push_back(&e);
+                e.push("fft",1);
+            }
+        }
+
+        std::cout << "Total of " << edge_groups.size()
+                  << " to optimize\n\n";
+
+        // generate 10 inputs and outputs
+        network net(ns,es,outsz,n_threads);
+        auto ins  = net.inputs();
+        auto outs = net.outputs();
+
+        std::cout << "Create samples...";
+
+        uniform_init init(1);
+        std::vector<std::map<std::string, std::vector<cube_p<double>>>>
+            allins, allouts;
+
+        for ( size_t n = 0; n < 10; ++n )
+        {
+            std::map<std::string, std::vector<cube_p<double>>> insample;
+            std::map<std::string, std::vector<cube_p<double>>> outsample;
+
+            for ( auto & ip: ins )
+            {
+                for ( size_t i = 0; i < ip.second.second; ++i )
+                {
+                    auto v = get_cube<double>(ip.second.first);
+                    init.initialize(*v);
+                    insample[ip.first].push_back(v);
+                }
+            }
+
+            allins.push_back(insample);
+
+            for ( auto & ip: outs )
+            {
+                for ( size_t i = 0; i < ip.second.second; ++i )
+                {
+                    auto v = get_cube<double>(ip.second.first);
+                    init.initialize(*v);
+                    outsample[ip.first].push_back(v);
+                }
+            }
+
+            allouts.push_back(outsample);
+        }
+
+        std::cout << "DONE\nFFT Warmup..." << std::flush;
+
+        {
+            auto is = copy_samples(allins);
+            auto os = copy_samples(allouts);
+            net.forward(std::move(is[0]));
+            //net.backward(std::move(os[0]));
+            net.zap();
+        }
+
+        std::cout << "DONE\nTrying all FFTs..." << std::flush;
+
+        double tot_time = 0;
+
+        {
+            auto is = copy_samples(allins);
+            auto os = copy_samples(allouts);
+
+            zi::wall_timer wt;
+            net.forward(std::move(is[0]));
+
+            wt.reset();
+
+            for ( size_t i = 0; i < 9; ++i )
+            {
+                //net.backward(std::move(os[i]));
+                net.forward(std::move(is[i+1]));
+            }
+
+            //net.backward(std::move(os[9]));
+
+            tot_time = wt.elapsed<double>();
+
+            net.zap();
+
+            std::cout << tot_time << " secs" << std::endl;
+        }
+
+        //std::vector<options*> edge_groups;
+        for ( auto & e: edge_groups )
+        {
+            std::cout << "Trying edge group: "
+                      << e->require_as<std::string>("name")
+                      << " ..." << std::flush;
+            e->push("fft","0");
+
+            network net(ns,es,outsz,n_threads);
+
+            auto is = copy_samples(allins);
+            auto os = copy_samples(allouts);
+
+            zi::wall_timer wt;
+            net.forward(std::move(is[0]));
+
+            wt.reset();
+
+            for ( size_t i = 0; i < 9; ++i )
+            {
+                //net.backward(std::move(os[i]));
+                net.forward(std::move(is[i+1]));
+            }
+
+            //net.backward(std::move(os[9]));
+
+            double my_time = wt.elapsed<double>();
+
+            std::cout << my_time << " secs" << std::endl;
+
+            if ( my_time < tot_time )
+            {
+                tot_time = my_time;
+                std::cout << "   will use direct convolution" << std::endl;
+            }
+            else
+            {
+                std::cout << "   will use FFT convolution" << std::endl;
+                e->push("fft","1");
+            }
+        }
+    }
 };
 
 
