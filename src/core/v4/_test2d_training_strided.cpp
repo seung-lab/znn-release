@@ -156,7 +156,7 @@ int main(int argc, char** argv)
 
     if ( argc == 4 )
     {
-        tc = atoi(argv[4]);
+        tc = atoi(argv[3]);
     }
 
     parallel_network::network::optimize(nodes, edges, {z,y,x}, tc , 10);
