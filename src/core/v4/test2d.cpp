@@ -210,7 +210,7 @@ int main()
     edges3[2].push("name", "conv2")
         .push("type", "conv")
         .push("init", "uniform")
-        .push("size", "1,4,4")
+        .push("size", "1,6,6")
         .push("stride", "1,1,1")
         .push("input", "nl2")
         .push("output", "nl3");
@@ -218,7 +218,7 @@ int main()
     nodes3[3].push("name", "nl3")
         .push("type", "transfer")
         .push("function", "rectify_linear")
-        .push("size", 24);
+        .push("size", 12);
 
     edges3[3].push("name", "pool2")
         .push("type", "max_filter")
@@ -230,12 +230,12 @@ int main()
     nodes3[4].push("name", "nl4")
         .push("type", "transfer")
         .push("function", "rectify_linear")
-        .push("size", 24);
+        .push("size", 12);
 
     edges3[4].push("name", "conv3")
         .push("type", "conv")
         .push("init", "uniform")
-        .push("size", "4,4,4")
+        .push("size", "1,6,6")
         .push("stride", "1,1,1")
         .push("input", "nl4")
         .push("output", "nl5");
@@ -243,24 +243,24 @@ int main()
     nodes3[5].push("name", "nl5")
         .push("type", "transfer")
         .push("function", "rectify_linear")
-        .push("size", 36);
+        .push("size", 24);
 
     edges3[5].push("name", "pool3")
         .push("type", "max_filter")
-        .push("size", "2,2,2")
-        .push("stride", "2,2,2")
+        .push("size", "1,2,2")
+        .push("stride", "1,2,2")
         .push("input", "nl5")
         .push("output", "nl6");
 
     nodes3[6].push("name", "nl6")
         .push("type", "transfer")
         .push("function", "rectify_linear")
-        .push("size", 36);
+        .push("size", 24);
 
     edges3[6].push("name", "conv4")
         .push("type", "conv")
         .push("init", "uniform")
-        .push("size", "2,4,4")
+        .push("size", "1,6,6")
         .push("stride", "1,1,1")
         .push("input", "nl6")
         .push("output", "nl7");
@@ -268,25 +268,25 @@ int main()
     nodes3[7].push("name", "nl7")
         .push("type", "transfer")
         .push("function", "rectify_linear")
-        .push("size", 48);
+        .push("size", 24);
 
     edges3[7].push("name", "pool4")
         .push("type", "max_filter")
-        .push("size", "2,2,2")
-        .push("stride", "2,2,2")
+        .push("size", "1,2,2")
+        .push("stride", "1,2,2")
         .push("input", "nl7")
         .push("output", "nl8");
 
     nodes3[8].push("name", "nl8")
         .push("type", "transfer")
         .push("function", "rectify_linear")
-        .push("size", 48);
+        .push("size", 24);
 
 
     edges3[8].push("name", "conv5")
         .push("type", "conv")
         .push("init", "uniform")
-        .push("size", "2,4,4")
+        .push("size", "1,5,5")
         .push("stride", "1,1,1")
         .push("input", "nl8")
         .push("output", "nl9");
@@ -328,11 +328,11 @@ int main()
 //         .push("size", 2);
 
 
-    trivial_fft_network::network tn3(nodes3, edges3, {10,10,10});
+    trivial_fft_network::network tn3(nodes3, edges3, {1,1,1});
 
     std::cout << tn3.fov() << std::endl;
 
-    //return 0;
+
 
 
 //    std::vector<options> nodes3(2);
@@ -486,11 +486,11 @@ int main()
                         {"function_args", "1,0"}, {"size","2"}}};
 
 
-    trivial_fft_network::network tn1(nodes3, edges3, {9,9,9});
+    trivial_fft_network::network tn1(nodes3, edges3, {1,10,10});
 
     tn1.set_eta(0.00001);
     auto nd = tn1.serialize();
-    parallel_network::network::optimize_forward(nodes3, edges3, {9,48,48}, 4, 10);
+    parallel_network::network::optimize_forward(nodes3, edges3, {1,400,400}, 4, 10);
 
     return 0;
 

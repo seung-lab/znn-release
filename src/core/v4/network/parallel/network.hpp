@@ -23,6 +23,8 @@ private:
         vec3i in_stride = vec3i::zero ;
         vec3i in_fsize  = vec3i::zero ;
 
+        bool pool = false;
+
         nnodes * in;
         nnodes * out;
 
@@ -104,9 +106,18 @@ private:
             n->fsize = fsize;
             for ( auto& e: n->in )
             {
-                vec3i new_fov   = (fov - vec3i::one) * e->stride + e->width;
-                vec3i new_fsize = (e->width-vec3i::one) * e->in_stride + fsize;
-                fov_pass(e->in, new_fov, new_fsize);
+                if ( e->pool )
+                {
+                    vec3i new_fov   = fov * e->width;
+                    vec3i new_fsize = e->width * fsize;
+                    fov_pass(e->in, new_fov, new_fsize);
+                }
+                else
+                {
+                    vec3i new_fov   = (fov - vec3i::one) * e->stride + e->width;
+                    vec3i new_fsize = (e->width-vec3i::one) * e->in_stride + fsize;
+                    fov_pass(e->in, new_fov, new_fsize);
+                }
             }
         }
     }
@@ -122,6 +133,11 @@ private:
             n->stride = stride;
             for ( auto& e: n->out )
             {
+                if ( e->pool && (e->stride!=vec3i::one) )
+                {
+                    UNIMPLEMENTED();
+                }
+
                 e->in_stride = stride;
                 stride_pass(e->out, stride * e->stride );
             }
@@ -186,6 +202,12 @@ private:
                     ( in, out, *e.second->opts, e.second->in_stride,
                       e.second->in_fsize, tm_, edges::max_pooling_tag() );
             }
+            else if ( type == "max_pool" )
+            {
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *e.second->opts,
+                      e.second->in_fsize, tm_, edges::real_pooling_tag() );
+            }
             else if ( type == "conv" )
             {
                 e.second->dedges = std::make_unique<edges>
@@ -248,9 +270,11 @@ private:
         ZI_ASSERT(nodes_.count(in)&&nodes_.count(out));
 
         nedges * es = new nedges;
-        es->opts = &op;
-        es->in   = nodes_[in];
-        es->out  = nodes_[out];
+        es->opts   = &op;
+        es->in     = nodes_[in];
+        es->out    = nodes_[out];
+        es->pool   = false;
+        es->stride = vec3i::one;
         nodes_[in]->out.push_back(es);
         nodes_[out]->in.push_back(es);
 
@@ -265,6 +289,11 @@ private:
         {
             es->width  = op.require_as<ovec3i>("size");
             es->stride = op.optional_as<ovec3i>("stride", "1,1,1");
+        }
+        else if ( type == "max_pool" )
+        {
+            es->width  = op.require_as<ovec3i>("size");
+            es->pool   = true;
         }
         else if ( type == "dummy" )
         {
@@ -421,7 +450,8 @@ public:
     static void optimize( std::vector<options> & ns,
                           std::vector<options> & es,
                           vec3i const & outsz,
-                          size_t n_threads = 1 )
+                          size_t n_threads = 1,
+                          size_t rounds = 10)
     {
         std::vector<options*> edge_groups;
         for ( auto & e: es )
@@ -447,7 +477,7 @@ public:
         std::vector<std::map<std::string, std::vector<cube_p<double>>>>
             allins, allouts;
 
-        for ( size_t n = 0; n < 10; ++n )
+        for ( size_t n = 0; n < rounds; ++n )
         {
             std::map<std::string, std::vector<cube_p<double>>> insample;
             std::map<std::string, std::vector<cube_p<double>>> outsample;
@@ -456,6 +486,7 @@ public:
             {
                 for ( size_t i = 0; i < ip.second.second; ++i )
                 {
+                    std::cout << ip.second.first << " -\n";
                     auto v = get_cube<double>(ip.second.first);
                     init.initialize(*v);
                     insample[ip.first].push_back(v);
@@ -500,19 +531,19 @@ public:
 
             wt.reset();
 
-            for ( size_t i = 0; i < 9; ++i )
+            for ( size_t i = 0; i < rounds-1; ++i )
             {
                 net.backward(std::move(os[i]));
                 net.forward(std::move(is[i+1]));
             }
 
-            net.backward(std::move(os[9]));
+            net.backward(std::move(os[rounds-1]));
 
             tot_time = wt.elapsed<double>();
 
             net.zap();
 
-            std::cout << tot_time << " secs" << std::endl;
+            std::cout << (tot_time/(rounds-1)) << " secs" << std::endl;
         }
 
         //std::vector<options*> edge_groups;
@@ -533,17 +564,17 @@ public:
 
             wt.reset();
 
-            for ( size_t i = 0; i < 9; ++i )
+            for ( size_t i = 0; i < rounds-1; ++i )
             {
                 net.backward(std::move(os[i]));
                 net.forward(std::move(is[i+1]));
             }
 
-            net.backward(std::move(os[9]));
+            net.backward(std::move(os[rounds-1]));
 
             double my_time = wt.elapsed<double>();
 
-            std::cout << my_time << " secs" << std::endl;
+            std::cout <<  (my_time/(rounds-1)) << " secs" << std::endl;
 
             if ( my_time < tot_time )
             {
@@ -561,7 +592,8 @@ public:
     static void optimize_forward( std::vector<options> & ns,
                                   std::vector<options> & es,
                                   vec3i const & outsz,
-                                  size_t n_threads = 1 )
+                                  size_t n_threads = 1,
+                                  size_t rounds = 10 )
     {
         std::vector<options*> edge_groups;
         for ( auto & e: es )
@@ -587,7 +619,7 @@ public:
         std::vector<std::map<std::string, std::vector<cube_p<double>>>>
             allins, allouts;
 
-        for ( size_t n = 0; n < 10; ++n )
+        for ( size_t n = 0; n < rounds; ++n )
         {
             std::map<std::string, std::vector<cube_p<double>>> insample;
             std::map<std::string, std::vector<cube_p<double>>> outsample;
@@ -640,19 +672,19 @@ public:
 
             wt.reset();
 
-            for ( size_t i = 0; i < 9; ++i )
+            for ( size_t i = 0; i < rounds-1; ++i )
             {
                 //net.backward(std::move(os[i]));
                 net.forward(std::move(is[i+1]));
             }
 
-            //net.backward(std::move(os[9]));
+            //net.backward(std::move(os[rounds-1]));
 
             tot_time = wt.elapsed<double>();
 
             net.zap();
 
-            std::cout << tot_time << " secs" << std::endl;
+            std::cout << (tot_time/(rounds-1)) << " secs" << std::endl;
         }
 
         //std::vector<options*> edge_groups;
@@ -673,17 +705,17 @@ public:
 
             wt.reset();
 
-            for ( size_t i = 0; i < 9; ++i )
+            for ( size_t i = 0; i < rounds-1; ++i )
             {
                 //net.backward(std::move(os[i]));
                 net.forward(std::move(is[i+1]));
             }
 
-            //net.backward(std::move(os[9]));
+            //net.backward(std::move(os[rounds-1]));
 
             double my_time = wt.elapsed<double>();
 
-            std::cout << my_time << " secs" << std::endl;
+            std::cout << (my_time/(rounds-1)) << " secs" << std::endl;
 
             if ( my_time < tot_time )
             {

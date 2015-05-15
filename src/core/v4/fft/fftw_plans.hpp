@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <mutex>
 
-#define ZNN_FFTW_PLANNING_MODE (FFTW_PATIENT)
+#define ZNN_FFTW_PLANNING_MODE (FFTW_ESTIMATE)
 
 namespace znn { namespace v4 {
 

@@ -222,6 +222,43 @@ public:
 };
 
 
+class real_pooling_edge
+{
+private:
+    vec3i filter_size;
+
+    cube_p<int> indices;
+    vec3i       insize ;
+    vec3i       outsize;
+
+public:
+    real_pooling_edge( vec3i const & size )
+        : filter_size(size)
+    {
+    }
+
+    cube_p<double> forward( ccube_p<double> const & f )
+    {
+        insize = size(*f);
+        auto r = pooling_filter(get_copy(*f),
+                                [](double a, double b){ return a>b; },
+                                filter_size,
+                                vec3i::one);
+
+        outsize = insize / filter_size;
+        indices = sparse_implode_slow(*r.second,filter_size,outsize);
+        return sparse_implode_slow(*r.first,filter_size,outsize);
+    }
+
+    cube_p<double> backward( ccube_p<double> const & g )
+    {
+        ZI_ASSERT(indices);
+        ZI_ASSERT(insize == size(*g) * filter_size);
+
+        return pooling_backprop(insize, *g, *indices);
+    }
+};
+
 class filter_edge
 {
 private:
@@ -391,6 +428,43 @@ public:
             edges_[i]
                 = std::make_unique<edge_of<max_pooling_edge>>
                 (in, i, out, i, sz, stride);
+        }
+    }
+
+    void set_eta( double ) {}
+    void set_momentum( double ) {}
+    void set_weight_decay( double ) {}
+
+    options serialize() const
+    {
+        return options_;
+    }
+};
+
+class real_pooling_edges: public edges
+{
+private:
+    options                                    options_;
+    std::vector<std::unique_ptr<edge>> edges_  ;
+
+public:
+    real_pooling_edges( nodes * in,
+                        nodes * out,
+                        options const & opts )
+        : options_(opts)
+    {
+        ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
+
+        size_t n = in->num_out_nodes();
+        edges_.resize(n);
+
+        auto sz     = opts.require_as<ovec3i>("size");
+
+        for ( size_t i = 0; i < n; ++i )
+        {
+            edges_[i]
+                = std::make_unique<edge_of<real_pooling_edge>>
+                (in, i, out, i, sz);
         }
     }
 
@@ -1007,6 +1081,8 @@ private:
         vec3i in_stride = vec3i::zero ;
         vec3i in_fsize  = vec3i::zero ;
 
+        bool pool = false;
+
         nnodes * in;
         nnodes * out;
 
@@ -1064,9 +1140,18 @@ private:
             n->fsize = fsize;
             for ( auto& e: n->in )
             {
-                vec3i new_fov   = (fov - vec3i::one) * e->stride + e->width;
-                vec3i new_fsize = (e->width-vec3i::one) * e->in_stride + fsize;
-                fov_pass(e->in, new_fov, new_fsize);
+                if ( e->pool )
+                {
+                    vec3i new_fov   = fov * e->width;
+                    vec3i new_fsize = e->width * fsize;
+                    fov_pass(e->in, new_fov, new_fsize);
+                }
+                else
+                {
+                    vec3i new_fov   = (fov - vec3i::one) * e->stride + e->width;
+                    vec3i new_fsize = (e->width-vec3i::one) * e->in_stride + fsize;
+                    fov_pass(e->in, new_fov, new_fsize);
+                }
             }
         }
     }
@@ -1082,6 +1167,14 @@ private:
             n->stride = stride;
             for ( auto& e: n->out )
             {
+                if ( e->pool && (e->stride!=vec3i::one) )
+                {
+                    std::cout << e->in_stride
+                              << ' ' << e->width
+                              << ' ' << e->stride << ' ';
+                    UNIMPLEMENTED();
+                }
+
                 e->in_stride = stride;
                 stride_pass(e->out, stride * e->stride );
             }
@@ -1144,6 +1237,11 @@ private:
             {
                 e.second->dedges = std::make_unique<max_pooling_edges>
                     ( in, out, *e.second->opts, e.second->in_stride );
+            }
+            else if ( type == "max_pool" )
+            {
+                e.second->dedges = std::make_unique<real_pooling_edges>
+                    ( in, out, *e.second->opts );
             }
             else if ( type == "conv" )
             {
@@ -1218,6 +1316,9 @@ private:
         es->opts = &op;
         es->in   = nodes_[in];
         es->out  = nodes_[out];
+        es->pool   = false;
+        es->stride = vec3i::one;
+
         nodes_[in]->out.push_back(es);
         nodes_[out]->in.push_back(es);
 
@@ -1227,6 +1328,11 @@ private:
         {
             es->width  = op.require_as<ovec3i>("size");
             es->stride = op.require_as<ovec3i>("stride");
+        }
+        else if ( type == "max_pool" )
+        {
+            es->width  = op.require_as<ovec3i>("size");
+            es->pool   = true;
         }
         else if ( type == "conv" )
         {
