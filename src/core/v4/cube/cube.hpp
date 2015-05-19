@@ -1,5 +1,12 @@
 #pragma once
 
+#include <zi/utility/singleton.hpp>
+#include <mutex>
+#include <cstddef>
+#include <list>
+#include <functional>
+#include <iostream>
+#include <set>
 #include <complex>
 #include <memory>
 #include <type_traits>
@@ -32,8 +39,10 @@ struct needs_fft_allocator<std::complex<T>>: std::is_floating_point<T> {};
 #  include "dummy_cube.hpp"
 #elif defined ZNN_ARENA_CUBE
 #  include "znn_arena_cube.hpp"
-#else
+#elif defined ZNN_JEMALLOC
 #  include "znn_malloc_cube.hpp"
+#else
+#  include "cube_pool.hpp"
 #endif
 
 
@@ -79,12 +88,12 @@ inline cube_p<T> get_copy( cube<T> const & c )
     return r;
 }
 
-template <typename T>
-inline qube_p<T> get_copy( qube<T> const & c )
-{
-    auto r = get_qube<T>(size(c));
-    *r = c;
-    return r;
-}
+// template <typename T>
+// inline qube_p<T> get_copy( qube<T> const & c )
+// {
+//     auto r = get_qube<T>(size(c));
+//     *r = c;
+//     return r;
+// }
 
 }} // namespace znn::v4
