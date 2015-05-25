@@ -422,21 +422,21 @@ inline void flatten( cube<T> & c, vec3i const & s )
 
     T n_elem = s[0] * s[1] * s[2];
 
-    for ( size_t z = 0; z < sz[2]; z += s[2] )
-        for ( size_t y = 0; y < sz[1]; y += s[1] )
-            for ( size_t x = 0; x < sz[0]; x += s[0] )
+    for ( long_t z = 0; z < sz[2]; z += s[2] )
+        for ( long_t y = 0; y < sz[1]; y += s[1] )
+            for ( long_t x = 0; x < sz[0]; x += s[0] )
             {
                 T r = 0;
-                for ( size_t zi = 0; zi < s[2]; ++zi )
-                    for ( size_t yi = 0; yi < s[1]; ++yi )
-                        for ( size_t xi = 0; xi < s[0]; ++xi )
+                for ( long_t zi = 0; zi < s[2]; ++zi )
+                    for ( long_t yi = 0; yi < s[1]; ++yi )
+                        for ( long_t xi = 0; xi < s[0]; ++xi )
                             r += c[x+xi][y+yi][z+zi];
 
                 r /= n_elem;
 
-                for ( size_t zi = 0; zi < s[2]; ++zi )
-                    for ( size_t yi = 0; yi < s[1]; ++yi )
-                        for ( size_t xi = 0; xi < s[0]; ++xi )
+                for ( long_t zi = 0; zi < s[2]; ++zi )
+                    for ( long_t yi = 0; yi < s[1]; ++yi )
+                        for ( long_t xi = 0; xi < s[0]; ++xi )
                             c[x+xi][y+yi][z+zi] = r;
             }
 }
