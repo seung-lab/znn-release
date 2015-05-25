@@ -289,6 +289,40 @@ public:
     }
 };
 
+class filter_ds_edge
+{
+private:
+    vec3i    filter_stride;
+    vec3i    repeat_;
+    filter & filter_;
+
+    ccube_p<double> last_input;
+
+public:
+    filter_ds_edge( vec3i const & stride, vec3i const & r, filter & f )
+        : filter_stride(stride), repeat_(r), filter_(f)
+    {
+        flatten(filter_.W(), repeat_);
+    }
+
+    cube_p<double> forward( ccube_p<double> const & f )
+    {
+        last_input = f;
+        return convolve_sparse(*f, filter_.W(), filter_stride);
+    }
+
+    cube_p<double> backward( ccube_p<double> const & g )
+    {
+        ZI_ASSERT(last_input);
+        auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
+        auto ret  = convolve_sparse_inverse(*g, filter_.W(), filter_stride);
+        filter_.update(*dEdW);
+        flatten(filter_.W(), repeat_);
+        return ret;
+    }
+};
+
+
 class fft_filter_edge: public edge_base
 {
 private:
@@ -350,6 +384,74 @@ public:
         in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
     }
 };
+
+
+class fft_filter_ds_edge: public edge_base
+{
+private:
+    vec3i    filter_stride;
+    vec3i    repeat_;
+    filter & filter_;
+
+    ccube_p<complex> w_fft;
+    ccube_p<complex> last_input;
+
+    size_t fwd_bucket_;
+    size_t bwd_bucket_;
+
+public:
+    fft_filter_ds_edge( nodes* in,
+                        size_t inn,
+                        nodes* out,
+                        size_t outn,
+                        vec3i const & stride,
+                        vec3i const & r,
+                        filter & flt )
+        : edge_base(in, inn, out, outn)
+        , filter_stride(stride)
+        , repeat_(r)
+        , filter_(flt)
+    {
+        // attach myself
+        bwd_bucket_ = in->attach_out_fft_edge(inn, this);
+        fwd_bucket_ = out->attach_in_fft_edge(outn, this, in->fsize());
+        flatten(filter_.W(), repeat_);
+    }
+
+    void forward( ccube_p<complex> const & f ) override
+    {
+        last_input = f;
+        // TODO(zlateski): WTH was happening with sparse_exploce before
+        //                 when I had to use sparse_explode_slow,
+        //                 ony happened on my laptop
+        auto w_tmp = sparse_explode_slow(filter_.W(), filter_stride,
+                                         in_nodes->fsize());
+        w_fft = fftw::forward(std::move(w_tmp));
+        auto fw = *w_fft * *f;
+        out_nodes->forward(out_num, fwd_bucket_, std::move(fw));
+    }
+
+    void backward( ccube_p<complex> const & g ) override
+    {
+        auto dEdW_fft = *last_input * *g;
+        auto dEdW = fftw::backward(std::move(dEdW_fft), in_nodes->fsize());
+        double norm = dEdW->num_elements();
+
+        flip(*dEdW);
+        // TODO(zlateski): WTH was happening with sparse_implode before
+        //                 when I had to use sparse_implode_slow
+        //                 ony happened on my laptop
+        dEdW = sparse_implode_slow(*dEdW, filter_stride, size(filter_.W()));
+        *dEdW /= norm;
+
+        auto grad = *w_fft * *g;
+        filter_.update(*dEdW);
+        flatten(filter_.W(), repeat_);
+
+        in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
+    }
+};
+
 
 
 class edges
@@ -506,6 +608,7 @@ public:
         double mom    = opts.optional_as<double>("momentum", 0.0);
         double wd     = opts.optional_as<double>("weight_decay", 0.0);
         auto   sz     = opts.require_as<ovec3i>("size");
+        auto   repeat = opts.optional_as<ovec3i>("repeat", "1,1,1");
 
         size_ = sz;
 
@@ -514,11 +617,21 @@ public:
             for ( size_t j = 0; j < m; ++j, ++k )
             {
                 filters_[k] = std::make_unique<filter>(sz, eta, mom, wd);
-                edges_[k]
-                    = std::make_unique<edge_of<filter_edge>>
-                    (in, i, out, j, stride, *filters_[k]);
+                if ( repeat == ovec3i::one )
+                {
+                    edges_[k]
+                        = std::make_unique<edge_of<filter_edge>>
+                        (in, i, out, j, stride, *filters_[k]);
+                }
+                else
+                {
+                    edges_[k]
+                        = std::make_unique<edge_of<filter_ds_edge>>
+                        (in, i, out, j, stride, repeat, *filters_[k]);
+                }
             }
         }
+
 
         std::string filter_values;
 
@@ -600,6 +713,7 @@ public:
         double mom    = opts.optional_as<double>("momentum", 0.0);
         double wd     = opts.optional_as<double>("weight_decay", 0.0);
         auto   sz     = opts.require_as<ovec3i>("size");
+        auto   repeat = opts.optional_as<ovec3i>("repeat", "1,1,1");
 
         size_ = sz;
 
@@ -608,9 +722,18 @@ public:
             for ( size_t j = 0; j < m; ++j, ++k )
             {
                 filters_[k] = std::make_unique<filter>(sz, eta, mom, wd);
-                edges_[k]
-                    = std::make_unique<fft_filter_edge>
-                    (in, i, out, j, stride, *filters_[k]);
+                if ( repeat == ovec3i::one )
+                {
+                    edges_[k]
+                        = std::make_unique<fft_filter_edge>
+                        (in, i, out, j, stride, *filters_[k]);
+                }
+                else
+                {
+                    edges_[k]
+                        = std::make_unique<fft_filter_ds_edge>
+                        (in, i, out, j, stride, repeat, *filters_[k]);
+                }
             }
         }
 

@@ -249,13 +249,43 @@ public:
         auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
         auto ret  = convolve_sparse_inverse(*g, filter_.W(), filter_stride);
         filter_.update(*dEdW);
-
-
-        //std::cout << "FILTER: " <<  filter_.W() << std::endl;
-
         return ret;
     }
 };
+
+class filter_ds_edge
+{
+private:
+    vec3i    filter_stride;
+    vec3i    repeat_;
+    filter & filter_;
+
+    ccube_p<double> last_input;
+
+public:
+    filter_ds_edge( vec3i const & stride, vec3i const & r, filter & f )
+        : filter_stride(stride), repeat_(r), filter_(f)
+    {
+        flatten(filter_.W(), repeat_);
+    }
+
+    cube_p<double> forward( ccube_p<double> const & f )
+    {
+        last_input = f;
+        return convolve_sparse(*f, filter_.W(), filter_stride);
+    }
+
+    cube_p<double> backward( ccube_p<double> const & g )
+    {
+        ZI_ASSERT(last_input);
+        auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
+        auto ret  = convolve_sparse_inverse(*g, filter_.W(), filter_stride);
+        filter_.update(*dEdW);
+        flatten(filter_.W(), repeat_);
+        return ret;
+    }
+};
+
 
 class edges
 {
@@ -273,6 +303,7 @@ public:
 
     virtual options serialize() const = 0;
 };
+
 
 class dummy_edges: public edges
 {
@@ -412,6 +443,7 @@ public:
         double mom    = opts.optional_as<double>("momentum", 0.0);
         double wd     = opts.optional_as<double>("weight_decay", 0.0);
         auto   sz     = opts.require_as<ovec3i>("size");
+        auto   repeat = opts.optional_as<ovec3i>("repeat", "1,1,1");
 
         size_ = sz;
 
@@ -420,9 +452,18 @@ public:
             for ( size_t j = 0; j < m; ++j, ++k )
             {
                 filters_[k] = std::make_unique<filter>(sz, eta, mom, wd);
-                edges_[k]
-                    = std::make_unique<edge_of<filter_edge>>
-                    (in, i, out, j, stride, *filters_[k]);
+                if ( repeat == ovec3i::one )
+                {
+                    edges_[k]
+                        = std::make_unique<edge_of<filter_edge>>
+                        (in, i, out, j, stride, *filters_[k]);
+                }
+                else
+                {
+                    edges_[k]
+                        = std::make_unique<edge_of<filter_ds_edge>>
+                        (in, i, out, j, stride, repeat, *filters_[k]);
+                }
             }
         }
 
