@@ -10,6 +10,8 @@
 #include "../../transfer_function/transfer_functions.hpp"
 #include "../../utils/dispatcher.hpp"
 #include "../../utils/accumulator.hpp"
+#include "../../utils/waiter.hpp"
+#include "../../utils/task_manager.hpp"
 #include "../../types.hpp"
 #include "../bias.hpp"
 #include "../filter.hpp"
@@ -1007,7 +1009,7 @@ public:
     }
 
     std::map<std::string, std::vector<cube_p<double>>>
-    forward( std::map<std::string, std::vector<cube_p<double>>> && fin )
+        forward( std::map<std::string, std::vector<cube_p<double>>> && fin )
     {
         ZI_ASSERT(fin.size()==input_nodes_.size());
         for ( auto & in: fin )
@@ -1055,6 +1057,7 @@ public:
     bool fft = true;
 
     std::vector<std::vector<cube_p<double>>> ws;
+    std::vector<std::vector<cube_p<complex>>> wsf;
     std::vector<double> bs;
 
     transfer_function tf;
@@ -1064,12 +1067,13 @@ public:
            const vec3i& filter_s,
            const vec3i& pool_s )
         : n_in(nin), n_out(nout), filter_size(filter_s),
-          pool_size(pool_s), ws(nin), bs(nout)
+          pool_size(pool_s), ws(nin), wsf(nin), bs(nout)
     {
         auto initf = std::make_shared<gaussian_init>(0,0.01);
         for ( size_t i = 0; i < nin; ++i )
         {
             ws[i].resize(n_out);
+            wsf[i].resize(n_out);
             for ( size_t j = 0; j < nout; ++j )
             {
                 ws[i][j] = get_cube<double>(filter_size);
@@ -1085,8 +1089,35 @@ public:
         tf = functions::logistics();
     }
 
+    void warmup()
+    {
+        auto x = fftw::forward(get_cube<double>(in_size));
+        std::cout << size(*x) << std::endl;
+        auto pp = fftw::backward(std::move(x), in_size);
+        std::cout << size(*pp) << std::endl;
+    }
+
+    void prepare_fwd(task_manager& tm)
+    {
+        waiter wt0; wt0.set(n_in*n_out);
+        for ( size_t j = 0; j < n_out; ++j )
+        {
+            tm.schedule(1, [&,j]() mutable {
+                    for ( size_t i = 0; i < n_in; ++i )
+                    {
+                        auto w_tmp = sparse_explode_slow(*ws[i][j], in_sparse, in_size);
+                        wsf[i][j] = fftw::forward(std::move(w_tmp));
+                        wt0.one_done();
+                    }
+                });
+        }
+        wt0.wait();
+    }
+
+
     void process_forward( std::vector<std::vector<cube_p<double>>>& in,
-                          std::vector<std::vector<cube_p<double>>>& out )
+                          std::vector<std::vector<cube_p<double>>>& out,
+                          task_manager& tm)
     {
 
         std::vector<std::vector<cube_p<complex>>> fout;
@@ -1102,6 +1133,7 @@ public:
             out[i].resize(in[0].size());
         }
 
+
         if ( fft )
         {
 
@@ -1110,56 +1142,88 @@ public:
             std::vector<std::vector<cube_p<complex>>> fin;
 
             fin.resize(in.size());
+
             for ( size_t i = 0; i < in.size(); ++i )
             {
-                fin[i].resize(in[i].size());
-                for ( size_t j = 0; j < fin[i].size(); ++j )
+                fin[i].resize(num_fs);
+            }
+
+            waiter wt0; wt0.set(num_fs*in.size());
+
+            for ( size_t i = 0; i < in.size(); ++i )
+            {
+                for ( size_t j = 0; j < num_fs; ++j )
                 {
-                    fin[i][j] = fftw::forward(std::move(in[i][j]));
-                    in[i][j].reset();
+                    tm.schedule(1, [&in, &fin, &wt0, i, j]() {
+                            fin[i][j] = fftw::forward(std::move(in[i][j]));
+                            in[i][j].reset();
+                            wt0.one_done();
+                        });
                 }
             }
+
+            wt0.wait();
+
+            waiter wt; wt.set(n_out);
 
             for ( size_t j = 0; j < n_out; ++j )
             {
-                for ( size_t i = 0; i < n_in; ++i )
-                {
-                    auto w_tmp = sparse_explode_slow(*ws[i][j], in_sparse, in_size);
-                    auto w_fft = fftw::forward(std::move(w_tmp));
-                    w_tmp.reset();
+                tm.schedule(1, [&,j]() mutable {
+                        for ( size_t i = 0; i < n_in; ++i )
+                        {
+                            auto w_tmp = sparse_explode_slow(*ws[i][j], in_sparse, in_size);
+                            auto w_fft = fftw::forward(std::move(w_tmp));
+                            w_tmp.reset();
 
-                    for ( size_t k = 0; k < num_fs; ++k )
-                    {
-                        if ( fout[j][k] )
-                        {
-                            mad_to(*fin[i][k], *w_fft, *fout[j][k]);
+                            //auto w_fft = wsf[i][j]; //fftw::forward(std::move(w_tmp));
+
+                            for ( size_t k = 0; k < num_fs; ++k )
+                            {
+                                if ( fout[j][k] )
+                                {
+                                    mad_to(*fin[i][k], *w_fft, *fout[j][k]);
+                                }
+                                else
+                                {
+                                    fout[j][k] = *fin[i][k] * *w_fft;
+                                }
+                            }
                         }
-                        else
-                        {
-                            fout[j][k] = *fin[i][k] * *w_fft;
-                        }
-                    }
-                }
+
+                        std::cout << " output: " << j << " done" << std::endl;
+                        wt.one_done();
+                    });
             }
 
+            wt.wait();
             std::cout << "HERE\n";
 
             fin.clear();
 
-            for ( size_t i = 0; i < n_out; ++i )
+            waiter wt2; wt2.set(num_fs*n_out);
+
+            for ( size_t k = 0; k < num_fs; ++k )
             {
-                for ( size_t k = 0; k < num_fs; ++k )
+                for ( size_t i = 0; i < n_out; ++i )
                 {
-                    auto pp = fftw::backward(std::move(fout[i][k]), in_size);
-                    pp = crop_right(*pp, my_size);
-                    out[i][k] = pooling_filter_no_indices
+                    auto fn = [&,k,i]() mutable {
+                        auto pp = fftw::backward(std::move(fout[i][k]), in_size);
+                        pp = crop_right(*pp, my_size);
+                        tf.apply(*pp, bs[i]);
+                        out[i][k] = pooling_filter_no_indices
                         ( std::move(pp),
                           [](double a, double b){ return a>b; },
                           pool_size,
                           in_sparse );
-                    std::cout << size(*out[i][k]) << ' ' << out_size << '\n';
+                        fout[i][k].reset();
+                        wt2.one_done();
+                    };
+                    tm.schedule(1,fn);
                 }
             }
+
+            wt2.wait();
+
         }
         else
         {
@@ -1172,9 +1236,10 @@ class forward_network
 {
 private:
     std::vector<layer*> layers_;
+    task_manager tm;
 
 public:
-    forward_network() {}
+    forward_network(size_t t): tm(t) {}
 
     void add_layer( const vec3i& fs, const vec3i& ps, size_t nout )
     {
@@ -1225,11 +1290,20 @@ public:
     void forward( std::vector<std::vector<cube_p<double>>>& in )
     {
         std::vector<std::vector<cube_p<double>>> out;
+        zi::wall_timer wt; wt.reset();
         for ( auto& l: layers_ )
         {
-            l->process_forward(in, out);
+            std::cout << "start processing a layer" << std::endl;
+            l->process_forward(in, out, tm);
             std::swap(in, out);
+            std::cout << "done processing a layer: " << wt.elapsed<double>() << std::endl;
         }
+    }
+
+    void warmup()
+    {
+        for ( auto& l: layers_ ) { l->warmup(); }
+        //for ( auto& l: layers_ ) { l->prepare_fwd(tm); }
     }
 };
 

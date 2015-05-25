@@ -154,7 +154,21 @@ int main(int argc, char** argv)
         z = atoi(argv[3]);
     }
 
-    trivial_forward_network::forward_network net;
+    size_t nx = 1; //std::thread::hardware_concurrency();
+
+    if ( argc >= 5 )
+    {
+        nx = atoi(argv[4]);
+    }
+
+    size_t nt = 36;
+
+    if ( argc >= 6 )
+    {
+        nt = atoi(argv[5]);
+    }
+
+    trivial_forward_network::forward_network net(nt);
     net.add_layer(vec3i(1,6,6),vec3i(1,2,2),12);
     net.add_layer(vec3i(1,4,4),vec3i(1,2,2),24);
     net.add_layer(vec3i(4,4,4),vec3i(2,2,2),36);
@@ -162,15 +176,23 @@ int main(int argc, char** argv)
     net.add_layer(vec3i(2,4,4),vec3i(1,1,1),48);
     net.add_layer(vec3i(1,1,1),vec3i(1,1,1),4);
 
-    auto in_size = net.init( vec3i(1,1,1) );
+    auto in_size = net.init( vec3i(z,y,x) );
 
+    net.warmup();
+
+    std::cout << "WARMUP DONE!" << std::endl;
 
     auto initf = std::make_shared<gaussian_init>(0,0.01);
 
+    //size_t nx = 50;
+
     std::vector<std::vector<cube_p<double>>> in(1);
 
-    in[0].push_back(get_cube<double>(in_size));
-    initf->initialize(in[0][0]);
+    for ( size_t i = 0; i < nx; ++i )
+    {
+        in[0].push_back(get_cube<double>(in_size));
+        initf->initialize(in[0][i]);
+    }
 
     net.forward(in);
 
