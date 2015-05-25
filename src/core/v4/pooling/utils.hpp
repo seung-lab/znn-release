@@ -141,5 +141,77 @@ inline void pooling_filter_pass( double *  head1,
     }
 }
 
+template<typename F>
+inline void pooling_filter_pass_2_no_indices( double *  head1,
+                                              double *  end,
+                                              size_t    stride,
+                                              F const & cmp ) noexcept
+{
+    double * tail1 = head1 + stride;
+
+    while ( tail1 <= end )
+    {
+        if ( cmp(*tail1, *head1) )
+        {
+            *head1 = *tail1;
+        }
+
+        head1 += stride;
+        tail1 += stride;
+    }
+}
+
+template<typename F>
+inline void pooling_filter_pass_3_no_indices( double *  head1,
+                                              double *  end,
+                                              size_t    stride,
+                                              F const & cmp ) noexcept
+{
+    pooling_filter_pass_2_no_indices(head1,end,stride,cmp);
+    pooling_filter_pass_2_no_indices(head1,end-stride,stride,cmp);
+}
+
+template<typename F>
+inline void pooling_filter_pass_4_no_indices( double *  head1,
+                                              double *  end,
+                                              size_t    stride,
+                                              F const & cmp ) noexcept
+{
+    pooling_filter_pass_2_no_indices(head1,end,stride,cmp);
+    pooling_filter_pass_2_no_indices(head1,end-stride,stride,cmp);
+    pooling_filter_pass_2_no_indices(head1,end-stride-stride,stride,cmp);
+}
+
+
+template<typename F>
+inline void pooling_filter_pass_no_indices( double *  head1,
+                                            double *  end,
+                                            size_t    size,
+                                            size_t    stride,
+                                            F const & cmp ) noexcept
+{
+    ZI_ASSERT(size > 1);
+
+    if ( size == 2 )
+    {
+        pooling_filter_pass_2_no_indices(head1, end, stride, cmp);
+        return;
+    }
+
+    if ( size == 3 )
+    {
+        pooling_filter_pass_3_no_indices(head1, end, stride, cmp);
+        return;
+    }
+
+    if ( size == 4 )
+    {
+        pooling_filter_pass_4_no_indices(head1, end, stride, cmp);
+        return;
+    }
+
+    UNIMPLEMENTED();
+}
+
 
 }} // namespace znn::v4

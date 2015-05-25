@@ -1,4 +1,5 @@
 #include "network/parallel/network.hpp"
+#include "network/trivial/trivial_forward_network.hpp"
 #include <zi/zargs/zargs.hpp>
 
 using namespace znn::v4;
@@ -153,6 +154,29 @@ int main(int argc, char** argv)
         z = atoi(argv[3]);
     }
 
+    trivial_forward_network::forward_network net;
+    net.add_layer(vec3i(1,6,6),vec3i(1,2,2),12);
+    net.add_layer(vec3i(1,4,4),vec3i(1,2,2),24);
+    net.add_layer(vec3i(4,4,4),vec3i(2,2,2),36);
+    net.add_layer(vec3i(2,4,4),vec3i(2,2,2),48);
+    net.add_layer(vec3i(2,4,4),vec3i(1,1,1),48);
+    net.add_layer(vec3i(1,1,1),vec3i(1,1,1),4);
+
+    auto in_size = net.init( vec3i(1,1,1) );
+
+
+    auto initf = std::make_shared<gaussian_init>(0,0.01);
+
+    std::vector<std::vector<cube_p<double>>> in(1);
+
+    in[0].push_back(get_cube<double>(in_size));
+    initf->initialize(in[0][0]);
+
+    net.forward(in);
+
+
+    return 0;
+
     size_t tc = std::thread::hardware_concurrency();
 
     if ( argc == 5 )
@@ -160,6 +184,35 @@ int main(int argc, char** argv)
         tc = atoi(argv[4]);
     }
 
-    parallel_network::network::optimize_forward(nodes, edges, {z,y,x}, tc , 10);
+    //parallel_network::network::optimize_forward(nodes, edges, {z,y,x}, tc , 10);
+    trivial_forward_network::network(nodes, edges, {z,y,x});
+
+    auto r = get_cube<double>(vec3i(1024,1024,32));
+
+    zi::wall_timer wt;
+    wt.reset();
+
+    auto ss = fftw::forward(std::move(r));
+
+    std::cout << wt.elapsed<double>() << std::endl;
+
+    {
+        auto r = get_cube<double>(vec3i(1,6,6));
+
+        zi::wall_timer wt;
+        wt.reset();
+
+        auto s1 = fftw::forward_pad(std::move(r), vec3i(512,512,64));
+        std::cout << wt.elapsed<double>() << std::endl;
+
+        auto s2 = fftw::forward_pad(std::move(r), vec3i(512,512,64));
+        std::cout << wt.elapsed<double>() << std::endl;
+
+        *s1 *= *s2;
+        *s1 *= *s2;
+        std::cout << wt.elapsed<double>() << std::endl;
+    }
+
+
 
 }
