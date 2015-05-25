@@ -3,6 +3,8 @@
 #include "edges_fwd.hpp"
 #include "filter_edge.hpp"
 #include "fft_filter_edge.hpp"
+#include "filter_ds_edge.hpp"
+#include "fft_filter_ds_edge.hpp"
 #include "dummy_edge.hpp"
 #include "max_pooling_edge.hpp"
 #include "nodes.hpp"
@@ -70,22 +72,41 @@ inline edges::edges( nodes * in,
     load_filters(filters_, size_, filter_values);
 
     int does_fft = options_.optional_as<int>("fft", "1");
+    auto repeat  = options_.optional_as<ovec3i>("repeat", "1,1,1");
 
     for ( size_t i = 0, k = 0; i < n; ++i )
     {
         for ( size_t j = 0; j < m; ++j, ++k )
         {
-            if ( does_fft )
+            if ( repeat == ovec3i::one )
             {
-                edges_[k]
-                    = std::make_unique<fft_filter_edge>
-                    (in, i, out, j, tm_, stride, *filters_[k]);
+                if ( does_fft )
+                {
+                    edges_[k]
+                        = std::make_unique<fft_filter_edge>
+                        (in, i, out, j, tm_, stride, *filters_[k]);
+                }
+                else
+                {
+                    edges_[k]
+                        = std::make_unique<filter_edge>
+                        (in, i, out, j, tm_, stride, *filters_[k]);
+                }
             }
             else
             {
-                edges_[k]
-                    = std::make_unique<filter_edge>
-                    (in, i, out, j, tm_, stride, *filters_[k]);
+                if ( does_fft )
+                {
+                    edges_[k]
+                        = std::make_unique<fft_filter_ds_edge>
+                        (in, i, out, j, tm_, stride, repeat, *filters_[k]);
+                }
+                else
+                {
+                    edges_[k]
+                        = std::make_unique<filter_ds_edge>
+                        (in, i, out, j, tm_, stride, repeat, *filters_[k]);
+                }
             }
         }
     }
