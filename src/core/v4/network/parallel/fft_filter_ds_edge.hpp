@@ -48,6 +48,7 @@ private:
         dEdW = sparse_implode_slow(*dEdW, filter_stride, size(filter_.W()));
         *dEdW /= norm;
 
+        //flatten(*dEdW, repeat_);
         filter_.update(*dEdW);
         flatten(filter_.W(), repeat_);
 
@@ -59,7 +60,7 @@ private:
         // TODO(zlateski): WTH was happening with sparse_exploce before
         //                 when I had to use sparse_explode_slow,
         //                 ony happened on my laptop
-        flatten(filter_.W(), repeat_);
+
         auto w_tmp = sparse_explode_slow(filter_.W(), filter_stride,
                                          in_nodes->fsize());
         w_fft = fftw::forward(std::move(w_tmp));
@@ -81,6 +82,7 @@ public:
     {
         bwd_bucket_ = in->attach_out_fft_edge(inn, this);
         fwd_bucket_ = out->attach_in_fft_edge(outn, this, in->fsize());
+        //flatten(filter_.W(), repeat_);
 
         pending_ = manager.schedule_unprivileged(&fft_filter_ds_edge::initialize,this);
     }

@@ -53,7 +53,7 @@ public:
     {
         in->attach_out_edge(inn,this);
         out->attach_in_edge(outn,this);
-        flatten(filter_.W(), repeat_);
+        //flatten(filter_.W(), repeat_);
     }
 
     void forward( ccube_p<double> const & f ) override

@@ -266,7 +266,7 @@ public:
     filter_ds_edge( vec3i const & stride, vec3i const & r, filter & f )
         : filter_stride(stride), repeat_(r), filter_(f)
     {
-        flatten(filter_.W(), repeat_);
+        //flatten(filter_.W(), repeat_);
     }
 
     cube_p<double> forward( ccube_p<double> const & f )
@@ -280,6 +280,7 @@ public:
         ZI_ASSERT(last_input);
         auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
         auto ret  = convolve_sparse_inverse(*g, filter_.W(), filter_stride);
+        //flatten(*dEdW, repeat_);
         filter_.update(*dEdW);
         flatten(filter_.W(), repeat_);
         return ret;

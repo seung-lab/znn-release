@@ -103,7 +103,7 @@ int main()
         .push("type", "conv")
         .push("init", "uniform")
         .push("size", "4,4,1")
-//        .push("repeat", "2,2,1")
+        .push("repeat", "2,2,1")
         .push("input", "mp1")
         .push("output", "nl2");
 

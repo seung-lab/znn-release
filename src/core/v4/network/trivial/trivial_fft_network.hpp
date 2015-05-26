@@ -302,7 +302,7 @@ public:
     filter_ds_edge( vec3i const & stride, vec3i const & r, filter & f )
         : filter_stride(stride), repeat_(r), filter_(f)
     {
-        flatten(filter_.W(), repeat_);
+        //flatten(filter_.W(), repeat_);
     }
 
     cube_p<double> forward( ccube_p<double> const & f )
@@ -415,7 +415,7 @@ public:
         // attach myself
         bwd_bucket_ = in->attach_out_fft_edge(inn, this);
         fwd_bucket_ = out->attach_in_fft_edge(outn, this, in->fsize());
-        flatten(filter_.W(), repeat_);
+        //flatten(filter_.W(), repeat_);
     }
 
     void forward( ccube_p<complex> const & f ) override
