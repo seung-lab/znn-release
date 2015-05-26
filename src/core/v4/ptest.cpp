@@ -1,13 +1,4 @@
 #include "network/parallel/network.hpp"
-
-#include "network/parallel/filter_edge.hpp"
-#include "network/parallel/dummy_edge.hpp"
-//
-#include "network/parallel/max_pooling_edge.hpp"
-#include "network/parallel/input_nodes.hpp"
-#include "network/parallel/transfer_nodes.hpp"
-#include "utils/waiter.hpp"
-#include "utils/accumulator.hpp"
 #include "network/trivial/trivial_network.hpp"
 #include "network/trivial/trivial_fft_network.hpp"
 
@@ -95,7 +86,7 @@ int main()
         .push("type", "transfer")
         .push("function", "tanh")
         .push("function_args", "1.7159,0.6666")
-        .push("size", 48);
+        .push("size", 8);
 
     edges[1].push("name", "pool1")
         .push("type", "max_filter")
@@ -106,12 +97,13 @@ int main()
 
     nodes[2].push("name", "mp1")
         .push("type", "sum")
-        .push("size", 48);
+        .push("size", 8);
 
     edges[2].push("name", "conv2")
         .push("type", "conv")
         .push("init", "uniform")
         .push("size", "4,4,1")
+//        .push("repeat", "2,2,1")
         .push("input", "mp1")
         .push("output", "nl2");
 
@@ -119,7 +111,7 @@ int main()
         .push("type", "transfer")
         .push("function", "tanh")
         .push("function_args", "1.7159,0.6666")
-        .push("size", 48);
+        .push("size", 8);
 
     edges[3].push("name", "pool2")
         .push("type", "max_filter")
@@ -130,7 +122,7 @@ int main()
 
     nodes[4].push("name", "mp2")
         .push("type", "sum")
-        .push("size", 48);
+        .push("size", 8);
 
     edges[4].push("name", "conv3")
         .push("type", "conv")
@@ -143,7 +135,7 @@ int main()
         .push("type", "transfer")
         .push("function", "tanh")
         .push("function_args", "1.7159,0.6666")
-        .push("size", 48);
+        .push("size", 8);
 
     edges[5].push("name", "pool3")
         .push("type", "max_filter")
@@ -154,7 +146,7 @@ int main()
 
     nodes[6].push("name", "mp3")
         .push("type", "sum")
-        .push("size", 48);
+        .push("size", 8);
 
     edges[6].push("name", "conv4")
         .push("type", "conv")
@@ -167,7 +159,7 @@ int main()
         .push("type", "transfer")
         .push("function", "tanh")
         .push("function_args", "1.7159,0.6666")
-        .push("size", 100);
+        .push("size", 10);
 
     edges[7].push("name", "conv5")
         .push("type", "conv")
@@ -184,11 +176,11 @@ int main()
 
 
 
-    trivial_network::network tn(nodes, edges, {100,100,1});
-    //tn.set_eta(0.1);
+    trivial_network::network tn(nodes, edges, {19,19,1});
+    tn.set_eta(0.001);
 
     std::map<std::string, std::vector<cube_p<double>>> in, in2;
-    in["input"].push_back(get_cube<double>({164,164,1}));
+    in["input"].push_back(get_cube<double>({83,83,1}));
 
     uniform_init init(1);
     init.initialize(*in["input"][0]);
@@ -197,156 +189,67 @@ int main()
 
     auto nd = tn.serialize();
 
-    parallel_network::network tn2(nd.first, nd.second, {100,100,1});
+    parallel_network::network tn2(nd.first, nd.second, {19,19,1}, 4);
+    //trivial_fft_network::network tn2(nd.first, nd.second, {19,19,1});
+    tn2.set_eta(0.001);
 
-    std::cout << "QURAC\n\n";
 
     zi::wall_timer wt;
+
     wt.reset();
-
-
     auto r2 = tn2.forward(std::move(in2));
     std::cout << "FFT FWD: " << wt.elapsed<double>() << std::endl;
-    wt.reset();
 
+    wt.reset();
     auto r = tn.forward(std::move(in));
     std::cout << "DIRECT FWD: " << wt.elapsed<double>() << std::endl;
-    wt.reset();
-
-    for ( auto & it: r )
-    {
-        std::cout << it.first << "\n";
-        for ( auto & v: it.second )
-        {
-            std::cout << *v << "\n\n";
-        }
-    }
-
-
-    for ( auto & it: r2 )
-    {
-        std::cout << it.first << "\n";
-        for ( auto & v: it.second )
-        {
-                std::cout << *v << "\n\n";
-        }
-    }
-
-    wt.reset();
-
-    r = tn.backward(std::move(r));
-
-    std::cout << "-----------" << std::endl;
-    std::cout << "DIRECT BWD: " << wt.elapsed<double>() << std::endl;
-    wt.reset();
-
-    r2 = tn2.backward(std::move(r2));
-    std::cout << "FFT BWD: " << wt.elapsed<double>() << std::endl;
-    wt.reset();
-
-
-
-    //return 0;
-
-    std::map<std::string, std::vector<cube_p<double>>> inx1, inx2;
-    inx1["input"].push_back(get_cube<double>({164,164,1}));
-
-
-    init.initialize(*inx1["input"][0]);
-
-    inx2["input"].push_back(get_copy(*inx1["input"][0]));
-
-    wt.reset();
-    r = tn.forward(std::move(inx1));
-    std::cout << "DIRECT FWD: " << wt.elapsed<double>() << std::endl;
-    wt.reset();
-    r2 = tn2.forward(std::move(inx2));
-    std::cout << "FFT BWD: " << wt.elapsed<double>() << std::endl;
-    wt.reset();
-
-    for ( auto & it: r )
-    {
-        std::cout << it.first << "\n";
-        for ( auto & v: it.second )
-        {
-            std::cout << *v << "\n\n";
-        }
-    }
-
-
-    for ( auto & it: r2 )
-    {
-        std::cout << it.first << "\n";
-        for ( auto & v: it.second )
-        {
-            std::cout << *v << "\n\n";
-        }
-    }
 
     wt.reset();
     r = tn.backward(std::move(r));
     std::cout << "DIRECT BWD: " << wt.elapsed<double>() << std::endl;
+
     wt.reset();
-        std::cout << "-----------" << std::endl;
     r2 = tn2.backward(std::move(r2));
     std::cout << "FFT BWD: " << wt.elapsed<double>() << std::endl;
-    wt.reset();
 
-    auto net1 = tn.serialize();
-    auto net2 = tn2.serialize();
-
-    std::cout << "Will compare\n";
-
-    for ( int i = 0; i < net1.first.size(); ++i )
+    for ( int i = 0; i < 100; ++i )
     {
-        compare_options(net1.first[i], net2.first[i]);
-    }
+        std::map<std::string, std::vector<cube_p<double>>> inx1, inx2;
+        inx1["input"].push_back(get_cube<double>({83,83,1}));
+        init.initialize(*inx1["input"][0]);
 
-    for ( int i = 0; i < net1.second.size(); ++i )
-    {
-        compare_options(net1.second[i], net2.second[i]);
-    }
+        inx2["input"].push_back(get_copy(*inx1["input"][0]));
 
+        wt.reset();
+        r = tn.forward(std::move(inx1));
+        std::cout << "DIRECT FWD: " << wt.elapsed<double>() << std::endl;
 
-    std::cout << "HERE\n\n\n\n";
+        wt.reset();
+        r2 = tn2.forward(std::move(inx2));
+        std::cout << "FFT FWD: " << wt.elapsed<double>() << std::endl;
 
-    //int i;
-    //std::cin >> i;
+        wt.reset();
+        r = tn.backward(std::move(r));
+        std::cout << "DIRECT BWD: " << wt.elapsed<double>() << std::endl;
 
+        wt.reset();
+        r2 = tn2.backward(std::move(r2));
+        std::cout << "FFT BWD: " << wt.elapsed<double>() << std::endl;
 
-    std::cout << "HERE\n\n\n\n";
+        auto net1 = tn.serialize();
+        auto net2 = tn2.serialize();
 
-    //int i;
-    //std::cin >> i;
+        std::cout << "Will compare\n";
 
-    //std::cout << (*r["input"][0]) << "\n\n\n\n"; // - *r2["input"][0]);
-
-    return 0;
-
-    for ( auto & it: r )
-    {
-        std::cout << it.first << "\n";
-        for ( auto & v: it.second )
+        for ( size_t i = 0; i < net1.first.size(); ++i )
         {
-            std::cout << size(*v) << "\n\n";
+            compare_options(net1.first[i], net2.first[i]);
+        }
+
+        for ( size_t i = 0; i < net1.second.size(); ++i )
+        {
+            compare_options(net1.second[i], net2.second[i]);
         }
     }
 
-    auto state = tn.serialize();
-
-    std::cout << "Node Groups: " << std::endl;
-    for ( auto & n: state.first )
-    {
-        n.dump();
-        std::cout << "\n";
-    }
-
-    std::cout << "Edge Groups: " << std::endl;
-    for ( auto & n: state.second )
-    {
-        n.dump();
-        std::cout << "\n";
-    }
-
-    return 0;
 }

@@ -441,5 +441,65 @@ inline void flatten( cube<T> & c, vec3i const & s )
             }
 }
 
+template<typename T>
+inline cube_p<T> mirror_boundary( cube<T> const & c,
+                                  vec3i const & rf )
+{
+    STRONG_ASSERT(rf[0] % 2);
+    STRONG_ASSERT(rf[1] % 2);
+    STRONG_ASSERT(rf[2] % 2);
+
+    long_t vx = c.shape()[0];
+    long_t vy = c.shape()[1];
+    long_t vz = c.shape()[2];
+
+    long_t mx = rf[0]/2;
+    long_t my = rf[1]/2;
+    long_t mz = rf[2]/2;
+
+    long_t rx = vx + 2*mx;
+    long_t ry = vy + 2*my;
+    long_t rz = vz + 2*mz;
+
+    auto rp = get_cube<T>(vec3i(rx,ry,rz));
+    cube<T>& r = *rp;
+
+    r = 0;
+
+    // copy original volume
+    for ( long_t x = 0; x < vx; ++x )
+        for ( long_t y = 0; y < vy; ++y )
+            for ( long_t z = 0; z < vz; ++z )
+                r[x+mx][y+my][z+mz] = c[x][y][z];
+
+    // x-direction
+    for ( long_t x = 1; x <= mx; ++x )
+        for ( long_t y = my; y < ry-my; ++y )
+            for ( long_t z = mz; z < rz-mz; ++z )
+            {
+                r[mx-x][y][z] = r[mx+x][y][z];
+                r[mx+vx-1+x][y][z] = r[mx+vx-1-x][y][z];
+            }
+
+    // y-direction
+    for ( long_t y = 1; y <= my; ++y )
+        for ( long_t x = 0; x < rx; ++x )
+            for ( long_t z = mz; z < rz - mz; ++z )
+            {
+                r[x][my-y][z] = r[x][my+y][z];
+                r[x][my+vy-1+y][z] = r[x][my+vy-1-y][z];
+            }
+
+    // z-direction
+    for ( long_t z = 1; z <= mz; ++z )
+        for ( long_t x = 0; x < rx; ++x )
+            for ( long_t y = 0; y < ry; ++y )
+            {
+                r[x][y][mz-z] = r[x][y][mz+z];
+                r[x][y][mz+vz-1+z] = r[x][y][mz+vz-1-z];
+            }
+
+    return rp;
+}
 
 }} // namespace znn::v4

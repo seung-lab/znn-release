@@ -1,6 +1,7 @@
 #pragma once
 
 #include <zi/assert.hpp>
+#include <zi/zpp/stringify.hpp>
 #include <string>
 #include <sstream>
 
@@ -10,6 +11,15 @@
         std::cout << "unimplemented function" << std::endl              \
                   << "file: " << __FILE__ << " line: "                  \
                   << __LINE__ << std::endl;                             \
+        abort();                                                        \
+    }                                                                   \
+    static_cast<void>(0)
+
+#define STRONG_ASSERT(condition)                                        \
+    if (!(condition))                                                   \
+    {                                                                   \
+        std::cout << "Assertion " << ZiPP_STRINGIFY(condition) << " failed " \
+                  << "file: " << __FILE__ << " line: " << __LINE__ << std::endl; \
         abort();                                                        \
     }                                                                   \
     static_cast<void>(0)
