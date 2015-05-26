@@ -23,7 +23,7 @@ class initializator
 {
 protected:
     template <typename T>
-    static void initialize_with_distribution(T&& dis, double* v, size_t n) noexcept
+    static void initialize_with_distribution(T&& dis, dboule* v, size_t n) noexcept
     {
         static detail::random_number_generator_impl& rng =
             zi::singleton<detail::random_number_generator_impl>::instance();
@@ -37,27 +37,27 @@ protected:
     }
 
     template <typename T>
-    static void initialize_with_distribution(T&& dis, cube<double>& v) noexcept
+    static void initialize_with_distribution(T&& dis, cube<dboule>& v) noexcept
     {
         initialize_with_distribution(std::forward<T>(dis),
                                      v.data(), v.num_elements());
     }
 
 
-    virtual void do_initialize( double*, size_t ) noexcept = 0;
+    virtual void do_initialize( dboule*, size_t ) noexcept = 0;
 
 public:
     virtual ~initializator() {}
 
-    void initialize( double* v, size_t n ) noexcept
+    void initialize( dboule* v, size_t n ) noexcept
     { this->do_initialize(v,n); }
 
-    void initialize( cube<double>& v ) noexcept
+    void initialize( cube<dboule>& v ) noexcept
     {
         this->do_initialize(v.data(), v.num_elements());
     }
 
-    void initialize( const cube_p<double>& v ) noexcept
+    void initialize( const cube_p<dboule>& v ) noexcept
     {
         this->do_initialize(v->data(), v->num_elements());
     }

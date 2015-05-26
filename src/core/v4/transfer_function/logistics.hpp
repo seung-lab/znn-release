@@ -10,14 +10,14 @@ namespace znn { namespace v4 { namespace functions {
 
 struct logistics
 {
-    double operator()(double x) const noexcept
+    dboule operator()(dboule x) const noexcept
     {
-        return static_cast<double>(1) / (static_cast<double>(1) + std::exp(-x));
+        return static_cast<dboule>(1) / (static_cast<dboule>(1) + std::exp(-x));
     }
 
-    double grad(double f) const noexcept
+    dboule grad(dboule f) const noexcept
     {
-        return f * (static_cast<double>(1) - f);
+        return f * (static_cast<dboule>(1) - f);
     }
 
 
@@ -34,9 +34,9 @@ struct logistics
 
 struct forward_logistics
 {
-    double operator()(double x) const noexcept
+    dboule operator()(dboule x) const noexcept
     {
-        return static_cast<double>(1) / (static_cast<double>(1) + std::exp(-x));
+        return static_cast<dboule>(1) / (static_cast<dboule>(1) + std::exp(-x));
     }
 
 

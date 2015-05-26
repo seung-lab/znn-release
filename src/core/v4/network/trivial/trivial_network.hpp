@@ -29,15 +29,15 @@ public:
 
     // receive a featuremap for the i-th input
     // featuremap is absorbed
-    virtual void forward(size_t, cube_p<double>&&)
+    virtual void forward(size_t, cube_p<dboule>&&)
     { UNIMPLEMENTED(); }
 
     // receive a gradient for the i-th output
     // gradient is absorbed
-    virtual void backward(size_t, cube_p<double>&&)
+    virtual void backward(size_t, cube_p<dboule>&&)
     { UNIMPLEMENTED(); }
 
-    virtual std::vector<cube_p<double>>& get_featuremaps()
+    virtual std::vector<cube_p<dboule>>& get_featuremaps()
     { UNIMPLEMENTED(); }
 
     virtual size_t num_out_nodes()
@@ -52,13 +52,13 @@ public:
     virtual void attach_in_edge(size_t, edge*)
     { UNIMPLEMENTED(); }
 
-    virtual void set_eta( double )
+    virtual void set_eta( dboule )
     { UNIMPLEMENTED(); }
 
-    virtual void set_momentum( double )
+    virtual void set_momentum( dboule )
     { UNIMPLEMENTED(); }
 
-    virtual void set_weight_decay( double )
+    virtual void set_weight_decay( dboule )
     { UNIMPLEMENTED(); }
 
     virtual options serialize() const = 0;
@@ -72,11 +72,11 @@ public:
 
     // perform forward computation
     // can't modify the featuremap
-    virtual void forward( ccube_p<double> const & ) = 0;
+    virtual void forward( ccube_p<dboule> const & ) = 0;
 
     // perform forward computation
     // can't modify the gradient
-    virtual void backward( ccube_p<double> const & ) = 0;
+    virtual void backward( ccube_p<dboule> const & ) = 0;
 };
 
 class edge_base: public virtual edge
@@ -123,12 +123,12 @@ public:
         out->attach_in_edge(outn, this);
     }
 
-    void forward( ccube_p<double> const & f ) override
+    void forward( ccube_p<dboule> const & f ) override
     {
         out_nodes->forward(out_num, impl.forward(f));
     }
 
-    void backward( ccube_p<double> const & g ) override
+    void backward( ccube_p<dboule> const & g ) override
     {
         in_nodes->backward(in_num, impl.backward(g));
     }
@@ -136,12 +136,12 @@ public:
 
 struct dummy_edge
 {
-    cube_p<double> forward( ccube_p<double> const & f )
+    cube_p<dboule> forward( ccube_p<dboule> const & f )
     {
         return get_copy(*f);
     }
 
-    cube_p<double> backward( ccube_p<double> const & g )
+    cube_p<dboule> backward( ccube_p<dboule> const & g )
     {
         return get_copy(*g);
     }
@@ -163,18 +163,18 @@ public:
     {
     }
 
-    cube_p<double> forward( ccube_p<double> const & f )
+    cube_p<dboule> forward( ccube_p<dboule> const & f )
     {
         insize = size(*f);
         auto r = pooling_filter(get_copy(*f),
-                                [](double a, double b){ return a>b; },
+                                [](dboule a, dboule b){ return a>b; },
                                 filter_size,
                                 filter_stride);
         indices = r.second;
         return r.first;
     }
 
-    cube_p<double> backward( ccube_p<double> const & g )
+    cube_p<dboule> backward( ccube_p<dboule> const & g )
     {
         ZI_ASSERT(indices);
         ZI_ASSERT(insize == size(*g) + (filter_size - vec3i::one) * filter_stride);
@@ -199,11 +199,11 @@ public:
     {
     }
 
-    cube_p<double> forward( ccube_p<double> const & f )
+    cube_p<dboule> forward( ccube_p<dboule> const & f )
     {
         insize = size(*f);
         auto r = pooling_filter(get_copy(*f),
-                                [](double a, double b){ return a>b; },
+                                [](dboule a, dboule b){ return a>b; },
                                 filter_size,
                                 vec3i::one);
 
@@ -212,7 +212,7 @@ public:
         return sparse_implode_slow(*r.first,filter_size,outsize);
     }
 
-    cube_p<double> backward( ccube_p<double> const & g )
+    cube_p<dboule> backward( ccube_p<dboule> const & g )
     {
         ZI_ASSERT(indices);
         ZI_ASSERT(insize == size(*g) * filter_size);
@@ -229,7 +229,7 @@ private:
     vec3i    filter_stride;
     filter & filter_;
 
-    ccube_p<double> last_input;
+    ccube_p<dboule> last_input;
 
 public:
     filter_edge( vec3i const & stride, filter & f )
@@ -237,13 +237,13 @@ public:
     {
     }
 
-    cube_p<double> forward( ccube_p<double> const & f )
+    cube_p<dboule> forward( ccube_p<dboule> const & f )
     {
         last_input = f;
         return convolve_sparse(*f, filter_.W(), filter_stride);
     }
 
-    cube_p<double> backward( ccube_p<double> const & g )
+    cube_p<dboule> backward( ccube_p<dboule> const & g )
     {
         ZI_ASSERT(last_input);
         auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
@@ -260,22 +260,22 @@ private:
     vec3i    repeat_;
     filter & filter_;
 
-    ccube_p<double> last_input;
+    ccube_p<dboule> last_input;
 
 public:
     filter_ds_edge( vec3i const & stride, vec3i const & r, filter & f )
         : filter_stride(stride), repeat_(r), filter_(f)
     {
-        //flatten(filter_.W(), repeat_);
+        flatten(filter_.W(), repeat_);
     }
 
-    cube_p<double> forward( ccube_p<double> const & f )
+    cube_p<dboule> forward( ccube_p<dboule> const & f )
     {
         last_input = f;
         return convolve_sparse(*f, filter_.W(), filter_stride);
     }
 
-    cube_p<double> backward( ccube_p<double> const & g )
+    cube_p<dboule> backward( ccube_p<dboule> const & g )
     {
         ZI_ASSERT(last_input);
         auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
@@ -293,13 +293,13 @@ class edges
 public:
     virtual ~edges() {}
 
-    virtual void set_eta( double )
+    virtual void set_eta( dboule )
     { UNIMPLEMENTED(); }
 
-    virtual void set_momentum( double )
+    virtual void set_momentum( dboule )
     { UNIMPLEMENTED(); }
 
-    virtual void set_weight_decay( double )
+    virtual void set_weight_decay( dboule )
     { UNIMPLEMENTED(); }
 
     virtual options serialize() const = 0;
@@ -330,9 +330,9 @@ public:
         }
     }
 
-    void set_eta( double ) {}
-    void set_momentum( double ) {}
-    void set_weight_decay( double ) {}
+    void set_eta( dboule ) {}
+    void set_momentum( dboule ) {}
+    void set_weight_decay( dboule ) {}
 
     options serialize() const
     {
@@ -368,9 +368,9 @@ public:
         }
     }
 
-    void set_eta( double ) {}
-    void set_momentum( double ) {}
-    void set_weight_decay( double ) {}
+    void set_eta( dboule ) {}
+    void set_momentum( dboule ) {}
+    void set_weight_decay( dboule ) {}
 
     options serialize() const
     {
@@ -405,9 +405,9 @@ public:
         }
     }
 
-    void set_eta( double ) {}
-    void set_momentum( double ) {}
-    void set_weight_decay( double ) {}
+    void set_eta( dboule ) {}
+    void set_momentum( dboule ) {}
+    void set_weight_decay( dboule ) {}
 
     options serialize() const
     {
@@ -440,19 +440,49 @@ public:
         edges_.resize(n*m);
         filters_.resize(n*m);
 
-        double eta    = opts.optional_as<double>("eta", 0.1);
-        double mom    = opts.optional_as<double>("momentum", 0.0);
-        double wd     = opts.optional_as<double>("weight_decay", 0.0);
+        dboule eta    = opts.optional_as<dboule>("eta", 0.1);
+        dboule mom    = opts.optional_as<dboule>("momentum", 0.0);
+        dboule wd     = opts.optional_as<dboule>("weight_decay", 0.0);
         auto   sz     = opts.require_as<ovec3i>("size");
         auto   repeat = opts.optional_as<ovec3i>("repeat", "1,1,1");
 
         size_ = sz;
 
+        for ( size_t k = 0; k < n*m; ++k )
+        {
+            filters_[k] = std::make_unique<filter>(sz, eta, mom, wd);
+        }
+
+        std::string filter_values;
+
+        opts.dump();
+
+        if ( opts.contains("filters") )
+        {
+            filter_values = opts.require_as<std::string>("filters");
+        }
+        else
+        {
+            size_t n_values = n*m*size_[0]*size_[1]*size_[2];
+            dboule * filters_raw = new dboule[n_values];
+
+            auto initf = get_initializator(opts);
+
+            //std::cout << "here\n";
+
+            initf->initialize( filters_raw, n*m*size_[0]*size_[1]*size_[2] );
+            delete [] filters_raw;
+
+            filter_values = std::string( reinterpret_cast<char*>(filters_raw),
+                                         sizeof(dboule) * n_values );
+        }
+
+        load_filters(filters_, size_, filter_values);
+
         for ( size_t i = 0, k = 0; i < n; ++i )
         {
             for ( size_t j = 0; j < m; ++j, ++k )
             {
-                filters_[k] = std::make_unique<filter>(sz, eta, mom, wd);
                 if ( repeat == ovec3i::one )
                 {
                     edges_[k]
@@ -468,46 +498,21 @@ public:
             }
         }
 
-        std::string filter_values;
-
-        opts.dump();
-
-        if ( opts.contains("filters") )
-        {
-            filter_values = opts.require_as<std::string>("filters");
-        }
-        else
-        {
-            size_t n_values = n*m*size_[0]*size_[1]*size_[2];
-            double * filters_raw = new double[n_values];
-
-            auto initf = get_initializator(opts);
-
-            //std::cout << "here\n";
-
-            initf->initialize( filters_raw, n*m*size_[0]*size_[1]*size_[2] );
-            delete [] filters_raw;
-
-            filter_values = std::string( reinterpret_cast<char*>(filters_raw),
-                                         sizeof(double) * n_values );
-        }
-
-        load_filters(filters_, size_, filter_values);
     }
 
-    void set_eta( double eta ) override
+    void set_eta( dboule eta ) override
     {
         options_.push("eta", eta);
         for ( auto & f: filters_ ) f->eta() = eta;
     }
 
-    void set_momentum( double mom ) override
+    void set_momentum( dboule mom ) override
     {
         options_.push("momentum", mom);
         for ( auto & f: filters_ ) f->momentum() = mom;
     }
 
-    void set_weight_decay( double wd ) override
+    void set_weight_decay( dboule wd ) override
     {
         options_.push("weight_decay", wd);
         for ( auto & f: filters_ ) f->weight_decay() = wd;
@@ -537,7 +542,7 @@ public:
         , opts_(op)
     {}
 
-    void forward(size_t n, cube_p<double>&& f) override
+    void forward(size_t n, cube_p<dboule>&& f) override
     {
         ZI_ASSERT(n<size_);
         for ( auto& e: outputs_[n] )
@@ -546,7 +551,7 @@ public:
         }
     }
 
-    void backward(size_t, cube_p<double>&&) override
+    void backward(size_t, cube_p<dboule>&&) override
     {
         //std::cout << "input node: " << i << " received grad of size: "
         //          << size(*g) << std::endl;
@@ -561,9 +566,9 @@ public:
         outputs_[i].push_back(e);
     }
 
-    void set_eta( double ) override {}
-    void set_momentum( double ) override {}
-    void set_weight_decay( double ) override {}
+    void set_eta( dboule ) override {}
+    void set_momentum( dboule ) override {}
+    void set_weight_decay( dboule ) override {}
 
     options serialize() const
     {
@@ -579,8 +584,8 @@ private:
     std::vector<std::vector<edge*>> inputs_  ;
     std::vector<std::vector<edge*>> outputs_ ;
     std::vector<size_t>                     received_;
-    std::vector<cube_p<double>>             fs_      ;
-    std::vector<cube_p<double>>             gs_      ;
+    std::vector<cube_p<dboule>>             fs_      ;
+    std::vector<cube_p<dboule>>             gs_      ;
     options                                 opts_   ;
 
 public:
@@ -594,21 +599,21 @@ public:
         , opts_(op)
     {}
 
-    void set_eta( double ) override {}
-    void set_momentum( double ) override {}
-    void set_weight_decay( double ) override {}
+    void set_eta( dboule ) override {}
+    void set_momentum( dboule ) override {}
+    void set_weight_decay( dboule ) override {}
 
     options serialize() const
     {
         return opts_;
     }
 
-    std::vector<cube_p<double>>& get_featuremaps() override
+    std::vector<cube_p<dboule>>& get_featuremaps() override
     {
         return fs_;
     }
 
-    void forward(size_t n, cube_p<double>&& f) override
+    void forward(size_t n, cube_p<dboule>&& f) override
     {
         ZI_ASSERT(n<size_);
         if ( received_[n] == 0 )
@@ -631,7 +636,7 @@ public:
         }
     }
 
-    void backward(size_t n, cube_p<double>&& g) override
+    void backward(size_t n, cube_p<dboule>&& g) override
     {
         ZI_ASSERT(n<size_);
         if ( received_[n] == 0 )
@@ -681,8 +686,8 @@ private:
     std::vector<std::vector<edge*>> inputs_  ;
     std::vector<std::vector<edge*>> outputs_ ;
     std::vector<size_t>                     received_;
-    std::vector<cube_p<double>>             fs_      ;
-    std::vector<cube_p<double>>             gs_      ;
+    std::vector<cube_p<dboule>>             fs_      ;
+    std::vector<cube_p<dboule>>             gs_      ;
     options                                 options_ ;
 
 public:
@@ -701,9 +706,9 @@ public:
 
         // initialize biases
 
-        double eta = opts.optional_as<double>("eta", 0.1);
-        double mom = opts.optional_as<double>("momentum", 0.0);
-        double wd  = opts.optional_as<double>("weight_decay", 0.0);
+        dboule eta = opts.optional_as<dboule>("eta", 0.1);
+        dboule mom = opts.optional_as<dboule>("momentum", 0.0);
+        dboule wd  = opts.optional_as<dboule>("weight_decay", 0.0);
 
         for ( auto& b: biases_ )
         {
@@ -718,7 +723,7 @@ public:
         }
         else
         {
-            double biases_raw[size_];
+            dboule biases_raw[size_];
             if ( opts.contains("init") )
             {
                 auto initf = get_initializator(opts);
@@ -730,25 +735,25 @@ public:
             }
 
             bias_values = std::string( reinterpret_cast<char*>(biases_raw),
-                                       sizeof(double) * size_ );
+                                       sizeof(dboule) * size_ );
         }
 
         load_biases(biases_, bias_values);
     }
 
-    void set_eta( double eta ) override
+    void set_eta( dboule eta ) override
     {
         options_.push("eta", eta);
         for ( auto& b: biases_ ) b->eta() = eta;
     }
 
-    void set_momentum( double mom ) override
+    void set_momentum( dboule mom ) override
     {
         options_.push("momentum", mom);
         for ( auto& b: biases_ ) b->momentum() = mom;
     }
 
-    void set_weight_decay( double wd ) override
+    void set_weight_decay( dboule wd ) override
     {
         options_.push("weight_decay", wd);
         for ( auto& b: biases_ ) b->weight_decay() = wd;
@@ -761,12 +766,12 @@ public:
         return ret;
     }
 
-    std::vector<cube_p<double>>& get_featuremaps() override
+    std::vector<cube_p<dboule>>& get_featuremaps() override
     {
         return fs_;
     }
 
-    void forward(size_t n, cube_p<double>&& f) override
+    void forward(size_t n, cube_p<dboule>&& f) override
     {
         ZI_ASSERT(n<size_);
         if ( received_[n] == 0 )
@@ -790,7 +795,7 @@ public:
         }
     }
 
-    void backward(size_t n, cube_p<double>&& g) override
+    void backward(size_t n, cube_p<dboule>&& g) override
     {
         ZI_ASSERT(n<size_);
         if ( received_[n] == 0 )
@@ -1099,19 +1104,19 @@ public:
         create_edges();
     }
 
-    void set_eta( double eta )
+    void set_eta( dboule eta )
     {
         for ( auto & e: edges_ ) e.second->dedges->set_eta(eta);
         for ( auto & n: nodes_ ) n.second->dnodes->set_eta(eta);
     }
 
-    void set_momentum( double mom )
+    void set_momentum( dboule mom )
     {
         for ( auto & e: edges_ ) e.second->dedges->set_momentum(mom);
         for ( auto & n: nodes_ ) n.second->dnodes->set_momentum(mom);
     }
 
-    void set_weight_decay( double wd )
+    void set_weight_decay( dboule wd )
     {
         for ( auto & e: edges_ ) e.second->dedges->set_weight_decay(wd);
         for ( auto & n: nodes_ ) n.second->dnodes->set_weight_decay(wd);
@@ -1122,8 +1127,8 @@ public:
         return input_nodes_.begin()->second->fov;
     }
 
-    std::map<std::string, std::vector<cube_p<double>>>
-    forward( std::map<std::string, std::vector<cube_p<double>>> && fin )
+    std::map<std::string, std::vector<cube_p<dboule>>>
+    forward( std::map<std::string, std::vector<cube_p<dboule>>> && fin )
     {
         ZI_ASSERT(fin.size()==input_nodes_.size());
         for ( auto & in: fin )
@@ -1140,7 +1145,7 @@ public:
             }
         }
 
-        std::map<std::string, std::vector<cube_p<double>>> ret;
+        std::map<std::string, std::vector<cube_p<dboule>>> ret;
         for ( auto & l: output_nodes_ )
         {
             //std::cout << "Collecting for: " << l.first << "\n";
@@ -1150,8 +1155,8 @@ public:
         return ret;
     }
 
-    std::map<std::string, std::vector<cube_p<double>>>
-    backward( std::map<std::string, std::vector<cube_p<double>>> && fout )
+    std::map<std::string, std::vector<cube_p<dboule>>>
+    backward( std::map<std::string, std::vector<cube_p<dboule>>> && fout )
     {
         ZI_ASSERT(fout.size()==input_nodes_.size());
         for ( auto & out: fout )
@@ -1168,7 +1173,7 @@ public:
             }
         }
 
-        std::map<std::string, std::vector<cube_p<double>>> ret;
+        std::map<std::string, std::vector<cube_p<dboule>>> ret;
         for ( auto & l: input_nodes_ )
         {
             ret[l.first].resize(0);

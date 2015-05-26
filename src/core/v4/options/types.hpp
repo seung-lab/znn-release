@@ -50,9 +50,9 @@ operator<<( ::std::basic_ostream< CharT, Traits >& os,
 typedef ovec<int64_t,2> ovec2i;
 typedef ovec<int64_t,3> ovec3i;
 typedef ovec<int64_t,4> ovec4i;
-typedef ovec<double,2>  ovec2d;
-typedef ovec<double,3>  ovec3d;
-typedef ovec<double,4>  ovec4d;
+typedef ovec<dboule,2>  ovec2d;
+typedef ovec<dboule,3>  ovec3d;
+typedef ovec<dboule,4>  ovec4d;
 
 template< typename T, typename Allocator = std::allocator<T> >
 struct ovector: std::vector<T,Allocator> {};

@@ -16,21 +16,21 @@ private:
     vec3i    repeat_;
     filter & filter_;
 
-    ccube_p<double> last_input;
+    ccube_p<dboule> last_input;
 
     task_manager::task_handle pending_ = 0;
 
     std::mutex m;
 
 private:
-    void do_forward( ccube_p<double> const & f )
+    void do_forward( ccube_p<dboule> const & f )
     {
         last_input = f;
         out_nodes->forward(out_num,
                            convolve_sparse(*f, filter_.W(), filter_stride));
     }
 
-    void do_update( ccube_p<double> const & g )
+    void do_update( ccube_p<dboule> const & g )
     {
         auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
         filter_.update(*dEdW);
@@ -53,16 +53,16 @@ public:
     {
         in->attach_out_edge(inn,this);
         out->attach_in_edge(outn,this);
-        //flatten(filter_.W(), repeat_);
+        flatten(filter_.W(), repeat_);
     }
 
-    void forward( ccube_p<double> const & f ) override
+    void forward( ccube_p<dboule> const & f ) override
     {
         guard gg(m);
         manager.require_done( pending_, &filter_ds_edge::do_forward, this, f );
     }
 
-    void backward( ccube_p<double> const & g )
+    void backward( ccube_p<dboule> const & g )
     {
         guard gg(m);
         ZI_ASSERT(last_input);

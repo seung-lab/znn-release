@@ -38,7 +38,7 @@ inline vol_p<T> fft_convolve( const vol<T>& a, const vol<T>& b)
     (*at) *= *bt;
 
     auto r = fftw::backward(at, as);
-    double n = a.num_elements();
+    dboule n = a.num_elements();
 
     vec3i rs = as + vec3i::one - size(b);
 
@@ -66,7 +66,7 @@ inline vol_p<T> fft_convolve_sparse( const vol<T>& a, const vol<T>& b,
     (*at) *= *bt;
 
     auto r = fftw::backward(at, as);
-    double n = a.num_elements();
+    dboule n = a.num_elements();
 
     vec3i rs = as - s * (size(b) - vec3i::one);
 
@@ -101,7 +101,7 @@ inline vol_p<T> fft_convolve_flipped( const vol<T>& a, const vol<T>& b)
     (*at) *= *bt;
 
     auto r = fftw::backward(at, as);
-    double n = a.num_elements();
+    dboule n = a.num_elements();
 
     r = volume_utils::crop_right(r, rs);
     *r /= n;
@@ -151,7 +151,7 @@ inline vol_p<T> fft_convolve_inverse( const vol<T>& a, const vol<T>& b)
     (*at) *= *bt;
 
     auto r = fftw::backward(at, rs);
-    double n = r->num_elements();
+    dboule n = r->num_elements();
 
     *r /= n;
     return r;

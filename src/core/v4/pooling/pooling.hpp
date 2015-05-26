@@ -7,7 +7,7 @@ namespace znn { namespace v4 {
 
 
 template<typename F>
-inline void inplace_pooling_filter( cube<double> & featuremap,
+inline void inplace_pooling_filter( cube<dboule> & featuremap,
                                     cube<int>    & indices,
                                     F const & f,
                                     vec3i const & filter_size,
@@ -65,7 +65,7 @@ inline void inplace_pooling_filter( cube<double> & featuremap,
 }
 
 template<typename F>
-inline void inplace_pooling_filter_no_indices( cube<double> & featuremap,
+inline void inplace_pooling_filter_no_indices( cube<dboule> & featuremap,
                                                F const & f,
                                                vec3i const & filter_size,
                                                vec3i const & filter_stride = vec3i::one )
@@ -120,8 +120,8 @@ inline void inplace_pooling_filter_no_indices( cube<double> & featuremap,
 
 
 template<typename F>
-inline std::pair<cube_p<double>, cube_p<int>>
-pooling_filter( cube_p<double>&& featuremap,
+inline std::pair<cube_p<dboule>, cube_p<int>>
+pooling_filter( cube_p<dboule>&& featuremap,
                 F const & f,
                 vec3i const & filter_size,
                 vec3i const & filter_stride = vec3i::one )
@@ -145,8 +145,8 @@ pooling_filter( cube_p<double>&& featuremap,
 
 
 template<typename F>
-inline cube_p<double>
-pooling_filter_no_indices( cube_p<double>&& featuremap,
+inline cube_p<dboule>
+pooling_filter_no_indices( cube_p<dboule>&& featuremap,
                            F const & f,
                            vec3i const & filter_size,
                            vec3i const & filter_stride = vec3i::one )
@@ -168,17 +168,17 @@ pooling_filter_no_indices( cube_p<double>&& featuremap,
 }
 
 
-inline cube_p<double> pooling_backprop( vec3i         const & sz,
-                                        ccube<double> const & vals,
+inline cube_p<dboule> pooling_backprop( vec3i         const & sz,
+                                        ccube<dboule> const & vals,
                                         ccube<int>    const & indices )
 {
     ZI_ASSERT(size(vals)==size(indices));
 
-    auto ret = get_cube<double>(sz);
+    auto ret = get_cube<dboule>(sz);
     fill(*ret,0);
 
-    double*       rp = ret->data();
-    const double* vp = vals.data();
+    dboule*       rp = ret->data();
+    const dboule* vp = vals.data();
     const int*    ip = indices.data();
 
     for ( size_t i = 0; i < vals.num_elements(); ++i ) rp[ip[i]] += vp[i];

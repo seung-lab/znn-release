@@ -29,14 +29,14 @@ public:
     size_t num_out_nodes() override { return nodes::size(); }
     size_t num_in_nodes()  override { return nodes::size(); }
 
-    void set_eta( double ) override {}
-    void set_momentum( double ) override {}
-    void set_weight_decay( double ) override {}
+    void set_eta( dboule ) override {}
+    void set_momentum( dboule ) override {}
+    void set_weight_decay( dboule ) override {}
 
     options serialize() const { return nodes::opts(); }
 
     // For the forward pass only this function us supported
-    void forward(size_t n, cube_p<double> && f) override
+    void forward(size_t n, cube_p<dboule> && f) override
     {
         ZI_ASSERT(n<nodes::size());
         outputs_.dispatch(n,f,nodes::manager());
@@ -46,11 +46,11 @@ private:
     void backward() { waiter_.one_done(); }
 
 public:
-    void backward(size_t, cube_p<double>&&) override
+    void backward(size_t, cube_p<dboule>&&) override
     { backward(); }
 
-    void backward(size_t, ccube_p<double> const &,
-                  ccube_p<double> const &, vec3i const &) override
+    void backward(size_t, ccube_p<dboule> const &,
+                  ccube_p<dboule> const &, vec3i const &) override
     { backward(); }
 
     void backward(size_t, size_t, cube_p<complex>&&) override

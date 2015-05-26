@@ -34,18 +34,18 @@ public:
         out->attach_in_edge(outn,this);
     }
 
-    void forward( ccube_p<double> const & f ) override
+    void forward( ccube_p<dboule> const & f ) override
     {
         ZI_ASSERT(size(*f)==insize);
         auto r = pooling_filter(get_copy(*f),
-                                [](double a, double b){ return a>b; },
+                                [](dboule a, dboule b){ return a>b; },
                                 filter_size,
                                 filter_stride);
         indices = r.second;
         out_nodes->forward(out_num,std::move(r.first));
     }
 
-    void backward( ccube_p<double> const & g )
+    void backward( ccube_p<dboule> const & g )
     {
         ZI_ASSERT(indices);
         ZI_ASSERT(insize==size(*g)+(filter_size-vec3i::one)*filter_stride);
@@ -88,11 +88,11 @@ public:
         out->attach_in_edge(outn,this);
     }
 
-    void forward( ccube_p<double> const & f ) override
+    void forward( ccube_p<dboule> const & f ) override
     {
         ZI_ASSERT(size(*f)==insize);
         auto r = pooling_filter(get_copy(*f),
-                                [](double a, double b){ return a>b; },
+                                [](dboule a, dboule b){ return a>b; },
                                 filter_size,
                                 vec3i::one);
 
@@ -101,7 +101,7 @@ public:
                            sparse_implode_slow(*r.first,filter_size,outsize));
     }
 
-    void backward( ccube_p<double> const & g )
+    void backward( ccube_p<dboule> const & g )
     {
         ZI_ASSERT(indices);
         ZI_ASSERT(insize==size(*g)*filter_size);

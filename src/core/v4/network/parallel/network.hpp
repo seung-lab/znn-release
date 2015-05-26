@@ -61,11 +61,11 @@ public:
     }
 
 private:
-    static std::vector<std::map<std::string, std::vector<cube_p<double>>>>
-    copy_samples( std::vector<std::map<std::string, std::vector<cube_p<double>>>>
+    static std::vector<std::map<std::string, std::vector<cube_p<dboule>>>>
+    copy_samples( std::vector<std::map<std::string, std::vector<cube_p<dboule>>>>
                  const & s )
     {
-        std::vector<std::map<std::string, std::vector<cube_p<double>>>>
+        std::vector<std::map<std::string, std::vector<cube_p<dboule>>>>
             ret(s.size());
 
         for ( size_t i = 0; i < s.size(); ++i )
@@ -320,21 +320,21 @@ public:
         create_edges();
     }
 
-    void set_eta( double eta )
+    void set_eta( dboule eta )
     {
         zap();
         for ( auto & e: edges_ ) e.second->dedges->set_eta(eta);
         for ( auto & n: nodes_ ) n.second->dnodes->set_eta(eta);
     }
 
-    void set_momentum( double mom )
+    void set_momentum( dboule mom )
     {
         zap();
         for ( auto & e: edges_ ) e.second->dedges->set_momentum(mom);
         for ( auto & n: nodes_ ) n.second->dnodes->set_momentum(mom);
     }
 
-    void set_weight_decay( double wd )
+    void set_weight_decay( dboule wd )
     {
         zap();
         for ( auto & e: edges_ ) e.second->dedges->set_weight_decay(wd);
@@ -368,8 +368,8 @@ public:
         return ret;
     }
 
-    std::map<std::string, std::vector<cube_p<double>>>
-    forward( std::map<std::string, std::vector<cube_p<double>>> && fin )
+    std::map<std::string, std::vector<cube_p<dboule>>>
+    forward( std::map<std::string, std::vector<cube_p<dboule>>> && fin )
     {
         ZI_ASSERT(fin.size()==input_nodes_.size());
         for ( auto & in: fin )
@@ -386,7 +386,7 @@ public:
             }
         }
 
-        std::map<std::string, std::vector<cube_p<double>>> ret;
+        std::map<std::string, std::vector<cube_p<dboule>>> ret;
         for ( auto & l: output_nodes_ )
         {
             l.second->dnodes->wait();
@@ -396,8 +396,8 @@ public:
         return ret;
     }
 
-    std::map<std::string, std::vector<cube_p<double>>>
-    backward( std::map<std::string, std::vector<cube_p<double>>> && fout )
+    std::map<std::string, std::vector<cube_p<dboule>>>
+    backward( std::map<std::string, std::vector<cube_p<dboule>>> && fout )
     {
         ZI_ASSERT(fout.size()==input_nodes_.size());
         for ( auto & out: fout )
@@ -414,7 +414,7 @@ public:
             }
         }
 
-        std::map<std::string, std::vector<cube_p<double>>> ret;
+        std::map<std::string, std::vector<cube_p<dboule>>> ret;
         for ( auto & l: input_nodes_ )
         {
             l.second->dnodes->wait();
@@ -474,20 +474,20 @@ public:
         std::cout << "Create samples...";
 
         uniform_init init(1);
-        std::vector<std::map<std::string, std::vector<cube_p<double>>>>
+        std::vector<std::map<std::string, std::vector<cube_p<dboule>>>>
             allins, allouts;
 
         for ( size_t n = 0; n < rounds; ++n )
         {
-            std::map<std::string, std::vector<cube_p<double>>> insample;
-            std::map<std::string, std::vector<cube_p<double>>> outsample;
+            std::map<std::string, std::vector<cube_p<dboule>>> insample;
+            std::map<std::string, std::vector<cube_p<dboule>>> outsample;
 
             for ( auto & ip: ins )
             {
                 for ( size_t i = 0; i < ip.second.second; ++i )
                 {
                     std::cout << ip.second.first << " -\n";
-                    auto v = get_cube<double>(ip.second.first);
+                    auto v = get_cube<dboule>(ip.second.first);
                     init.initialize(*v);
                     insample[ip.first].push_back(v);
                 }
@@ -499,7 +499,7 @@ public:
             {
                 for ( size_t i = 0; i < ip.second.second; ++i )
                 {
-                    auto v = get_cube<double>(ip.second.first);
+                    auto v = get_cube<dboule>(ip.second.first);
                     init.initialize(*v);
                     outsample[ip.first].push_back(v);
                 }
@@ -520,7 +520,7 @@ public:
 
         std::cout << "DONE\nTrying all FFTs..." << std::flush;
 
-        double tot_time = 0;
+        dboule tot_time = 0;
 
         {
             network net(ns,es,outsz,n_threads);
@@ -541,7 +541,7 @@ public:
 
             net.backward(std::move(os[rounds-1]));
 
-            tot_time = wt.elapsed<double>();
+            tot_time = wt.elapsed<dboule>();
 
             net.zap();
 
@@ -574,7 +574,7 @@ public:
 
             net.backward(std::move(os[rounds-1]));
 
-            double my_time = wt.elapsed<double>();
+            dboule my_time = wt.elapsed<dboule>();
 
             std::cout <<  (my_time/(rounds-1)) << " secs" << std::endl;
 
@@ -618,19 +618,19 @@ public:
         std::cout << "Create samples...";
 
         uniform_init init(1);
-        std::vector<std::map<std::string, std::vector<cube_p<double>>>>
+        std::vector<std::map<std::string, std::vector<cube_p<dboule>>>>
             allins, allouts;
 
         for ( size_t n = 0; n < rounds; ++n )
         {
-            std::map<std::string, std::vector<cube_p<double>>> insample;
-            std::map<std::string, std::vector<cube_p<double>>> outsample;
+            std::map<std::string, std::vector<cube_p<dboule>>> insample;
+            std::map<std::string, std::vector<cube_p<dboule>>> outsample;
 
             for ( auto & ip: ins )
             {
                 for ( size_t i = 0; i < ip.second.second; ++i )
                 {
-                    auto v = get_cube<double>(ip.second.first);
+                    auto v = get_cube<dboule>(ip.second.first);
                     init.initialize(*v);
                     insample[ip.first].push_back(v);
                 }
@@ -642,7 +642,7 @@ public:
             {
                 for ( size_t i = 0; i < ip.second.second; ++i )
                 {
-                    auto v = get_cube<double>(ip.second.first);
+                    auto v = get_cube<dboule>(ip.second.first);
                     init.initialize(*v);
                     outsample[ip.first].push_back(v);
                 }
@@ -663,7 +663,7 @@ public:
 
         std::cout << "DONE\nTrying all FFTs..." << std::flush;
 
-        double tot_time = 0;
+        dboule tot_time = 0;
 
         {
             network net(ns,es,outsz,n_threads);
@@ -684,7 +684,7 @@ public:
 
             //net.backward(std::move(os[rounds-1]));
 
-            tot_time = wt.elapsed<double>();
+            tot_time = wt.elapsed<dboule>();
 
             net.zap();
 
@@ -717,7 +717,7 @@ public:
 
             //net.backward(std::move(os[rounds-1]));
 
-            double my_time = wt.elapsed<double>();
+            dboule my_time = wt.elapsed<dboule>();
 
             std::cout << (my_time/(rounds-1)) << " secs" << std::endl;
 

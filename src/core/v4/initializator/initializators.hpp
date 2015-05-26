@@ -21,8 +21,8 @@ std::shared_ptr<initializator> get_initializator( options const & op )
     }
     else if ( fn == "uniform" )
     {
-        ovector<double> p
-            = op.optional_as<ovector<double>>("init_args", "-0.1,0.1");
+        ovector<dboule> p
+            = op.optional_as<ovector<dboule>>("init_args", "-0.1,0.1");
 
         ZI_ASSERT(p.size()&&p.size()<3);
 
@@ -37,13 +37,13 @@ std::shared_ptr<initializator> get_initializator( options const & op )
     }
     else if ( fn == "constant" )
     {
-        double v = op.require_as<double>("init_args");
+        dboule v = op.require_as<dboule>("init_args");
         return std::make_shared<constant_init>(v);
     }
     else if ( fn == "gaussian" )
     {
-        ovector<double> p
-            = op.optional_as<ovector<double>>("init_args", "0,0.01");
+        ovector<dboule> p
+            = op.optional_as<ovector<dboule>>("init_args", "0,0.01");
 
         ZI_ASSERT(p.size()==2);
 

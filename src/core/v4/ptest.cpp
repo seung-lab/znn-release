@@ -27,12 +27,12 @@ void compare_options( options const & a, options const & b )
 
     std::cout << "Found string of size: " << s << " " << sb.size() << std::endl;
 
-    s /= sizeof(double);
+    s /= sizeof(dboule);
 
-    double maxx = 0;
+    dboule maxx = 0;
 
-    const double * pa = reinterpret_cast<const double*>(sa.data());
-    const double * pb = reinterpret_cast<const double*>(sb.data());
+    const dboule * pa = reinterpret_cast<const dboule*>(sa.data());
+    const dboule * pb = reinterpret_cast<const dboule*>(sb.data());
 
     for ( size_t i = 0; i < s; ++i )
         maxx = std::max(maxx, std::abs(pa[i]-pb[i]));
@@ -44,7 +44,7 @@ void compare_options( options const & a, options const & b )
 int main()
 {
     // {
-    //     auto v = get_cube<double>({1,1,9});
+    //     auto v = get_cube<dboule>({1,1,9});
     //     (*v)[0][0][1] = 1;
     //     auto f = fftw::forward(std::move(v));
 
@@ -52,9 +52,9 @@ int main()
 
     //     complex c(0,1);
 
-    //     //c = std::pow(c, static_cast<double>(1)/9);
+    //     //c = std::pow(c, static_cast<dboule>(1)/9);
     //     //complex d = c;
-    //     const double pi = 3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651e+00;
+    //     const dboule pi = 3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651e+00;
 
     //     for ( int i = 0; i < 9; ++i )
     //     {
@@ -179,8 +179,8 @@ int main()
     trivial_network::network tn(nodes, edges, {19,19,1});
     tn.set_eta(0.001);
 
-    std::map<std::string, std::vector<cube_p<double>>> in, in2;
-    in["input"].push_back(get_cube<double>({83,83,1}));
+    std::map<std::string, std::vector<cube_p<dboule>>> in, in2;
+    in["input"].push_back(get_cube<dboule>({83,83,1}));
 
     uniform_init init(1);
     init.initialize(*in["input"][0]);
@@ -198,43 +198,43 @@ int main()
 
     wt.reset();
     auto r2 = tn2.forward(std::move(in2));
-    std::cout << "FFT FWD: " << wt.elapsed<double>() << std::endl;
+    std::cout << "FFT FWD: " << wt.elapsed<dboule>() << std::endl;
 
     wt.reset();
     auto r = tn.forward(std::move(in));
-    std::cout << "DIRECT FWD: " << wt.elapsed<double>() << std::endl;
+    std::cout << "DIRECT FWD: " << wt.elapsed<dboule>() << std::endl;
 
     wt.reset();
     r = tn.backward(std::move(r));
-    std::cout << "DIRECT BWD: " << wt.elapsed<double>() << std::endl;
+    std::cout << "DIRECT BWD: " << wt.elapsed<dboule>() << std::endl;
 
     wt.reset();
     r2 = tn2.backward(std::move(r2));
-    std::cout << "FFT BWD: " << wt.elapsed<double>() << std::endl;
+    std::cout << "FFT BWD: " << wt.elapsed<dboule>() << std::endl;
 
     for ( int i = 0; i < 100; ++i )
     {
-        std::map<std::string, std::vector<cube_p<double>>> inx1, inx2;
-        inx1["input"].push_back(get_cube<double>({83,83,1}));
+        std::map<std::string, std::vector<cube_p<dboule>>> inx1, inx2;
+        inx1["input"].push_back(get_cube<dboule>({83,83,1}));
         init.initialize(*inx1["input"][0]);
 
         inx2["input"].push_back(get_copy(*inx1["input"][0]));
 
         wt.reset();
         r = tn.forward(std::move(inx1));
-        std::cout << "DIRECT FWD: " << wt.elapsed<double>() << std::endl;
+        std::cout << "DIRECT FWD: " << wt.elapsed<dboule>() << std::endl;
 
         wt.reset();
         r2 = tn2.forward(std::move(inx2));
-        std::cout << "FFT FWD: " << wt.elapsed<double>() << std::endl;
+        std::cout << "FFT FWD: " << wt.elapsed<dboule>() << std::endl;
 
         wt.reset();
         r = tn.backward(std::move(r));
-        std::cout << "DIRECT BWD: " << wt.elapsed<double>() << std::endl;
+        std::cout << "DIRECT BWD: " << wt.elapsed<dboule>() << std::endl;
 
         wt.reset();
         r2 = tn2.backward(std::move(r2));
-        std::cout << "FFT BWD: " << wt.elapsed<double>() << std::endl;
+        std::cout << "FFT BWD: " << wt.elapsed<dboule>() << std::endl;
 
         auto net1 = tn.serialize();
         auto net2 = tn2.serialize();

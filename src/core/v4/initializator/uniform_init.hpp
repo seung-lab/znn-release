@@ -7,19 +7,19 @@ namespace znn { namespace v4 {
 class uniform_init: public initializator
 {
 private:
-    std::uniform_real_distribution<double> dis;
+    std::uniform_real_distribution<dboule> dis;
 
-    void do_initialize( double* v, size_t n ) noexcept override
+    void do_initialize( dboule* v, size_t n ) noexcept override
     {
         initializator::initialize_with_distribution(dis, v, n);
     }
 
 public:
-    uniform_init( double low, double up )
+    uniform_init( dboule low, dboule up )
         : dis(low, up)
     {}
 
-    explicit uniform_init( double r = 1 )
+    explicit uniform_init( dboule r = 1 )
         : dis(-r, r)
     {}
 

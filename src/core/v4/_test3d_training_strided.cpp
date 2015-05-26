@@ -1,4 +1,6 @@
 #include "network/parallel/network.hpp"
+#include "network/trivial/trivial_fft_network.hpp"
+#include "network/trivial/trivial_network.hpp"
 #include <zi/zargs/zargs.hpp>
 
 using namespace znn::v4;
@@ -17,6 +19,7 @@ int main(int argc, char** argv)
         .push("init", "uniform")
         .push("size", "1,6,6")
         .push("stride", "1,1,1")
+        .push("repeat", "1,2,2")
         .push("input", "input")
         .push("output", "nl1");
 
@@ -160,6 +163,11 @@ int main(int argc, char** argv)
         tc = atoi(argv[4]);
     }
 
+    trivial_network::network net(nodes, edges, {z,y,x});
+    trivial_fft_network::network fnet(nodes, edges, {z,y,x});
+
+
+    return 9;
     parallel_network::network::optimize(nodes, edges, {z,y,x}, tc , 10);
 
 }

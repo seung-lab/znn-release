@@ -39,7 +39,7 @@ private:
     {
         auto dEdW_fft = *last_input * *g;
         auto dEdW = fftw::backward(std::move(dEdW_fft), in_nodes->fsize());
-        double norm = dEdW->num_elements();
+        dboule norm = dEdW->num_elements();
 
         flip(*dEdW);
         // TODO(zlateski): WTH was happening with sparse_implode before
@@ -82,7 +82,7 @@ public:
     {
         bwd_bucket_ = in->attach_out_fft_edge(inn, this);
         fwd_bucket_ = out->attach_in_fft_edge(outn, this, in->fsize());
-        //flatten(filter_.W(), repeat_);
+        flatten(filter_.W(), repeat_);
 
         pending_ = manager.schedule_unprivileged(&fft_filter_ds_edge::initialize,this);
     }

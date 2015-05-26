@@ -11,21 +11,21 @@ namespace znn { namespace v4 { namespace functions {
 struct hyperbolic_tangent
 {
 private:
-    double a_ = 1;
-    double b_ = 1;
-    double b_over_a;
+    dboule a_ = 1;
+    dboule b_ = 1;
+    dboule b_over_a;
 
 public:
-    hyperbolic_tangent( double a = 1, double b = 1 )
+    hyperbolic_tangent( dboule a = 1, dboule b = 1 )
         : a_(a), b_(b), b_over_a(b_/a_)
     {}
 
-    double operator()(double x) const noexcept
+    dboule operator()(dboule x) const noexcept
     {
         return a_ * std::tanh( b_ * x );
     }
 
-    double grad(double f) const noexcept
+    dboule grad(dboule f) const noexcept
     {
         return b_over_a * ( a_ - f ) * ( a_ + f );
     }

@@ -11,15 +11,15 @@ namespace znn { namespace v4 { namespace functions {
 struct soft_sign
 {
 public:
-    double operator()(double x) const noexcept
+    dboule operator()(dboule x) const noexcept
     {
-        return x / ( static_cast<double>(1) + std::abs(x) );
+        return x / ( static_cast<dboule>(1) + std::abs(x) );
     }
 
-    double grad(double f) const noexcept
+    dboule grad(dboule f) const noexcept
     {
-        return (static_cast<double>(1) - std::abs(f)) *
-            (static_cast<double>(1) - std::abs(f));
+        return (static_cast<dboule>(1) - std::abs(f)) *
+            (static_cast<dboule>(1) - std::abs(f));
     }
 
     options serialize() const

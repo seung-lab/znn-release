@@ -24,7 +24,7 @@ private:
     std::vector<std::unique_ptr<forward_accumulator>>  fwd_accumulators_;
     std::vector<std::unique_ptr<backward_accumulator>> bwd_accumulators_;
 
-    std::vector<cube_p<double>>  fs_     ;
+    std::vector<cube_p<dboule>>  fs_     ;
     waiter                       waiter_ ;
 
 public:
@@ -62,9 +62,9 @@ public:
 
             // initialize biases
 
-            double eta = op.optional_as<double>("eta", 0.1);
-            double mom = op.optional_as<double>("momentum", 0.0);
-            double wd  = op.optional_as<double>("weight_decay", 0.0);
+            dboule eta = op.optional_as<dboule>("eta", 0.1);
+            dboule mom = op.optional_as<dboule>("momentum", 0.0);
+            dboule wd  = op.optional_as<dboule>("weight_decay", 0.0);
 
             for ( auto& b: biases_ )
             {
@@ -79,7 +79,7 @@ public:
             }
             else
             {
-                double biases_raw[nodes::size()];
+                dboule biases_raw[nodes::size()];
                 if ( op.contains("init") )
                 {
                     auto initf = get_initializator(op);
@@ -91,7 +91,7 @@ public:
                 }
 
                 bias_values = std::string( reinterpret_cast<char*>(biases_raw),
-                                           sizeof(double) * nodes::size() );
+                                           sizeof(dboule) * nodes::size() );
             }
 
             load_biases(biases_, bias_values);
@@ -103,7 +103,7 @@ public:
     }
 
 
-    void set_eta( double eta ) override
+    void set_eta( dboule eta ) override
     {
         if ( func_ )
         {
@@ -112,7 +112,7 @@ public:
         }
     }
 
-    void set_momentum( double mom ) override
+    void set_momentum( dboule mom ) override
     {
         if ( func_ )
         {
@@ -121,7 +121,7 @@ public:
         }
     }
 
-    void set_weight_decay( double wd ) override
+    void set_weight_decay( dboule wd ) override
     {
         if ( func_ )
         {
@@ -143,7 +143,7 @@ public:
     size_t num_out_nodes() override { return nodes::size(); }
     size_t num_in_nodes()  override { return nodes::size(); }
 
-    std::vector<cube_p<double>>& get_featuremaps() override
+    std::vector<cube_p<dboule>>& get_featuremaps() override
     {
         return fs_;
     }
@@ -170,7 +170,7 @@ private:
 
 public:
 
-    void forward(size_t n, cube_p<double>&& f) override
+    void forward(size_t n, cube_p<dboule>&& f) override
     {
         ZI_ASSERT(n<nodes::size());
         if ( fwd_accumulators_[n]->add(std::move(f)) )
@@ -180,8 +180,8 @@ public:
     }
 
     void forward(size_t n,
-                 ccube_p<double> const & f,
-                 ccube_p<double> const & w,
+                 ccube_p<dboule> const & f,
+                 ccube_p<dboule> const & w,
                  vec3i const & stride) override
     {
         ZI_ASSERT(n<nodes::size());
@@ -214,7 +214,7 @@ public:
 
 
 private:
-    void do_backward(size_t n, cube_p<double> const & g)
+    void do_backward(size_t n, cube_p<dboule> const & g)
     {
         if ( func_ )
         {
@@ -226,7 +226,7 @@ private:
     }
 
 public:
-    void backward(size_t n, cube_p<double>&& g) override
+    void backward(size_t n, cube_p<dboule>&& g) override
     {
         ZI_ASSERT(n<nodes::size());
         if ( nodes::is_output() )
@@ -242,8 +242,8 @@ public:
         }
     }
 
-    void backward(size_t n, ccube_p<double> const & g,
-                  ccube_p<double> const & w, vec3i const & stride) override
+    void backward(size_t n, ccube_p<dboule> const & g,
+                  ccube_p<dboule> const & w, vec3i const & stride) override
     {
         ZI_ASSERT((n<nodes::size())&&(!nodes::is_output()));
         if ( bwd_accumulators_[n]->add(g,w,stride) )

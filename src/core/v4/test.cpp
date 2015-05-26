@@ -30,12 +30,12 @@ void compare_options( options const & a, options const & b )
 
     std::cout << "Found string of size: " << s << " " << sb.size() << std::endl;
 
-    s /= sizeof(double);
+    s /= sizeof(dboule);
 
-    double maxx = 0;
+    dboule maxx = 0;
 
-    const double * pa = reinterpret_cast<const double*>(sa.data());
-    const double * pb = reinterpret_cast<const double*>(sb.data());
+    const dboule * pa = reinterpret_cast<const dboule*>(sa.data());
+    const dboule * pb = reinterpret_cast<const dboule*>(sb.data());
 
     for ( size_t i = 0; i < s; ++i )
         maxx = std::max(maxx, std::abs(pa[i]-pb[i]));
@@ -44,7 +44,7 @@ void compare_options( options const & a, options const & b )
 
 }
 
-const double pi = 3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196e0;
+const dboule pi = 3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196e0;
 
 std::vector<std::vector<complex>> roots;
 
@@ -59,8 +59,8 @@ void calc_roots()
 
         for ( std::size_t i = 1; i <= N; ++i )
         {
-            double cosine = std::cos( -pi * 2 * i / N );
-            double sine   = std::sin( -pi * 2 * i / N );
+            dboule cosine = std::cos( -pi * 2 * i / N );
+            dboule sine   = std::sin( -pi * 2 * i / N );
             roots[N][i] = complex(cosine, sine);
         }
 
@@ -71,7 +71,7 @@ void calc_roots()
     }
 }
 
-inline cube_p<complex> myfft( cube<double> const & in, const vec3i& osize )
+inline cube_p<complex> myfft( cube<dboule> const & in, const vec3i& osize )
 {
     auto sz  = size(in);
     auto cs  = fft_complex_size(osize);
@@ -122,8 +122,8 @@ int main()
     //     vec3i fsize{sz,sz,sz};
     //     std::cout << "Filter size: " << fsize << "\n";
 
-    //     auto v1 = get_cube<double>(fsize);
-    //     auto v2 = get_cube<double>(fsize);
+    //     auto v1 = get_cube<dboule>(fsize);
+    //     auto v2 = get_cube<dboule>(fsize);
     //     uniform_init uinit(1);
     //     uinit.initialize(*v1);
     //     *v2 = *v1;
@@ -131,16 +131,16 @@ int main()
     //     zi::wall_timer wt;
     //     wt.reset();
     //     auto x = fftw::forward_pad(v1, {120,120,5});
-    //     std::cout << "\tFFTW: " << wt.elapsed<double>() << std::endl;
+    //     std::cout << "\tFFTW: " << wt.elapsed<dboule>() << std::endl;
 
 
     //     wt.reset();
     //     auto y = myfft(*v2, {120,120,5});
-    //     std::cout << "\tMY FFT:" << wt.elapsed<double>() << std::endl;
+    //     std::cout << "\tMY FFT:" << wt.elapsed<dboule>() << std::endl;
 
     //     *y -= *x;
 
-    //     double maxdiff = 0;
+    //     dboule maxdiff = 0;
     //     for ( size_t i = 0; i < y->num_elements(); ++i )
     //     {
     //         maxdiff = std::max(maxdiff, std::abs(y->data()[i]));
@@ -503,26 +503,26 @@ int main()
 
 
 
-    std::vector<std::map<std::string, std::vector<cube_p<double>>>>
+    std::vector<std::map<std::string, std::vector<cube_p<dboule>>>>
         inputs1, inputs2, outputs1, outputs2;
 
     uniform_init init(1);
 
     for ( size_t n = 0; n < 100; ++n )
     {
-        std::map<std::string, std::vector<cube_p<double>>> in1, in2;
+        std::map<std::string, std::vector<cube_p<dboule>>> in1, in2;
 
-        in1["input"].push_back(get_cube<double>({75,75,2}));
+        in1["input"].push_back(get_cube<dboule>({75,75,2}));
         init.initialize(*in1["input"][0]);
         in2["input"].push_back(get_copy(*in1["input"][0]));
 
         inputs1.push_back(in1);
         inputs2.push_back(in2);
 
-        std::map<std::string, std::vector<cube_p<double>>> out1, out2;
+        std::map<std::string, std::vector<cube_p<dboule>>> out1, out2;
 
-        out1["output"].push_back(get_cube<double>({11,11,2}));
-        out1["output"].push_back(get_cube<double>({11,11,2}));
+        out1["output"].push_back(get_cube<dboule>({11,11,2}));
+        out1["output"].push_back(get_cube<dboule>({11,11,2}));
 
         init.initialize(*out1["output"][0]);
         init.initialize(*out1["output"][1]);

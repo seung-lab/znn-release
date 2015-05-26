@@ -24,13 +24,13 @@ inline cube_p<int> make_indices( const vec3i& s )
 
 
 template<typename F>
-inline void pooling_filter_pass_2( double *  head1,
-                                   double *  end,
+inline void pooling_filter_pass_2( dboule *  head1,
+                                   dboule *  end,
                                    int *     head2,
                                    size_t    stride,
                                    F const & cmp ) noexcept
 {
-    double * tail1 = head1 + stride;
+    dboule * tail1 = head1 + stride;
     int *    tail2 = head2 + stride;
 
     while ( tail1 <= end )
@@ -49,8 +49,8 @@ inline void pooling_filter_pass_2( double *  head1,
 }
 
 template<typename F>
-inline void pooling_filter_pass_3( double *  head1,
-                                   double *  end,
+inline void pooling_filter_pass_3( dboule *  head1,
+                                   dboule *  end,
                                    int *     head2,
                                    size_t    stride,
                                    F const & cmp ) noexcept
@@ -60,8 +60,8 @@ inline void pooling_filter_pass_3( double *  head1,
 }
 
 template<typename F>
-inline void pooling_filter_pass_4( double *  head1,
-                                   double *  end,
+inline void pooling_filter_pass_4( dboule *  head1,
+                                   dboule *  end,
                                    int *     head2,
                                    size_t    stride,
                                    F const & cmp ) noexcept
@@ -73,8 +73,8 @@ inline void pooling_filter_pass_4( double *  head1,
 
 
 template<typename F>
-inline void pooling_filter_pass( double *  head1,
-                                 double *  end,
+inline void pooling_filter_pass( dboule *  head1,
+                                 dboule *  end,
                                  int *     head2,
                                  size_t    size,
                                  size_t    stride,
@@ -101,7 +101,7 @@ inline void pooling_filter_pass( double *  head1,
     }
 
 
-    typedef std::pair<double,int> pair_type;
+    typedef std::pair<dboule,int> pair_type;
 
     auto cmpf =
         [&cmp](const pair_type& l, const pair_type& r)
@@ -112,7 +112,7 @@ inline void pooling_filter_pass( double *  head1,
 
     std::set<pair_type, decltype(cmpf)> set(cmpf);
 
-    double * tail1 = head1;
+    dboule * tail1 = head1;
     int *    tail2 = head2;
 
     ZI_ASSERT(size>0);
@@ -142,12 +142,12 @@ inline void pooling_filter_pass( double *  head1,
 }
 
 template<typename F>
-inline void pooling_filter_pass_2_no_indices( double *  head1,
-                                              double *  end,
+inline void pooling_filter_pass_2_no_indices( dboule *  head1,
+                                              dboule *  end,
                                               size_t    stride,
                                               F const & cmp ) noexcept
 {
-    double * tail1 = head1 + stride;
+    dboule * tail1 = head1 + stride;
 
     while ( tail1 <= end )
     {
@@ -162,8 +162,8 @@ inline void pooling_filter_pass_2_no_indices( double *  head1,
 }
 
 template<typename F>
-inline void pooling_filter_pass_3_no_indices( double *  head1,
-                                              double *  end,
+inline void pooling_filter_pass_3_no_indices( dboule *  head1,
+                                              dboule *  end,
                                               size_t    stride,
                                               F const & cmp ) noexcept
 {
@@ -172,8 +172,8 @@ inline void pooling_filter_pass_3_no_indices( double *  head1,
 }
 
 template<typename F>
-inline void pooling_filter_pass_4_no_indices( double *  head1,
-                                              double *  end,
+inline void pooling_filter_pass_4_no_indices( dboule *  head1,
+                                              dboule *  end,
                                               size_t    stride,
                                               F const & cmp ) noexcept
 {
@@ -184,8 +184,8 @@ inline void pooling_filter_pass_4_no_indices( double *  head1,
 
 
 template<typename F>
-inline void pooling_filter_pass_no_indices( double *  head1,
-                                            double *  end,
+inline void pooling_filter_pass_no_indices( dboule *  head1,
+                                            dboule *  end,
                                             size_t    size,
                                             size_t    stride,
                                             F const & cmp ) noexcept

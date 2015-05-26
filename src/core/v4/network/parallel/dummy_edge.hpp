@@ -26,12 +26,12 @@ public:
         out->attach_in_edge(outn,this);
     }
 
-    void forward( ccube_p<double> const & f ) override
+    void forward( ccube_p<dboule> const & f ) override
     {
         out_nodes->forward(out_num,get_copy(*f));
     }
 
-    void backward( ccube_p<double> const & g )
+    void backward( ccube_p<dboule> const & g )
     {
         in_nodes->backward(in_num,get_copy(*g));
     }

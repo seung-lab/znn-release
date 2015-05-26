@@ -8,20 +8,20 @@ namespace znn { namespace v4 {
 class normalize_init: public initializator
 {
 private:
-    double lower_;
-    double upper_;
+    dboule lower_;
+    dboule upper_;
 
-    void do_initialize( double* v, size_t n ) noexcept override
+    void do_initialize( dboule* v, size_t n ) noexcept override
     {
-        double min_val = *std::min_element(v,v+n);
-        double max_val = *std::max_element(v,v+n);
+        dboule min_val = *std::min_element(v,v+n);
+        dboule max_val = *std::max_element(v,v+n);
 
-        double old_range = max_val - min_val;
-        double new_range = upper_  - lower_;
+        dboule old_range = max_val - min_val;
+        dboule new_range = upper_  - lower_;
 
-        if ( old_range < std::numeric_limits<double>::epsilon() )
+        if ( old_range < std::numeric_limits<dboule>::epsilon() )
         {
-            old_range = std::numeric_limits<double>::max();
+            old_range = std::numeric_limits<dboule>::max();
         }
 
         for ( std::size_t i = 0; i < n; ++i )
@@ -32,7 +32,7 @@ private:
     }
 
 public:
-    explicit normalize_init( double low = 0, double up = 1 )
+    explicit normalize_init( dboule low = 0, dboule up = 1 )
         : lower_(low)
         , upper_(up)
     {}

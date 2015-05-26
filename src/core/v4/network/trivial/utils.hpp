@@ -11,16 +11,16 @@ namespace znn { namespace v4 {
 inline void load_biases( std::vector<std::unique_ptr<bias>> const & bs,
                          std::string const & s )
 {
-    double const* data = reinterpret_cast<double const *>(s.data());
-    ZI_ASSERT((s.size()==bs.size()*sizeof(double))||
-              (s.size()==bs.size()*sizeof(double)*2));
+    dboule const* data = reinterpret_cast<dboule const *>(s.data());
+    ZI_ASSERT((s.size()==bs.size()*sizeof(dboule))||
+              (s.size()==bs.size()*sizeof(dboule)*2));
 
     for ( size_t i = 0; i < bs.size(); ++i )
     {
         bs[i]->b() = data[i];
     }
 
-    if ( s.size() == bs.size()*sizeof(double)*2 )
+    if ( s.size() == bs.size()*sizeof(dboule)*2 )
     {
         for ( size_t i = 0; i < bs.size(); ++i )
         {
@@ -31,7 +31,7 @@ inline void load_biases( std::vector<std::unique_ptr<bias>> const & bs,
 
 inline std::string save_biases( std::vector<std::unique_ptr<bias>> const & bs )
 {
-    double* data = new double[bs.size() * 2];
+    dboule* data = new dboule[bs.size() * 2];
 
     for ( size_t i = 0; i < bs.size(); ++i )
     {
@@ -40,7 +40,7 @@ inline std::string save_biases( std::vector<std::unique_ptr<bias>> const & bs )
     }
 
     std::string ret( reinterpret_cast<char*>(data),
-                     bs.size() * sizeof(double) * 2 );
+                     bs.size() * sizeof(dboule) * 2 );
 
     delete[] data;
 
@@ -53,10 +53,10 @@ inline void load_filters( std::vector<std::unique_ptr<filter>> const & fs,
 {
     long_t n = s[0] * s[1] * s[2];
 
-    double const* data = reinterpret_cast<double const *>(d.data());
+    dboule const* data = reinterpret_cast<dboule const *>(d.data());
 
-    ZI_ASSERT((d.size()==fs.size()*n*sizeof(double))||
-              (d.size()==fs.size()*n*sizeof(double)*2));
+    ZI_ASSERT((d.size()==fs.size()*n*sizeof(dboule))||
+              (d.size()==fs.size()*n*sizeof(dboule)*2));
 
     size_t idx = 0;
 
@@ -69,7 +69,7 @@ inline void load_filters( std::vector<std::unique_ptr<filter>> const & fs,
                     fs[i]->W()[x][y][z] = data[idx++];
     }
 
-    if ( d.size() == fs.size()*n*sizeof(double)*2 )
+    if ( d.size() == fs.size()*n*sizeof(dboule)*2 )
     {
         for ( size_t i = 0; i < fs.size(); ++i )
         {
@@ -89,7 +89,7 @@ inline std::string save_filters( std::vector<std::unique_ptr<filter>> const & fs
 {
     long_t n = s[0] * s[1] * s[2];
 
-    double* data = new double[fs.size() * n * 2];
+    dboule* data = new dboule[fs.size() * n * 2];
 
     size_t idx = 0;
 
@@ -110,7 +110,7 @@ inline std::string save_filters( std::vector<std::unique_ptr<filter>> const & fs
     }
 
     std::string ret( reinterpret_cast<char*>(data),
-                     fs.size() * n * sizeof(double) * 2 );
+                     fs.size() * n * sizeof(dboule) * 2 );
 
     delete[] data;
 
