@@ -74,6 +74,8 @@ inline edges::edges( nodes * in,
     int does_fft = options_.optional_as<int>("fft", "1");
     auto repeat  = options_.optional_as<ovec3i>("repeat", "1,1,1");
 
+    if ( size_ == vec3i::one ) does_fft = 0;
+
     for ( size_t i = 0, k = 0; i < n; ++i )
     {
         for ( size_t j = 0; j < m; ++j, ++k )
