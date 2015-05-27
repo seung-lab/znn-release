@@ -396,6 +396,17 @@ inline cube_p<dboule> pad_zeros( const cube<dboule>& v, vec3i const & s )
 }
 
 template<typename T>
+inline cube_p<T> crop( cube<T> const & c, vec3i const & l, vec3i const & s )
+{
+    auto ret = get_cube<T>(s);
+    *ret = c[indices
+             [range(l[0],l[0]+s[0])]
+             [range(l[1],l[1]+s[1])]
+             [range(l[2],l[2]+s[2])]];
+    return ret;
+}
+
+template<typename T>
 inline cube_p<T> crop( cube<T> const & c, vec3i const & s )
 {
     auto ret = get_cube<T>(s);
