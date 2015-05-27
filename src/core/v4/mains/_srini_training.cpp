@@ -23,8 +23,7 @@ int main(int argc, char** argv)
     nodes[1].push("name", "nl1")
         .push("type", "transfer")
         .push("function", "rectify_linear")
-        .push("size", 16);
-
+        .push("size", 10);
 
     edges[1].push("name", "conv2")
         .push("type", "conv")
