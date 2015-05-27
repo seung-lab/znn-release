@@ -1,7 +1,10 @@
 #pragma once
 
-#include <fftw3.h>
-#include <cstddef>
+#ifdef ZNN_USE_MKL_FFT
+#  include <fftw/fftw3.h>
+#else
+#  include <fftw3.h>
+#endif
 
 namespace znn { namespace v4 {
 

@@ -116,7 +116,7 @@ public:
         d[ 3 ] = v.at( 3 );
     }
 
-    template< class O, std::size_t N >
+    template< std::size_t N, class O = void >
     explicit quat( const mat< T, N >& m,
                    typename detail::enable_if_c< ( N > 2 ), O >::type* = 0 )
     {

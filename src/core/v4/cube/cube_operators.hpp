@@ -97,6 +97,13 @@ inline void mul_with(T * a, T const& v, std::size_t s) noexcept
 }
 
 template<typename T>
+inline void div_with(T * a, T const& v, std::size_t s) noexcept
+{
+    for ( std::size_t i = 0; i < s; ++i )
+        a[i] /= v;
+}
+
+template<typename T>
 inline void add_to(T * a, T const * v, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
@@ -180,6 +187,7 @@ operator/=( cube<T> & v, identity_t<T> c ) noexcept
 {
     dboule one_over_c = static_cast<long double>(1) / c;
     detail::mul_with(v.data(), one_over_c, v.num_elements());
+    //detail::div_with(v.data(), c, v.num_elements());
     return v;
 }
 
