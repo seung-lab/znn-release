@@ -89,6 +89,11 @@ private:
 
     task_manager tm_;
 
+#ifdef ZNN_ANALYSE_TASK_MANAGER
+    void dump() { tm_.dump(); }
+#endif
+
+
     void fov_pass(nnodes* n, const vec3i& fov, const vec3i& fsize )
     {
         if ( n->fov != vec3i::zero )
@@ -544,6 +549,12 @@ public:
             tot_time = wt.elapsed<dboule>();
 
             net.zap();
+
+#ifdef ZNN_ANALYSE_TASK_MANAGER
+            std::cout << "HERE";
+            net.dump();
+#endif
+
 
             std::cout << (tot_time/(rounds-1)) << " secs" << std::endl;
         }
