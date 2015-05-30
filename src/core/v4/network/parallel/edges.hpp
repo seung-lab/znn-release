@@ -63,10 +63,10 @@ inline edges::edges( nodes * in,
 
 
         initf->initialize( filters_raw, n*m*size_[0]*size_[1]*size_[2] );
-        delete [] filters_raw;
 
         filter_values = std::string( reinterpret_cast<char*>(filters_raw),
                                      sizeof(dboule) * n_values );
+        delete [] filters_raw;
     }
 
     load_filters(filters_, size_, filter_values);

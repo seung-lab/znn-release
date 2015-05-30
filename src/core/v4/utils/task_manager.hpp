@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <thread>
+#include <fstream>
 #include <atomic>
 #include <map>
 #include <set>
@@ -405,13 +406,17 @@ public:
     void dump()
     {
         std::lock_guard<std::mutex> g(mutex_);
-        std::cout << '[';
-        for ( auto& d: timepoints_ )
-        {
-            std::cout << d.time << ',' << d.priv << ','
-                      << d.unpriv << ',' << d.idle << ';' << std::endl;
-        }
-        std::cout << ']';
+
+        std::ofstream fvol("/tmp/dat.dat", (std::ios::out | std::ios::binary) );
+        fvol.write( reinterpret_cast<char*>(&(timepoints_[0])), timepoints_.size() * sizeof(timepoint) );
+
+        // std::cout << '[';
+        // for ( auto& d: timepoints_ )
+        // {
+        //     std::cout << d.time << ',' << d.priv << ','
+        //               << d.unpriv << ',' << d.idle << ';' << std::endl;
+        // }
+        // std::cout << ']';
     }
 
 private:

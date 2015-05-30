@@ -25,7 +25,7 @@ int main(int argc, char** argv)
     nodes[1].push("name", "nl1")
         .push("type", "transfer")
         .push("function", "rectify_linear")
-        .push("size", 10);
+        .push("size", 16);
 
     edges[1].push("name", "conv2")
         .push("type", "conv")
@@ -38,7 +38,7 @@ int main(int argc, char** argv)
     nodes[2].push("name", "nl2")
         .push("type", "transfer")
         .push("function", "rectify_linear")
-        .push("size", 10);
+        .push("size", 16);
 
     edges[2].push("name", "conv3")
         .push("type", "conv")
@@ -51,7 +51,7 @@ int main(int argc, char** argv)
     nodes[3].push("name", "nl3")
         .push("type", "transfer")
         .push("function", "rectify_linear")
-        .push("size", 10);
+        .push("size", 16);
 
     edges[3].push("name", "conv4")
         .push("type", "conv")
@@ -64,7 +64,7 @@ int main(int argc, char** argv)
     nodes[4].push("name", "nl4")
         .push("type", "transfer")
         .push("function", "rectify_linear")
-        .push("size", 10);
+        .push("size", 16);
 
     edges[4].push("name", "conv5")
         .push("type", "conv")
@@ -77,7 +77,7 @@ int main(int argc, char** argv)
     nodes[5].push("name", "nl5")
         .push("type", "transfer")
         .push("function", "rectify_linear")
-        .push("size", 10);
+        .push("size", 16);
 
     edges[5].push("name", "conv6")
         .push("type", "conv")
