@@ -2,14 +2,14 @@
 
 inline void* znn_malloc(size_t s)
 {
-    void* r = je_malloc(s);
+    void* r = malloc(s);
     if ( !r ) throw std::bad_alloc();
     return r;
 }
 
 inline void znn_free(void* ptr)
 {
-    je_free(ptr);
+    free(ptr);
 }
 
 template <typename T> struct cube: boost::multi_array_ref<T,3>

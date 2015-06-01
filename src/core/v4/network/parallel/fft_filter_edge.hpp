@@ -155,11 +155,11 @@ private:
         //                 ony happened on my laptop
     }
 
-    cube_p<dboule> get_w_fft()
+    cube_p<complex> get_w_fft()
     {
         auto w_tmp = sparse_explode_slow(filter_.W(), filter_stride,
                                          in_nodes->fsize());
-        return = fftw::forward(std::move(w_tmp));
+        return fftw::forward(std::move(w_tmp));
     }
 
 public:

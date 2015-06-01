@@ -1,16 +1,38 @@
-#define __ZNN_ALIGN 0xF // 16 byte alignment
+#ifdef ZNN_XEON_PHI
+#  define __ZNN_ALIGN 0x3F // 64 byte alignment
+#else
+#  define __ZNN_ALIGN 0xF // 16 byte alignment
+#endif
+
+#ifdef ZNN_XEON_PHI
 
 inline void* znn_malloc(size_t s)
 {
-    void* r = je_malloc(s);
+    void* r = mkl_malloc(s,64);
     if ( !r ) throw std::bad_alloc();
     return r;
 }
 
 inline void znn_free(void* ptr)
 {
-    je_free(ptr);
+    mkl_free(ptr);
 }
+
+#else
+
+inline void* znn_malloc(size_t s)
+{
+    void* r = malloc(s);
+    if ( !r ) throw std::bad_alloc();
+    return r;
+}
+
+inline void znn_free(void* ptr)
+{
+    free(ptr);
+}
+
+#endif
 
 template <typename T> struct cube: boost::multi_array_ref<T,3>
 {

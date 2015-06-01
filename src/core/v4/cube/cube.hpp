@@ -21,6 +21,10 @@
 #include "cube_allocator.hpp"
 #include "../types.hpp"
 
+#ifdef ZNN_XEON_PHI
+#  include <mkl.h>
+#endif
+
 namespace znn { namespace v4 {
 
 typedef boost::multi_array_types::index_range range;
