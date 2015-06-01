@@ -27,18 +27,18 @@ public:
     {
     }
 
-    void forward( ccube_p<dboule> const & f ) override
+    void forward( ccube_p<real> const & f ) override
     {
         insize = size(*f);
         auto r = pooling_filter(get_copy(*f),
-                                [](dboule a, dboule b){ return a>b; },
+                                [](real a, real b){ return a>b; },
                                 filter_size,
                                 filter_stride);
         indices = r.second;
         out_nodes->forward(out_num,std::move(r));
     }
 
-    void backward( ccube_p<dboule> const & g )
+    void backward( ccube_p<real> const & g )
     {
         ZI_ASSERT(indices);
         ZI_ASSERT(insize==size(*g)+(filter_size-vec3i::one)*filter_stride);

@@ -57,25 +57,25 @@ public:
 
     // receive a featuremap for the i-th input
     // featuremap is absorbed
-    virtual void forward(size_t, cube_p<dboule>&&)
+    virtual void forward(size_t, cube_p<real>&&)
     { UNIMPLEMENTED(); }
 
     // receive a gradient for the i-th output
     // gradient is absorbed
-    virtual void backward(size_t, cube_p<dboule>&&)
+    virtual void backward(size_t, cube_p<real>&&)
     { UNIMPLEMENTED(); }
 
     // for inplace convolution
     virtual void forward(size_t,
-                         ccube_p<dboule> const & /* featuremap */,
-                         ccube_p<dboule> const & /* filter */,
+                         ccube_p<real> const & /* featuremap */,
+                         ccube_p<real> const & /* filter */,
                          vec3i const &           /* filter_stride */ )
     { UNIMPLEMENTED(); }
 
     // for inplace convolution
     virtual void backward(size_t,
-                          ccube_p<dboule> const & /* gradient */,
-                          ccube_p<dboule> const & /* filter */,
+                          ccube_p<real> const & /* gradient */,
+                          ccube_p<real> const & /* filter */,
                           vec3i const &           /* filter_stride */ )
     { UNIMPLEMENTED(); }
 
@@ -103,7 +103,7 @@ public:
     { UNIMPLEMENTED(); }
 
 
-    virtual std::vector<cube_p<dboule>>& get_featuremaps()
+    virtual std::vector<cube_p<real>>& get_featuremaps()
     { UNIMPLEMENTED(); }
 
     virtual size_t num_out_nodes()
@@ -124,13 +124,13 @@ public:
     virtual size_t attach_in_fft_edge(size_t, edge*, vec3i const &)
     { UNIMPLEMENTED(); }
 
-    virtual void set_eta( dboule )
+    virtual void set_eta( real )
     { UNIMPLEMENTED(); }
 
-    virtual void set_momentum( dboule )
+    virtual void set_momentum( real )
     { UNIMPLEMENTED(); }
 
-    virtual void set_weight_decay( dboule )
+    virtual void set_weight_decay( real )
     { UNIMPLEMENTED(); }
 
     virtual void wait()

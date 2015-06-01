@@ -84,18 +84,18 @@ public:
         return ++current_ == required_;
     }
 
-    cube_p<dboule> reset()
+    cube_p<real> reset()
     {
         ZI_ASSERT(current_.load()==required_);
 
-        cube_p<dboule> r = fftw::backward(std::move(sum_), size_);
+        cube_p<real> r = fftw::backward(std::move(sum_), size_);
         sum_.reset();
         current_ = 0;
 
         return r;
     }
 
-    dboule weight() const
+    real weight() const
     {
         return size_[0] * size_[1] * size_[2];
     }

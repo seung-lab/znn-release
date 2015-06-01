@@ -15,23 +15,23 @@ class transfer_function_interface
 {
 public:
     virtual ~transfer_function_interface() {}
-    virtual void apply(cube<dboule>&) noexcept = 0;
-    virtual void apply(cube<dboule>&, dboule) noexcept = 0;
-    virtual void apply_grad(cube<dboule>&, const cube<dboule>&) noexcept = 0;
+    virtual void apply(cube<real>&) noexcept = 0;
+    virtual void apply(cube<real>&, real) noexcept = 0;
+    virtual void apply_grad(cube<real>&, const cube<real>&) noexcept = 0;
     virtual options serialize() const = 0;
 };
 
 
 template<class F>
 using grad_result_t =
-    decltype(std::declval<const F&>().grad(std::declval<dboule>()));
+    decltype(std::declval<const F&>().grad(std::declval<real>()));
 
 template<class F, class = void>
 struct has_public_member_grad: std::false_type {};
 
 template<class F>
 struct has_public_member_grad< F, void_t<grad_result_t<F>> >
-    : std::is_same< grad_result_t<F>, dboule > {};
+    : std::is_same< grad_result_t<F>, real > {};
 
 
 template<class F>
@@ -42,10 +42,10 @@ private:
 
     template<typename T>
     typename std::enable_if<has_public_member_grad<T>::value>::type
-    apply_grad(cube<dboule>& g, const cube<dboule>& f, const T& fn) noexcept
+    apply_grad(cube<real>& g, const cube<real>& f, const T& fn) noexcept
     {
-        dboule* gp = g.data();
-        const dboule* fp = f.data();
+        real* gp = g.data();
+        const real* fp = f.data();
         size_t  n = g.num_elements();
         for ( size_t i = 0; i < n; ++i )
             gp[i] *= fn.grad(fp[i]);
@@ -53,7 +53,7 @@ private:
 
     template<typename T>
     typename std::enable_if<!has_public_member_grad<T>::value>::type
-    apply_grad(cube<dboule>&, const cube<dboule>&, const T&) noexcept
+    apply_grad(cube<real>&, const cube<real>&, const T&) noexcept
     {}
 
 public:
@@ -61,23 +61,23 @@ public:
         : f_(f)
     {}
 
-    void apply(cube<dboule>& v) noexcept override
+    void apply(cube<real>& v) noexcept override
     {
-        dboule* d = v.data();
+        real* d = v.data();
         size_t  n = v.num_elements();
         for ( size_t i = 0; i < n; ++i )
             d[i] = f_(d[i]);
     }
 
-    void apply(cube<dboule>& v, dboule bias) noexcept override
+    void apply(cube<real>& v, real bias) noexcept override
     {
-        dboule* d = v.data();
+        real* d = v.data();
         size_t  n = v.num_elements();
         for ( size_t i = 0; i < n; ++i )
             d[i] = f_(d[i] + bias);
     }
 
-    void apply_grad(cube<dboule>& g, const cube<dboule>& f) noexcept override
+    void apply_grad(cube<real>& g, const cube<real>& f) noexcept override
     {
         ZI_ASSERT(size(g)==size(f));
         apply_grad(g,f,f_);
@@ -118,17 +118,17 @@ public:
         return *this;
     }
 
-    void apply(cube<dboule>& v) noexcept
+    void apply(cube<real>& v) noexcept
     {
         if ( f_ ) f_->apply(v);
     }
 
-    void apply(cube<dboule>& v, dboule bias) noexcept
+    void apply(cube<real>& v, real bias) noexcept
     {
         if ( f_ ) f_->apply(v, bias);
     }
 
-    void apply_grad(cube<dboule>& g, const cube<dboule>& f) noexcept
+    void apply_grad(cube<real>& g, const cube<real>& f) noexcept
     {
         if ( f_ ) f_->apply_grad(g,f);
     }
@@ -158,8 +158,8 @@ transfer_function get_transfer_function( const options& op )
     }
     else if ( fn == "linear" )
     {
-        ovector<dboule> p =
-            op.optional_as<ovector<dboule>>("function_args", "1,0");
+        ovector<real> p =
+            op.optional_as<ovector<real>>("function_args", "1,0");
 
         ZI_ASSERT(p.size()&&p.size()<3);
 

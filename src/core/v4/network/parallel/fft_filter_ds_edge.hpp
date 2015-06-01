@@ -39,7 +39,7 @@ private:
     {
         auto dEdW_fft = *last_input * *g;
         auto dEdW = fftw::backward(std::move(dEdW_fft), in_nodes->fsize());
-        dboule norm = dEdW->num_elements();
+        real norm = dEdW->num_elements();
 
         flip(*dEdW);
         // TODO(zlateski): WTH was happening with sparse_implode before

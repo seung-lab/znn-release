@@ -29,10 +29,10 @@ public:
 
     virtual ~edge() {}
 
-    virtual void forward( ccube_p<dboule> const & )
+    virtual void forward( ccube_p<real> const & )
     { UNIMPLEMENTED(); }
 
-    virtual void backward( ccube_p<dboule> const & )
+    virtual void backward( ccube_p<real> const & )
     { UNIMPLEMENTED(); }
 
     virtual void forward( ccube_p<complex> const & )

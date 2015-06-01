@@ -9,7 +9,7 @@ namespace znn { namespace v4 {
 class fftw_stats_impl
 {
 private:
-    dboule              total_time_;
+    real              total_time_;
     std::size_t         total_     ;
     mutable std::mutex  m_         ;
 
@@ -20,7 +20,7 @@ public:
         , m_()
     { }
 
-    dboule get_total_time() const
+    real get_total_time() const
     {
         guard g(m_);
         return total_time_;
@@ -38,7 +38,7 @@ public:
         return total_;
     }
 
-    void add(dboule time)
+    void add(real time)
     {
         guard g(m_);
         ++total_;
@@ -67,7 +67,7 @@ public:
             , backward_plan(fftw_plans.get_backward(s))
         {}
 
-        void forward( cube<dboule>& in,
+        void forward( cube<real>& in,
                       cube<complex>& out )
         {
             ZI_ASSERT(size(out)==fft_complex_size(in));
@@ -77,15 +77,15 @@ public:
             zi::wall_timer wt;
 #           endif
             fftwf_execute_dft_r2c(forward_plan,
-                                 reinterpret_cast<dboule*>(in.data()),
+                                 reinterpret_cast<real*>(in.data()),
                                  reinterpret_cast<fftwf_complex*>(out.data()));
 #           ifdef MEASURE_FFT_RUNTIME
-            fftw_stats.add(wt.elapsed<dboule>());
+            fftw_stats.add(wt.elapsed<real>());
 #           endif
         }
 
         void backward( cube<complex>& in,
-                       cube<dboule>& out )
+                       cube<real>& out )
         {
             ZI_ASSERT(size(in)==fft_complex_size(out));
             ZI_ASSERT(size(out)==sz);
@@ -95,28 +95,28 @@ public:
 #           endif
             fftwf_execute_dft_c2r(backward_plan,
                                  reinterpret_cast<fftwf_complex*>(in.data()),
-                                 reinterpret_cast<dboule*>(out.data()));
+                                 reinterpret_cast<real*>(out.data()));
 #           ifdef MEASURE_FFT_RUNTIME
-            fftw_stats.add(wt.elapsed<dboule>());
+            fftw_stats.add(wt.elapsed<real>());
 #           endif
         }
 
-        cube_p<complex> forward( cube_p<dboule>&& in )
+        cube_p<complex> forward( cube_p<real>&& in )
         {
             cube_p<complex> ret = get_cube<complex>(fft_complex_size(*in));
             forward( *in, *ret );
             return ret;
         }
 
-        cube_p<complex> forward_pad( const ccube_p<dboule>& in )
+        cube_p<complex> forward_pad( const ccube_p<real>& in )
         {
-            cube_p<dboule> pin = pad_zeros(*in, sz);
+            cube_p<real> pin = pad_zeros(*in, sz);
             return forward(std::move(pin));
         }
 
-        cube_p<dboule> backward( cube_p<complex>&& in )
+        cube_p<real> backward( cube_p<complex>&& in )
         {
-            cube_p<dboule> ret = get_cube<dboule>(sz);
+            cube_p<real> ret = get_cube<real>(sz);
             backward( *in, *ret );
             return ret;
         }
@@ -124,7 +124,7 @@ public:
 
 
 public:
-    static void forward( cube<dboule>& in,
+    static void forward( cube<real>& in,
                          cube<complex>& out )
     {
         ZI_ASSERT(in.shape()[0]==out.shape()[0]);
@@ -138,15 +138,15 @@ public:
         zi::wall_timer wt;
 #       endif
         fftwf_execute_dft_r2c(plan,
-                             reinterpret_cast<dboule*>(in.data()),
+                             reinterpret_cast<real*>(in.data()),
                              reinterpret_cast<fftwf_complex*>(out.data()));
 #       ifdef MEASURE_FFT_RUNTIME
-        fftw_stats.add(wt.elapsed<dboule>());
+        fftw_stats.add(wt.elapsed<real>());
 #       endif
     }
 
     static void backward( cube<complex>& in,
-                          cube<dboule>& out )
+                          cube<real>& out )
     {
         ZI_ASSERT(in.shape()[0]==out.shape()[0]);
         ZI_ASSERT(in.shape()[1]==out.shape()[1]);
@@ -160,30 +160,30 @@ public:
 #       endif
         fftwf_execute_dft_c2r(plan,
                              reinterpret_cast<fftwf_complex*>(in.data()),
-                             reinterpret_cast<dboule*>(out.data()));
+                             reinterpret_cast<real*>(out.data()));
 #       ifdef MEASURE_FFT_RUNTIME
-        fftw_stats.add(wt.elapsed<dboule>());
+        fftw_stats.add(wt.elapsed<real>());
 #       endif
     }
 
-    static cube_p<complex> forward( cube_p<dboule>&& in )
+    static cube_p<complex> forward( cube_p<real>&& in )
     {
         cube_p<complex> ret = get_cube<complex>(fft_complex_size(*in));
         fftw::forward( *in, *ret );
         return ret;
     }
 
-    static cube_p<dboule> backward( cube_p<complex>&& in, const vec3i& s )
+    static cube_p<real> backward( cube_p<complex>&& in, const vec3i& s )
     {
-        cube_p<dboule> ret = get_cube<dboule>(s);
+        cube_p<real> ret = get_cube<real>(s);
         fftw::backward( *in, *ret );
         return ret;
     }
 
-    static cube_p<complex> forward_pad( const ccube_p<dboule>& in,
+    static cube_p<complex> forward_pad( const ccube_p<real>& in,
                                         const vec3i& pad )
     {
-        cube_p<dboule> pin = pad_zeros(*in, pad);
+        cube_p<real> pin = pad_zeros(*in, pad);
         return fftw::forward(std::move(pin));
     }
 

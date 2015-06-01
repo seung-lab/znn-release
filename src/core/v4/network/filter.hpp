@@ -10,50 +10,50 @@ namespace znn { namespace v4 {
 class filter
 {
 private:
-    cube_p<dboule>   W_;
-    cube_p<dboule>   mom_volume_;
+    cube_p<real>   W_;
+    cube_p<real>   mom_volume_;
 
     // weight update stufftw
-    dboule        eta_          = 0.1 ;
-    dboule        momentum_     = 0.0 ;
-    dboule        weight_decay_ = 0.0 ;
+    real        eta_          = 0.1 ;
+    real        momentum_     = 0.0 ;
+    real        weight_decay_ = 0.0 ;
 
 public:
-    filter( const vec3i& s, dboule eta, dboule mom = 0.0, dboule wd = 0.0 )
-        : W_(get_cube<dboule>(s))
-        , mom_volume_(get_cube<dboule>(s))
+    filter( const vec3i& s, real eta, real mom = 0.0, real wd = 0.0 )
+        : W_(get_cube<real>(s))
+        , mom_volume_(get_cube<real>(s))
         , eta_(eta), momentum_(mom), weight_decay_(wd)
     {
     }
 
-    dboule& eta()
+    real& eta()
     {
         return eta_;
     }
 
-    cube<dboule>& W()
+    cube<real>& W()
     {
         return *W_;
     }
 
-    cube<dboule>& momentum_volume()
+    cube<real>& momentum_volume()
     {
         return *mom_volume_;
     }
 
-    dboule& momentum()
+    real& momentum()
     {
         return momentum_;
     }
 
-    dboule& weight_decay()
+    real& weight_decay()
     {
         return weight_decay_;
     }
 
-    void update(const cube<dboule>& dEdW, dboule patch_size = 0 ) noexcept
+    void update(const cube<real>& dEdW, real patch_size = 0 ) noexcept
     {
-        dboule delta = ( patch_size != 0 ) ? -eta_/patch_size : -eta_;
+        real delta = ( patch_size != 0 ) ? -eta_/patch_size : -eta_;
 
         if ( momentum_ == 0 )
         {
@@ -62,7 +62,7 @@ public:
 
             if ( weight_decay_ != 0 )
             {
-                *W_ *= static_cast<dboule>(1) - eta_ * weight_decay_;
+                *W_ *= static_cast<real>(1) - eta_ * weight_decay_;
             }
 
             mad_to( delta, dEdW, *W_ );

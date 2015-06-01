@@ -10,20 +10,20 @@ namespace znn { namespace v4 { namespace functions {
 struct linear
 {
 private:
-    dboule a_ = 1;
-    dboule b_ = 0;
+    real a_ = 1;
+    real b_ = 0;
 
 public:
-    linear( dboule a = 1, dboule b = 0 )
+    linear( real a = 1, real b = 0 )
         : a_(a), b_(b)
     {}
 
-    dboule operator()(dboule x) const noexcept
+    real operator()(real x) const noexcept
     {
         return a_ * x + b_;
     }
 
-    dboule grad(dboule) const noexcept
+    real grad(real) const noexcept
     {
         return a_;
     }

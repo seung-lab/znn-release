@@ -35,9 +35,9 @@ inline edges::edges( nodes * in,
     filters_.resize(n*m);
     waiter_.set(n*m);
 
-    dboule eta  = opts.optional_as<dboule>("eta", 0.1);
-    dboule mom  = opts.optional_as<dboule>("momentum", 0.0);
-    dboule wd   = opts.optional_as<dboule>("weight_decay", 0.0);
+    real eta  = opts.optional_as<real>("eta", 0.1);
+    real mom  = opts.optional_as<real>("momentum", 0.0);
+    real wd   = opts.optional_as<real>("weight_decay", 0.0);
     auto   sz   = opts.require_as<ovec3i>("size");
 
     size_ = sz;
@@ -57,7 +57,7 @@ inline edges::edges( nodes * in,
     else
     {
         size_t n_values = n*m*size_[0]*size_[1]*size_[2];
-        dboule * filters_raw = new dboule[n_values];
+        real * filters_raw = new real[n_values];
 
         auto initf = get_initializator(opts);
 
@@ -65,7 +65,7 @@ inline edges::edges( nodes * in,
         initf->initialize( filters_raw, n*m*size_[0]*size_[1]*size_[2] );
 
         filter_values = std::string( reinterpret_cast<char*>(filters_raw),
-                                     sizeof(dboule) * n_values );
+                                     sizeof(real) * n_values );
         delete [] filters_raw;
     }
 

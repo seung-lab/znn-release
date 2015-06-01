@@ -22,12 +22,12 @@ private:
     size_t              required_;
     std::atomic<size_t> current_ ;
 
-    cube_p<dboule>       sum_;
+    cube_p<real>       sum_;
     std::mutex          mutex_;
 
-    void do_add(cube_p<dboule>&& to_add)
+    void do_add(cube_p<real>&& to_add)
     {
-        cube_p<dboule> previous_sum;
+        cube_p<real> previous_sum;
         while (1)
         {
             {
@@ -46,7 +46,7 @@ private:
 
     void merge_bucket(size_t b)
     {
-        cube_p<dboule> f = buckets_[b]->reset();
+        cube_p<real> f = buckets_[b]->reset();
         if ( Forward )
             f = crop_right(*f, size_);
         else
@@ -91,7 +91,7 @@ public:
         return bucket_map_[size];
     }
 
-    bool add(cube_p<dboule>&& f)
+    bool add(cube_p<real>&& f)
     {
         ZI_ASSERT(current_<required_);
         do_add(std::move(f));
@@ -99,12 +99,12 @@ public:
     }
 
     // adds f convolved with w
-    bool add(const ccube_p<dboule>& f, const ccube_p<dboule>& w,
+    bool add(const ccube_p<real>& f, const ccube_p<real>& w,
              const vec3i& sparse = vec3i::one )
     {
         ZI_ASSERT(current_<required_);
 
-        cube_p<dboule> previous_sum;
+        cube_p<real> previous_sum;
 
         {
             guard g(mutex_);
@@ -165,7 +165,7 @@ public:
         return false;
     }
 
-    cube_p<dboule> reset()
+    cube_p<real> reset()
     {
         ZI_ASSERT(current_.load()==required_);
         current_ = 0;

@@ -31,8 +31,8 @@ inline cube_p<T> load( std::string const & fname, vec3i const & sz )
 class ISBI2012
 {
 private:
-    cube_p<dboule> image;
-    cube_p<dboule> label;
+    cube_p<real> image;
+    cube_p<real> label;
 
     vec3i       size_       ;
     vec3i       in_sz_      ;
@@ -52,8 +52,8 @@ public:
         , in_sz_(in_sz)
         , out_sz_(out_sz)
     {
-        image = load<double, dboule>(fname + ".image", sz);
-        label = load<double, dboule>(fname + ".label", sz);
+        image = load<double, real>(fname + ".image", sz);
+        label = load<double, real>(fname + ".label", sz);
 
         half_in_sz_  = in_sz_/vec3i(2,2,2);
         half_out_sz_ = out_sz_/vec3i(2,2,2);
@@ -67,13 +67,13 @@ public:
         set_sz_ = size_ - margin_sz_ - half_in_sz_;
     }
 
-    std::pair<cube_p<dboule>, cube_p<dboule>> get_sample()
+    std::pair<cube_p<real>, cube_p<real>> get_sample()
     {
         vec3i loc = vec3i( half_in_sz_[0] + (rand() % set_sz_[0]),
                            half_in_sz_[1] + (rand() % set_sz_[1]),
                            half_in_sz_[2] + (rand() % set_sz_[2]));
 
-        std::pair<cube_p<dboule>,cube_p<dboule>> ret;
+        std::pair<cube_p<real>,cube_p<real>> ret;
 
         ret.first  = crop(*image, loc - half_in_sz_, in_sz_);
         ret.second = crop(*label, loc - half_out_sz_, out_sz_);
@@ -81,15 +81,15 @@ public:
         return ret;
     }
 
-    std::pair<dboule,cube_p<dboule>> square_loss( cube<dboule> const & cprop,
-                                                  cube<dboule> const & clab )
+    std::pair<real,cube_p<real>> square_loss( cube<real> const & cprop,
+                                                  cube<real> const & clab )
     {
-        std::pair<dboule,cube_p<dboule>> ret;
+        std::pair<real,cube_p<real>> ret;
         ret.first = 0;
         ret.second = get_copy(cprop);
 
-        dboule* grad = ret.second->data();
-        const dboule* lab  = clab.data();
+        real* grad = ret.second->data();
+        const real* lab  = clab.data();
 
         long_t n = clab.num_elements();
 
@@ -227,11 +227,11 @@ int main(int argc, char** argv)
     ISBI2012::ISBI2012 isbi( "../../../../dataset/ISBI2012/data/batch1",
                              vec3i(256,256,30), in_sz, out_sz );
 
-    dboule err;
+    real err;
     for ( long_t i = 0; i < 1000000; )
     {
-        std::map<std::string, std::vector<cube_p<dboule>>> insample;
-        std::map<std::string, std::vector<cube_p<dboule>>> outsample;
+        std::map<std::string, std::vector<cube_p<real>>> insample;
+        std::map<std::string, std::vector<cube_p<real>>> outsample;
 
         insample["input"].resize(1);
         outsample["nl6"].resize(1);

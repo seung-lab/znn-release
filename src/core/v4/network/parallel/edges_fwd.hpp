@@ -44,7 +44,7 @@ public:
         return options_.require_as<std::string>("name");
     }
 
-    void set_eta( dboule eta )
+    void set_eta( real eta )
     {
         if ( filters_.size() )
         {
@@ -53,7 +53,7 @@ public:
         }
     }
 
-    void set_momentum( dboule mom )
+    void set_momentum( real mom )
     {
         if ( filters_.size() )
         {
@@ -62,7 +62,7 @@ public:
         }
     }
 
-    void set_weight_decay( dboule wd )
+    void set_weight_decay( real wd )
     {
         if ( filters_.size() )
         {

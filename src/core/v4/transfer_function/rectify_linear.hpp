@@ -12,12 +12,12 @@ namespace znn { namespace v4 { namespace functions {
 struct rectify_linear
 {
 public:
-    dboule operator()(dboule x) const noexcept
+    real operator()(real x) const noexcept
     {
-        return std::max( static_cast<dboule>(0), x );
+        return std::max( static_cast<real>(0), x );
     }
 
-    dboule grad(dboule f) const noexcept
+    real grad(real f) const noexcept
     {
         return ( f > 0 ) ? 1 : 0;
     }

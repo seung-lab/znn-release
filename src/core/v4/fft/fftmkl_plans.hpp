@@ -37,7 +37,7 @@ private:
     std::mutex                m_          ;
     std::map<vec3i, fft_plan> fwd_        ;
     std::map<vec3i, fft_plan> bwd_        ;
-    dboule                    time_       ;
+    real                    time_       ;
 
 public:
     ~fftw_plans_impl()
@@ -91,7 +91,7 @@ public:
 
         status = DftiCommitDescriptor(*ret);
 
-        time_ += wt.elapsed<dboule>();
+        time_ += wt.elapsed<real>();
 
 //        std::cout << "Total time spent creating fftw plans: "
 //                  << time_ << std::endl;

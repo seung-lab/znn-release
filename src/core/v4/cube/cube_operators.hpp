@@ -111,7 +111,7 @@ inline void add_to(T * a, T const * v, std::size_t s) noexcept
 }
 
 template<typename T>
-inline void mad_to(dboule a, T const * x, T * o, std::size_t s) noexcept
+inline void mad_to(real a, T const * x, T * o, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
         o[i] += a * x[i];
@@ -125,7 +125,7 @@ inline void mad_to(T const * a, T const * b, T * r, std::size_t s) noexcept
 }
 
 template<typename T>
-inline void mad_to(dboule a, T * o, std::size_t s) noexcept
+inline void mad_to(real a, T * o, std::size_t s) noexcept
 {
     for ( std::size_t i = 0; i < s; ++i )
         o[i] += a * o[i];
@@ -185,7 +185,7 @@ template<typename T>
 inline cube<T> &
 operator/=( cube<T> & v, identity_t<T> c ) noexcept
 {
-    dboule one_over_c = static_cast<long double>(1) / c;
+    real one_over_c = static_cast<long double>(1) / c;
     detail::mul_with(v.data(), one_over_c, v.num_elements());
     //detail::div_with(v.data(), c, v.num_elements());
     return v;
@@ -288,9 +288,9 @@ inline void fill( cube<T> & v, identity_t<T> c) noexcept
     std::fill_n(v.data(), v.num_elements(), c);
 }
 
-inline void flip(cube<dboule>& v) noexcept
+inline void flip(cube<real>& v) noexcept
 {
-    dboule* data = v.data();
+    real* data = v.data();
     std::reverse(data, data + v.num_elements());
 }
 
@@ -380,9 +380,9 @@ inline cube_p<T> sparse_implode( cube<T> const & r,
 }
 
 
-inline cube_p<dboule> pad_zeros( const cube<dboule>& v, vec3i const & s )
+inline cube_p<real> pad_zeros( const cube<real>& v, vec3i const & s )
 {
-    cube_p<dboule> r = get_cube<dboule>(s);
+    cube_p<real> r = get_cube<real>(s);
 
     std::size_t ox = v.shape()[0];
     std::size_t oy = v.shape()[1];

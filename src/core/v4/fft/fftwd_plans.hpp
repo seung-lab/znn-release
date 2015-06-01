@@ -36,7 +36,7 @@ private:
     std::mutex                 m_          ;
     std::map<vec3i, fftw_plan> fwd_        ;
     std::map<vec3i, fftw_plan> bwd_        ;
-    dboule                     time_       ;
+    real                     time_       ;
 
     static_assert(std::is_pointer<fftw_plan>::value,
                   "fftw_plan must be a pointer");
@@ -63,16 +63,16 @@ public:
 
         zi::wall_timer wt; wt.reset();
 
-        auto in  = get_cube<dboule>(s);
+        auto in  = get_cube<real>(s);
         auto out = get_cube<complex>(fft_complex_size(s));
 
         ret = fftw_plan_dft_r2c_3d
             ( s[0], s[1], s[2],
-              reinterpret_cast<dboule*>(in->data()),
+              reinterpret_cast<real*>(in->data()),
               reinterpret_cast<fftw_complex*>(out->data()),
               ZNN_FFTW_PLANNING_MODE );
 
-        time_ += wt.elapsed<dboule>();
+        time_ += wt.elapsed<real>();
 
 //        std::cout << "Total time spent creating fftw plans: "
 //                  << time_ << std::endl;
@@ -91,15 +91,15 @@ public:
         zi::wall_timer wt; wt.reset();
 
         auto in  = get_cube<complex>(fft_complex_size(s));
-        auto out = get_cube<dboule>(s);
+        auto out = get_cube<real>(s);
 
         ret = fftw_plan_dft_c2r_3d
             ( s[0], s[1], s[2],
               reinterpret_cast<fftw_complex*>(in->data()),
-              reinterpret_cast<dboule*>(out->data()),
+              reinterpret_cast<real*>(out->data()),
               ZNN_FFTW_PLANNING_MODE );
 
-        time_ += wt.elapsed<dboule>();
+        time_ += wt.elapsed<real>();
 
 //        std::cout << "Total time spent creating fftw plans: "
 //                  << time_ << std::endl;

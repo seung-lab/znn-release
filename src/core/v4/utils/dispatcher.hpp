@@ -27,7 +27,7 @@ private:
     std::map<vec3i,std::vector<FFTEdge*>> fft_targets_;
 
 public:
-    void dispatch(const ccube_p<dboule>& v) const
+    void dispatch(const ccube_p<real>& v) const
     {
         ZI_ASSERT(fft_targets_.size()<2);
         for ( auto& t: targets_ )
@@ -65,14 +65,14 @@ private:
     std::map<vec3i,std::vector<FFTEdge*>> fft_targets_;
 
 public:
-    void dispatch(const ccube_p<dboule>& v) const
+    void dispatch(const ccube_p<real>& v) const
     {
         for ( auto& t: targets_ )
         {
             t->backward(v);
         }
 
-        cube_p<dboule> vp = get_copy(*v);
+        cube_p<real> vp = get_copy(*v);
         flip(*vp);
 
         for ( auto& fft_target: fft_targets_ )
@@ -108,7 +108,7 @@ private:
     typedef concurrent_forward_dispatcher this_type;
 
 private:
-    void fft_dispatch( ccube_p<dboule> const & v,
+    void fft_dispatch( ccube_p<real> const & v,
                        vec3i const & s,
                        std::vector<FFTEdge*> const & targets,
                        task_manager & manager ) const
@@ -121,7 +121,7 @@ private:
     }
 
 public:
-    void dispatch( ccube_p<dboule> const & v,
+    void dispatch( ccube_p<real> const & v,
                    task_manager & manager) const
     {
         for ( auto& t: targets_ )
@@ -156,7 +156,7 @@ private:
     typedef concurrent_backward_dispatcher this_type;
 
 private:
-    void fft_dispatch( const ccube_p<dboule>& v, const vec3i& s,
+    void fft_dispatch( const ccube_p<real>& v, const vec3i& s,
                        const std::vector<FFTEdge*>& targets,
                        task_manager& manager ) const
     {
@@ -172,7 +172,7 @@ private:
     }
 
 public:
-    void dispatch(const ccube_p<dboule>& v, task_manager& manager) const
+    void dispatch(const ccube_p<real>& v, task_manager& manager) const
     {
         for ( auto& t: targets_ )
             manager.asap([t,v](){t->backward(v);});
@@ -210,14 +210,14 @@ public:
         : dispatchers_(s)
     {}
 
-    void dispatch(size_t i, const ccube_p<dboule>& v) const
+    void dispatch(size_t i, const ccube_p<real>& v) const
     {
         ZI_ASSERT(i<dispatchers_.size());
         dispatchers_[i].dispatch(v);
     }
 
     template<class M>
-    void dispatch(size_t i, ccube_p<dboule> const & v, M & man)
+    void dispatch(size_t i, ccube_p<real> const & v, M & man)
     {
         ZI_ASSERT(i<dispatchers_.size());
         dispatchers_[i].dispatch(v,man);

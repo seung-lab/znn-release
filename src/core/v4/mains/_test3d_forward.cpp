@@ -186,11 +186,11 @@ int main(int argc, char** argv)
 
     //size_t nx = 50;
 
-    std::vector<std::vector<cube_p<dboule>>> in(1);
+    std::vector<std::vector<cube_p<real>>> in(1);
 
     for ( size_t i = 0; i < nx; ++i )
     {
-        in[0].push_back(get_cube<dboule>(in_size));
+        in[0].push_back(get_cube<real>(in_size));
         initf->initialize(in[0][i]);
     }
 
@@ -209,30 +209,30 @@ int main(int argc, char** argv)
     //parallel_network::network::optimize_forward(nodes, edges, {z,y,x}, tc , 10);
     trivial_forward_network::network(nodes, edges, {z,y,x});
 
-    auto r = get_cube<dboule>(vec3i(1024,1024,32));
+    auto r = get_cube<real>(vec3i(1024,1024,32));
 
     zi::wall_timer wt;
     wt.reset();
 
     auto ss = fftw::forward(std::move(r));
 
-    std::cout << wt.elapsed<dboule>() << std::endl;
+    std::cout << wt.elapsed<real>() << std::endl;
 
     {
-        auto r = get_cube<dboule>(vec3i(1,6,6));
+        auto r = get_cube<real>(vec3i(1,6,6));
 
         zi::wall_timer wt;
         wt.reset();
 
         auto s1 = fftw::forward_pad(std::move(r), vec3i(512,512,64));
-        std::cout << wt.elapsed<dboule>() << std::endl;
+        std::cout << wt.elapsed<real>() << std::endl;
 
         auto s2 = fftw::forward_pad(std::move(r), vec3i(512,512,64));
-        std::cout << wt.elapsed<dboule>() << std::endl;
+        std::cout << wt.elapsed<real>() << std::endl;
 
         *s1 *= *s2;
         *s1 *= *s2;
-        std::cout << wt.elapsed<dboule>() << std::endl;
+        std::cout << wt.elapsed<real>() << std::endl;
     }
 
 

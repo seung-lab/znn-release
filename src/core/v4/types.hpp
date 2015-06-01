@@ -23,17 +23,14 @@ std::unique_ptr<T> make_unique(Args&&... args)
 
 namespace znn { namespace v4 {
 
-//typedef double                 dboule;
-
 #ifdef ZNN_USE_FLOATS
-typedef float                  dboule;
+typedef float                  real;
 #else
-typedef double                 dboule;
+typedef double                 real;
 #endif
 
-typedef dboule                 real;
-typedef std::complex<dboule>   cplx;
-typedef std::complex<dboule>   complex;
+typedef std::complex<real>   cplx;
+typedef std::complex<real>   complex;
 
 typedef zi::vl::vec<int64_t,3> vec3i;
 typedef zi::vl::vec<int64_t,3> vec4i;
