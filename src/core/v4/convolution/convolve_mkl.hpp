@@ -40,10 +40,14 @@ public:
                               shape[1] + 1 - s[1],
                               shape[2] + 1 - s[2] };
 
+#ifdef ZNN_USE_FLOATS
         status = vslsConvNewTask(&task,VSL_CONV_MODE_DIRECT,3,
                                  shape, bshape, rshape);
+#else
+        status = vsldConvNewTask(&task,VSL_CONV_MODE_DIRECT,3,
+                                 shape, bshape, rshape);
+#endif
         status = vslConvSetStart(task, start);
-
         return task;
     }
 
@@ -61,8 +65,13 @@ public:
                               shape[1] + s[1] - 1,
                               shape[2] + s[2] - 1};
 
+#ifdef ZNN_USE_FLOATS
         status = vslsConvNewTask(&task,VSL_CONV_MODE_DIRECT,3,
                                  shape, bshape, rshape);
+#else
+        status = vsldConvNewTask(&task,VSL_CONV_MODE_DIRECT,3,
+                                 shape, bshape, rshape);
+#endif
         status = vslConvSetStart(task, start);
 
         return task;
@@ -88,12 +97,12 @@ private:
 public:
     VSLConvTaskPtr get(vec3i const & a, vec3i const & b)
     {
-        get_pool(a)->get(b);
+        return get_pool(a)->get(b);
     }
 
     VSLConvTaskPtr get_inv(vec3i const & a, vec3i const & b)
     {
-        get_pool(a)->get_inv(b);
+        return get_pool(a)->get_inv(b);
     }
 
 };
@@ -118,10 +127,17 @@ inline cube_p<T> convolve( cube<T> const & a,
 
     cube_p<T> rp = get_cube<T>(size(a) + vec3i::one - size(b));
 
+#ifdef ZNN_USE_FLOATS
     int status = vslsConvExec(conv_plans.get(size(a),size(b)),
                               a.data(), NULL,
                               b.data(), NULL,
                               rp->data(), NULL);
+#else
+    int status = vsldConvExec(conv_plans.get(size(a),size(b)),
+                              a.data(), NULL,
+                              b.data(), NULL,
+                              rp->data(), NULL);
+#endif
     return rp;
 }
 
@@ -197,11 +213,17 @@ inline cube_p<T> convolve_inverse( cube<T> const & a,
 
     cube_p<T> rp = get_cube<T>(size(a) + size(b) - vec3i::one);
 
+#ifdef ZNN_USE_FLOATS
     int status = vslsConvExec(conv_plans.get_inv(size(a),size(b)),
                               a.data(), NULL,
                               b.data(), NULL,
                               rp->data(), NULL);
-
+#else
+    int status = vslsConvExec(conv_plans.get_inv(size(a),size(b)),
+                              a.data(), NULL,
+                              b.data(), NULL,
+                              rp->data(), NULL);
+#endif
 
     return rp;
 }
