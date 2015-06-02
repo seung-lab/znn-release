@@ -1,0 +1,130 @@
+nodes input
+type input
+size 1
+
+edges conv1
+type conv
+init uniform
+size 1,6,6
+stride 1,1,1
+repeat 1,2,2
+input input
+output nl1
+
+nodes nl1
+type transfer
+function rectify_linear
+size 12
+
+edges pool1
+type max_filter
+size 1,2,2
+stride 1,2,2
+input nl1
+output nl2
+
+nodes nl2
+type sum
+function rectify_linear
+size 12
+
+edges conv2
+type conv
+init uniform
+size 1,4,4
+stride 1,1,1
+input nl2
+output nl3
+
+nodes nl3
+type transfer
+function rectify_linear
+size 24
+
+edges pool2
+type max_filter
+size 1,2,2
+stride 1,2,2
+input nl3
+output nl4
+
+nodes nl4
+type sum
+function rectify_linear
+size 24
+
+edges conv3
+type conv
+init uniform
+size 4,4,4
+stride 1,1,1
+input nl4
+output nl5
+
+nodes nl5
+type transfer
+function rectify_linear
+size 36
+
+edges pool3
+type max_filter
+size 2,2,2
+stride 2,2,2
+input nl5
+output nl6
+
+nodes nl6
+type sum
+function rectify_linear
+size 36
+
+edges conv4
+type conv
+init uniform
+size 2,4,4
+stride 1,1,1
+input nl6
+output nl7
+
+nodes nl7
+type transfer
+function rectify_linear
+size 48
+
+edges pool4
+type max_filter
+size 2,2,2
+stride 2,2,2
+input nl7
+output nl8
+
+nodes nl8
+type sum
+function rectify_linear
+size 48
+
+edges conv5
+type conv
+init uniform
+size 2,4,4
+stride 1,1,1
+input nl8
+output nl9
+
+nodes nl9
+type transfer
+function rectify_linear
+size 48
+
+edges conv6
+type conv
+init uniform
+size 1,1,1
+stride 1,1,1
+input nl9
+output nl10
+
+nodes nl10
+type transfer
+function rectify_linear
+size 4
