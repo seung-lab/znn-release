@@ -4,9 +4,9 @@
 
 #include <zi/time.hpp>
 
-namespace znn { namespace v4 { namespace mkl {
+namespace znn { namespace v4 {
 
-class fftw_stats_impl
+class fft_stats_impl
 {
 private:
     real              total_time_;
@@ -14,7 +14,7 @@ private:
     mutable std::mutex  m_         ;
 
 public:
-    fftw_stats_impl()
+    fft_stats_impl()
         : total_time_(0)
         , total_(0)
         , m_()
@@ -47,7 +47,7 @@ public:
 };
 
 namespace {
-fftw_stats_impl& fftw_stats = zi::singleton<fftw_stats_impl>::instance();
+fft_stats_impl& fft_stats = zi::singleton<fft_stats_impl>::instance();
 } // anonymous namespace
 
 class fftw
@@ -70,19 +70,22 @@ public:
         void forward( cube<real>& in,
                       cube<complex>& out )
         {
-            MKL_LONG status;
-
             ZI_ASSERT(size(out)==fft_complex_size(in));
             ZI_ASSERT(size(in)==sz);
+
+            fft_plan plan = fft_plans.get_forward(
+                vec3i(in.shape()[0],in.shape()[1],in.shape()[2]));
+
+            MKL_LONG status;
 
 #           ifdef MEASURE_FFT_RUNTIME
             zi::wall_timer wt;
 #           endif
-            status = DftiComputeForward(*forward_plan,
+            status = DftiComputeForward(*plan,
                                         reinterpret_cast<real*>(in.data()),
-                                        reinterpret_cast<real _Complex*>(out.data()));
+                                        reinterpret_cast<real*>(out.data()));
 #           ifdef MEASURE_FFT_RUNTIME
-            fftw_stats.add(wt.elapsed<real>());
+            fft_stats.add(wt.elapsed<real>());
 #           endif
         }
 
@@ -92,14 +95,20 @@ public:
             ZI_ASSERT(size(in)==fft_complex_size(out));
             ZI_ASSERT(size(out)==sz);
 
+            fft_plan plan = fft_plans.get_backward(
+                vec3i(in.shape()[0],in.shape()[1],in.shape()[2]));
+
+            MKL_LONG status;
+
+
 #           ifdef MEASURE_FFT_RUNTIME
             zi::wall_timer wt;
 #           endif
-            status = DftiComputeBackward(*forward_plan,
-                                         reinterpret_cast<real _Complex*>(in.data()),
+            status = DftiComputeBackward(*plan,
+                                         reinterpret_cast<real*>(in.data()),
                                          reinterpret_cast<real*>(out.data()));
 #           ifdef MEASURE_FFT_RUNTIME
-            fftw_stats.add(wt.elapsed<real>());
+            fft_stats.add(wt.elapsed<real>());
 #           endif
         }
 
@@ -133,17 +142,19 @@ public:
         ZI_ASSERT(in.shape()[1]==out.shape()[1]);
         ZI_ASSERT((in.shape()[2]/2+1)==out.shape()[2]);
 
-        fft_plan plan = fftw_plans.get_forward(
+        fft_plan plan = fft_plans.get_forward(
             vec3i(in.shape()[0],in.shape()[1],in.shape()[2]));
+
+        MKL_LONG status;
 
 #       ifdef MEASURE_FFT_RUNTIME
         zi::wall_timer wt;
 #       endif
-        status = DftiComputeForward(*forward_plan,
+        status = DftiComputeForward(*plan,
                                     reinterpret_cast<real*>(in.data()),
-                                    reinterpret_cast<real _Complex*>(out.data()));
+                                    reinterpret_cast<real*>(out.data()));
 #       ifdef MEASURE_FFT_RUNTIME
-        fftw_stats.add(wt.elapsed<real>());
+        fft_stats.add(wt.elapsed<real>());
 #       endif
     }
 
@@ -154,17 +165,19 @@ public:
         ZI_ASSERT(in.shape()[1]==out.shape()[1]);
         ZI_ASSERT((out.shape()[2]/2+1)==in.shape()[2]);
 
-        fft_plan plan = fftw_plans.get_backward(
+        fft_plan plan = fft_plans.get_backward(
             vec3i(out.shape()[0],out.shape()[1],out.shape()[2]));
+
+        MKL_LONG status;
 
 #       ifdef MEASURE_FFT_RUNTIME
         zi::wall_timer wt;
 #       endif
-        status = DftiComputeBackward(*forward_plan,
-                                     reinterpret_cast<real _Complex*>(in.data()),
+        status = DftiComputeBackward(*plan,
+                                     reinterpret_cast<real*>(in.data()),
                                      reinterpret_cast<real*>(out.data()));
 #       ifdef MEASURE_FFT_RUNTIME
-        fftw_stats.add(wt.elapsed<real>());
+        fft_stats.add(wt.elapsed<real>());
 #       endif
     }
 
@@ -191,4 +204,4 @@ public:
 
 }; // class fftw
 
-}}} // namespace znn::v4
+}} // namespace znn::v4

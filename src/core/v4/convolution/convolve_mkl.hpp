@@ -81,7 +81,7 @@ public:
 class conv_plans_impl
 {
 private:
-    std::mutex                              m       ;
+    std::mutex                               m       ;
     std::map<vec3i, single_size_conv_plans*> pools   ;
 
     single_size_conv_plans* get_pool(vec3i const & s)
@@ -108,7 +108,7 @@ public:
 };
 
 namespace {
-conv_plans_impl& conv_plans = zi::singleton<conv_plans_impl>::instance();
+ZNN_THREAD_LOCAL conv_plans_impl& conv_plans = zi::singleton<conv_plans_impl>::instance();
 } // anonymous namespace
 
 
@@ -171,7 +171,7 @@ template< typename T >
 inline cube_p<T> convolve_flipped( cube<T> const & a,
                                    cube<T> const & b)
 {
-    //flip(b);
+    flip(const_cast<cube<T>&>(b));
     return convolve(a,b);
 }
 
@@ -219,7 +219,7 @@ inline cube_p<T> convolve_inverse( cube<T> const & a,
                               b.data(), NULL,
                               rp->data(), NULL);
 #else
-    int status = vslsConvExec(conv_plans.get_inv(size(a),size(b)),
+    int status = vsldConvExec(conv_plans.get_inv(size(a),size(b)),
                               a.data(), NULL,
                               b.data(), NULL,
                               rp->data(), NULL);

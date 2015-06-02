@@ -1,7 +1,11 @@
 #pragma once
 
-#ifdef ZNN_USE_FLOATS
-#  include "fftwf.hpp"
+#ifdef ZNN_USE_MKL_NATIVE_FFT
+#  include "fftmkl.hpp"
 #else
-#  include "fftwd.hpp"
+#  ifdef ZNN_USE_FLOATS
+#    include "fftwf.hpp"
+#  else
+#    include "fftwd.hpp"
+#  endif
 #endif

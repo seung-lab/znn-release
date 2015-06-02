@@ -31,7 +31,7 @@ inline void pooling_filter_pass_2( real *  head1,
                                    F const & cmp ) noexcept
 {
     real * tail1 = head1 + stride;
-    int *    tail2 = head2 + stride;
+    int *  tail2 = head2 + stride;
 
     while ( tail1 <= end )
     {
@@ -113,20 +113,22 @@ inline void pooling_filter_pass( real *  head1,
     std::set<pair_type, decltype(cmpf)> set(cmpf);
 
     real * tail1 = head1;
-    int *    tail2 = head2;
+    int *  tail2 = head2;
 
     ZI_ASSERT(size>0);
 
     for (; size > 1; --size, tail1 += stride, tail2 += stride )
     {
-        set.emplace(*tail1, *tail2);
+        //set.emplace(*tail1, *tail2);
+        set.insert(pair_type(*tail1, *tail2));
     }
 
     ZI_ASSERT(tail1<=end);
 
     while ( tail1 <= end )
     {
-        set.emplace(*tail1, *tail2);
+        //set.emplace(*tail1, *tail2);
+        set.insert(pair_type(*tail1, *tail2));
         pair_type r = *set.begin();
 
         set.erase(pair_type(*head1,*head2));

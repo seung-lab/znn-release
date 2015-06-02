@@ -19,6 +19,12 @@ std::unique_ptr<T> make_unique(Args&&... args)
 
 }
 
+#ifdef ZNN_NO_THREAD_LOCAL
+#  define ZNN_THREAD_LOCAL
+#else
+#  define ZNN_THREAD_LOCAL thread_local
+#endif
+
 #endif
 
 namespace znn { namespace v4 {
