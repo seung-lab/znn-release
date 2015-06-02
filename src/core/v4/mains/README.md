@@ -3,7 +3,7 @@ ZNN v4
 
 Required libraries
 ------------------
-Supports linux and MacOS. When using MKL fftw is not required
+Supports Linux and MacOS. When using MKL fftw is not required
 
 |Library|Ubuntu package name|
 |:-----:|-------------------|
@@ -13,7 +13,7 @@ Supports linux and MacOS. When using MKL fftw is not required
 Compiler flags
 --------------
 
-|Library|Ubuntu package name|
+|Flag|Description|
 |:-----:|-------------------|
 |ZNN_CUBE_POOL|Use custom memory pool, usually faster|
 |ZNN_USE_FLOATS|Use single precision floating point numbers|
