@@ -1,1 +1,0 @@
-/opt/intel/bin/icc -std=c++1y -DZNN_USE_FLOATS -DZNN_XEON_PHI -DZNN_USE_MKL_FFT -DZNN_CUBE_POOL -I./boost_1_58_0 -lpthread -lrt -static-intel -mkl=sequential _test3d_training_strided.cpp -o t3d -I../../../.. -I.. -AVX2 -DZNN_USE_MKL_DIRECT_CONV
