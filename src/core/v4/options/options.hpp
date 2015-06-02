@@ -6,6 +6,8 @@
 #include <initializer_list>
 #include <utility>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 namespace znn { namespace v4 {
 
@@ -117,6 +119,46 @@ public:
     }
 
 };
+
+void parse_net_file( std::vector<options> & nodes,
+                     std::vector<options> & edges,
+                     std::string const & fname )
+{
+    nodes.clear();
+    edges.clear();
+
+    std::vector<options>* current;
+
+    std::string line;
+    std::ifstream ifs(fname.c_str());
+
+    while ( std::getline(ifs, line) )
+    {
+        if ( line.size() )
+        {
+            std::istringstream iss(line);
+            std::string a, b;
+            iss >> a >> b;
+            if ( a == "nodes" )
+            {
+                current = & nodes;
+                current->resize(current->size()+1);
+                current->back().push("name", b);
+            }
+            else if ( a == "edges" )
+            {
+                current = & edges;
+                current->resize(current->size()+1);
+                current->back().push("name", b);
+            }
+            else
+            {
+                STRONG_ASSERT(current);
+                current->back().push(a,b);
+            }
+        }
+    }
+}
 
 
 }} // namespace znn::v4
