@@ -100,11 +100,19 @@ public:
     void backward( ccube_p<complex> const & g )
     {
         ZI_ASSERT(last_input);
+
+        if ( in_nodes->is_input() )
+        {
+            in_nodes->backward(in_num, bwd_bucket_, cube_p<complex>());
+        }
+        else
+        {
 #ifdef ZNN_DONT_CACHE_FFTS
-        auto w_fft = get_w_fft();
+            auto w_fft = get_w_fft();
 #endif
-        auto grad = *w_fft * *g;
-        in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
+            auto grad = *w_fft * *g;
+            in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
+        }
 
         pending_
             = manager.schedule_unprivileged(&fft_filter_edge::do_update, this, g);

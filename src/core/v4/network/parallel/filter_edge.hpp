@@ -59,10 +59,17 @@ public:
     {
         guard gg(m);
         ZI_ASSERT(last_input);
-        in_nodes->backward(in_num,
-                           convolve_sparse_inverse(*g,
-                                                   filter_.W(),
-                                                   filter_stride));
+        if ( in_nodes->is_input() )
+        {
+            in_nodes->backward(in_num, cube_p<real>());
+        }
+        else
+        {
+            in_nodes->backward(in_num,
+                               convolve_sparse_inverse(*g,
+                                                       filter_.W(),
+                                                       filter_stride));
+        }
 
         pending_
             = manager.schedule_unprivileged(&filter_edge::do_update, this, g);

@@ -17,9 +17,9 @@ inline cube_p<T> load( std::string const & fname, vec3i const & sz )
     auto ret = get_cube<T>(sz);
     F v;
 
-    for ( long_t z = 0; z < sz[2]; ++z )
+    for ( long_t x = 0; x < sz[0]; ++x )
         for ( long_t y = 0; y < sz[1]; ++y )
-            for ( long_t x = 0; x < sz[0]; ++x )
+            for ( long_t z = 0; z < sz[2]; ++z )
             {
                 static_cast<void>(fread(&v, sizeof(F), 1, fvol));
                 (*ret)[x][y][z] = static_cast<T>(v) / 255;
@@ -116,24 +116,24 @@ int main(int argc, char** argv)
     std::vector<options> nodes;
     std::vector<options> edges;
 
-    parse_net_file(nodes, edges, "networks/srini2d.znn");
+    parse_net_file(nodes, edges, argv[1]);
 
     int64_t x = 9;
     int64_t y = 9;
     int64_t z = 9;
 
-    if ( argc >= 4 )
+    if ( argc >= 5 )
     {
-        x = atoi(argv[1]);
-        y = atoi(argv[2]);
-        z = atoi(argv[3]);
+        x = atoi(argv[2]);
+        y = atoi(argv[3]);
+        z = atoi(argv[4]);
     }
 
     size_t tc = std::thread::hardware_concurrency();
 
-    if ( argc == 5 )
+    if ( argc == 6 )
     {
-        tc = atoi(argv[4]);
+        tc = atoi(argv[5]);
     }
 
     vec3i out_sz(z,y,x);
@@ -145,7 +145,7 @@ int main(int argc, char** argv)
 
 
     ISBI2012::ISBI2012 isbi( "../../../../dataset/ISBI2012/data/batch1",
-                             vec3i(256,256,30), in_sz, out_sz );
+                             vec3i(30,256,256), in_sz, out_sz );
 
     real err;
     for ( long_t i = 0; i < 1000000; )
@@ -154,7 +154,7 @@ int main(int argc, char** argv)
         std::map<std::string, std::vector<cube_p<real>>> outsample;
 
         insample["input"].resize(1);
-        outsample["nl6"].resize(1);
+        outsample["output"].resize(1);
 
         auto sample = isbi.get_sample();
         insample["input"][0] = sample.first;
@@ -163,10 +163,10 @@ int main(int argc, char** argv)
 
         //std::cout << *sample.second << *prop["nl6"][0] << std::endl;
 
-        auto grad = isbi.square_loss(*(prop["nl6"][0]), *sample.second);
+        auto grad = isbi.square_loss(*(prop["output"][0]), *sample.second);
         err += grad.first;
 
-        outsample["nl6"][0] = grad.second;
+        outsample["output"][0] = grad.second;
 
         net.backward(std::move(outsample));
 

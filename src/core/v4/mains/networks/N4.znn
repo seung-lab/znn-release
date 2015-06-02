@@ -119,10 +119,10 @@ init uniform
 size 1,1,1
 stride 1,1,1
 input nl9
-output nl10
+output output
 
 
-nodes nl10
+nodes output
 type transfer
 function rectify_linear
 size 2

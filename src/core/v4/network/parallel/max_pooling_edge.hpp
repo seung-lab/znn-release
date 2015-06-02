@@ -49,7 +49,14 @@ public:
     {
         ZI_ASSERT(indices);
         ZI_ASSERT(insize==size(*g)+(filter_size-vec3i::one)*filter_stride);
-        in_nodes->backward(in_num, pooling_backprop(insize, *g, *indices));
+        if ( in_nodes->is_input() )
+        {
+            in_nodes->backward(in_num, cube_p<real>());
+        }
+        else
+        {
+            in_nodes->backward(in_num, pooling_backprop(insize, *g, *indices));
+        }
     }
 
     void zap(edges* e)
@@ -105,7 +112,14 @@ public:
     {
         ZI_ASSERT(indices);
         ZI_ASSERT(insize==size(*g)*filter_size);
-        in_nodes->backward(in_num, pooling_backprop(insize, *g, *indices));
+        if ( in_nodes->is_input() )
+        {
+            in_nodes->backward(in_num, cube_p<real>());
+        }
+        else
+        {
+            in_nodes->backward(in_num, pooling_backprop(insize, *g, *indices));
+        }
     }
 
     void zap(edges* e)
