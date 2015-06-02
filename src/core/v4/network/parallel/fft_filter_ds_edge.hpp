@@ -16,7 +16,9 @@ private:
     vec3i    repeat_;
     filter & filter_;
 
+#ifndef ZNN_DONT_CACHE_FFTS
     ccube_p<complex> w_fft;
+#endif
     ccube_p<complex> last_input;
 
     size_t fwd_bucket_;
@@ -24,12 +26,13 @@ private:
 
     task_manager::task_handle pending_ = 0;
 
-    std::mutex m;
-
 private:
     void do_forward( ccube_p<complex> const & f )
     {
         last_input = f;
+#ifdef ZNN_DONT_CACHE_FFTS
+        auto w_fft = get_w_fft();
+#endif
         auto fw = *w_fft * *f;
         out_nodes->forward(out_num, fwd_bucket_, std::move(fw));
         //out_nodes->forward(out_num, fwd_bucket_, w_fft, f);
@@ -52,10 +55,19 @@ private:
         filter_.update(*dEdW);
         flatten(filter_.W(), repeat_);
 
+#ifndef ZNN_DONT_CACHE_FFTS
         initialize();
+#endif
     }
 
+#ifndef ZNN_DONT_CACHE_FFTS
     void initialize()
+    {
+        w_fft = get_w_fft();
+    }
+#endif
+
+    cube_p<complex> get_w_fft()
     {
         // TODO(zlateski): WTH was happening with sparse_exploce before
         //                 when I had to use sparse_explode_slow,
@@ -63,8 +75,9 @@ private:
 
         auto w_tmp = sparse_explode_slow(filter_.W(), filter_stride,
                                          in_nodes->fsize());
-        w_fft = fftw::forward(std::move(w_tmp));
+        return fftw::forward(std::move(w_tmp));
     }
+
 
 public:
     fft_filter_ds_edge( nodes * in,
@@ -84,19 +97,22 @@ public:
         fwd_bucket_ = out->attach_in_fft_edge(outn, this, in->fsize());
         flatten(filter_.W(), repeat_);
 
+#ifndef ZNN_DONT_CACHE_FFTS
         pending_ = manager.schedule_unprivileged(&fft_filter_ds_edge::initialize,this);
+#endif
     }
 
     void forward( ccube_p<complex> const & f ) override
     {
-        guard gg(m);
         manager.require_done( pending_, &fft_filter_ds_edge::do_forward, this, f );
     }
 
     void backward( ccube_p<complex> const & g )
     {
-        guard gg(m);
         ZI_ASSERT(last_input);
+#ifdef ZNN_DONT_CACHE_FFTS
+        auto w_fft = get_w_fft();
+#endif
         auto grad = *w_fft * *g;
         in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
 
@@ -109,6 +125,5 @@ public:
         manager.require_done(pending_,&edges::edge_zapped,e);
     }
 };
-
 
 }}} // namespace znn::v4::parallel_network
