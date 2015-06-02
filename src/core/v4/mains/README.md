@@ -16,6 +16,7 @@ Compiler flags
 |Flag|Description|
 |:-----:|-------------------|
 |ZNN_CUBE_POOL|Use custom memory pool, usually faster|
+|ZNN_CUBE_POOL_LOCKFREE|Use custom lockfree memory pool, even faster (some memory overhead)|
 |ZNN_USE_FLOATS|Use single precision floating point numbers|
 |ZNN_DONT_CACHE_FFTS|Don't cache FFTs for the backward pass|
 |ZNN_USE_MKL_DIRECT_CONV|Use MKL direct convolution|
