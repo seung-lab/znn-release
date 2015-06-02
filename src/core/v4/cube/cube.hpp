@@ -47,7 +47,7 @@ struct needs_fft_allocator<std::complex<T>>: std::is_floating_point<T> {};
 #  include "znn_malloc_cube.hpp"
 #else
 #  ifdef ZNN_CUBE_POOL
-#    include "cube_pool.hpp"
+#    include "cube_pool_lockfree.hpp"
 #  else
 #    include "znn_malloc_cube.hpp"
 #  endif

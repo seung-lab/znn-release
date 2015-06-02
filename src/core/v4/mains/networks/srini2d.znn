@@ -27,15 +27,15 @@ type transfer
 function rectify_linear
 size 10
 
-nodes nl6
+nodes output
 type transfer
 function rectify_linear
-size 10
+size 1
 
 edges conv1
 type conv
 init uniform
-size 7,7,1
+size 1,7,7
 stride 1,1,1
 input input
 output nl1
@@ -43,7 +43,7 @@ output nl1
 edges conv2
 type conv
 init uniform
-size 7,7,1
+size 1,7,7
 stride 1,1,1
 input nl1
 output nl2
@@ -51,7 +51,7 @@ output nl2
 edges conv3
 type conv
 init uniform
-size 7,7,1
+size 1,7,7
 stride 1,1,1
 input nl2
 output nl3
@@ -59,7 +59,7 @@ output nl3
 edges conv4
 type conv
 init uniform
-size 7,7,1
+size 1,7,7
 stride 1,1,1
 input nl3
 output nl4
@@ -67,7 +67,7 @@ output nl4
 edges conv5
 type conv
 init uniform
-size 7,7,1
+size 1,7,7
 stride 1,1,1
 input nl4
 output nl5
@@ -78,4 +78,4 @@ init uniform
 size 7,7,1
 stride 1,1,1
 input nl5
-output nl6
+output output

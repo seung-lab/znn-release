@@ -113,100 +113,76 @@ cube<T>* malloc_cube(const vec3i& s)
     return c;
 }
 
+
 template<typename T>
-class single_size_cube_pool
+class memory_bucket
 {
-private:
-    vec3i                      size_;
-    std::list<cube<T>*>        list_;
-    std::mutex                 m_   ;
+public:
+    std::size_t                   mem_size_;
+    boost::lockfree::stack<void*> stack_   ;
 
 public:
-    void clear()
-    {
-        std::lock_guard<std::mutex> g(m_);
-        for ( auto& v: list_ )
-        {
-            znn_free(v);
-        }
-        list_.clear();
-    }
-
-public:
-    void return_cube( cube<T>* c )
-    {
-        std::lock_guard<std::mutex> g(m_);
-        list_.push_back(c);
-    }
-
-public:
-    single_size_cube_pool( const vec3i& s )
-        : size_(s)
-        , list_{}
-        , m_{}
+    memory_bucket(size_t ms = 0)
+        : mem_size_(ms)
     {}
 
-    ~single_size_cube_pool()
+    void clear()
+    {
+        void * p;
+        while ( stack_.unsynchronized_pop(p) )
+        {
+            znn_free(p);
+        }
+    }
+
+public:
+    void return_memory( void* c )
+    {
+        while ( !stack_.push(c) );
+    }
+
+public:
+    ~memory_bucket()
     {
         clear();
     }
 
-    std::shared_ptr<cube<T>> get()
+    void* get()
     {
-        cube<T>* r = nullptr;
-        {
-            std::lock_guard<std::mutex> g(m_);
-            if ( list_.size() > 0 )
-            {
-                r = list_.back();
-                list_.pop_back();
-            }
-        }
-
-        if ( !r )
-        {
-            r = malloc_cube<T>(size_);
-        }
-
-        return std::shared_ptr<cube<T>>(r,[this](cube<T>* c)
-                                        {
-                                            this->return_cube(c);
-                                        });
+        void* r;
+        if ( stack_.pop(r) ) return r;
+        return znn_malloc(mem_size_);
     }
-
 };
 
 template< typename T >
 class single_type_cube_pool
 {
 private:
-    std::mutex                                   m_;
-    std::map<vec3i, single_size_cube_pool<T>*>   pools_;
+    std::array<memory_bucket<T>,48> buckets_;
 
-    single_size_cube_pool<T>* get_pool( const vec3i s )
+public:
+    single_type_cube_pool()
     {
-        std::lock_guard<std::mutex> g(m_);
-        if ( pools_.count(s) )
+        for ( size_t i = 0; i < 48; ++i )
         {
-            return pools_[s];
-        }
-        else
-        {
-            single_size_cube_pool<T>* r = new single_size_cube_pool<T>{s};
-            pools_[s] = r;
-            return r;
+            buckets_[i].mem_size_ = static_cast<size_t>(1) << i;
         }
     }
 
 public:
     std::shared_ptr<cube<T>> get( const vec3i& s )
     {
-        return get_pool(s)->get();
-    }
+        size_t bucket = 64 - __builtin_clzl( __znn_aligned_size<cube<T>>::value
+                                             + s[0]*s[1]*s[2]*sizeof(T) - 1 );
 
-    void return_cube( cube<T>* c )
-    {
-        get_pool(vec3i(c->shape()[0], c->shape()[1], c->shape()[2]))->return_cube(c);
+        void*    mem  = buckets_[bucket].get();
+        T*       data = __offset_cast<T>(mem, __znn_aligned_size<cube<T>>::value);
+        cube<T>* c    = new (mem) cube<T>(s,data);
+
+        return std::shared_ptr<cube<T>>(c,[this,bucket](cube<T>* c) {
+                this->buckets_[bucket].return_memory(c);
+            });
     }
 
 }; // single_type_cube_pool
@@ -227,12 +203,6 @@ public:
     static std::shared_ptr<cube<T>> get( size_t x, size_t y, size_t z )
     {
         return instance.get( vec3i(x,y,z) );
-    }
-    // Actually private - don't use
-
-    static void return_cube( cube<T>* c )
-    {
-        instance.return_cube(c);
     }
 };
 
