@@ -1,0 +1,94 @@
+nodes input
+type input
+size 1
+
+edges conv1
+type conv
+init uniform
+size 7,7,7
+stride 1,1,1
+input input
+output nl1
+
+nodes nl1
+type transfer
+function rectify_linear
+size 16
+
+edges conv2
+type conv
+init uniform
+size 7,7,7
+stride 1,1,1
+input nl1
+output nl2
+
+nodes nl2
+type transfer
+function rectify_linear
+size 24
+
+edges conv3
+type conv
+init uniform
+size 7,7,7
+stride 1,1,1
+input nl2
+output nl3
+
+nodes nl3
+type transfer
+function rectify_linear
+size 32
+
+edges conv4
+type conv
+init uniform
+size 7,7,7
+stride 1,1,1
+input nl3
+output nl4
+
+nodes nl4
+type transfer
+function rectify_linear
+size 32
+
+edges conv5
+type conv
+init uniform
+size 7,7,7
+stride 1,1,1
+input nl4
+output nl5
+
+nodes nl5
+type transfer
+function rectify_linear
+size 32
+
+edges conv6
+type conv
+init uniform
+size 7,7,7
+stride 1,1,1
+input nl5
+output nl6
+
+nodes nl6
+type transfer
+function rectify_linear
+size 32
+
+edges conv7
+type conv
+init uniform
+size 1,1,1
+stride 1,1,1
+input nl6
+output nl7
+
+nodes nl7
+type transfer
+function rectify_linear
+size 1
