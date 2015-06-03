@@ -394,9 +394,7 @@ private:
     void stamp()
     {
         float time = static_cast<float>(wt_.elapsed<double>());
-        float priv = 0;
-        if ( tasks_.size() )
-            priv = static_cast<float>(tasks_.rbegin()->second.size());
+        float priv = tot_tasks_;
         float unpr = static_cast<float>(unprivileged_.size());
         float idle = static_cast<float>(idle_threads_);
         timepoints_.push_back({time,priv,unpr,idle});
