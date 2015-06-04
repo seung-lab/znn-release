@@ -1,15 +1,74 @@
 #pragma once
 
-#if ZNN_CONV_GS
-
-#include "convolve_sparse_mkl_gather_scatter.hpp"
-
-#else
-
 #include "../types.hpp"
 #include "convolve_mkl.hpp"
 
 namespace znn { namespace v4 {
+
+
+template< typename T >
+inline void convolve_sparse_add( cube<T> const   & a,
+                                 cube<T> const   & b,
+                                 vec3i const     & s,
+                                 cube<T>         & r ) noexcept
+{
+    if ( s == vec3i::one )
+    {
+        convolve_add(a,b,r);
+        return;
+    }
+
+    vec3i as = size(a);
+    vec3i bs = size(b);
+    vec3i rs = as - (bs - vec3i::one) * s;
+
+    ZI_ASSERT(r.shape()[0]==rs[0]);
+    ZI_ASSERT(r.shape()[1]==rs[1]);
+    ZI_ASSERT(r.shape()[2]==rs[2]);
+
+    vec3i tas = (as - vec3i::one) / s + vec3i::one;
+    vec3i trs = tas + vec3i::one - bs;
+
+    auto tap = get_cube<T>(tas);
+    auto trp = get_cube<T>(trs);
+
+    cube<T>& ta = *tap;
+    cube<T>& tr = *trp;
+
+    auto plan = conv_plans.get(tas, bs);
+
+    // sparseness
+    for (int xs=0; xs<s[0]; xs++)
+        for (int ys=0; ys<s[1]; ys++)
+            for (int zs=0; zs<s[2]; zs++)
+            {
+                // prepare input
+                for (std::size_t x=xs, xt=0; x<as[0]; x+=s[0], ++xt)
+                    for (std::size_t y=ys, yt=0; y<as[1]; y+=s[1], ++yt)
+                        for(std::size_t z=zs, zt=0; z<as[2]; z+=s[2], ++zt)
+                            ta[xt][yt][zt] = a[x][y][z];
+
+#ifdef ZNN_USE_FLOATS
+                int status = vslsConvExec( plan, ta.data(), NULL,
+                                           b.data(), NULL, tr.data(), NULL);
+
+#else
+                int status = vsldConvExec( plan, ta.data(), NULL,
+                                           b.data(), NULL, tr.data(), NULL);
+#endif
+
+                //std::cout << tr << std::endl;
+
+                // combine subconvolution results
+                for (std::size_t x=xs, wx=0; x<rs[0]; x+=s[0], ++wx)
+                    for (std::size_t y=ys, wy=0; y<rs[1]; y+=s[1], ++wy )
+                        for (std::size_t z=zs, wz=0; z<rs[2]; z+=s[2], ++wz)
+                            r[x][y][z] += tr[wx][wy][wz];
+
+            }
+
+}
+
 
 template< typename T >
 inline cube_p<T> convolve_sparse( cube<T> const & a,
@@ -21,41 +80,10 @@ inline cube_p<T> convolve_sparse( cube<T> const & a,
         return convolve(a,b);
     }
 
-    vec3i as = size(a);
-    vec3i bs = size(b);
-    vec3i rs = size(a) - (size(b) - vec3i::one) * s;
+    cube_p<T> r = get_cube<T>(size(a) - (size(b) - vec3i::one) * s);
 
-    cube_p<T> r = get_cube<T>(rs);
-
-    int a_strides[3]  = { s[2], as[2]*s[1], as[2]*as[1]*s[0] };
-    int r_strides[3]  = { s[2], rs[2]*s[1], rs[2]*rs[1]*s[0] };
-
-    // sparseness
-    for (int xs=0; xs<s[0]; xs++)
-        for (int ys=0; ys<s[1]; ys++)
-            for (int zs=0; zs<s[2]; zs++)
-            {
-                vec3i in_size( (as[0]-1)/s[0] + (xs == 0 ? 1 : 0),
-                               (as[1]-1)/s[1] + (ys == 0 ? 1 : 0),
-                               (as[2]-1)/s[2] + (zs == 0 ? 1 : 0) );
-
-                const T* in_ptr  = &(a[xs][ys][zs]);
-                T* out_ptr = &((*r)[xs][ys][zs]);
-
-#ifdef ZNN_USE_FLOATS
-                int status = vslsConvExec( conv_plans.get(in_size, bs),
-                                           in_ptr, a_strides,
-                                           b.data(), NULL,
-                                           out_ptr, r_strides);
-#else
-                int status = vsldConvExec( conv_plans.get(in_size, bs),
-                                           in_ptr, a_strides,
-                                           b.data(), NULL,
-                                           out_ptr, r_strides);
-#endif
-
-            }
-
+    fill(*r,0);
+    convolve_sparse_add(a,b,s,*r);
     return r;
 }
 
@@ -65,23 +93,6 @@ inline cube_p<T> convolve_sparse( ccube_p<T> const & a,
                                   vec3i const & s )
 {
     return convolve_sparse(*a,*b,s);
-}
-
-
-template< typename T >
-inline void convolve_sparse_add( cube<T> const & a,
-                                 cube<T> const & b,
-                                 vec3i const & s,
-                                 cube<T> & r ) noexcept
-{
-    if ( s == vec3i::one )
-    {
-        convolve_add(a,b,r);
-        return;
-    }
-
-    auto radd = convolve_sparse(a,b,s);
-    r += *radd;
 }
 
 
@@ -96,6 +107,11 @@ inline void convolve_sparse_flipped_add( cube<T> const & a,
         convolve_flipped_add(a,b,r);
         return;
     }
+
+    vec3i as = size(a);
+    vec3i bs = size(b);
+    vec3i rs = (as - bs) / s + vec3i::one;
+
 
     size_t ax = a.shape()[0];
     size_t ay = a.shape()[1];
@@ -240,5 +256,3 @@ inline void convolve_sparse_inverse_add( cube<T> const & a,
 }
 
 }} // namespace znn::v4
-
-#endif

@@ -58,7 +58,7 @@ int main(int argc, char** argv)
     vec3i s(sx,sy,sz);
 
     auto v2 = convolve_sparse(v,f,s);
-    //std::cout << *v << std::endl << std::endl;
+    //std::cout << *v2 << std::endl << std::endl;
     v = convolve_sparse_inverse(v2,f,s);
 
     zi::wall_timer wt;
@@ -66,11 +66,11 @@ int main(int argc, char** argv)
 
     for ( size_t i = 0; i < tc; ++i )
     {
-        v = convolve_sparse_inverse(v2,f,s);
+        v2 = convolve_sparse(v,f,s);
         //v = convolve_sparse_inverse(v,f,s);
     }
 
     std::cout << "Elapsed: " << wt.elapsed<double>() << std::endl;
-    std::cout << "Sum: " << sum(*v) << std::endl;
+    std::cout << "Sum: " << sum(*v2) << std::endl;
 
 }
