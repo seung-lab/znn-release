@@ -6,6 +6,7 @@
 #include <mutex>
 #include <memory>
 #include <zi/vl/vl.hpp>
+#include <boost/multi_array.hpp>
 
 #if ( __cplusplus <= 201103L )
 
@@ -47,5 +48,11 @@ typedef std::size_t size_t;
 typedef std::lock_guard<std::mutex> guard;
 
 typedef int64_t long_t;
+
+typedef boost::multi_array_types::index_range range;
+
+namespace { decltype(boost::indices) indices; }
+namespace { decltype(boost::extents) extents; }
+
 
 }} // namespace znn::v4

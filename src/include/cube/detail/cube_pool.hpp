@@ -1,3 +1,16 @@
+#pragma once
+
+#include <zi/utility/singleton.hpp>
+#include <list>
+
+#include "../../types.hpp"
+
+#ifdef ZNN_XEON_PHI
+#  include <mkl.h>
+#endif
+
+namespace znn { namespace v4 {
+
 #ifdef ZNN_XEON_PHI
 #  define __ZNN_ALIGN 0x3F // 64 byte alignment
 #else
@@ -246,3 +259,6 @@ std::shared_ptr<cube<T>> get_cube(const vec3i& s)
 {
     return pool<T>::get(s);
 }
+
+
+}} // namespace znn::v4

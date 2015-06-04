@@ -1,5 +1,11 @@
 #pragma once
 
+#ifdef ZNN_USE_MKL_FFT
+#  include <fftw/fftw3.h>
+#else
+#  include <fftw3.h>
+#endif
+
 #include "../types.hpp"
 #include "../cube/cube.hpp"
 
