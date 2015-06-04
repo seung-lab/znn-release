@@ -127,7 +127,6 @@ cube<T>* malloc_cube(const vec3i& s)
 }
 
 
-template<typename T>
 class memory_bucket
 {
 public:
@@ -172,7 +171,7 @@ template< typename T >
 class single_type_cube_pool
 {
 private:
-    std::array<memory_bucket<T>,48> buckets_;
+    std::array<memory_bucket,48> buckets_;
 
 public:
     single_type_cube_pool()
