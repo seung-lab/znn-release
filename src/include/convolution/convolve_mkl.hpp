@@ -21,9 +21,9 @@ private:
 public:
     single_size_conv_plans( vec3i const & s )
     {
-        shape[0] = s[0];
+        shape[2] = s[0];
         shape[1] = s[1];
-        shape[2] = s[2];
+        shape[0] = s[2];
     }
 
     VSLConvTaskPtr get( vec3i const & s )
@@ -33,12 +33,12 @@ public:
         if ( task ) return task;
 
         int status;
-        const int start[3]={s[0]-1,s[1]-1,s[2]-1};
+        const int start[3]={s[2]-1,s[1]-1,s[0]-1};
 
-        MKL_INT bshape[3] = { s[0], s[1], s[2] };
-        MKL_INT rshape[3] = { shape[0] + 1 - s[0],
+        MKL_INT bshape[3] = { s[2], s[1], s[0] };
+        MKL_INT rshape[3] = { shape[0] + 1 - s[2],
                               shape[1] + 1 - s[1],
-                              shape[2] + 1 - s[2] };
+                              shape[2] + 1 - s[0] };
 
 #ifdef ZNN_USE_FLOATS
         status = vslsConvNewTask(&task,VSL_CONV_MODE_DIRECT,3,
@@ -60,10 +60,10 @@ public:
         int status;
         const int start[3]={0,0,0};
 
-        MKL_INT bshape[3] = { s[0], s[1], s[2] };
-        MKL_INT rshape[3] = { shape[0] + s[0] - 1,
+        MKL_INT bshape[3] = { s[2], s[1], s[0] };
+        MKL_INT rshape[3] = { shape[0] + s[2] - 1,
                               shape[1] + s[1] - 1,
-                              shape[2] + s[2] - 1};
+                              shape[2] + s[0] - 1};
 
 #ifdef ZNN_USE_FLOATS
         status = vslsConvNewTask(&task,VSL_CONV_MODE_DIRECT,3,
@@ -125,7 +125,9 @@ inline cube_p<T> convolve( cube<T> const & a,
         return r;
     }
 
+
     cube_p<T> rp = get_cube<T>(size(a) + vec3i::one - size(b));
+
 
 #ifdef ZNN_USE_FLOATS
     int status = vslsConvExec(conv_plans.get(size(a),size(b)),
@@ -200,16 +202,21 @@ inline void convolve_flipped_add( cube<T> const & a,
 }
 
 
+
 template< typename T >
 inline cube_p<T> convolve_inverse( cube<T> const & a,
-                                   cube<T> const & b)
+                                   cube<T> const & borig )
 {
-    if ( b.num_elements() == 1 )
+    if ( borig.num_elements() == 1 )
     {
         auto r = get_copy(a);
-        *r *= b[0][0][0];
+        *r *= borig[0][0][0];
         return r;
     }
+
+    auto bp = get_copy(borig);
+    cube<T>& b = *bp;
+    flip(b);
 
     cube_p<T> rp = get_cube<T>(size(a) + size(b) - vec3i::one);
 

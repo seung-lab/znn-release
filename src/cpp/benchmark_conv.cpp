@@ -41,7 +41,7 @@ int main(int argc, char** argv)
         v->data()[i] = i;
 
     for ( int i = 0; i < f->num_elements(); ++i )
-        f->data()[i] = 0.001;
+        f->data()[i] = 0.001 * i;
 
 
     v = convolve(v,f);

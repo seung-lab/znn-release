@@ -83,22 +83,24 @@ public:
         return ret;
     }
 
-    std::pair<real,cube_p<real>> square_loss( cube<real> const & cprop,
+  std::tuple<real,real,cube_p<real>> square_loss( cube<real> const & cprop,
                                                   cube<real> const & clab )
     {
-        std::pair<real,cube_p<real>> ret;
-        ret.first = 0;
-        ret.second = get_copy(cprop);
+        std::tuple<real,real,cube_p<real>> ret;
+        std::get<0>(ret) = 0;
+        std::get<1>(ret) = 0;
+        std::get<2>(ret) = get_copy(cprop);
 
-        real* grad = ret.second->data();
+        real* grad = std::get<2>(ret)->data();
         const real* lab  = clab.data();
 
         long_t n = clab.num_elements();
 
         for ( long_t i = 0; i < n; ++i )
         {
+            std::get<1>(ret) += ( grad[i] > 0.5 ? ( lab[i] > 0.5 ? 0 : 1 ) : ( lab[i] > 0.5 ? 1 : 0 ) );
             grad[i] -= lab[i];
-            ret.first += grad[i]*grad[i];
+            std::get<0>(ret) += grad[i]*grad[i];
             grad[i] *= 2;
         }
 
@@ -112,6 +114,7 @@ public:
 
 int main(int argc, char** argv)
 {
+  srand(1234);
 
     std::vector<options> nodes;
     std::vector<options> edges;
@@ -136,18 +139,20 @@ int main(int argc, char** argv)
         tc = atoi(argv[5]);
     }
 
-    vec3i out_sz(z,y,x);
+    vec3i out_sz(x,y,z);
 
+    //parallel_network::network::optimize(nodes,edges,out_sz,tc,50);
     parallel_network::network net(nodes,edges,out_sz,tc);
     net.set_eta(0.01 / x / y / z);
 
     vec3i in_sz = out_sz + net.fov() - vec3i::one;
 
 
-    ISBI2012::ISBI2012 isbi( "../../../../dataset/ISBI2012/data/batch1",
+    ISBI2012::ISBI2012 isbi( "./dataset/ISBI2012/data/batch1",
                              vec3i(30,256,256), in_sz, out_sz );
 
-    real err;
+    real err = 0;
+    real cls = 0;
     for ( long_t i = 0; i < 1000000; )
     {
         std::map<std::string, std::vector<cube_p<real>>> insample;
@@ -164,9 +169,10 @@ int main(int argc, char** argv)
         //std::cout << *sample.second << *prop["nl6"][0] << std::endl;
 
         auto grad = isbi.square_loss(*(prop["output"][0]), *sample.second);
-        err += grad.first;
+        err += std::get<0>(grad);
+        cls += std::get<1>(grad);
 
-        outsample["output"][0] = grad.second;
+        outsample["output"][0] = std::get<2>(grad);
 
         net.backward(std::move(outsample));
 
@@ -177,7 +183,9 @@ int main(int argc, char** argv)
             err /= x;
             err /= y;
             err /= z;
-            std::cout << "Iteration: " << i << " done, sqerr: " << err << std::endl;
+            cls /= 100; cls /= ( x * y * z );
+            std::cout << "Iteration: " << i << " done, sqerr: " << err
+                      << " clserr: " << cls << std::endl;
             err = 0;
         }
 
