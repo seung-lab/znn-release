@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef ZNN_USE_MKL_DIRECT_CONV
+#  include "convolve_sparse_mkl.hpp"
+#else
+
 #include "../types.hpp"
 #include "convolve.hpp"
 
@@ -272,3 +276,5 @@ inline cube_p<T> convolve_sparse_inverse( ccube_p<T> const & a,
 }
 
 }} // namespace znn::v4
+
+#endif
