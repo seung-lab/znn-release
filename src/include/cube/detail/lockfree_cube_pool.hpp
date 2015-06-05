@@ -17,35 +17,26 @@ namespace znn { namespace v4 {
 #  define __ZNN_ALIGN 0xF // 16 byte alignment
 #endif
 
+
+inline void* znn_malloc(size_t s)
+{
 #ifdef ZNN_XEON_PHI
-
-inline void* znn_malloc(size_t s)
-{
     void* r = mkl_malloc(s,64);
-    if ( !r ) throw std::bad_alloc();
-    return r;
-}
-
-inline void znn_free(void* ptr)
-{
-    mkl_free(ptr);
-}
-
 #else
-
-inline void* znn_malloc(size_t s)
-{
     void* r = malloc(s);
+#endif
     if ( !r ) throw std::bad_alloc();
     return r;
 }
 
 inline void znn_free(void* ptr)
 {
+#ifdef ZNN_XEON_PHI
+    mkl_free(ptr);
+#else
     free(ptr);
-}
-
 #endif
+}
 
 template <typename T> struct cube: boost::multi_array_ref<T,3>
 {
@@ -99,31 +90,11 @@ struct __znn_aligned_size
     static_assert((value&__ZNN_ALIGN)==0, "bad value");
 };
 
-inline void* znn_aligned_malloc(size_t s)
-{
-    return znn_malloc(((s-1)|__ZNN_ALIGN)+1);
-}
 
 template<class T>
 inline T* __offset_cast(void* mem, size_t off)
 {
     return reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(mem)+off);
-}
-
-template<typename T>
-cube<T>* malloc_cube(const vec3i& s)
-{
-    void*    mem  = znn_aligned_malloc(__znn_aligned_size<cube<T>>::value
-                                       + s[0]*s[1]*s[2]*sizeof(T) );
-
-    ZI_ASSERT((reinterpret_cast<size_t>(mem)&__ZNN_ALIGN)==0);
-
-    T*       data = __offset_cast<T>(mem, __znn_aligned_size<cube<T>>::value);
-    cube<T>* c    = new (mem) cube<T>(s,data);
-
-    ZI_ASSERT(c==mem);
-
-    return c;
 }
 
 

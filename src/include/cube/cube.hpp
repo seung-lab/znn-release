@@ -78,4 +78,11 @@ inline cube_p<T> get_copy( cube<T> const & c )
     return r;
 }
 
+template<typename T>
+inline cube_p<T> get_cube(long_t x, long_t y, long_t z)
+{
+    return get_cube<T>(vec3i(x,y,z));
+}
+
+
 }} // namespace znn::v4
