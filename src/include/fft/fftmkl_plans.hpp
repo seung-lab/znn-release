@@ -9,6 +9,7 @@
 #include <zi/time/time.hpp>
 
 #include <map>
+#include <unordered_map>
 #include <iostream>
 #include <type_traits>
 #include <mutex>
@@ -34,10 +35,10 @@ typedef DFTI_DESCRIPTOR_HANDLE* fft_plan;
 class fft_plans_impl
 {
 private:
-    std::mutex                m_          ;
-    std::map<vec3i, fft_plan> fwd_        ;
-    std::map<vec3i, fft_plan> bwd_        ;
-    real                    time_       ;
+    std::mutex                                           m_          ;
+    std::unordered_map<vec3i, fft_plan, vec_hash<vec3i>> fwd_        ;
+    std::unordered_map<vec3i, fft_plan, vec_hash<vec3i>> bwd_        ;
+    real                                                 time_       ;
 
 public:
     ~fft_plans_impl()

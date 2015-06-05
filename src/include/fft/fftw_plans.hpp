@@ -14,6 +14,7 @@
 
 #include <map>
 #include <iostream>
+#include <unordered_map>
 #include <type_traits>
 #include <mutex>
 
@@ -61,10 +62,10 @@ inline vec3i fft_complex_size(const cube<T>& c)
 class fft_plans_impl
 {
 private:
-    std::mutex                m_          ;
-    std::map<vec3i, fft_plan> fwd_        ;
-    std::map<vec3i, fft_plan> bwd_        ;
-    real                      time_       ;
+    std::mutex                                           m_          ;
+    std::unordered_map<vec3i, fft_plan, vec_hash<vec3i>> fwd_        ;
+    std::unordered_map<vec3i, fft_plan, vec_hash<vec3i>> bwd_        ;
+    real                                                 time_       ;
 
     static_assert(std::is_pointer<fft_plan>::value,
                   "fftw_plan must be a pointer");

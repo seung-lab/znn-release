@@ -6,6 +6,7 @@
 
 #include <zi/utility/singleton.hpp>
 #include <mkl_vsl.h>
+#include <unordered_map>
 
 namespace znn { namespace v4 {
 
@@ -15,8 +16,9 @@ private:
     std::mutex                      m1       ;
     std::mutex                      m2       ;
     MKL_INT                         shape[3] ;
-    std::map<vec3i, VSLConvTaskPtr> plans1   ;
-    std::map<vec3i, VSLConvTaskPtr> plans2   ;
+
+    std::unordered_map<vec3i, VSLConvTaskPtr, vec_hash<vec3i>> plans1   ;
+    std::unordered_map<vec3i, VSLConvTaskPtr, vec_hash<vec3i>> plans2   ;
 
 public:
     single_size_conv_plans( vec3i const & s )
@@ -81,8 +83,8 @@ public:
 class conv_plans_impl
 {
 private:
-    std::mutex                               m       ;
-    std::map<vec3i, single_size_conv_plans*> pools   ;
+    std::mutex                                                          m    ;
+    std::unordered_map<vec3i, single_size_conv_plans*, vec_hash<vec3i>> pools;
 
     single_size_conv_plans* get_pool(vec3i const & s)
     {

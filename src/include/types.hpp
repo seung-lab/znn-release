@@ -5,6 +5,7 @@
 #include <complex>
 #include <mutex>
 #include <memory>
+#include <functional>
 #include <zi/vl/vl.hpp>
 #include <boost/multi_array.hpp>
 
@@ -54,5 +55,22 @@ typedef boost::multi_array_types::index_range range;
 namespace { decltype(boost::indices) indices; }
 namespace { decltype(boost::extents) extents; }
 
+template< class > struct vec_hash;
+
+template< class T, size_t N>
+struct vec_hash<zi::vl::vec<T,N>>
+{
+    size_t operator()(zi::vl::vec<T,N> const & s) const
+    {
+        std::hash<T> hasher;
+        size_t seed = hasher(s[0]);
+
+        for ( size_t i = 1; i < N; ++i )
+        {
+            seed ^= s[i] + 0x9e3779b9 + (seed<<6) + (seed>>2);
+        }
+        return seed;
+    }
+};
 
 }} // namespace znn::v4

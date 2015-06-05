@@ -12,31 +12,6 @@
 #  include "detail/dummy_cube.hpp"
 #endif
 
-
-// #include <zi/utility/singleton.hpp>
-// #include <mutex>
-// #include <cstddef>
-// #include <list>
-// #include <functional>
-// #include <iostream>
-// #include <set>
-// #include <complex>
-// #include <memory>
-// #include <type_traits>
-// #include <array>
-
-// #include <boost/multi_array.hpp>
-// #include <boost/lockfree/stack.hpp>
-// #include <zi/utility/singleton.hpp>
-// #include <jemalloc/jemalloc.h>
-// #include "../types.hpp"
-
-// #ifdef ZNN_XEON_PHI
-// #  include <mkl.h>
-// #endif
-
-
-
 namespace znn { namespace v4 {
 
 #if 1
