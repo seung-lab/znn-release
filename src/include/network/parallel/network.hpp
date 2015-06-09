@@ -177,7 +177,7 @@ private:
             return n->bwd_priority;
         }
 
-        size_t p = 0;
+        size_t p = n->fwd_priority;
 
         for ( auto& e: n->in )
         {
@@ -186,7 +186,6 @@ private:
 
         n->bwd_priority = p + 1;
         return n->bwd_priority;
-
     }
 
     void init( vec3i const& outsz )
