@@ -20,11 +20,16 @@ private:
     bool           is_input_    ;
     bool           is_output_   ;
 
+    size_t const   fwd_priority_;
+    size_t const   bwd_priority_;
+
 protected:
     nodes( size_t sz,
            vec3i const & fsize,
            options const & op,
            task_manager & tm,
+           size_t fwd_p,
+           size_t bwd_p,
            bool is_in = false,
            bool is_out = false )
         : size_(sz)
@@ -33,6 +38,8 @@ protected:
         , options_(op)
         , is_input_(is_in)
         , is_output_(is_out)
+        , fwd_priority_(fwd_p)
+        , bwd_priority_(bwd_p)
     {
     }
 
@@ -46,6 +53,9 @@ public:
     vec3i const &  fsize() const { return fsize_;        }
     task_manager & manager()     { return task_manager_; }
     size_t         size() const  { return size_;         }
+
+    size_t         fwd_priority() const { return fwd_priority_; }
+    size_t         bwd_priority() const { return bwd_priority_; }
 
     std::string name() const
     {

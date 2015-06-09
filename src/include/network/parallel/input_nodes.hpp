@@ -17,8 +17,10 @@ public:
     input_nodes( size_t s,
                  vec3i const & fsize,
                  options const & op,
-                 task_manager & tm )
-        : nodes(s,fsize,op,tm,true,false)
+                 task_manager & tm,
+                 size_t fwd_p,
+                 size_t bwd_p )
+        : nodes(s,fsize,op,tm,fwd_p,bwd_p,true,false)
         , outputs_(s)
         , waiter_()
     {

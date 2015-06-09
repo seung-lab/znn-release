@@ -32,8 +32,10 @@ public:
                     vec3i const & fsize,
                     options const & op,
                     task_manager & tm,
+                    size_t fwd_p,
+                    size_t bwd_p,
                     bool is_out )
-        : nodes(s,fsize,op,tm,false,is_out)
+        : nodes(s,fsize,op,tm,fwd_p,bwd_p,false,is_out)
         , biases_(s)
         , func_()
         , fwd_dispatch_(s)

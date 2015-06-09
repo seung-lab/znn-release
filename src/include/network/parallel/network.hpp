@@ -43,6 +43,9 @@ private:
 
         std::unique_ptr<nodes> dnodes;
         std::vector<nedges *> in, out;
+
+        size_t fwd_priority = 0;
+        size_t bwd_priority = 0;
     };
 
 private:
@@ -149,6 +152,43 @@ private:
         }
     }
 
+    size_t fwd_priority_pass(nnodes* n)
+    {
+        if ( n->fwd_priority > 0 )
+        {
+            return n->fwd_priority;
+        }
+
+        size_t p = 0;
+
+        for ( auto& e: n->out )
+        {
+            p = std::max(p, fwd_priority_pass(e->out));
+        }
+
+        n->fwd_priority = p + 1;
+        return n->fwd_priority;
+    }
+
+    size_t bwd_priority_pass(nnodes* n)
+    {
+        if ( n->bwd_priority > 0 )
+        {
+            return n->bwd_priority;
+        }
+
+        size_t p = 0;
+
+        for ( auto& e: n->in )
+        {
+            p = std::max(p, bwd_priority_pass(e->in));
+        }
+
+        n->bwd_priority = p + 1;
+        return n->bwd_priority;
+
+    }
+
     void init( vec3i const& outsz )
     {
         for ( auto& o: nodes_ )
@@ -159,6 +199,12 @@ private:
             stride_pass(o.second, vec3i::one);
         for ( auto& o: output_nodes_ )
             fov_pass(o.second, vec3i::one, outsz);
+
+        for ( auto& o: input_nodes_ )
+            fwd_priority_pass(o.second);
+        for ( auto& o: output_nodes_ )
+            bwd_priority_pass(o.second);
+
 
         // for ( auto& o: nodes_ )
         // {
@@ -236,23 +282,35 @@ private:
 
     void create_nodes()
     {
+        std::map<size_t,size_t> fwd_pts;
+        std::map<size_t,size_t> bwd_pts;
+
         for ( auto & n: nodes_ )
         {
             auto type = n.second->opts->require_as<std::string>("type");
             auto sz   = n.second->opts->require_as<size_t>("size");
+
+            size_t fwd_p = n.second->fwd_priority * 1024
+                + fwd_pts[n.second->fwd_priority];
+            ++fwd_pts[n.second->fwd_priority];
+
+            size_t bwd_p = n.second->bwd_priority * 1024
+                + bwd_pts[n.second->bwd_priority];
+            ++bwd_pts[n.second->bwd_priority];
+
 
             ZI_ASSERT(sz>0);
 
             if ( type == "input" )
             {
                 n.second->dnodes = std::make_unique<input_nodes>
-                    (sz,n.second->fsize,*n.second->opts,tm_);
+                    (sz,n.second->fsize,*n.second->opts,tm_,fwd_p,bwd_p);
             }
             else if ( (type == "sum") || (type == "transfer") )
             {
                 n.second->dnodes = std::make_unique<transfer_nodes>
                     ( sz, n.second->fsize, *n.second->opts, tm_,
-                      n.second->out.size()==0 );
+                      fwd_p,bwd_p,n.second->out.size()==0 );
             }
             else
             {

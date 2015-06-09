@@ -114,10 +114,9 @@ private:
                        task_manager & manager ) const
     {
         ccube_p<complex> x = fftw::forward_pad(v, s);
-        size_t prio = 0;
         for ( auto& t: targets )
         {
-            manager.schedule(prio++, [t,x](){t->forward(x);});
+            manager.schedule(t->fwd_priority(), [t,x](){t->forward(x);});
         }
     }
 
@@ -125,9 +124,8 @@ public:
     void dispatch( ccube_p<real> const & v,
                    task_manager & manager) const
     {
-        size_t prio = 0;
         for ( auto& t: targets_ )
-            manager.schedule(prio++, [t,v](){t->forward(v);});
+            manager.schedule(t->fwd_priority(), [t,v](){t->forward(v);});
 
         for ( auto& fft_target: fft_targets_ )
             manager.asap(&this_type::fft_dispatch,this,v,fft_target.first,
@@ -167,19 +165,17 @@ private:
 
         ccube_p<complex> x = fftw::forward_pad(std::move(vp), s);
 
-        size_t prio = 0;
         for ( auto& t: targets )
         {
-            manager.schedule(prio++, [t,x](){t->backward(x);});
+            manager.schedule(t->bwd_priority(), [t,x](){t->backward(x);});
         }
     }
 
 public:
     void dispatch(const ccube_p<real>& v, task_manager& manager) const
     {
-        size_t prio = 0;
         for ( auto& t: targets_ )
-            manager.schedule(prio++, [t,v](){t->backward(v);});
+            manager.schedule(t->bwd_priority(), [t,v](){t->backward(v);});
 
         for ( auto& fft_target: fft_targets_ )
             manager.asap(&this_type::fft_dispatch,this,v,fft_target.first,
