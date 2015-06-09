@@ -176,12 +176,12 @@ private:
 public:
     void dispatch(const ccube_p<real>& v, task_manager& manager) const
     {
-        for ( auto& t: targets_ )
-            manager.schedule(t->bwd_priority(), [t,v](){t->backward(v);});
-
         for ( auto& fft_target: fft_targets_ )
             manager.asap(&this_type::fft_dispatch,this,v,fft_target.first,
                          std::cref(fft_target.second), std::ref(manager));
+
+        for ( auto& t: targets_ )
+            manager.schedule(t->bwd_priority(), [t,v](){t->backward(v);});
     }
 
     void sign_up(Edge* e)

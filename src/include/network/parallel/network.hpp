@@ -210,7 +210,9 @@ private:
         //     std::cout << "NODE GROUP: " << o.first << "\n    "
         //               << "FOV: " << o.second->fov << "\n    "
         //               << "STRIDE: " << o.second->stride << "\n    "
-        //               << "SIZE: " << o.second->fsize << '\n';
+        //               << "SIZE: " << o.second->fsize << '\n'
+        //               << "  PRIORITIES: " << o.second->fwd_priority << ""
+        //               << ", " << o.second->bwd_priority << "\n    ";
         // }
 
         // for ( auto& o: edges_ )
