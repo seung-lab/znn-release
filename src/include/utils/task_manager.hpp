@@ -191,7 +191,7 @@ public:
         callable_t* fn = new callable_t(std::bind(std::forward<Args>(args)...));
         {
             std::lock_guard<std::mutex> g(mutex_);
-            tasks_.push({priority,fn});
+            tasks_.push(task_t{priority,fn});
                 //tasks_[priority].emplace_front(fn);
             if ( idle_threads_ > 0 ) workers_cv_.notify_one();
         }
@@ -203,7 +203,7 @@ public:
         callable_t* fn = new callable_t(std::bind(std::forward<Args>(args)...));
         {
             std::lock_guard<std::mutex> g(mutex_);
-            tasks_.push({std::numeric_limits<std::size_t>::max(),fn});
+            tasks_.push(task_t{std::numeric_limits<std::size_t>::max(),fn});
             if ( idle_threads_ > 0 ) workers_cv_.notify_one();
         }
     }

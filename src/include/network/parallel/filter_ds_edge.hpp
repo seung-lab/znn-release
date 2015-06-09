@@ -91,7 +91,7 @@ public:
                                                    filter_.W(),
                                                    filter_stride));
 
-        manager.schedule( this->fwd_priority(),
+        manager.schedule( this->fwd_priority() + 512,
                           &filter_ds_edge::do_update, this, g );
     }
 
