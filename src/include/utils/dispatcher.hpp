@@ -116,7 +116,8 @@ private:
         ccube_p<complex> x = fftw::forward_pad(v, s);
         for ( auto& t: targets )
         {
-            manager.schedule(t->fwd_priority(), [t,x](){t->forward(x);});
+            t->forward(x);
+            //manager.schedule(t->fwd_priority(), [t,x](){t->forward(x);});
         }
     }
 
@@ -124,12 +125,13 @@ public:
     void dispatch( ccube_p<real> const & v,
                    task_manager & manager) const
     {
-        for ( auto& t: targets_ )
-            manager.schedule(t->fwd_priority(), [t,v](){t->forward(v);});
-
         for ( auto& fft_target: fft_targets_ )
             manager.asap(&this_type::fft_dispatch,this,v,fft_target.first,
                          std::cref(fft_target.second), std::ref(manager));
+
+        for ( auto& t: targets_ )
+            t->forward(v);
+        //manager.schedule(t->fwd_priority(), [t,v](){t->forward(v);});
     }
 
     void sign_up(Edge* e)

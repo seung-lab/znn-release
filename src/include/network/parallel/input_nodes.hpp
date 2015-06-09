@@ -80,8 +80,6 @@ public:
 
     void wait() override { waiter_.wait(); }
 
-    void zap() override {}
-
 }; // class input_nodes
 
 }}} // namespace znn::v4::parallel_network

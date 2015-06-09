@@ -58,11 +58,6 @@ public:
             in_nodes->backward(in_num, pooling_backprop(insize, *g, *indices));
         }
     }
-
-    void zap(edges* e)
-    {
-        e->edge_zapped();
-    }
 };
 
 
@@ -120,11 +115,6 @@ public:
         {
             in_nodes->backward(in_num, pooling_backprop(insize, *g, *indices));
         }
-    }
-
-    void zap(edges* e)
-    {
-        e->edge_zapped();
     }
 };
 

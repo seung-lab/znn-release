@@ -33,7 +33,6 @@ inline edges::edges( nodes * in,
 
     edges_.resize(n*m);
     filters_.resize(n*m);
-    waiter_.set(n*m);
 
     real eta  = opts.optional_as<real>("eta", 0.1);
     real mom  = opts.optional_as<real>("momentum", 0.0);
@@ -129,8 +128,6 @@ inline edges::edges( nodes * in,
 
     size_t n = in->num_out_nodes();
     edges_.resize(n);
-    waiter_.set(n);
-
     for ( size_t i = 0; i < n; ++i )
     {
         edges_[i] = std::make_unique<dummy_edge>
@@ -154,8 +151,6 @@ inline edges::edges( nodes * in,
 
     size_t n = in->num_out_nodes();
     edges_.resize(n);
-    waiter_.set(n);
-
     auto sz = opts.require_as<ovec3i>("size");
 
     for ( size_t i = 0; i < n; ++i )
@@ -181,8 +176,6 @@ inline edges::edges( nodes * in,
 
     size_t n = in->num_out_nodes();
     edges_.resize(n);
-    waiter_.set(n);
-
     auto sz = opts.require_as<ovec3i>("size");
 
     for ( size_t i = 0; i < n; ++i )

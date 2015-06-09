@@ -380,6 +380,7 @@ public:
         init(outsz);
         create_nodes();
         create_edges();
+        tm_.wait_idle();
     }
 
     void set_eta( real eta )
@@ -502,11 +503,12 @@ public:
 
     void zap()
     {
-        for ( auto & n: nodes_ )
-            n.second->dnodes->zap();
+        tm_.wait_idle();
+        //for ( auto & n: nodes_ )
+        //    n.second->dnodes->zap();
 
-        for ( auto & e: edges_ )
-            e.second->dedges->zap();
+        //for ( auto & e: edges_ )
+        //    e.second->dedges->zap();
     }
 
     static void optimize( std::vector<options> & ns,

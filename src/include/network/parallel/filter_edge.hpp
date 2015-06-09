@@ -16,8 +16,7 @@ private:
     filter & filter_;
 
     ccube_p<real> last_input;
-
-    task_manager::task_handle pending_ = 0;
+    ccube_p<real> pending_input;
 
     std::mutex m;
 
@@ -33,6 +32,14 @@ private:
     {
         auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
         filter_.update(*dEdW);
+        {
+            guard gg(m);
+            last_input.reset();
+            if ( pending_input )
+            {
+                do_forward(std::move(pending_input));
+            }
+        }
     }
 
 public:
@@ -51,13 +58,22 @@ public:
 
     void forward( ccube_p<real> const & f ) override
     {
-        guard gg(m);
-        manager.require_done( pending_, &filter_edge::do_forward, this, f );
+        {
+            guard gg(m);
+            if ( !last_input )
+            {
+                manager.schedule(this->fwd_priority(),
+                                 &filter_edge::do_forward, this, f);
+            }
+            else
+            {
+                pending_input = f;
+            }
+        }
     }
 
     void backward( ccube_p<real> const & g )
     {
-        guard gg(m);
         ZI_ASSERT(last_input);
         if ( in_nodes->is_input() )
         {
@@ -71,16 +87,10 @@ public:
                                                        filter_stride));
         }
 
-        pending_
-            = manager.schedule_unprivileged(&filter_edge::do_update, this, g);
+        manager.schedule( this->fwd_priority(),
+                          &filter_edge::do_update, this, g );
     }
 
-    void zap(edges* e)
-    {
-        // guard gg(m);
-        manager.require_done(pending_,&edges::edge_zapped,e);
-        //e->edge_zapped();
-    }
 };
 
 

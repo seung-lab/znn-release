@@ -4,7 +4,6 @@
 #include "nodes.hpp"
 #include "../filter.hpp"
 #include "../../options/options.hpp"
-#include "../../utils/waiter.hpp"
 #include "../../utils/task_manager.hpp"
 #include "../../initializator/initializators.hpp"
 #include "../trivial/utils.hpp"
@@ -21,7 +20,6 @@ public:
 
 protected:
     options                                options_;
-    waiter                                 waiter_ ;
     std::vector<std::unique_ptr<edge>>     edges_  ;
     std::vector<std::unique_ptr<filter>>   filters_;
     vec3i                                  size_   ;
@@ -81,19 +79,6 @@ public:
         return ret;
     }
 
-    void edge_zapped()
-    {
-        waiter_.one_done();
-    }
-
-    void zap()
-    {
-        for ( auto & e: edges_ )
-        {
-            e->zap(this);
-        }
-        waiter_.wait();
-    }
 };
 
 }}} // namespace znn::v4::parallel_network

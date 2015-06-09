@@ -146,7 +146,6 @@ public:
     virtual void wait()
     { UNIMPLEMENTED(); }
 
-    virtual void zap() = 0;
     virtual options serialize() const = 0;
 
 };

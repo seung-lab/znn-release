@@ -36,10 +36,6 @@ public:
         in_nodes->backward(in_num,get_copy(*g));
     }
 
-    void zap(edges* e)
-    {
-        e->edge_zapped();
-    }
 };
 
 

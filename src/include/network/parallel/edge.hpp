@@ -48,7 +48,6 @@ public:
     virtual void backward( ccube_p<complex> const & )
     { UNIMPLEMENTED(); }
 
-    virtual void zap(edges*) = 0;
 };
 
 
