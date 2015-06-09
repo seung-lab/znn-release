@@ -105,6 +105,11 @@ public:
         , concurrency_{0}
         , idle_threads_{0}
     {
+        std::vector<task_t> reserved;
+        reserved.reserve(65536*4);
+        tasks_ = std::priority_queue<task_t, std::vector<task_t>,
+                                     std::greater<task_t>>
+            ( std::greater<task_t>(), std::move(reserved));
         set_concurrency(concurrency);
     }
 
