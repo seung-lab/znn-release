@@ -685,7 +685,7 @@ public:
             new unprivileged_task(std::forward<Args>(args)...);
         {
             std::lock_guard<std::mutex> g(mutex_);
-            unprivileged_[++next_unprivileged_task_id] = t;
+            unprivileged_[--next_unprivileged_task_id] = t;
             if ( idle_threads_ > 0 ) workers_cv_.notify_one();
             return next_unprivileged_task_id;
         }
