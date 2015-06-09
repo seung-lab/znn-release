@@ -544,10 +544,9 @@ public:
                 net.forward(std::move(is[i+1]));
             }
 
-            net.backward(std::move(os[rounds-1]));
-
             tot_time = wt.elapsed<real>();
 
+            //net.backward(std::move(os[rounds-1]));
             net.zap();
 
 #ifdef ZNN_ANALYSE_TASK_MANAGER
@@ -583,7 +582,7 @@ public:
                 net.forward(std::move(is[i+1]));
             }
 
-            net.backward(std::move(os[rounds-1]));
+            //net.backward(std::move(os[rounds-1]));
 
             real my_time = wt.elapsed<real>();
 
@@ -744,6 +743,131 @@ public:
             }
         }
     }
+
+
+    static double speed_test( std::vector<options> & ns,
+                              std::vector<options> & es,
+                              vec3i const & outsz,
+                              size_t n_threads = 1,
+                              size_t rounds = 10)
+    {
+        std::vector<options*> edge_groups;
+        for ( auto & e: es )
+        {
+            if ( e.require_as<std::string>("type") == "conv" )
+            {
+                edge_groups.push_back(&e);
+                //e.push("fft",1);
+            }
+        }
+
+        network net(ns,es,outsz,n_threads);
+        auto ins  = net.inputs();
+        auto outs = net.outputs();
+
+        std::cout << "Create samples...";
+
+        uniform_init init(1);
+        std::vector<std::map<std::string, std::vector<cube_p<real>>>>
+            allins, allouts;
+
+        for ( size_t n = 0; n < rounds; ++n )
+        {
+            std::map<std::string, std::vector<cube_p<real>>> insample;
+            std::map<std::string, std::vector<cube_p<real>>> outsample;
+
+            for ( auto & ip: ins )
+            {
+                for ( size_t i = 0; i < ip.second.second; ++i )
+                {
+                    std::cout << ip.second.first << " -\n";
+                    auto v = get_cube<real>(ip.second.first);
+                    init.initialize(*v);
+                    insample[ip.first].push_back(v);
+                }
+            }
+
+            allins.push_back(insample);
+
+            for ( auto & ip: outs )
+            {
+                for ( size_t i = 0; i < ip.second.second; ++i )
+                {
+                    auto v = get_cube<real>(ip.second.first);
+                    init.initialize(*v);
+                    outsample[ip.first].push_back(v);
+                }
+            }
+
+            allouts.push_back(outsample);
+        }
+
+        std::cout << "DONE\nFFT Warmup..." << std::flush;
+
+        {
+            auto is = copy_samples(allins);
+            auto os = copy_samples(allouts);
+            net.forward(std::move(is[0]));
+            net.backward(std::move(os[0]));
+            net.zap();
+        }
+
+        std::cout << "DONE\nTrying all FFTs..." << std::flush;
+
+        double tot_time = 0;
+
+        {
+            network net(ns,es,outsz,n_threads);
+
+            auto is = copy_samples(allins);
+            auto os = copy_samples(allouts);
+
+            zi::wall_timer wt;
+            net.forward(std::move(is[0]));
+
+            wt.reset();
+
+            for ( size_t i = 0; i < rounds-1; ++i )
+            {
+                net.backward(std::move(os[i]));
+                net.forward(std::move(is[i+1]));
+            }
+
+            tot_time = wt.elapsed<real>();
+
+            net.zap();
+            std::cout << (tot_time/(rounds-1)) << " secs" << std::endl;
+        }
+
+        double tot_time2 = 0;
+
+        {
+            network net(ns,es,outsz,n_threads);
+
+            auto is = copy_samples(allins);
+            auto os = copy_samples(allouts);
+
+            zi::wall_timer wt;
+            net.forward(std::move(is[0]));
+
+            wt.reset();
+
+            for ( size_t i = 0; i < rounds-1; ++i )
+            {
+                net.backward(std::move(os[i]));
+                net.forward(std::move(is[i+1]));
+            }
+
+            tot_time2 = wt.elapsed<real>();
+
+            net.zap();
+            std::cout << (tot_time2/(rounds-1)) << " secs" << std::endl;
+        }
+
+        return std::min(tot_time,tot_time2);
+    }
+
+
 };
 
 

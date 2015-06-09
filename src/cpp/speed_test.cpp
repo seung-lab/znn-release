@@ -1,4 +1,3 @@
-#include "cube/cube.hpp"
 #include "network/parallel/network.hpp"
 #include "network/trivial/trivial_fft_network.hpp"
 #include "network/trivial/trivial_network.hpp"
@@ -32,6 +31,14 @@ int main(int argc, char** argv)
         tc = atoi(argv[5]);
     }
 
-    parallel_network::network::optimize(nodes, edges, {z,y,x}, tc , 10);
+    std::vector<double> times(tc);
 
+    for ( size_t i = 0; i < tc; ++i )
+        times[i] =
+            parallel_network::network::speed_test(nodes, edges, {z,y,x}, i+1 , 10);
+
+    for ( size_t i = 0; i < tc; ++i )
+    {
+        std::cout << (i+1) << ", " << times[i] << ";\n";
+    }
 }

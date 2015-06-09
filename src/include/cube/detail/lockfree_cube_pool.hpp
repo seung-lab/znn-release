@@ -2,6 +2,7 @@
 
 #include <zi/utility/singleton.hpp>
 #include <boost/lockfree/stack.hpp>
+#include <array>
 
 #include "../../types.hpp"
 

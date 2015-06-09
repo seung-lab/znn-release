@@ -31,7 +31,7 @@ private:
     size_t next_unprivileged_task_id;
 
 private:
-    struct unprivileged_task: std::enable_shared_from_this<unprivileged_task>
+    struct unprivileged_task
     {
     private:
         std::function<void()>  fn_  ;
@@ -346,7 +346,7 @@ private:
     size_t next_unprivileged_task_id;
 
 private:
-    struct unprivileged_task: std::enable_shared_from_this<unprivileged_task>
+    struct unprivileged_task
     {
     private:
         std::function<void()>  fn_  ;
