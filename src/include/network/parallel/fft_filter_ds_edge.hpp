@@ -20,11 +20,12 @@ private:
     ccube_p<complex> w_fft;
 #endif
     ccube_p<complex> last_input;
+    ccube_p<complex> pending_input;
 
     size_t fwd_bucket_;
     size_t bwd_bucket_;
 
-    task_manager::task_handle pending_ = 0;
+    std::mutex m;
 
 private:
     void do_forward( ccube_p<complex> const & f )
@@ -58,6 +59,13 @@ private:
 #ifndef ZNN_DONT_CACHE_FFTS
         initialize();
 #endif
+
+        {
+            guard gg(m);
+            last_input.reset();
+            if ( pending_input ) do_forward(std::move(pending_input));
+        }
+
     }
 
 #ifndef ZNN_DONT_CACHE_FFTS
@@ -98,13 +106,22 @@ public:
         flatten(filter_.W(), repeat_);
 
 #ifndef ZNN_DONT_CACHE_FFTS
-        pending_ = manager.schedule_unprivileged(&fft_filter_ds_edge::initialize,this);
+        manager.asap(&fft_filter_ds_edge::initialize,this);
 #endif
     }
 
     void forward( ccube_p<complex> const & f ) override
     {
-        manager.require_done( pending_, &fft_filter_ds_edge::do_forward, this, f );
+        guard gg(m);
+        if ( last_input )
+        {
+            pending_input = f;
+        }
+        else
+        {
+            manager.schedule(this->fwd_priority(),
+                             &fft_filter_ds_edge::do_forward, this, f);
+        }
     }
 
     void backward( ccube_p<complex> const & g )
@@ -124,13 +141,13 @@ public:
             in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
         }
 
-        pending_
-            = manager.schedule_unprivileged(&fft_filter_ds_edge::do_update, this, g);
+        manager.schedule(this->fwd_priority()+512,
+                         &fft_filter_ds_edge::do_update, this, g);
     }
 
     void zap(edges* e)
     {
-        manager.require_done(pending_,&edges::edge_zapped,e);
+        //manager.require_done(pending_,&edges::edge_zapped,e);
     }
 };
 

@@ -111,12 +111,13 @@ private:
     void fft_dispatch( ccube_p<real> const & v,
                        vec3i const & s,
                        std::vector<FFTEdge*> const & targets,
-                       task_manager & manager ) const
+                       task_manager & ) const
     {
         ccube_p<complex> x = fftw::forward_pad(v, s);
         for ( auto& t: targets )
         {
-            manager.schedule(t->fwd_priority(), [t,x](){t->forward(x);});
+            //manager.schedule(t->fwd_priority(), [t,x](){t->forward(x);});
+            t->forward(x);
         }
     }
 
@@ -125,7 +126,8 @@ public:
                    task_manager & manager) const
     {
         for ( auto& t: targets_ )
-            manager.schedule(t->fwd_priority(), [t,v](){t->forward(v);});
+            t->forward(v);
+            //manager.schedule(t->fwd_priority(), [t,v](){t->forward(v);});
 
         for ( auto& fft_target: fft_targets_ )
             manager.asap(&this_type::fft_dispatch,this,v,fft_target.first,

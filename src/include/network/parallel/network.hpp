@@ -503,11 +503,12 @@ public:
 
     void zap()
     {
-        for ( auto & n: nodes_ )
-            n.second->dnodes->zap();
+        // for ( auto & n: nodes_ )
+        //     n.second->dnodes->zap();
 
-        for ( auto & e: edges_ )
-            e.second->dedges->zap();
+        // for ( auto & e: edges_ )
+        //     e.second->dedges->zap();
+        tm_.wait_idle();
     }
 
     static void optimize( std::vector<options> & ns,

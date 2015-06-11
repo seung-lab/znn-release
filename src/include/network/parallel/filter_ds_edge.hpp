@@ -17,8 +17,7 @@ private:
     filter & filter_;
 
     ccube_p<real> last_input;
-
-    task_manager::task_handle pending_ = 0;
+    ccube_p<real> pending_input;
 
     std::mutex m;
 
@@ -35,6 +34,12 @@ private:
         auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
         filter_.update(*dEdW);
         flatten(filter_.W(), repeat_);
+
+        {
+            guard gg(m);
+            last_input.reset();
+            if ( pending_input ) do_forward(std::move(pending_input));
+        }
     }
 
 public:
@@ -59,26 +64,41 @@ public:
     void forward( ccube_p<real> const & f ) override
     {
         guard gg(m);
-        manager.require_done( pending_, &filter_ds_edge::do_forward, this, f );
+        if ( last_input )
+        {
+            pending_input = f;
+        }
+        else
+        {
+            manager.schedule(this->fwd_priority(),
+                             &filter_ds_edge::do_forward, this, f);
+        }
     }
 
     void backward( ccube_p<real> const & g )
     {
-        guard gg(m);
         ZI_ASSERT(last_input);
-        in_nodes->backward(in_num,
-                           convolve_sparse_inverse(*g,
-                                                   filter_.W(),
-                                                   filter_stride));
 
-        pending_
-            = manager.schedule_unprivileged(&filter_ds_edge::do_update, this, g);
+        if ( in_nodes->is_input() )
+        {
+            in_nodes->backward(in_num, cube_p<real>());
+        }
+        else
+        {
+            in_nodes->backward(in_num,
+                               convolve_sparse_inverse(*g,
+                                                       filter_.W(),
+                                                       filter_stride));
+        }
+
+        manager.schedule(this->fwd_priority()+512,
+                         &filter_ds_edge::do_update, this, g);
     }
 
     void zap(edges* e)
     {
         // guard gg(m);
-        manager.require_done(pending_,&edges::edge_zapped,e);
+        //manager.require_done(pending_,&edges::edge_zapped,e);
         //e->edge_zapped();
     }
 };
