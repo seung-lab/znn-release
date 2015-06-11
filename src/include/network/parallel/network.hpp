@@ -381,6 +381,7 @@ public:
         init(outsz);
         create_nodes();
         create_edges();
+        tm_.wait_idle();
     }
 
     void set_eta( real eta )

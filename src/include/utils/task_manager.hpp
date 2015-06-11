@@ -71,7 +71,8 @@ private:
                         concurrency_ >= spawned_threads_ )
                 {
                     ++idle_threads_;
-                    if ( (idle_threads_ == concurrency_) && sniffers_ )
+                    if ( (idle_threads_ == concurrency_) &&
+                         (tasks_.size() == 0) && sniffers_ )
                     {
                         manager_cv_.notify_all();
                     }
@@ -165,7 +166,7 @@ public:
     void wait_idle()
     {
         std::unique_lock<std::mutex> g(mutex_);
-        while ( idle_threads_ < concurrency_ )
+        while ( (idle_threads_ < concurrency_) || tasks_.size() )
         {
             ++sniffers_;
             manager_cv_.wait(g);

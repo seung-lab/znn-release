@@ -8,6 +8,8 @@
 #  include "detail/lockfree_cube_pool.hpp"
 #elif defined( ZNN_CUBE_POOL)
 #  include "detail/cube_pool.hpp"
+#elif defined( ZNN_CUBE_POOL_MUTEX)
+#  include "detail/mutex_cube_pool.hpp"
 #else
 #  include "detail/dummy_cube.hpp"
 #endif

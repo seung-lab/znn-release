@@ -33,6 +33,7 @@ private:
 #ifdef ZNN_DONT_CACHE_FFTS
         auto w_fft = get_w_fft();
 #endif
+        STRONG_ASSERT(w_fft);
         auto fw = *w_fft * *f;
         out_nodes->forward(out_num, fwd_bucket_, std::move(fw));
         //out_nodes->forward(out_num, fwd_bucket_, w_fft, f);
@@ -97,6 +98,7 @@ public:
         fwd_bucket_ = out->attach_in_fft_edge(outn, this, in->fsize());
 #ifndef ZNN_DONT_CACHE_FFTS
         manager.asap(&fft_filter_edge::initialize,this);
+        //initialize();
 #endif
     }
 
