@@ -16,28 +16,72 @@ private:
     filter & filter_;
 
     ccube_p<real> last_input;
-    ccube_p<real> pending_input;
+    ccube_p<real> grad;
 
     std::mutex m;
 
 private:
-    void do_forward( ccube_p<real> const & f )
+
+    void actual_forward()
     {
-        last_input = f;
         out_nodes->forward(out_num,
-                           convolve_sparse(*f, filter_.W(), filter_stride));
+                           convolve_sparse(*last_input,
+                                           filter_.W(),
+                                           filter_stride));
     }
 
-    void do_update( ccube_p<real> const & g )
+    void actual_update( ccube_p<real> const & f, ccube_p<real> const & g )
     {
-        auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
+        auto dEdW = convolve_sparse_flipped(*f, *g, filter_stride);
         filter_.update(*dEdW);
+    }
+
+
+private:
+    void do_forward( ccube_p<real> const & fnext )
+    {
+        ccube_p<real> g;
+        {
+            // SCHEDULED f=1, g=1
+            guard gg(m);
+            if ( grad ) // not done
+            {
+                if ( last_input )
+                    g = std::move(grad);
+                else
+                    last_input = fnext;
+            }
+            else // done
+            {
+                last_input = fnext;
+                actual_forward();
+            }
+        }
+
+        if ( g )
+        {
+            last_input = fnext;
+            actual_update(last_input, g);
+            actual_forward();
+        }
+    }
+
+    void do_update()
+    {
+        ccube_p<real> f;
         {
             guard gg(m);
-            last_input.reset();
-            if ( pending_input )
+            if ( grad ) f = std::move(last_input);
+        }
+
+        // if there's g that means update has not been executed
+        if ( f )
+        {
+            actual_update(f, grad);
             {
-                do_forward(std::move(pending_input));
+                guard gg(m);
+                grad.reset();
+                if ( last_input ) actual_forward();
             }
         }
     }
@@ -58,23 +102,15 @@ public:
 
     void forward( ccube_p<real> const & f ) override
     {
-        {
-            guard gg(m);
-            if ( !last_input )
-            {
-                manager.schedule(this->fwd_priority(),
-                                 &filter_edge::do_forward, this, f);
-            }
-            else
-            {
-                pending_input = f;
-            }
-        }
+        manager.schedule(this->fwd_priority() * 1024,
+                         &filter_edge::do_forward, this, f);
     }
 
     void backward( ccube_p<real> const & g )
     {
         ZI_ASSERT(last_input);
+        grad = g;
+
         if ( in_nodes->is_input() )
         {
             in_nodes->backward(in_num, cube_p<real>());
@@ -86,9 +122,8 @@ public:
                                                        filter_.W(),
                                                        filter_stride));
         }
-
         manager.schedule( this->fwd_priority() + 512,
-                          &filter_edge::do_update, this, g );
+                          &filter_edge::do_update, this );
     }
 
 };

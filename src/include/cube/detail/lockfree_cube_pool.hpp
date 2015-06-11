@@ -108,6 +108,7 @@ public:
 public:
     memory_bucket(size_t ms = 0)
         : mem_size_(ms)
+        , stack_(1024*1024)
     {}
 
     void clear()

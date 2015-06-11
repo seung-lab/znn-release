@@ -19,7 +19,7 @@ private:
     ccube_p<complex> w_fft;
 #endif
     ccube_p<complex> last_input;
-    ccube_p<complex> pending_input;
+    ccube_p<complex> grad;
 
     size_t fwd_bucket_;
     size_t bwd_bucket_;
@@ -29,20 +29,18 @@ private:
     std::mutex m;
 
 private:
-    void do_forward( ccube_p<complex> const & f )
+    void actual_forward()
     {
-        last_input = f;
 #ifdef ZNN_DONT_CACHE_FFTS
         auto w_fft = get_w_fft();
 #endif
-        auto fw = *w_fft * *f;
+        auto fw = *w_fft * *last_input;
         out_nodes->forward(out_num, fwd_bucket_, std::move(fw));
-        //out_nodes->forward(out_num, fwd_bucket_, w_fft, f);
     }
 
-    void do_update( ccube_p<complex> const & g )
+    void actual_update( ccube_p<complex> const & f, ccube_p<complex> const & g )
     {
-        auto dEdW_fft = *last_input * *g;
+        auto dEdW_fft = *f * *g;
         auto dEdW = fftw::backward(std::move(dEdW_fft), in_nodes->fsize());
         real norm = dEdW->num_elements();
 
@@ -58,13 +56,54 @@ private:
 #ifndef ZNN_DONT_CACHE_FFTS
         initialize();
 #endif
+    }
 
+
+private:
+    void do_forward( ccube_p<complex> const & f )
+    {
+        ccube_p<complex> g;
+        {
+            // SCHEDULED f=1, g=1
+            guard gg(m);
+            if ( grad ) // not done
+            {
+                if ( last_input )
+                    g = std::move(grad);
+                else
+                    last_input = f;
+            }
+            else // done
+            {
+                last_input = f;
+                actual_forward();
+            }
+        }
+
+        if ( g )
+        {
+            last_input = f;
+            actual_update(f, g);
+            actual_forward();
+        }
+    }
+
+    void do_update()
+    {
+        ccube_p<complex> f;
         {
             guard gg(m);
-            last_input.reset();
-            if ( pending_input )
+            if ( grad ) f = std::move(last_input);
+        }
+
+        // if there's g that means update has not been executed
+        if ( f )
+        {
+            actual_update(f, grad);
             {
-                do_forward(std::move(pending_input));
+                guard gg(m);
+                grad.reset();
+                if ( last_input ) actual_forward();
             }
         }
     }
@@ -106,23 +145,14 @@ public:
 
     void forward( ccube_p<complex> const & f ) override
     {
-        {
-            guard gg(m);
-            if ( !last_input )
-            {
-                manager.schedule(this->fwd_priority(),
-                                 &fft_filter_edge::do_forward, this, f);
-            }
-            else
-            {
-                pending_input = f;
-            }
-        }
+        manager.schedule(this->fwd_priority() * 1024,
+                         &fft_filter_edge::do_forward, this, f);
     }
 
     void backward( ccube_p<complex> const & g )
     {
         ZI_ASSERT(last_input);
+        grad = g;
 
         if ( in_nodes->is_input() )
         {
@@ -137,9 +167,8 @@ public:
             in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
         }
 
-
         manager.schedule( this->fwd_priority() + 512,
-                          &fft_filter_edge::do_update, this, g );
+                          &fft_filter_edge::do_update, this );
     }
 
 };
