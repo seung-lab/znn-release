@@ -63,6 +63,9 @@ public:
         }
         else
         {
+            // manager.schedule(fwd_priority(),
+            //                  &filter_edge::do_forward, this, f);
+
             do_forward(f);
         }
     }

@@ -111,6 +111,8 @@ public:
         }
         else
         {
+            // manager.schedule(fwd_priority(),
+            //                  &fft_filter_edge::do_forward, this, f);
             do_forward(f);
         }
     }

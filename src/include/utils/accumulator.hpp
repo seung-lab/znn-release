@@ -22,7 +22,7 @@ private:
     size_t              required_;
     std::atomic<size_t> current_ ;
 
-    cube_p<real>       sum_;
+    cube_p<real>        sum_  ;
     std::mutex          mutex_;
 
     void do_add(cube_p<real>&& to_add)

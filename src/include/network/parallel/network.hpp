@@ -457,6 +457,12 @@ public:
             ret[l.first] = l.second->dnodes->get_featuremaps();
         }
 
+        if ( tm_.task_count() )
+        {
+            std::cout << "TASKS: " << tm_.task_count() << std::endl;
+        }
+        STRONG_ASSERT(tm_.task_count()==0);
+
         return ret;
     }
 

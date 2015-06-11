@@ -32,6 +32,7 @@ private:
 
 private:
     std::map<size_t, std::list<callable_t*>> tasks_;
+    size_t                                   tot_tasks_ = 0;
 
     std::size_t spawned_threads_;
     std::size_t concurrency_    ;
@@ -163,6 +164,12 @@ public:
         return idle_threads_;
     }
 
+    std::size_t task_count()
+    {
+        std::lock_guard<std::mutex> g(mutex_);
+        return tot_tasks_;
+    }
+
     void wait_idle()
     {
         std::unique_lock<std::mutex> g(mutex_);
@@ -183,6 +190,7 @@ public:
 private:
     callable_t* next_task()
     {
+        --tot_tasks_;
         auto it = tasks_.rbegin();
         callable_t* f = it->second.front();
         it->second.pop_front();
@@ -201,6 +209,7 @@ public:
         {
             std::lock_guard<std::mutex> g(mutex_);
             tasks_[priority].emplace_front(fn);
+            ++tot_tasks_;
             //tasks_.push(task_t{priority,fn});
                 //tasks_[priority].emplace_front(fn);
             if ( idle_threads_ > 0 ) workers_cv_.notify_one();
@@ -214,6 +223,7 @@ public:
         {
             std::lock_guard<std::mutex> g(mutex_);
             //tasks_.push(task_t{std::numeric_limits<std::size_t>::max(),fn});
+            ++tot_tasks_;
             tasks_[std::numeric_limits<size_t>::max()].emplace_front(fn);
 
             if ( idle_threads_ > 0 ) workers_cv_.notify_one();
