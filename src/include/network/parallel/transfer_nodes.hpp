@@ -24,7 +24,8 @@ private:
     std::vector<std::unique_ptr<forward_accumulator>>  fwd_accumulators_;
     std::vector<std::unique_ptr<backward_accumulator>> bwd_accumulators_;
 
-    std::vector<cube_p<real>>  fs_     ;
+    std::vector<cube_p<real>>    fs_     ;
+    std::vector<int>             fwd_done_;
     waiter                       waiter_ ;
 
 public:
@@ -43,6 +44,7 @@ public:
         , fwd_accumulators_(s)
         , bwd_accumulators_(s)
         , fs_(s)
+        , fwd_done_(s)
         , waiter_(s)
     {
 
@@ -154,6 +156,9 @@ private:
     void do_forward(size_t n)
     {
         fs_[n] = fwd_accumulators_[n]->reset();
+        STRONG_ASSERT(!fwd_done_[n]);
+        fwd_done_[n] = true;
+
 
         if ( func_ )
         {
@@ -218,8 +223,19 @@ public:
 private:
     void do_backward(size_t n, cube_p<real> const & g)
     {
+        STRONG_ASSERT(fwd_done_[n]);
+        fwd_done_[n] = false;
+
         if ( func_ )
         {
+            //STRONG_ASSERT(g);
+            STRONG_ASSERT(fs_[n]);
+            // if ( !fs_[n] )
+            // {
+            //     std::cout << "N: " << n <<
+            //         ( nodes::is_output() ? " output\n" : "no\n");
+            //     STRONG_ASSERT(0);
+            // }
             func_.apply_grad(*g,*fs_[n]);
             biases_[n]->update(sum(*g));
             fs_[n].reset();

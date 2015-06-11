@@ -19,8 +19,6 @@ private:
 
     task_manager::task_handle pending_ = 0;
 
-    std::mutex m;
-
 private:
     void do_forward( ccube_p<real> const & f )
     {
@@ -51,13 +49,11 @@ public:
 
     void forward( ccube_p<real> const & f ) override
     {
-        guard gg(m);
         manager.require_done( pending_, &filter_edge::do_forward, this, f );
     }
 
     void backward( ccube_p<real> const & g )
     {
-        guard gg(m);
         ZI_ASSERT(last_input);
         if ( in_nodes->is_input() )
         {
