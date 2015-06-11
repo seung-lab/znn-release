@@ -220,6 +220,14 @@ private:
     {
         if ( func_ )
         {
+            STRONG_ASSERT(g);
+            //STRONG_ASSERT(fs_[n]);
+            if ( !fs_[n] )
+            {
+                std::cout << "N: " << n <<
+                    ( nodes::is_output() ? " output\n" : "no\n");
+                STRONG_ASSERT(0);
+            }
             func_.apply_grad(*g,*fs_[n]);
             biases_[n]->update(sum(*g));
             fs_[n].reset();
