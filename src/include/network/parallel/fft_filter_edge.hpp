@@ -167,7 +167,7 @@ public:
             in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
         }
 
-        manager.schedule( this->fwd_priority() + 512,
+        manager.schedule( this->bwd_priority()/1024,// + 512,
                           &fft_filter_edge::do_update, this );
     }
 

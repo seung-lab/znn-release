@@ -1,9 +1,5 @@
 #pragma once
 
-#if 1
-#  include "task_manager_map.hpp"
-#else
-
 #include <functional>
 #include <thread>
 #include <fstream>
@@ -23,8 +19,6 @@
 #include <zi/utility/singleton.hpp>
 #include <zi/time.hpp>
 
-#include <boost/heap/d_ary_heap.hpp>
-
 #include "log.hpp"
 
 namespace znn { namespace v4 {
@@ -35,11 +29,9 @@ class task_manager
 {
 private:
     typedef std::function<void()>            callable_t;
-    typedef std::tuple<size_t,callable_t*>   task_t    ;
 
 private:
-    boost::heap::d_ary_heap<task_t, boost::heap::arity<4>,
-                            boost::heap::compare<std::greater<task_t>>> tasks_;
+    std::map<size_t, std::list<callable_t*>> tasks_;
 
     std::size_t spawned_threads_;
     std::size_t concurrency_    ;
@@ -190,8 +182,13 @@ public:
 private:
     callable_t* next_task()
     {
-        callable_t* f = std::get<1>(tasks_.top());
-        tasks_.pop();
+        auto it = tasks_.rbegin();
+        callable_t* f = it->second.front();
+        it->second.pop_front();
+        if ( it->second.size() == 0 )
+        {
+            tasks_.erase(it->first);
+        }
         return f;
     }
 
@@ -202,7 +199,8 @@ public:
         callable_t* fn = new callable_t(std::bind(std::forward<Args>(args)...));
         {
             std::lock_guard<std::mutex> g(mutex_);
-            tasks_.push(task_t{priority,fn});
+            tasks_[priority].emplace_front(fn);
+            //tasks_.push(task_t{priority,fn});
                 //tasks_[priority].emplace_front(fn);
             if ( idle_threads_ > 0 ) workers_cv_.notify_one();
         }
@@ -214,7 +212,9 @@ public:
         callable_t* fn = new callable_t(std::bind(std::forward<Args>(args)...));
         {
             std::lock_guard<std::mutex> g(mutex_);
-            tasks_.push(task_t{std::numeric_limits<std::size_t>::max(),fn});
+            //tasks_.push(task_t{std::numeric_limits<std::size_t>::max(),fn});
+            tasks_[std::numeric_limits<size_t>::max()].emplace_front(fn);
+
             if ( idle_threads_ > 0 ) workers_cv_.notify_one();
         }
     }
@@ -583,5 +583,3 @@ public:
 #endif // ZNN_ANALYSE_TASK_MANAGER
 
 }} // namespace znn::v4
-
-#endif

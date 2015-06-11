@@ -122,7 +122,7 @@ public:
                                                        filter_.W(),
                                                        filter_stride));
         }
-        manager.schedule( this->fwd_priority() + 512,
+        manager.schedule( this->bwd_priority()/1024, //this->fwd_priority() + 512,
                           &filter_edge::do_update, this );
     }
 
