@@ -108,7 +108,7 @@ public:
 public:
     memory_bucket(size_t ms = 0)
         : mem_size_(ms)
-        , stack_(1024*1024)
+        , stack_(1024*128)
     {}
 
     void clear()
@@ -144,12 +144,12 @@ template< typename T >
 class single_type_cube_pool
 {
 private:
-    std::array<memory_bucket,48> buckets_;
+    std::array<memory_bucket,33> buckets_;
 
 public:
     single_type_cube_pool()
     {
-        for ( size_t i = 0; i < 48; ++i )
+        for ( size_t i = 0; i < 33; ++i )
         {
             buckets_[i].mem_size_ = static_cast<size_t>(1) << i;
         }

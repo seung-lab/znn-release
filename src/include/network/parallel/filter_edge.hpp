@@ -63,7 +63,7 @@ public:
         }
         else
         {
-            manager.schedule(this->fwd_priority()*1024,
+            manager.schedule(this->fwd_priority(),
                              &filter_edge::do_forward, this, f);
         }
     }
