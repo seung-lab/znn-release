@@ -111,7 +111,7 @@ private:
     void fft_dispatch( ccube_p<real> const & v,
                        vec3i const & s,
                        std::vector<FFTEdge*> const & targets,
-                       task_manager & manager ) const
+                       task_manager & ) const
     {
         ccube_p<complex> x = fftw::forward_pad(v, s);
         for ( auto& t: targets )
@@ -169,7 +169,7 @@ private:
 
         for ( auto& t: targets )
         {
-            manager.schedule(t->bwd_priority(), [t,x](){t->backward(x);});
+            manager.schedule(t->bwd_priority()*1024, [t,x](){t->backward(x);});
         }
     }
 
@@ -181,7 +181,7 @@ public:
                          std::cref(fft_target.second), std::ref(manager));
 
         for ( auto& t: targets_ )
-            manager.schedule(t->bwd_priority(), [t,v](){t->backward(v);});
+            manager.schedule(t->bwd_priority()*1024, [t,v](){t->backward(v);});
     }
 
     void sign_up(Edge* e)

@@ -29,6 +29,8 @@ public:
     {
         fwd_priority_ = out->fwd_priority() * 1024 + outn;
         bwd_priority_ = in->bwd_priority() * 1024 + inn;
+        //fwd_priority_ = outn;
+        //bwd_priority_ = inn;
     }
 
     size_t fwd_priority() const { return fwd_priority_; }

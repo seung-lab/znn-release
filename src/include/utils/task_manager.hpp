@@ -29,11 +29,10 @@ class task_manager
 {
 private:
     typedef std::function<void()>            callable_t;
-    typedef std::tuple<size_t,callable_t*>   task_t    ;
 
 private:
-    std::priority_queue<task_t, std::vector<task_t>,
-                        std::greater<task_t>> tasks_;
+    std::map<size_t, std::list<callable_t*>> tasks_;
+    size_t      total_tasks_;
 
     std::size_t spawned_threads_;
     std::size_t concurrency_    ;
@@ -105,11 +104,11 @@ public:
         , concurrency_{0}
         , idle_threads_{0}
     {
-        std::vector<task_t> reserved;
-        reserved.reserve(65536*4);
-        tasks_ = std::priority_queue<task_t, std::vector<task_t>,
-                                     std::greater<task_t>>
-            ( std::greater<task_t>(), std::move(reserved));
+        // std::vector<task_t> reserved;
+        // reserved.reserve(65536*4);
+        // tasks_ = std::priority_queue<task_t, std::vector<task_t>,
+        //                              std::greater<task_t>>
+        //     ( std::greater<task_t>(), std::move(reserved));
         set_concurrency(concurrency);
     }
 
@@ -184,8 +183,14 @@ public:
 private:
     callable_t* next_task()
     {
-        callable_t* f = std::get<1>(tasks_.top());
-        tasks_.pop();
+        --total_tasks_;
+        auto it = tasks_.rbegin();
+        callable_t* f = it->second.front();
+        it->second.pop_front();
+        if ( it->second.size() == 0 )
+        {
+            tasks_.erase(it->first);
+        }
         return f;
     }
 
@@ -196,7 +201,9 @@ public:
         callable_t* fn = new callable_t(std::bind(std::forward<Args>(args)...));
         {
             std::lock_guard<std::mutex> g(mutex_);
-            tasks_.push(task_t{priority,fn});
+            tasks_[priority].emplace_front(fn);
+            ++total_tasks_;
+            //tasks_.push(task_t{priority,fn});
                 //tasks_[priority].emplace_front(fn);
             if ( idle_threads_ > 0 ) workers_cv_.notify_one();
         }
@@ -208,7 +215,10 @@ public:
         callable_t* fn = new callable_t(std::bind(std::forward<Args>(args)...));
         {
             std::lock_guard<std::mutex> g(mutex_);
-            tasks_.push(task_t{std::numeric_limits<std::size_t>::max(),fn});
+            ++total_tasks_;
+            //tasks_.push(task_t{std::numeric_limits<std::size_t>::max(),fn});
+            tasks_[std::numeric_limits<size_t>::max()].emplace_front(fn);
+
             if ( idle_threads_ > 0 ) workers_cv_.notify_one();
         }
     }

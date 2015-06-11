@@ -198,19 +198,38 @@ int main()
 
     wt.reset();
     auto r2 = tn2.forward(std::move(in2));
-    std::cout << "FFT FWD: " << wt.elapsed<real>() << std::endl;
+    std::cout << "DIRECT FWD: " << wt.elapsed<real>() << std::endl;
+
+    wt.reset();
+    r2 = tn2.backward(std::move(r2));
+    std::cout << "PARALLEL BWD: " << wt.elapsed<real>() << std::endl;
 
     wt.reset();
     auto r = tn.forward(std::move(in));
-    std::cout << "DIRECT FWD: " << wt.elapsed<real>() << std::endl;
+    std::cout << "PARALLEL FWD: " << wt.elapsed<real>() << std::endl;
 
     wt.reset();
     r = tn.backward(std::move(r));
     std::cout << "DIRECT BWD: " << wt.elapsed<real>() << std::endl;
 
-    wt.reset();
-    r2 = tn2.backward(std::move(r2));
-    std::cout << "FFT BWD: " << wt.elapsed<real>() << std::endl;
+    // for ( int i = 0; i < 3; ++i )
+    // {
+    //     std::map<std::string, std::vector<cube_p<real>>> inx1, inx2;
+    //     inx1["input"].push_back(get_cube<real>({83,83,1}));
+    //     init.initialize(*inx1["input"][0]);
+
+    //     inx2["input"].push_back(get_copy(*inx1["input"][0]));
+
+    //     wt.reset();
+    //     r2 = tn2.forward(std::move(inx2));
+    //     std::cout << "FFT FWD: " << wt.elapsed<real>() << std::endl;
+
+    //     wt.reset();
+    //     r2 = tn2.backward(std::move(r2));
+    //     std::cout << "FFT BWD: " << wt.elapsed<real>() << std::endl;
+    // }
+
+
 
     for ( int i = 0; i < 100; ++i )
     {

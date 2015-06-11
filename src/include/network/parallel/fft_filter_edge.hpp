@@ -110,7 +110,7 @@ public:
             guard gg(m);
             if ( !last_input )
             {
-                manager.schedule(this->fwd_priority(),
+                manager.schedule(this->fwd_priority()*1024,
                                  &fft_filter_edge::do_forward, this, f);
             }
             else
