@@ -116,8 +116,8 @@ private:
         ccube_p<complex> x = fftw::forward_pad(v, s);
         for ( auto& t: targets )
         {
-            manager.schedule(t->fwd_priority()*1024, [t,x](){t->forward(x);});
-            //t->forward(x);
+            //manager.schedule(t->fwd_priority()*1024, [t,x](){t->forward(x);});
+            t->forward(x);
         }
     }
 
@@ -127,8 +127,8 @@ public:
     {
         for ( auto& t: targets_ )
             //manager.asap([t,v](){t->forward(v);});
-            //t->forward(v);
-        manager.schedule(t->fwd_priority()*1024, [t,v](){t->forward(v);});
+            t->forward(v);
+        //manager.schedule(t->fwd_priority()*1024, [t,v](){t->forward(v);});
 
         for ( auto& fft_target: fft_targets_ )
             manager.asap(&this_type::fft_dispatch,this,v,fft_target.first,

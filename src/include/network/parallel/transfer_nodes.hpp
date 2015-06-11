@@ -25,7 +25,7 @@ private:
     std::vector<std::unique_ptr<backward_accumulator>> bwd_accumulators_;
 
     std::vector<cube_p<real>>    fs_     ;
-    std::vector<bool>            fwd_done_;
+    std::vector<int>             fwd_done_;
     waiter                       waiter_ ;
 
 public:
