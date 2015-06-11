@@ -169,7 +169,7 @@ private:
 
         for ( auto& t: targets )
         {
-            manager.schedule(t->bwd_priority(), [t,x](){t->backward(x);});
+            manager.schedule(t->bwd_priority()*1024, [t,x](){t->backward(x);});
         }
     }
 
@@ -177,7 +177,7 @@ public:
     void dispatch(const ccube_p<real>& v, task_manager& manager) const
     {
         for ( auto& t: targets_ )
-            manager.schedule(t->bwd_priority(), [t,v](){t->backward(v);});
+            manager.schedule(t->bwd_priority()*1024, [t,v](){t->backward(v);});
 
         for ( auto& fft_target: fft_targets_ )
             manager.asap(&this_type::fft_dispatch,this,v,fft_target.first,
