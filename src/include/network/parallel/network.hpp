@@ -457,8 +457,6 @@ public:
             ret[l.first] = l.second->dnodes->get_featuremaps();
         }
 
-        STRONG_ASSERT(tm_.active_threads()==0);
-
         return ret;
     }
 
