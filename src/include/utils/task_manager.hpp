@@ -21,7 +21,7 @@
 
 namespace znn { namespace v4 {
 
-#ifndef ZNN_ANALYSE_TASK_MANAGER
+//#ifndef ZNN_ANALYSE_TASK_MANAGER
 
 class task_manager
 {
@@ -34,8 +34,11 @@ private:
     struct unprivileged_task
     {
     private:
-        std::function<void()>  fn_  ;
-        callable_t*            then_ = nullptr;
+        std::function<void()>  fn_               ;
+        callable_t*            then_   = nullptr ;
+        int                    status_ = 1       ;
+
+        std::list<std::shared_ptr<unprivileged_task>>::iterator it_;
 
         friend class task_manager;
 
@@ -47,15 +50,12 @@ private:
     };
 
 public:
-    typedef size_t task_handle;
+    typedef std::shared_ptr<unprivileged_task> task_handle;
 
 private:
     std::map<std::size_t, std::list<callable_t*>> tasks_         ;
     size_t                                        tot_tasks_ = 0 ;
-    std::map<std::size_t, unprivileged_task*>     unprivileged_  ;
-
-    // executing in one of the task manager's threads!
-    std::map<std::size_t, unprivileged_task*>     executing_   ;
+    std::list<task_handle>                        unprivileged_  ;
 
     std::size_t spawned_threads_;
     std::size_t concurrency_    ;
@@ -83,7 +83,7 @@ private:
             }
         }
 
-        std::pair<size_t, unprivileged_task*> f2;
+        task_handle f2;
 
         while (true)
         {
@@ -137,16 +137,17 @@ private:
 
 private:
     // executing in one of the manaer's threads
-    void execute_unprivileged_task
-    (std::pair<size_t, unprivileged_task*> const & t)
+    void execute_unprivileged_task(task_handle const & t)
     {
-        t.second->fn_();
+        t->fn_();
+        std::function<void()>().swap(t->fn_);
+
         callable_t* after = nullptr;
 
         {
             std::unique_lock<std::mutex> g(mutex_);
-            after    = t.second->then_;
-            executing_.erase(t.first);
+            after      = t->then_;
+            t->status_ = 0;
         }
 
         if ( after )
@@ -154,8 +155,6 @@ private:
             (*after)();
             delete after;
         }
-
-        delete t.second;
     }
 
 public:
@@ -242,15 +241,11 @@ private:
         return f;
     }
 
-    std::pair<const size_t, unprivileged_task*> next_unprivileged_task()
+    task_handle next_unprivileged_task()
     {
-        auto x = *unprivileged_.rbegin();
-        unprivileged_.erase(x.first);
-        executing_.insert(x);
-
-        // LOG(info) << tot_tasks_
-        //           << ", " << unprivileged_.size() << ";";
-
+        auto x = unprivileged_.front();
+        x->status_ = 2;
+        unprivileged_.pop_front();
         return x;
     }
 
@@ -280,30 +275,32 @@ public:
     }
 
     template<typename... Args>
-    void require_done(size_t t, Args&&... args)
+    void require_done(task_handle const & t, Args&&... args)
     {
         // doesn't exist!
-        if ( t == 0 )
+        if ( !t )
         {
             std::bind(std::forward<Args>(args)...)();
             return;
         }
 
-        unprivileged_task* stolen = nullptr;
+        bool stolen = false;
 
         {
             std::lock_guard<std::mutex> g(mutex_);
-            if ( unprivileged_.count(t) )
+
+            if ( t->status_ == 1 )
             {
-                stolen = unprivileged_[t];
-                unprivileged_.erase(t);
+                unprivileged_.erase(t->it_);
+                stolen = true;
+                t->status_ = 0;
             }
             else
             {
-                if ( executing_.count(t) )
+                if ( t->status_ == 2 )
                 {
-                    ZI_ASSERT(executing_[t]->then_==nullptr);
-                    executing_[t]->then_ =
+                    ZI_ASSERT(t->then_==nullptr);
+                    t->then_ =
                         new callable_t(std::bind(std::forward<Args>(args)...));
                     return;
                 }
@@ -312,8 +309,8 @@ public:
 
         if ( stolen )
         {
-            stolen->fn_();
-            delete stolen;
+            t->fn_();
+            std::function<void()>().swap(t->fn_);
         }
 
         std::bind(std::forward<Args>(args)...)();
@@ -323,19 +320,20 @@ public:
     template<typename... Args>
     task_handle schedule_unprivileged(Args&&... args)
     {
-        unprivileged_task* t =
-            new unprivileged_task(std::forward<Args>(args)...);
+        task_handle t = std::make_shared<unprivileged_task>
+            (std::forward<Args>(args)...);
         {
             std::lock_guard<std::mutex> g(mutex_);
-            unprivileged_[++next_unprivileged_task_id] = t;
+            unprivileged_.push_front(t);
+            t->it_ = unprivileged_.begin();
             if ( idle_threads_ > 0 ) workers_cv_.notify_one();
-            return next_unprivileged_task_id;
         }
+        return t;
     }
 
 }; // class task_manager
 
-#else
+#if 0
 
 
 class task_manager
@@ -685,10 +683,11 @@ public:
             new unprivileged_task(std::forward<Args>(args)...);
         {
             std::lock_guard<std::mutex> g(mutex_);
-            unprivileged_[--next_unprivileged_task_id] = t;
+            unprivileged_.push_front(t);
+            t->it_ = unprivileged_.begin();
             if ( idle_threads_ > 0 ) workers_cv_.notify_one();
-            return next_unprivileged_task_id;
         }
+        return t;
     }
 
 }; // class task_manager
