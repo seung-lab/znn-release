@@ -1,11 +1,11 @@
 ODIR		=	./bin
-SFL			=	src/cpp/benchmark_conv.cpp
+SFL			=	src/cpp/training_test.cpp
 CPP		 	=	g++
 CPP_FLAGS	= 	-g
-INC_FLAGS	=	-I./src/include -I./zi
+INC_FLAGS	=	-I./src/include -I./zi -I.
 LIB_FLAGS	=
-OPT_FLAGS	=	-DNDEBUG -O -std=c++1y
-OTH_FLAGS	=	-Wall -Wextra -Wno-unused-result -Wno-unused-local-typedefs
+OPT_FLAGS	=	-DNDEBUG -O3 -std=c++1y
+OTH_FLAGS	=	
 LIBS		=	-lfftw3 -lfftw3f -lpthread -pthread
 
 test: $(SFL)
