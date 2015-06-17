@@ -27,7 +27,7 @@ Compiler flags
 
 Compile gcc and clang
 ---------------------
-    g++ -std=c++1y training_test.cpp -I../../../.. -I.. -lfftw3 -lfftw3f -lpthread -O3 -DNDEBUG -o training_test
+    g++ -std=c++1y training_test.cpp -I../../../.. -I.. -lfftw3 -lfftw3f -lpthread -pthread -O3 -DNDEBUG -o training_test
 
 Compile icc
 -----------

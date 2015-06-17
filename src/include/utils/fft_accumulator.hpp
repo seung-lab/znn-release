@@ -13,13 +13,13 @@ class fft_accumulator
 private:
     const vec3i size_;
 
-    size_t              required_;
-    std::atomic<size_t> current_ ;
+    size_t required_;
+    size_t current_ ;
 
     cube_p<complex>     sum_  ;
     std::mutex          mutex_;
 
-    void do_add(cube_p<complex>&& to_add)
+    bool do_add(cube_p<complex>&& to_add)
     {
         cube_p<complex> previous_sum;
         while (1)
@@ -29,11 +29,10 @@ private:
                 if ( !sum_ )
                 {
                     sum_ = std::move(to_add);
-                    return;
+                    return ++current_ == required_;
                 }
                 previous_sum = std::move(sum_);
             }
-
             *to_add += *previous_sum;
         }
     }
@@ -59,8 +58,7 @@ public:
 
     bool add(cube_p<complex>&& v)
     {
-        do_add(std::move(v));
-        return ++current_ == required_;
+        return do_add(std::move(v));
     }
 
     bool add(const ccube_p<complex>& f, const ccube_p<complex>& w)
@@ -80,13 +78,12 @@ public:
             previous_sum = (*f) * (*w);
         }
 
-        do_add(std::move(previous_sum));
-        return ++current_ == required_;
+        return do_add(std::move(previous_sum));
     }
 
     cube_p<real> reset()
     {
-        ZI_ASSERT(current_.load()==required_);
+        ZI_ASSERT(current_==required_);
 
         cube_p<real> r = fftw::backward(std::move(sum_), size_);
         sum_.reset();

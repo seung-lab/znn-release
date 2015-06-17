@@ -19,13 +19,13 @@ private:
     std::map<vec3i,size_t>                        bucket_map_;
     std::vector<std::unique_ptr<fft_accumulator>> buckets_   ;
 
-    size_t              required_;
-    std::atomic<size_t> current_ ;
+    size_t required_;
+    size_t current_ ;
 
     cube_p<real>       sum_;
-    std::mutex          mutex_;
+    std::mutex         mutex_;
 
-    void do_add(cube_p<real>&& to_add)
+    bool do_add(cube_p<real>&& to_add)
     {
         cube_p<real> previous_sum;
         while (1)
@@ -35,16 +35,15 @@ private:
                 if ( !sum_ )
                 {
                     sum_ = std::move(to_add);
-                    return;
+                    return ++current_ == required_;
                 }
                 previous_sum = std::move(sum_);
             }
-
             *to_add += *previous_sum;
         }
     }
 
-    void merge_bucket(size_t b)
+    bool merge_bucket(size_t b)
     {
         cube_p<real> f = buckets_[b]->reset();
         if ( Forward )
@@ -68,14 +67,14 @@ public:
 
     size_t grow(size_t n)
     {
-        ZI_ASSERT(current_.load() == 0);
+        ZI_ASSERT(current_==0);
         required_ += n;
         return required_;
     }
 
     size_t grow_fft(const vec3i& size, size_t n)
     {
-        ZI_ASSERT(current_.load() == 0);
+        ZI_ASSERT(current_==0);
 
         if ( bucket_map_.count(size) == 0 )
         {
@@ -87,18 +86,21 @@ public:
         {
             buckets_[bucket_map_[size]]->grow(n);
         }
-
         return bucket_map_[size];
     }
 
+    //
+    // sum += f
+    //
     bool add(cube_p<real>&& f)
     {
         ZI_ASSERT(current_<required_);
-        do_add(std::move(f));
-        return ++current_ == required_;
+        return do_add(std::move(f));
     }
 
-    // adds f convolved with w
+    //
+    // sum += conv(f,w)
+    //
     bool add(const ccube_p<real>& f, const ccube_p<real>& w,
              const vec3i& sparse = vec3i::one )
     {
@@ -136,38 +138,40 @@ public:
             }
         }
 
-        do_add(std::move(previous_sum));
-        return ++current_ == required_;
-
+        return do_add(std::move(previous_sum));
     }
 
+    //
+    // buckets[bucket] += f
+    //
     bool add(size_t bucket, cube_p<complex>&& f)
     {
         ZI_ASSERT(current_<required_);
 
         if ( buckets_[bucket]->add(std::move(f)) )
         {
-            merge_bucket(bucket);
-            return ++current_ == required_;
+            return merge_bucket(bucket);
         }
         return false;
     }
 
+    //
+    // buckets[bucket] += f .* w
+    //
     bool add(size_t bucket, const ccube_p<complex>& f, const ccube_p<complex>& w)
     {
         ZI_ASSERT(current_<required_);
 
         if ( buckets_[bucket]->add(f,w) )
         {
-            merge_bucket(bucket);
-            return ++current_ == required_;
+            return merge_bucket(bucket);
         }
         return false;
     }
 
     cube_p<real> reset()
     {
-        ZI_ASSERT(current_.load()==required_);
+        ZI_ASSERT(current_==required_);
         current_ = 0;
         return std::move(sum_);
     }
