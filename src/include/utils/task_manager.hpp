@@ -16,12 +16,20 @@
 
 #include <zi/utility/singleton.hpp>
 #include <zi/time.hpp>
+#include <boost/pool/pool_alloc.hpp>
 
 #include "log.hpp"
 
 namespace znn { namespace v4 {
 
 //#ifndef ZNN_ANALYSE_TASK_MANAGER
+
+// template<class T>
+// using fast_allocator = boost::fast_pool_allocator
+//     <T,
+//      boost::default_user_allocator_new_delete,
+//      boost::details::pool::null_mutex,
+
 
 class task_manager
 {

@@ -161,9 +161,9 @@ private:
 
         size_t p = 0;
 
-        for ( auto& e: n->out )
+        for ( auto& e: n->in )
         {
-            p = std::max(p, fwd_priority_pass(e->out));
+            p = std::max(p, fwd_priority_pass(e->in));
         }
 
         n->fwd_priority = p + 1;
@@ -179,9 +179,9 @@ private:
 
         size_t p = n->fwd_priority;
 
-        for ( auto& e: n->in )
+        for ( auto& e: n->out )
         {
-            p = std::max(p, bwd_priority_pass(e->in));
+            p = std::max(p, bwd_priority_pass(e->out));
         }
 
         n->bwd_priority = p + 1;
@@ -199,9 +199,9 @@ private:
         for ( auto& o: output_nodes_ )
             fov_pass(o.second, vec3i::one, outsz);
 
-        for ( auto& o: input_nodes_ )
-            fwd_priority_pass(o.second);
         for ( auto& o: output_nodes_ )
+            fwd_priority_pass(o.second);
+        for ( auto& o: input_nodes_ )
             bwd_priority_pass(o.second);
 
 
@@ -548,7 +548,7 @@ public:
             {
                 for ( size_t i = 0; i < ip.second.second; ++i )
                 {
-                    std::cout << ip.second.first << " -\n";
+                    //std::cout << ip.second.first << " -\n";
                     auto v = get_cube<real>(ip.second.first);
                     init.initialize(*v);
                     insample[ip.first].push_back(v);
@@ -837,7 +837,7 @@ public:
             {
                 for ( size_t i = 0; i < ip.second.second; ++i )
                 {
-                    std::cout << ip.second.first << " -\n";
+                    //std::cout << ip.second.first << " -\n";
                     auto v = get_cube<real>(ip.second.first);
                     init.initialize(*v);
                     insample[ip.first].push_back(v);
@@ -872,6 +872,7 @@ public:
         std::cout << "DONE\nTrying all FFTs..." << std::flush;
 
         double tot_time = 0;
+        double tot_ptime = 0;
 
         {
             network net(ns,es,outsz,n_threads);
@@ -880,9 +881,12 @@ public:
             auto os = copy_samples(allouts);
 
             zi::wall_timer wt;
+            zi::process_timer pt;
+
             net.forward(std::move(is[0]));
 
             wt.reset();
+            pt.reset();
 
             for ( size_t i = 0; i < rounds-1; ++i )
             {
@@ -890,10 +894,13 @@ public:
                 net.forward(std::move(is[i+1]));
             }
 
+            tot_ptime = pt.elapsed<real>();
             tot_time = wt.elapsed<real>();
 
             net.zap();
             std::cout << (tot_time/(rounds-1)) << " secs" << std::endl;
+            std::cout << (tot_ptime/(rounds-1)) << " secs" << std::endl;
+            std::cout << (tot_ptime/tot_time) << " speedup"<< std::endl;
         }
 
         double tot_time2 = 0;
