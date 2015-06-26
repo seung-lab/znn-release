@@ -25,9 +25,10 @@ class forward_dispatcher: public dispatcher_base<Edge, FFTEdge>
 private:
     std::vector<Edge*>                    targets_    ;
     std::map<vec3i,std::vector<FFTEdge*>> fft_targets_;
+    std::map<vec3i,std::unique_ptr<fftw::transformer>> fftw_;
 
 public:
-    void dispatch(const ccube_p<real>& v) const
+    void dispatch(const ccube_p<real>& v)
     {
         ZI_ASSERT(fft_targets_.size()<2);
         for ( auto& t: targets_ )
@@ -36,7 +37,7 @@ public:
         }
         for ( auto& fft_target: fft_targets_ )
         {
-            ccube_p<complex> x = fftw::forward_pad(v,fft_target.first);
+            ccube_p<complex> x = fftw_[fft_target.first]->forward_pad(v);
             for ( auto& t: fft_target.second )
             {
                 t->forward(x);
@@ -51,6 +52,10 @@ public:
 
     void sign_up(const vec3i& s, FFTEdge* e)
     {
+        if ( fftw_.count(s) == 0 )
+        {
+            fftw_[s] = std::make_unique<fftw::transformer>(s);
+        }
         fft_targets_[s].push_back(e);
     }
 
@@ -63,9 +68,10 @@ class backward_dispatcher: public dispatcher_base<Edge, FFTEdge>
 private:
     std::vector<Edge*>                    targets_    ;
     std::map<vec3i,std::vector<FFTEdge*>> fft_targets_;
+    std::map<vec3i,std::unique_ptr<fftw::transformer>> fftw_;
 
 public:
-    void dispatch(const ccube_p<real>& v) const
+    void dispatch(const ccube_p<real>& v)
     {
         for ( auto& t: targets_ )
         {
@@ -77,7 +83,7 @@ public:
 
         for ( auto& fft_target: fft_targets_ )
         {
-            ccube_p<complex> x = fftw::forward_pad(vp,fft_target.first);
+            ccube_p<complex> x = fftw_[fft_target.first]->forward_pad(vp);
             for ( auto& t: fft_target.second )
             {
                 t->backward(x);
@@ -92,6 +98,10 @@ public:
 
     void sign_up(const vec3i& s, FFTEdge* e)
     {
+        if ( fftw_.count(s) == 0 )
+        {
+            fftw_[s] = std::make_unique<fftw::transformer>(s);
+        }
         fft_targets_[s].push_back(e);
     }
 
@@ -104,6 +114,7 @@ class concurrent_forward_dispatcher: public dispatcher_base<Edge, FFTEdge>
 private:
     std::vector<Edge*>                    targets_    ;
     std::map<vec3i,std::vector<FFTEdge*>> fft_targets_;
+    std::map<vec3i,std::unique_ptr<fftw::transformer>> fftw_;
 
     typedef concurrent_forward_dispatcher this_type;
 
@@ -111,9 +122,9 @@ private:
     void fft_dispatch( ccube_p<real> const & v,
                        vec3i const & s,
                        std::vector<FFTEdge*> const & targets,
-                       task_manager & manager ) const
+                       task_manager & manager )
     {
-        ccube_p<complex> x = fftw::forward_pad(v, s);
+        ccube_p<complex> x = fftw_[s]->forward_pad(v);
         for ( auto& t: targets )
         {
             manager.schedule(t->fwd_priority(), [t,x](){t->forward(x);});
@@ -122,7 +133,7 @@ private:
 
 public:
     void dispatch( ccube_p<real> const & v,
-                   task_manager & manager) const
+                   task_manager & manager)
     {
         for ( auto& t: targets_ )
             manager.schedule(t->fwd_priority(), [t,v](){t->forward(v);});
@@ -139,6 +150,10 @@ public:
 
     void sign_up(const vec3i& s, FFTEdge* e)
     {
+        if ( fftw_.count(s) == 0 )
+        {
+            fftw_[s] = std::make_unique<fftw::transformer>(s);
+        }
         fft_targets_[s].push_back(e);
     }
 
@@ -152,18 +167,19 @@ class concurrent_backward_dispatcher: public dispatcher_base<Edge, FFTEdge>
 private:
     std::vector<Edge*>                    targets_    ;
     std::map<vec3i,std::vector<FFTEdge*>> fft_targets_;
+    std::map<vec3i,std::unique_ptr<fftw::transformer>> fftw_;
 
     typedef concurrent_backward_dispatcher this_type;
 
 private:
     void fft_dispatch( const ccube_p<real>& v, const vec3i& s,
                        const std::vector<FFTEdge*>& targets,
-                       task_manager& manager ) const
+                       task_manager& manager )
     {
         auto vp = get_copy(*v);
         flip(*vp);
 
-        ccube_p<complex> x = fftw::forward_pad(std::move(vp), s);
+        ccube_p<complex> x = fftw_[s]->forward_pad(std::move(vp));
 
         for ( auto& t: targets )
         {
@@ -172,7 +188,7 @@ private:
     }
 
 public:
-    void dispatch(const ccube_p<real>& v, task_manager& manager) const
+    void dispatch(const ccube_p<real>& v, task_manager& manager)
     {
         for ( auto& t: targets_ )
             manager.schedule(t->bwd_priority(), [t,v](){t->backward(v);});
@@ -189,6 +205,10 @@ public:
 
     void sign_up(const vec3i& s, FFTEdge* e)
     {
+        if ( fftw_.count(s) == 0 )
+        {
+            fftw_[s] = std::make_unique<fftw::transformer>(s);
+        }
         fft_targets_[s].push_back(e);
     }
 
@@ -210,7 +230,7 @@ public:
         : dispatchers_(s)
     {}
 
-    void dispatch(size_t i, const ccube_p<real>& v) const
+    void dispatch(size_t i, const ccube_p<real>& v)
     {
         ZI_ASSERT(i<dispatchers_.size());
         dispatchers_[i].dispatch(v);

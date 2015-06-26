@@ -16,7 +16,7 @@
 
 #include <zi/utility/singleton.hpp>
 #include <zi/time.hpp>
-#include <boost/pool/pool_alloc.hpp>
+//#include <boost/pool/pool_alloc.hpp>
 
 #include "log.hpp"
 

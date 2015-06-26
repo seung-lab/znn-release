@@ -25,6 +25,8 @@ private:
 
     task_manager::task_handle pending_ = 0;
 
+    std::unique_ptr<fftw::transformer> fftw_;
+
 private:
     void do_forward( ccube_p<complex> const & f )
     {
@@ -40,7 +42,7 @@ private:
     void do_update( ccube_p<complex> const & g )
     {
         auto dEdW_fft = *last_input * *g;
-        auto dEdW = fftw::backward(std::move(dEdW_fft), in_nodes->fsize());
+        auto dEdW = fftw_->backward(std::move(dEdW_fft));
         real norm = dEdW->num_elements();
 
         flip(*dEdW);
@@ -71,7 +73,7 @@ private:
         //                 ony happened on my laptop
         auto w_tmp = sparse_explode_slow(filter_.W(), filter_stride,
                                          in_nodes->fsize());
-        return fftw::forward(std::move(w_tmp));
+        return fftw_->forward(std::move(w_tmp));
     }
 
 
@@ -84,6 +86,7 @@ public:
                      vec3i const & stride,
                      filter & f )
         : edge(in,inn,out,outn,tm), filter_stride(stride), filter_(f)
+        , fftw_(std::make_unique<fftw::transformer>(in_nodes->fsize()))
     {
         bwd_bucket_ = in->attach_out_fft_edge(inn, this);
         fwd_bucket_ = out->attach_in_fft_edge(outn, this, in->fsize());

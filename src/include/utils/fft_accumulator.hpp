@@ -19,6 +19,8 @@ private:
     cube_p<complex>     sum_  ;
     std::mutex          mutex_;
 
+    std::unique_ptr<fftw::transformer> fftw_;
+
     bool do_add(cube_p<complex>&& to_add)
     {
         cube_p<complex> previous_sum;
@@ -43,6 +45,7 @@ public:
         , required_(total)
         , current_(0)
         , sum_()
+        , fftw_(std::make_unique<fftw::transformer>(size))
     {}
 
     const vec3i& size() const
@@ -85,7 +88,7 @@ public:
     {
         ZI_ASSERT(current_==required_);
 
-        cube_p<real> r = fftw::backward(std::move(sum_), size_);
+        cube_p<real> r = fftw_->backward(std::move(sum_));
         sum_.reset();
         current_ = 0;
 

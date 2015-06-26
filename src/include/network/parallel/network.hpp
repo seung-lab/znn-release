@@ -814,7 +814,7 @@ public:
             if ( e.require_as<std::string>("type") == "conv" )
             {
                 edge_groups.push_back(&e);
-                //e.push("fft",1);
+                e.push("fft",1);
             }
         }
 
@@ -928,7 +928,7 @@ public:
             std::cout << (tot_time2/(rounds-1)) << " secs" << std::endl;
         }
 
-        return std::min(tot_time,tot_time2);
+        return std::min(tot_time,tot_time2) / (rounds-1);
     }
 
 
