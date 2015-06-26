@@ -329,7 +329,9 @@ private:
     vec3i    filter_stride;
     filter & filter_;
 
+#ifndef ZNN_DONT_CACHE_FFTS
     ccube_p<complex> w_fft;
+#endif
     ccube_p<complex> last_input;
 
     size_t fwd_bucket_;
@@ -360,7 +362,11 @@ public:
         //                 ony happened on my laptop
         auto w_tmp = sparse_explode_slow(filter_.W(), filter_stride,
                                          in_nodes->fsize());
+#ifndef ZNN_DONT_CACHE_FFTS
         w_fft = fftw::forward(std::move(w_tmp));
+#else
+        auto w_fft = fftw::forward(std::move(w_tmp));
+#endif
         auto fw = *w_fft * *f;
         out_nodes->forward(out_num, fwd_bucket_, std::move(fw));
     }
@@ -378,6 +384,11 @@ public:
         dEdW = sparse_implode_slow(*dEdW, filter_stride, size(filter_.W()));
         *dEdW /= norm;
 
+#ifdef ZNN_DONT_CACHE_FFTS
+        auto w_tmp = sparse_explode_slow(filter_.W(), filter_stride,
+                                         in_nodes->fsize());
+        auto w_fft = fftw::forward(std::move(w_tmp));
+#endif
         auto grad = *w_fft * *g;
         filter_.update(*dEdW);
 
@@ -1579,6 +1590,28 @@ public:
         for ( auto & e: edges_ )
             ret.second.push_back(e.second->dedges->serialize());
 
+        return ret;
+    }
+
+    std::map<std::string, std::pair<vec3i,size_t>> inputs() const
+    {
+        std::map<std::string, std::pair<vec3i,size_t>> ret;
+        for ( auto & in: input_nodes_ )
+        {
+            ret[in.first] = { in.second->fsize,
+                              in.second->dnodes->num_in_nodes() };
+        }
+        return ret;
+    }
+
+    std::map<std::string, std::pair<vec3i,size_t>> outputs() const
+    {
+        std::map<std::string, std::pair<vec3i,size_t>> ret;
+        for ( auto & in: output_nodes_ )
+        {
+            ret[in.first] = { in.second->fsize,
+                              in.second->dnodes->num_out_nodes() };
+        }
         return ret;
     }
 

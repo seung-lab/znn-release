@@ -4,6 +4,7 @@
 #include "input_nodes.hpp"
 #include "transfer_nodes.hpp"
 #include "../../initializator/initializators.hpp"
+#include "../helpers.hpp"
 
 #include <map>
 #include <zi/time.hpp>
@@ -530,45 +531,14 @@ public:
 
         // generate 10 inputs and outputs
         network net(ns,es,outsz,n_threads);
-        auto ins  = net.inputs();
-        auto outs = net.outputs();
 
-        std::cout << "Create samples...";
-
-        uniform_init init(1);
         std::vector<std::map<std::string, std::vector<cube_p<real>>>>
             allins, allouts;
 
-        for ( size_t n = 0; n < rounds; ++n )
-        {
-            std::map<std::string, std::vector<cube_p<real>>> insample;
-            std::map<std::string, std::vector<cube_p<real>>> outsample;
 
-            for ( auto & ip: ins )
-            {
-                for ( size_t i = 0; i < ip.second.second; ++i )
-                {
-                    //std::cout << ip.second.first << " -\n";
-                    auto v = get_cube<real>(ip.second.first);
-                    init.initialize(*v);
-                    insample[ip.first].push_back(v);
-                }
-            }
+        std::cout << "Create samples...";
 
-            allins.push_back(insample);
-
-            for ( auto & ip: outs )
-            {
-                for ( size_t i = 0; i < ip.second.second; ++i )
-                {
-                    auto v = get_cube<real>(ip.second.first);
-                    init.initialize(*v);
-                    outsample[ip.first].push_back(v);
-                }
-            }
-
-            allouts.push_back(outsample);
-        }
+        std::tie(allins, allouts) = generate_inout(rounds,net);
 
         std::cout << "DONE\nFFT Warmup..." << std::flush;
 
@@ -682,41 +652,12 @@ public:
         auto ins  = net.inputs();
         auto outs = net.outputs();
 
-        std::cout << "Create samples...";
-
-        uniform_init init(1);
         std::vector<std::map<std::string, std::vector<cube_p<real>>>>
             allins, allouts;
 
-        for ( size_t n = 0; n < rounds; ++n )
-        {
-            std::map<std::string, std::vector<cube_p<real>>> insample;
-            std::map<std::string, std::vector<cube_p<real>>> outsample;
+        std::cout << "Create samples...";
 
-            for ( auto & ip: ins )
-            {
-                for ( size_t i = 0; i < ip.second.second; ++i )
-                {
-                    auto v = get_cube<real>(ip.second.first);
-                    init.initialize(*v);
-                    insample[ip.first].push_back(v);
-                }
-            }
-
-            allins.push_back(insample);
-
-            for ( auto & ip: outs )
-            {
-                for ( size_t i = 0; i < ip.second.second; ++i )
-                {
-                    auto v = get_cube<real>(ip.second.first);
-                    init.initialize(*v);
-                    outsample[ip.first].push_back(v);
-                }
-            }
-
-            allouts.push_back(outsample);
-        }
+        std::tie(allins, allouts) = generate_inout(rounds,net);
 
         std::cout << "DONE\nFFT Warmup..." << std::flush;
 
@@ -822,42 +763,12 @@ public:
         auto ins  = net.inputs();
         auto outs = net.outputs();
 
-        std::cout << "Create samples...";
-
-        uniform_init init(1);
         std::vector<std::map<std::string, std::vector<cube_p<real>>>>
             allins, allouts;
 
-        for ( size_t n = 0; n < rounds; ++n )
-        {
-            std::map<std::string, std::vector<cube_p<real>>> insample;
-            std::map<std::string, std::vector<cube_p<real>>> outsample;
+        std::cout << "Create samples...";
 
-            for ( auto & ip: ins )
-            {
-                for ( size_t i = 0; i < ip.second.second; ++i )
-                {
-                    //std::cout << ip.second.first << " -\n";
-                    auto v = get_cube<real>(ip.second.first);
-                    init.initialize(*v);
-                    insample[ip.first].push_back(v);
-                }
-            }
-
-            allins.push_back(insample);
-
-            for ( auto & ip: outs )
-            {
-                for ( size_t i = 0; i < ip.second.second; ++i )
-                {
-                    auto v = get_cube<real>(ip.second.first);
-                    init.initialize(*v);
-                    outsample[ip.first].push_back(v);
-                }
-            }
-
-            allouts.push_back(outsample);
-        }
+        std::tie(allins, allouts) = generate_inout(rounds,net);
 
         std::cout << "DONE\nFFT Warmup..." << std::flush;
 
