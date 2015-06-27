@@ -5,6 +5,7 @@
 #include <array>
 
 #include "../../types.hpp"
+#include "../../lockfree_allocator.hpp"
 
 #ifdef ZNN_XEON_PHI
 #  include <mkl.h>
@@ -167,7 +168,7 @@ public:
 
         return std::shared_ptr<cube<T>>(c,[this,bucket](cube<T>* c) {
                 this->buckets_[bucket].return_memory(c);
-            });
+            }, allocator<cube<T>>());
     }
 
 }; // single_type_cube_pool

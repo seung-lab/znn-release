@@ -743,11 +743,12 @@ public:
     }
 
 
-    static double speed_test( std::vector<options> & ns,
-                              std::vector<options> & es,
-                              vec3i const & outsz,
-                              size_t n_threads = 1,
-                              size_t rounds = 10)
+    static std::pair<double,double> speed_test( std::vector<options> & ns,
+                                                std::vector<options> & es,
+                                                vec3i const & outsz,
+                                                size_t n_threads = 1,
+                                                size_t rounds = 10,
+                                                size_t warmup = 1 )
     {
         std::vector<options*> edge_groups;
         for ( auto & e: es )
@@ -759,31 +760,33 @@ public:
             }
         }
 
-        network net(ns,es,outsz,n_threads);
-        auto ins  = net.inputs();
-        auto outs = net.outputs();
-
         std::vector<std::map<std::string, std::vector<cube_p<real>>>>
             allins, allouts;
 
-        std::cout << "Create samples...";
-
-        std::tie(allins, allouts) = generate_inout(rounds,net);
-
-        std::cout << "DONE\nFFT Warmup..." << std::flush;
-
         {
+            network net(ns,es,outsz,n_threads);
+
+            std::cout << "Create samples...";
+
+            std::tie(allins, allouts) =
+                generate_inout(std::max(rounds+1,warmup+1),net);
+
+            std::cout << "DONE\n  Warmup......" << std::flush;
+
             auto is = copy_samples(allins);
             auto os = copy_samples(allouts);
             net.forward(std::move(is[0]));
-            net.backward(std::move(os[0]));
+
+            for ( size_t i = 0; i < warmup; ++i )
+            {
+                net.backward(std::move(os[i]));
+                net.forward(std::move(is[i+1]));
+            }
+
             net.zap();
         }
 
-        std::cout << "DONE\nTrying all FFTs..." << std::flush;
-
-        double tot_time = 0;
-        double tot_ptime = 0;
+        std::cout << "DONE\n  Measuring..." << std::flush;
 
         {
             network net(ns,es,outsz,n_threads);
@@ -791,55 +794,25 @@ public:
             auto is = copy_samples(allins);
             auto os = copy_samples(allouts);
 
+            std::vector<double> times(rounds);
             zi::wall_timer wt;
-            zi::process_timer pt;
 
             net.forward(std::move(is[0]));
 
             wt.reset();
-            pt.reset();
 
-            for ( size_t i = 0; i < rounds-1; ++i )
+            for ( size_t i = 0; i < rounds; ++i )
             {
                 net.backward(std::move(os[i]));
                 net.forward(std::move(is[i+1]));
+                times[i] = wt.lap<double>();
             }
 
-            tot_ptime = pt.elapsed<real>();
-            tot_time = wt.elapsed<real>();
-
+            auto ret = measured(times);
+            std::cout << ret.first << " +/- " << ret.second << " secs" << std::endl;
             net.zap();
-            std::cout << (tot_time/(rounds-1)) << " secs" << std::endl;
-            std::cout << (tot_ptime/(rounds-1)) << " secs" << std::endl;
-            std::cout << (tot_ptime/tot_time) << " speedup"<< std::endl;
+            return ret;
         }
-
-        double tot_time2 = 0;
-
-        {
-            network net(ns,es,outsz,n_threads);
-
-            auto is = copy_samples(allins);
-            auto os = copy_samples(allouts);
-
-            zi::wall_timer wt;
-            net.forward(std::move(is[0]));
-
-            wt.reset();
-
-            for ( size_t i = 0; i < rounds-1; ++i )
-            {
-                net.backward(std::move(os[i]));
-                net.forward(std::move(is[i+1]));
-            }
-
-            tot_time2 = wt.elapsed<real>();
-
-            net.zap();
-            std::cout << (tot_time2/(rounds-1)) << " secs" << std::endl;
-        }
-
-        return std::min(tot_time,tot_time2) / (rounds-1);
     }
 
 

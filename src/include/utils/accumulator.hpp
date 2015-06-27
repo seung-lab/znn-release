@@ -16,8 +16,8 @@ class accumulator
 private:
     const vec3i size_;
 
-    std::map<vec3i,size_t>                        bucket_map_;
-    std::vector<std::unique_ptr<fft_accumulator>> buckets_   ;
+    map<vec3i,size_t>                        bucket_map_;
+    vector<std::unique_ptr<fft_accumulator>> buckets_   ;
 
     size_t required_;
     size_t current_ ;

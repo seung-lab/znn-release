@@ -66,7 +66,7 @@ public:
 
             // initialize biases
 
-            real eta = op.optional_as<real>("eta", 0.1);
+            real eta = op.optional_as<real>("eta", 0.0001);
             real mom = op.optional_as<real>("momentum", 0.0);
             real wd  = op.optional_as<real>("weight_decay", 0.0);
 

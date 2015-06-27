@@ -61,10 +61,14 @@ int main(int argc, char** argv)
         nrnds = atoi(argv[8]);
     }
 
-    double parallel = parallel_network::network::speed_test
-        (nodes, edges, {z,y,x}, tc, nrnds);
+    // for ( int i = 0; i < 10; ++i )
+    // {
+        auto res = parallel_network::network::speed_test
+            (nodes, edges, {z,y,x}, tc, nrnds, 3);
 
-    ofs << W << ", " << D << ", " << tc << ", " << parallel << ";" << std::endl;
-    std::cout << W << ", " << D << ", " << tc << ", " << parallel << ";" << std::endl;
-
+        ofs << W << ", " << D << ", " << tc << ", " << res.first << ", " << res.second << ";" << std::endl;
+        std::cout << W << ", " << D << ", " << tc << ", " << res.first << ", " << res.second
+                  << " ( " << ( res.second * 100  / res.first ) << "% )"
+                  << ";" << std::endl;
+    // }
 }

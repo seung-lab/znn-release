@@ -8,6 +8,12 @@
 #include <functional>
 #include <zi/vl/vl.hpp>
 #include <boost/multi_array.hpp>
+#include <lockfree_allocator.hpp>
+
+#include <map>
+#include <list>
+#include <vector>
+
 
 #if ( __cplusplus <= 201103L )
 
@@ -72,5 +78,42 @@ struct vec_hash<zi::vl::vec<T,N>>
         return seed;
     }
 };
+
+
+template<class K, class V>
+using map = std::map<K,V,std::less<K>,allocator<std::pair<const K,V>>>;
+
+template<class T>
+using vector = std::vector<T,allocator<T>>;
+
+template<class T>
+using list = std::list<T,allocator<T>>;
+
+
+template<class T>
+struct unique_ptr_deleter
+{
+    unique_ptr_deleter() noexcept {}
+
+    void operator()(T* p) const
+    {
+        allocator<T> alloc;
+        alloc.destroy(p);
+        alloc.deallocate(p);
+    }
+};
+
+template<typename T>
+using unique_ptr = std::unique_ptr<T,unique_ptr_deleter<T>>;
+
+template<typename T, typename... Args>
+unique_ptr<T> make_unique(Args&&... args)
+{
+    allocator<T> alloc;
+    T* p = alloc.allocate(1);
+    alloc.construct(p, std::forward<Args>(args)...);
+    return unique_ptr<T>(p);
+}
+
 
 }} // namespace znn::v4

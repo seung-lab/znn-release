@@ -35,7 +35,7 @@ inline edges::edges( nodes * in,
     filters_.resize(n*m);
     waiter_.set(n*m);
 
-    real eta  = opts.optional_as<real>("eta", 0.1);
+    real eta  = opts.optional_as<real>("eta", 0.0001);
     real mom  = opts.optional_as<real>("momentum", 0.0);
     real wd   = opts.optional_as<real>("weight_decay", 0.0);
     auto   sz   = opts.require_as<ovec3i>("size");
