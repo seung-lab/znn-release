@@ -78,6 +78,20 @@ public:
 
         return task;
     }
+
+
+    VSLConvTaskPtr get_synchronized( vec3i const & s )
+    {
+        guard g(m1);
+        return get(s);
+    }
+
+    VSLConvTaskPtr get_inv_synchronized( vec3i const & s )
+    {
+        guard g(m2);
+        return get_inv(s);
+    }
+
 };
 
 class conv_plans_impl
@@ -96,21 +110,38 @@ private:
         return r;
     }
 
+    bool locked = true;
+
 public:
     VSLConvTaskPtr get(vec3i const & a, vec3i const & b)
     {
-        return get_pool(a)->get(b);
+        if (locked)
+            return get_pool(a)->get_synchronized(b);
+        else
+            return pools[a]->get(b);
     }
 
     VSLConvTaskPtr get_inv(vec3i const & a, vec3i const & b)
     {
-        return get_pool(a)->get_inv(b);
+        if (locked)
+            return get_pool(a)->get_inv_synchronized(b);
+        else
+            return pools[a]->get_inv(b);
     }
 
+    void lock()
+    {
+        locked = true;
+    }
+
+    void unlock()
+    {
+        locked = false;
+    }
 };
 
 namespace {
-ZNN_THREAD_LOCAL conv_plans_impl& conv_plans = zi::singleton<conv_plans_impl>::instance();
+conv_plans_impl& conv_plans = zi::singleton<conv_plans_impl>::instance();
 } // anonymous namespace
 
 

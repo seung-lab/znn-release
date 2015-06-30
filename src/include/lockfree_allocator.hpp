@@ -5,12 +5,16 @@
 #include <boost/utility/addressof.hpp>
 #include <array>
 
+#ifdef ZNN_XEON_PHI
+#  include <mkl.h>
+#endif
+
 namespace znn { namespace v4 { namespace detail {
 
 inline void* znn_malloc(size_t s)
 {
 #ifdef ZNN_XEON_PHI
-    void* r = mkl_malloc(s,64);
+    void* r = mkl_malloc(s,8);
 #else
     void* r = malloc(s);
 #endif

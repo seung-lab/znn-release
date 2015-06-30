@@ -25,7 +25,7 @@ int main(int argc, char** argv)
     for ( int64_t i = 0; i < D; ++i )
     {
         edges[i].push("name", i).push("type", "conv").push("init", "uniform")
-            .push("size", "7,7,7").push("stride", "1,1,1")
+            .push("size", "1,11,11").push("stride", "1,1,1")
             .push("input", i-1).push("output",i);
         nodes[i+1].push("name",i).push("type","transfer")
             .push("function","rectify_linear").push("size",W);

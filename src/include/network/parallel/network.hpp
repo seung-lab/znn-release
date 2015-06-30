@@ -789,6 +789,9 @@ public:
         std::cout << "DONE\n  Measuring..." << std::flush;
 
         {
+#ifdef ZNN_USE_MKL_DIRECT_CONV
+            conv_plans.unlock();
+#endif
             network net(ns,es,outsz,n_threads);
 
             auto is = copy_samples(allins);
@@ -811,6 +814,10 @@ public:
             auto ret = measured(times);
             std::cout << ret.first << " +/- " << ret.second << " secs" << std::endl;
             net.zap();
+
+#ifdef ZNN_USE_MKL_DIRECT_CONV
+            conv_plans.lock();
+#endif
             return ret;
         }
     }

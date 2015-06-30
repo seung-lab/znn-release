@@ -19,24 +19,37 @@
 //#include <boost/pool/pool_alloc.hpp>
 
 #include "log.hpp"
+#include "global_task_manager.hpp"
 
 namespace znn { namespace v4 {
 
-//#ifndef ZNN_ANALYSE_TASK_MANAGER
+namespace detail {
 
-// template<class T>
-// using fast_allocator = boost::fast_pool_allocator
-//     <T,
-//      boost::default_user_allocator_new_delete,
-//      boost::details::pool::null_mutex,
+class function_base
+{
+public:
+    virtual ~function_base() {}
+    virtual void operator()() = 0;
+};
 
+template<typename T>
+class function_wrapper: function_base
+{
+private:
+    T t_;
+public:
+    function_wrapper(T && t): t_(t) {};
+    function_wrapper(T const &) = delete;
+};
+
+
+
+} // namespace detail
 
 class task_manager
 {
 private:
     typedef std::function<void()> callable_t;
-
-    size_t next_unprivileged_task_id;
 
 private:
     struct unprivileged_task
@@ -203,8 +216,9 @@ public:
 
         for ( std::size_t i = 0; i < to_spawn; ++i )
         {
-            std::thread t(&task_manager::worker_loop, this);
-            t.detach();
+            //std::thread t(&task_manager::worker_loop, this);
+            //t.detach();
+            global_task_manager.schedule(&task_manager::worker_loop, this);
         }
 
         workers_cv_.notify_all();
