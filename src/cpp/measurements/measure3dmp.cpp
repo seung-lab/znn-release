@@ -24,11 +24,21 @@ int main(int argc, char** argv)
 
     for ( int64_t i = 0; i < D; ++i )
     {
-        edges[i].push("name", i).push("type", "conv").push("init", "uniform")
-            .push("size", "1,11,11").push("stride", "1,1,1")
-            .push("input", i-1).push("output",i);
-        nodes[i+1].push("name",i).push("type","transfer")
-            .push("function","rectify_linear").push("size",W);
+        if ( ( i == 1 ) || ( i == 3 ) )
+        {
+            edges[i].push("name", i).push("type", "max_filter")
+                .push("size", "2,2,2").push("stride", "2,2,2")
+                .push("input", i-1).push("output",i);
+            nodes[i+1].push("name",i).push("type","sum").push("size",W);
+        }
+        else
+        {
+            edges[i].push("name", i).push("type", "conv").push("init", "uniform")
+                .push("size", "5,5,5").push("stride", "1,1,1")
+                .push("input", i-1).push("output",i);
+            nodes[i+1].push("name",i).push("type","transfer")
+                .push("function","rectify_linear").push("size",W);
+        }
     }
 
     edges[0].push("input","input");
