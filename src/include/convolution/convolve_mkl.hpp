@@ -30,7 +30,6 @@ public:
 
     VSLConvTaskPtr get( vec3i const & s )
     {
-        guard g(m1);
         VSLConvTaskPtr& task = plans1[s];
         if ( task ) return task;
 
@@ -55,7 +54,6 @@ public:
 
     VSLConvTaskPtr get_inv( vec3i const & s )
     {
-        guard g(m2);
         VSLConvTaskPtr& task = plans2[s];
         if ( task ) return task;
 
