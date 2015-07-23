@@ -23,14 +23,12 @@ namespace np = boost::numpy;
 using namespace znn::v4;
 using namespace znn::v4::parallel_network;
 
-#ifdef ZNN_USE_FLOATS
-	typedef NPY_FLOAT32		NPY_DTYPE;
-#else
-	// here has a bug!!!!!!!!, should use float64, but can not compile!
-	typedef NPY_FLOAT32		NPY_DTYPE;
-#endif
-
-
+//#ifdef ZNN_USE_FLOATS
+//	typedef NPY_FLOAT32		NPY_DTYPE;
+//#else
+//	// here has a bug!!!!!!!!, should use float64, but can not compile!
+//	typedef NPY_FLOAT32		NPY_DTYPE;
+//#endif
 
 std::shared_ptr< network > CNetwork_Init(
     std::string net_config_file, std::int64_t outx,
@@ -47,30 +45,29 @@ std::shared_ptr< network > CNetwork_Init(
     return net;
 }
 
-np::ndarray CNetwork_forward( network& net, const np::ndarray& inarray )
+bp::numeric::array CNetwork_forward( network& net, const bp::numeric::array& inarray )
 {
     std::map<std::string, std::vector<cube_p<real>>> insample;
     insample["input"].resize(1);
     // input sample volume pointer
-    cube<real> in_cube( reinterpret_cast<real*>(inarray.get_data()) );
+    cube<real> in_cube( reinterpret_cast<real*>(inarray.ptr()) );
     insample["input"][0] = std::shared_ptr<cube<real>>(&in_cube);
 
     auto prop = net.forward( std::move(insample) );
     cube<real> out_cube(*prop["output"][0]);
-    // create a PyObject * from pointer and data
 
-    npy_intp size_p = {	out_cube.shape()[2],
-    					out_cube.shape()[1],
-    					out_cube.shape()[0]};
-    PyObject * pyObj = PyArray_SimpleNewFromData(3, size, NPY_DTYPE, out_cube.data());
+    // create a PyObject * from pointer and data
+    npy_intp size = out_cube.shape()[2] * out_cube.shape()[1] *	out_cube.shape()[0] ;
+    PyObject * pyObj = PyArray_SimpleNewFromData(3, &size, NPY_DOUBLE, out_cube.data());
     bp::handle<> handle( pyObj );
     bp::numeric::array outarray( handle );
+
 //    np::ndarray outarray = np::from_data( out_cube.data(), np::dtype(inarray),
 //    		bp::make_tuple(out_cube.shape()[0], out_cube.shape()[1], out_cube.shape()[2]),
 //			bp::make_tuple(1,1,1),
 //			bp::);
 
-    return outarray.copy();
+    return outarray;
 }
 
 BOOST_PYTHON_MODULE(pyznn)
