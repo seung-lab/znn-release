@@ -1,44 +1,60 @@
+// boost python
+#include <Python.h>  // NOLINT(build/include_alpha)
 #include <boost/python.hpp>
+#include <boost/numpy.hpp>
+// system
+#include <string>
+#include <stdexcept>
+// znn
 #include "network/parallel/network.hpp"
+#include "cube/cube.hpp"
+#include "types.hpp"
+#include "options/options.hpp"
+#include "network/trivial/trivial_fft_network.hpp"
+#include <zi/zargs/zargs.hpp>
 
-namespace py = boost::python;
-using namespace znn::v4::parallel_network;
+namespace bp = boost::python;
+namespace np = boost::numpy;
+using namespace znn::v4;
 
+std::shared_ptr< parallel_network::network > CNetwork_Init(
+    std::string net_config_file, std::int64_t outx,
+    std::int64_t outy, std::int64_t outz, std::size_t tc )
+{
+    std::vector<options> nodes;
+    std::vector<options> edges;
+    parse_net_file(nodes, edges, net_config_file);
+    vec3i out_sz(outx, outy, outz);
 
-class net: network{
-public:
-    net(    py::list  const & py_ns,
-            py::list  const & py_es,
-            py::tuple const & py_outsz,
-            py::ssize_t py_n_threads )
-    {
-        // the number of threads
-        std::size_t n_threads = py::extract<std::size_t>py_n_threads;
-        tm_(n_threads)
+    // construct the network class
+    std::shared_ptr<parallel_network::network> net(
+        new parallel_network::network(nodes,edges,out_sz,tc));
+    return net;
+}
 
-        // options
-        std::vector<options> ns, es;
-        options n,e;
-        for (int i=0; i < len(py_ns); i++)
-        {
-            n = py::extract<options>( py_ns[i] );
-            add_nodes(n)
-        }
-        for (int i=0; i < len(py_es); i++)
-        {
-            e = py::extract<options>( py_es[i] );
-            add_edges(e);
-        }
+np::ndarray CNetwork_forward( const parallel_network::network& net, const np::ndarray& inarray )
+{
+    std::map<std::string, std::vector<cube_p<real>>> insample;
+    insample["input"].resize(1);
+    // input sample volume pointer
+    cube<real> in_cube( reinterpret_cast<real*>(inarray.get_data()) );
+    insample["input"][0] = std::shared_ptr<cube<real>>(&in_cube);
 
-        init( py::extract<vec3i>(py_outsz) );
-        create_nodes(ns);
-        create_edges(es);
-    }
-};
+    auto prop = net.forward( std::move(insample) );
 
+    np::ndarray& outarray;
+    outarray.get_data() = *(prop["output"][0]).data()
+    return outarray;
+}
 
 BOOST_PYTHON_MODULE(pyznn)
 {
-    py::class_<net>("net", py::init<py::list, py::list, py::tuple, py::ssize_t>())
+    boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
+
+    bp::class_<parallel_network::network>, boost::noncopyable>("CNetwork", bp::no_init))
+        .def("__init__", bp::make_constructor(&CNetwork_Init))
+        .def("_set_eta",    &parallel_network::network::set_eta)
+        .def("_fov",        &parallel_network::network::fov)
+        .def("forward",   &CNetwork_forward)
         ;
 }
