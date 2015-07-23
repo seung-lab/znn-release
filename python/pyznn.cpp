@@ -45,27 +45,23 @@ std::shared_ptr< network > CNetwork_Init(
     return net;
 }
 
+template <typename T>
 bp::numeric::array CNetwork_forward( network& net, const bp::numeric::array& inarray )
 {
-    std::map<std::string, std::vector<cube_p<real>>> insample;
+    std::map<std::string, std::vector<cube_p<T>>> insample;
     insample["input"].resize(1);
     // input sample volume pointer
-    cube<real> in_cube( reinterpret_cast<real*>(inarray.ptr()) );
-    insample["input"][0] = std::shared_ptr<cube<real>>(&in_cube);
+    cube<T> in_cube( reinterpret_cast<T*>(inarray.ptr()) );
+    insample["input"][0] = std::shared_ptr<cube<T>>(&in_cube);
 
     auto prop = net.forward( std::move(insample) );
-    cube<real> out_cube(*prop["output"][0]);
+    cube<T> out_cube(*prop["output"][0]);
 
     // create a PyObject * from pointer and data
     npy_intp size = out_cube.shape()[2] * out_cube.shape()[1] *	out_cube.shape()[0] ;
     PyObject * pyObj = PyArray_SimpleNewFromData(3, &size, NPY_DOUBLE, out_cube.data());
     bp::handle<> handle( pyObj );
     bp::numeric::array outarray( handle );
-
-//    np::ndarray outarray = np::from_data( out_cube.data(), np::dtype(inarray),
-//    		bp::make_tuple(out_cube.shape()[0], out_cube.shape()[1], out_cube.shape()[2]),
-//			bp::make_tuple(1,1,1),
-//			bp::);
 
     return outarray;
 }
@@ -74,11 +70,10 @@ BOOST_PYTHON_MODULE(pyznn)
 {
     boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
 
-    bp::class_<network>, boost::noncopyable>("CNetwork", bp::no_init))
+    bp::class_<network, std::shared_ptr<network>>("CNetwork", bp::no_init)
         .def("__init__", bp::make_constructor(&CNetwork_Init))
         .def("_set_eta",    &network::set_eta)
         .def("_fov",        &network::fov)
         .def("forward",     &CNetwork_forward)
-        .def("_forward",    &network::forward)
         ;
 }

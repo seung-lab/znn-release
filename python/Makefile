@@ -5,7 +5,7 @@ CPP_FLAGS	= 	-g
 INC_FLAGS	=	-I../src/include -I../zi -I.. -I/libs/boost/include -I/usr/include/python2.7
 LIB_FLAGS	=
 OPT_FLAGS	=	-DNDEBUG -O3 -std=c++1y
-OTH_FLAGS	=	-Wall -shared -fPIC -Wextra -Wno-unused-result -Wno-unused-local-typedefs
+OTH_FLAGS	=	-Wall -shared -fPIC -Wextra -Wno-unused-result -Wno-unused-local-typedefs -Wunused-parameter
 LIBS		=	-lboost_python -lfftw3 -lfftw3f -lpthread -pthread
 
 pyznn: $(SFL)
