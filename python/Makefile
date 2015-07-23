@@ -1,7 +1,7 @@
 ODIR		=	.
 SFL			=	pyznn.cpp
 CPP		 	=	g++
-CPP_FLAGS	= 	-g
+CPP_FLAGS	= 	-g 
 INC_FLAGS	=	-I../src/include -I../zi -I.. -I/libs/boost/include -I/usr/include/python2.7
 LIB_FLAGS	=
 OPT_FLAGS	=	-DNDEBUG -O3 -std=c++1y
