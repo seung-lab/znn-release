@@ -1,10 +1,14 @@
 // boost python
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <Python.h>  // NOLINT(build/include_alpha)
 #include <boost/python.hpp>
 #include <boost/numpy.hpp>
+#include <numpy/ndarrayobject.h>
+
 // system
 #include <string>
-#include <stdexcept>
+#include <memory>
+#include <cstdint>
 // znn
 #include "network/parallel/network.hpp"
 #include "cube/cube.hpp"
@@ -15,17 +19,27 @@
 
 namespace bp = boost::python;
 namespace np = boost::numpy;
-namespace z4 = znn::v4;
+//namespace z4 = znn::v4;
+using namespace znn::v4;
 using namespace znn::v4::parallel_network;
+
+#ifdef ZNN_USE_FLOATS
+	typedef NPY_FLOAT32		NPY_DTYPE;
+#else
+	// here has a bug!!!!!!!!, should use float64, but can not compile!
+	typedef NPY_FLOAT32		NPY_DTYPE;
+#endif
+
+
 
 std::shared_ptr< network > CNetwork_Init(
     std::string net_config_file, std::int64_t outx,
     std::int64_t outy, std::int64_t outz, std::size_t tc )
 {
-    std::vector<z4::options> nodes;
-    std::vector<z4::options> edges;
+    std::vector<options> nodes;
+    std::vector<options> edges;
     parse_net_file(nodes, edges, net_config_file);
-    z4::vec3i out_sz(outx, outy, outz);
+    vec3i out_sz(outx, outy, outz);
 
     // construct the network class
     std::shared_ptr<network> net(
@@ -35,17 +49,28 @@ std::shared_ptr< network > CNetwork_Init(
 
 np::ndarray CNetwork_forward( network& net, const np::ndarray& inarray )
 {
-    std::map<std::string, std::vector<z4::cube_p<z4::real>>> insample;
+    std::map<std::string, std::vector<cube_p<real>>> insample;
     insample["input"].resize(1);
     // input sample volume pointer
-    z4::cube<z4::real> in_cube( reinterpret_cast<z4::real*>(inarray.get_data()) );
-    insample["input"][0] = std::shared_ptr<z4::cube<z4::real>>(&in_cube);
-    net.
-    auto prop = net.forward( std::move(insample) );
+    cube<real> in_cube( reinterpret_cast<real*>(inarray.get_data()) );
+    insample["input"][0] = std::shared_ptr<cube<real>>(&in_cube);
 
-    np::ndarray& outarray;
-    reinterpret_cast<z4::real*>(outarray.get_data()) = *(prop["output"][0]).data()
-    return outarray;
+    auto prop = net.forward( std::move(insample) );
+    cube<real> out_cube(*prop["output"][0]);
+    // create a PyObject * from pointer and data
+
+    npy_intp size_p = {	out_cube.shape()[2],
+    					out_cube.shape()[1],
+    					out_cube.shape()[0]};
+    PyObject * pyObj = PyArray_SimpleNewFromData(3, size, NPY_DTYPE, out_cube.data());
+    bp::handle<> handle( pyObj );
+    bp::numeric::array outarray( handle );
+//    np::ndarray outarray = np::from_data( out_cube.data(), np::dtype(inarray),
+//    		bp::make_tuple(out_cube.shape()[0], out_cube.shape()[1], out_cube.shape()[2]),
+//			bp::make_tuple(1,1,1),
+//			bp::);
+
+    return outarray.copy();
 }
 
 BOOST_PYTHON_MODULE(pyznn)
