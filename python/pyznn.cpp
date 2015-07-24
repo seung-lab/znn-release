@@ -43,18 +43,6 @@ std::shared_ptr< network > CNetwork_Init(
     return net;
 }
 
-cube_p<real> ndarray2cube_p( const np::ndarray& inarray,
-		std::size_t sz,
-		std::size_t sy,
-		std::size_t sx)
-{
-	vec3i size(sx,sy,sz);
-	boost::multi_array_ref<real,3> cube_ref( reinterpret_cast<real*>(inarray.get_data()), extents[sx][sy][sz] );
-	cube<real> cube( cube_ref );
-	cube_p<real> cube_p = std::shared_ptr< cube<real> >( &cube );
-	return cube_p;
-}
-
 np::ndarray CNetwork_forward( bp::object const & self, network& net, const np::ndarray& inarray )
 {
 	// volume size
@@ -63,11 +51,13 @@ np::ndarray CNetwork_forward( bp::object const & self, network& net, const np::n
 	std::size_t sx = inarray.shape(2);
 
 	// setup input volume
-    cube_p<real> incube_p = ndarray2cube_p( inarray, sz,sy,sx );
+	vec3i size(sx,sy,sz);
+	boost::multi_array_ref<real,3> incube_ref( reinterpret_cast<real*>(inarray.get_data()), extents[sx][sy][sz] );
+	cube<real> incube( incube_ref );
 
 	std::map<std::string, std::vector<cube_p< real >>> insample;
 	insample["input"].resize(1);
-    insample["input"][0] = incube_p;
+    insample["input"][0] = std::shared_ptr<cube<real> >( &incube );
 
     // run forward and get output
     auto prop = net.forward( std::move(insample) );
@@ -78,7 +68,7 @@ np::ndarray CNetwork_forward( bp::object const & self, network& net, const np::n
 		out_cube.data(),
 		np::dtype::get_builtin<real>(),
 		bp::make_tuple(sz,sy,sx),
-		bp::make_tuple(sy*sx*sizeof(real), sx*sizeof(real), sizeof(real))
+		bp::make_tuple(sy*sx*sizeof(real), sx*sizeof(real), sizeof(real)),
 		self
 	);
 }
