@@ -26,7 +26,7 @@ using namespace znn::v4::parallel_network;
 //typedef NPY_DOUBLE		NPY_DTYPE;
 //#endif
 
-std::shared_ptr< network > CNetwork_Init(
+std::shared_ptr< network > CNet_Init(
     std::string net_config_file, std::int64_t outx,
     std::int64_t outy, std::int64_t outz, std::size_t tc )
 {
@@ -41,7 +41,7 @@ std::shared_ptr< network > CNetwork_Init(
     return net;
 }
 
-np::ndarray CNetwork_forward( bp::object const & self, const np::ndarray& inarray )
+np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 {
 	// extract the class from self
 	network& netref = boost::python::extract<network&>(self)();
@@ -76,7 +76,7 @@ np::ndarray CNetwork_forward( bp::object const & self, const np::ndarray& inarra
 
 
 
-np::ndarray CNetwork_fov( bp::object const & self )
+np::ndarray CNet_fov( bp::object const & self )
 {
 	network& netref = boost::python::extract<network&>(self)();
 	vec3i fov_vec =  netref.fov();
@@ -85,14 +85,13 @@ np::ndarray CNetwork_fov( bp::object const & self )
 //	int64_t tmp = fov_vec[0];
 //	fov_vec[0] = fov_vec[2];
 //	fov_vec[2] = tmp;
-	np::ndarray fov_arr = 	np::from_data(
-								reinterpret_cast<uint64_t*>(fov_vec.data()),
-								np::dtype::get_builtin<uint64_t>(),
-								bp::make_tuple(3),
-								bp::make_tuple(sizeof(uint64_t)),
-								self
-							);
-	return fov_arr;
+	return 	np::from_data(
+				fov_vec.data(),
+				np::dtype::get_builtin<int64_t>(),
+				bp::make_tuple(3),
+				bp::make_tuple(sizeof(int64_t)),
+				self
+			);
 }
 
 BOOST_PYTHON_MODULE(pyznn)
@@ -101,9 +100,9 @@ BOOST_PYTHON_MODULE(pyznn)
 	np::initialize();
 
     bp::class_<network, std::shared_ptr<network>, boost::noncopyable>("CNet",bp::no_init)
-        .def("__init__", bp::make_constructor(&CNetwork_Init))
+        .def("__init__", bp::make_constructor(&CNet_Init))
         .def("set_eta",    	&network::set_eta)
-        .def("get_fov",     &CNetwork_fov)
-		.def("forward",     &CNetwork_forward)
+        .def("get_fov",     &CNet_fov)
+		.def("forward",     &CNet_forward)
         ;
 }
