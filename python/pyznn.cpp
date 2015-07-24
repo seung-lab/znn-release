@@ -74,6 +74,23 @@ np::ndarray CNetwork_forward( bp::object const & self, const np::ndarray& inarra
 	);
 }
 
+
+
+np::ndarray CNetwork_fov( bp::object const & self )
+{
+	network& netref = boost::python::extract<network&>(self)();
+	vec3i fov_vec =  netref.fov();
+	std::swap(fov_vec[0], fov_vec[2]);
+	return 	np::from_data(
+				fov_vec.data(),
+				np::dtype::get_builtin<int64_t>(),
+				bp::make_tuple(3),
+				bp::make_tuple(sizeof(int64_t)),
+				self
+			);
+
+}
+
 BOOST_PYTHON_MODULE(pyznn)
 {
 	Py_Initialize();
@@ -81,8 +98,8 @@ BOOST_PYTHON_MODULE(pyznn)
 
     bp::class_<network, std::shared_ptr<network>, boost::noncopyable>("CNet",bp::no_init)
         .def("__init__", bp::make_constructor(&CNetwork_Init))
-        .def("_set_eta",    &network::set_eta)
-        .def("_fov",        &network::fov)
+        .def("set_eta",    	&network::set_eta)
+        .def("get_fov",     &CNetwork_fov)
 		.def("forward",     &CNetwork_forward)
         ;
 }
