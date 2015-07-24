@@ -78,12 +78,10 @@ np::ndarray CNetwork_forward( bp::object const & self, const np::ndarray& inarra
 
 BOOST_PYTHON_MODULE(pyznn)
 {
-//    boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
 	Py_Initialize();
-	// Initialize NumPy
 	np::initialize();
 
-    bp::class_<network>("CNetwork")
+    bp::class_<network, std::shared_ptr<network>, boost::noncopyable>("CNet",bp::no_init)
         .def("__init__", bp::make_constructor(&CNetwork_Init))
         .def("_set_eta",    &network::set_eta)
         .def("_fov",        &network::fov)
