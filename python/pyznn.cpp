@@ -80,15 +80,19 @@ np::ndarray CNetwork_fov( bp::object const & self )
 {
 	network& netref = boost::python::extract<network&>(self)();
 	vec3i fov_vec =  netref.fov();
-	std::swap(fov_vec[0], fov_vec[2]);
-	return 	np::from_data(
-				fov_vec.data(),
-				np::dtype::get_builtin<int64_t>(),
-				bp::make_tuple(3),
-				bp::make_tuple(sizeof(int64_t)),
-				self
-			);
-
+	std::cout<< "fov (x,y,z): "<<fov_vec[0] <<"x"<< fov_vec[1]<<"x"<<fov_vec[2]<<std::endl;
+//	std::swap(fov_vec[0], fov_vec[2]);
+//	int64_t tmp = fov_vec[0];
+//	fov_vec[0] = fov_vec[2];
+//	fov_vec[2] = tmp;
+	np::ndarray fov_arr = 	np::from_data(
+								reinterpret_cast<uint64_t*>(fov_vec.data()),
+								np::dtype::get_builtin<uint64_t>(),
+								bp::make_tuple(3),
+								bp::make_tuple(sizeof(uint64_t)),
+								self
+							);
+	return fov_arr;
 }
 
 BOOST_PYTHON_MODULE(pyznn)

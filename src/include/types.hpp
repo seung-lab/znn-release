@@ -47,7 +47,7 @@ typedef std::complex<real>   cplx;
 typedef std::complex<real>   complex;
 
 typedef zi::vl::vec<int64_t,3> vec3i;
-typedef zi::vl::vec<int64_t,3> vec4i;
+typedef zi::vl::vec<int64_t,4> vec4i;
 
 
 typedef std::size_t size_t;
