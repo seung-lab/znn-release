@@ -19,15 +19,13 @@
 
 namespace bp = boost::python;
 namespace np = boost::numpy;
-//namespace z4 = znn::v4;
 using namespace znn::v4;
 using namespace znn::v4::parallel_network;
 
 //#ifdef ZNN_USE_FLOATS
-//	typedef NPY_FLOAT32		NPY_DTYPE;
+//typedef NPY_FLOAT32		NPY_DTYPE;
 //#else
-//	// here has a bug!!!!!!!!, should use float64, but can not compile!
-//	typedef NPY_FLOAT32		NPY_DTYPE;
+//typedef NPY_DOUBLE		NPY_DTYPE;
 //#endif
 
 std::shared_ptr< network > CNetwork_Init(
@@ -45,35 +43,59 @@ std::shared_ptr< network > CNetwork_Init(
     return net;
 }
 
-template <typename T>
-bp::numeric::array CNetwork_forward( network& net, const bp::numeric::array& inarray )
+cube_p<real> ndarray2cube_p( const np::ndarray& inarray,
+		std::size_t sz,
+		std::size_t sy,
+		std::size_t sx)
 {
-    std::map<std::string, std::vector<cube_p<T>>> insample;
-    insample["input"].resize(1);
-    // input sample volume pointer
-    cube<T> in_cube( reinterpret_cast<T*>(inarray.ptr()) );
-    insample["input"][0] = std::shared_ptr<cube<T>>(&in_cube);
-
-    auto prop = net.forward( std::move(insample) );
-    cube<T> out_cube(*prop["output"][0]);
-
-    // create a PyObject * from pointer and data
-    npy_intp size = out_cube.shape()[2] * out_cube.shape()[1] *	out_cube.shape()[0] ;
-    PyObject * pyObj = PyArray_SimpleNewFromData(3, &size, NPY_DOUBLE, out_cube.data());
-    bp::handle<> handle( pyObj );
-    bp::numeric::array outarray( handle );
-
-    return outarray;
+	vec3i size(sx,sy,sz);
+	boost::multi_array_ref<real,3> cube_ref( reinterpret_cast<real*>(inarray.get_data()), extents[sx][sy][sz] );
+	cube<real> cube( cube_ref );
+	cube_p<real> cube_p = std::shared_ptr< cube<real> >( &cube );
+	return cube_p;
 }
+
+np::ndarray CNetwork_forward( bp::object const & self, network& net, const np::ndarray& inarray )
+{
+	// volume size
+	std::size_t sz = inarray.shape(0);
+	std::size_t sy = inarray.shape(1);
+	std::size_t sx = inarray.shape(2);
+
+	// setup input volume
+    cube_p<real> incube_p = ndarray2cube_p( inarray, sz,sy,sx );
+
+	std::map<std::string, std::vector<cube_p< real >>> insample;
+	insample["input"].resize(1);
+    insample["input"][0] = incube_p;
+
+    // run forward and get output
+    auto prop = net.forward( std::move(insample) );
+    cube<real> out_cube(*prop["output"][0]);
+
+    // create a PyObject * from pointer and data to return
+    return np::from_data(
+		out_cube.data(),
+		np::dtype::get_builtin<real>(),
+		bp::make_tuple(sz,sy,sx),
+		bp::make_tuple(sy*sx*sizeof(real), sx*sizeof(real), sizeof(real))
+		self
+	);
+}
+
+//BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(CNetwork_forward_overloads, CNetwork_forward, 2, 2)
 
 BOOST_PYTHON_MODULE(pyznn)
 {
-    boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
+//    boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
+	Py_Initialize();
+	// Initialize NumPy
+	np::initialize();
 
     bp::class_<network, std::shared_ptr<network>>("CNetwork", bp::no_init)
         .def("__init__", bp::make_constructor(&CNetwork_Init))
         .def("_set_eta",    &network::set_eta)
         .def("_fov",        &network::fov)
-        .def("forward",     &CNetwork_forward)
+		.def("forward",     &CNetwork_forward)
         ;
 }
