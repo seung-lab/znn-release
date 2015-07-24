@@ -1,6 +1,7 @@
 // boost python
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <Python.h>  // NOLINT(build/include_alpha)
+
+#include <Python.h>
 #include <boost/python.hpp>
 #include <boost/numpy.hpp>
 #include <numpy/ndarrayobject.h>
@@ -12,9 +13,6 @@
 // znn
 #include "network/parallel/network.hpp"
 #include "cube/cube.hpp"
-#include "types.hpp"
-#include "options/options.hpp"
-#include "network/trivial/trivial_fft_network.hpp"
 #include <zi/zargs/zargs.hpp>
 
 namespace bp = boost::python;
