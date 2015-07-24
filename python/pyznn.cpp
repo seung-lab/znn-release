@@ -43,8 +43,11 @@ std::shared_ptr< network > CNetwork_Init(
     return net;
 }
 
-np::ndarray CNetwork_forward( bp::object const & self, network& net, const np::ndarray& inarray )
+np::ndarray CNetwork_forward( bp::object const & self, const np::ndarray& inarray )
 {
+	// extract the class from self
+	network& netref = boost::python::extract<network&>(self)();
+
 	// volume size
 	std::size_t sz = inarray.shape(0);
 	std::size_t sy = inarray.shape(1);
@@ -60,7 +63,7 @@ np::ndarray CNetwork_forward( bp::object const & self, network& net, const np::n
     insample["input"][0] = std::shared_ptr<cube<real> >( &incube );
 
     // run forward and get output
-    auto prop = net.forward( std::move(insample) );
+    auto prop = netref.forward( std::move(insample) );
     cube<real> out_cube(*prop["output"][0]);
 
     // create a PyObject * from pointer and data to return
@@ -73,8 +76,6 @@ np::ndarray CNetwork_forward( bp::object const & self, network& net, const np::n
 	);
 }
 
-//BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS(CNetwork_forward_overloads, CNetwork_forward, 2, 2)
-
 BOOST_PYTHON_MODULE(pyznn)
 {
 //    boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
@@ -82,7 +83,7 @@ BOOST_PYTHON_MODULE(pyznn)
 	// Initialize NumPy
 	np::initialize();
 
-    bp::class_<network, std::shared_ptr<network>>("CNetwork", bp::no_init)
+    bp::class_<network>("CNetwork")
         .def("__init__", bp::make_constructor(&CNetwork_Init))
         .def("_set_eta",    &network::set_eta)
         .def("_fov",        &network::fov)
