@@ -53,7 +53,7 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
     
 	// setup input volume
     std::cout<<"create incube..."<<std::endl;
-	boost::multi_array_ref<real,3> incube_ref( reinterpret_cast<real*>(inarray.get_data()), extents[sx][sy][sz] );
+	boost::multi_array_ref<real,3> incube_ref( reinterpret_cast<real*>(inarray.get_data()), extents[sz][sy][sx] );
 	cube<real> incube( incube_ref );
 
     std::cout<<"put incube to insample..."<<std::endl;
