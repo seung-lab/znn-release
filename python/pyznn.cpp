@@ -50,21 +50,24 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 	std::size_t sz = inarray.shape(0);
 	std::size_t sy = inarray.shape(1);
 	std::size_t sx = inarray.shape(2);
-
+    
 	// setup input volume
-	vec3i size(sx,sy,sz);
+    std::cout<<"create incube..."<<std::endl;
 	boost::multi_array_ref<real,3> incube_ref( reinterpret_cast<real*>(inarray.get_data()), extents[sx][sy][sz] );
 	cube<real> incube( incube_ref );
 
+    std::cout<<"put incube to insample..."<<std::endl;
 	std::map<std::string, std::vector<cube_p< real >>> insample;
 	insample["input"].resize(1);
     insample["input"][0] = std::shared_ptr<cube<real> >( &incube );
 
     // run forward and get output
+    std::cout<<"run forward..."<<std::endl;
     auto prop = netref.forward( std::move(insample) );
     cube<real> out_cube(*prop["output"][0]);
 
     // create a PyObject * from pointer and data to return
+    std::cout<<"return ndarray..."<<std::endl;
     return np::from_data(
 		out_cube.data(),
 		np::dtype::get_builtin<real>(),
@@ -76,22 +79,12 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 
 
 
-np::ndarray CNet_fov( bp::object const & self )
+bp::tuple CNet_fov( bp::object const & self )
 {
 	network& netref = boost::python::extract<network&>(self)();
 	vec3i fov_vec =  netref.fov();
 	std::cout<< "fov (x,y,z): "<<fov_vec[0] <<"x"<< fov_vec[1]<<"x"<<fov_vec[2]<<std::endl;
-//	std::swap(fov_vec[0], fov_vec[2]);
-//	int64_t tmp = fov_vec[0];
-//	fov_vec[0] = fov_vec[2];
-//	fov_vec[2] = tmp;
-	return 	np::from_data(
-				fov_vec.data(),
-				np::dtype::get_builtin<int64_t>(),
-				bp::make_tuple(3),
-				bp::make_tuple(sizeof(int64_t)),
-				self
-			);
+	return 	bp::make_tuple(fov_vec[0], fov_vec[1], fov_vec[2]);
 }
 
 BOOST_PYTHON_MODULE(pyznn)
