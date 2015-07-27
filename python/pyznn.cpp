@@ -74,13 +74,11 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
     for (std::size_t k=0; k<sz*sy*sx; k++)
         incube_p->data()[k] = inarray.get_data()[k];
 
-    std::cout<<"put incube to insample..."<<std::endl;
 	std::map<std::string, std::vector<cube_p< real >>> insample;
 	insample["input"].resize(1);
     insample["input"][0] = incube_p;
 
     // run forward and get output
-    std::cout<<"run forward..."<<std::endl;
     auto prop = net.forward( std::move(insample) );
     cube<real> out_cube(*prop["output"][0]);
     
@@ -91,8 +89,8 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 	vec3i fov = net.fov();
 	assert(outsz == insz - fov + 1);
 #endif
+
     // return ndarray
-    std::cout<<"build return ndarray..."<<std::endl;
     return np::from_data(
 		out_cube.data(),
 		np::dtype::get_builtin<real>(),
