@@ -86,7 +86,7 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
     
     // output size assert
     vec3i outsz( out_cube.shape()[0], out_cube.shape()[1], out_cube.shape()[2] );
-#ifdef NDEBUG
+#ifndef NDEBUG
 	vec3i insz( sz, sy, sx );
 	vec3i fov = net.fov();
 	assert(outsz == insz - fov + 1);
@@ -106,7 +106,7 @@ bp::tuple CNet_fov( bp::object const & self )
 {
 	network& net = boost::python::extract<network&>(self)();
 	vec3i fov_vec =  net.fov();
-#ifdef NDEBUG
+#ifndef NDEBUG
 	std::cout<< "fov (z,y,x): "<<fov_vec[0] <<"x"<< fov_vec[1]<<"x"<<fov_vec[2]<<std::endl;
 #endif
 	return 	bp::make_tuple(fov_vec[0], fov_vec[1], fov_vec[2]);
