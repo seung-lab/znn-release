@@ -78,14 +78,14 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
     cube<real> out_cube(*prop["output"][0]);
     
     // copy data to a new volume to let python free the out_cube
-    //std::size_t n = static_cast<std::size_t>( out_cube.num_elements() );
-    //void* out = znn_malloc(n);
-    //for (std::size_t i=0; i<n; i++)
-      //  out[i] = out_cube.data()[i];
-    cube_p<real> out_p = get_copy( out_cube );
+    std::size_t n = static_cast<std::size_t>( out_cube.num_elements() );
+    real out[n];
+    for (std::size_t i=0; i<n; i++)
+        out[i] = out_cube.data()[i];
+    //cube_p<real> out_p = get_copy( out_cube );
 
     // create a PyObject * from pointer and data to return
-    void* data_p = out_p->data();
+    void* data_p = out;
     std::cout<<"build return ndarray..."<<std::endl;
     np::ndarray ret = np::from_data(
 		data_p,
