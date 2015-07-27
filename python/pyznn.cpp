@@ -22,7 +22,6 @@
 #include <Python.h>
 #include <boost/python.hpp>
 #include <boost/numpy.hpp>
-#include <numpy/arrayobject.h>
 
 // system
 #include <string>
@@ -37,12 +36,6 @@ namespace bp = boost::python;
 namespace np = boost::numpy;
 using namespace znn::v4;
 using namespace znn::v4::parallel_network;
-
-#ifdef ZNN_USE_FLOATS
-const int NPY_DTYPE = NPY_FLOAT32;
-#else
-const int NPY_DTYPE = NPY_FLOAT64;
-#endif
 
 std::shared_ptr< network > CNet_Init(
     std::string net_config_file, std::int64_t outx,
