@@ -16,7 +16,13 @@
 //// You should have received a copy of the GNU General Public License
 //// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////
-//
+// ----------------------------NOTE---------------------------------//
+// both znn and python use C-order									//
+// znn v4 use x,y,z and z is changing the fastest					//
+// python code use z,y,x and x is changing the fastest				//
+// we just match znn(x,y,z) and python(z,y,x) directly,				//
+// so the z in python matches the x in znn!!!						//
+// -----------------------------------------------------------------//
 // boost python
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <Python.h>
@@ -39,13 +45,13 @@ using namespace znn::v4;
 using namespace znn::v4::parallel_network;
 
 std::shared_ptr< network > CNet_Init(
-    std::string net_config_file, std::int64_t outx,
-    std::int64_t outy, std::int64_t outz, std::size_t tc )
+    std::string net_config_file, std::int64_t outz,
+    std::int64_t outy, std::int64_t outx, std::size_t tc )
 {
     std::vector<options> nodes;
     std::vector<options> edges;
     parse_net_file(nodes, edges, net_config_file);
-    vec3i out_sz(outx, outy, outz);
+    vec3i out_sz(outz, outy, outx);
 
     // construct the network class
     std::shared_ptr<network> net(
@@ -78,29 +84,31 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
     auto prop = net.forward( std::move(insample) );
     cube<real> out_cube(*prop["output"][0]);
     
-    // output size
-    //
-    //
-    // create a PyObject * from pointer and data to return
+    // output size assert
+    vec3i outsz( out_cube.shape()[0], out_cube.shape()[1], out_cube.shape()[2] );
+#ifdef NDEBUG
+	vec3i insz( sz, sy, sx );
+	vec3i fov = net.fov();
+	assert(outsz == insz - fov + 1);
+#endif
+    // return ndarray
     std::cout<<"build return ndarray..."<<std::endl;
-    np::ndarray ret = np::from_data(
+    return np::from_data(
 		out_cube.data(),
 		np::dtype::get_builtin<real>(),
-		bp::make_tuple(osx,osy,osz),
-		bp::make_tuple(osy*osx*sizeof(real), osx*sizeof(real), sizeof(real)),
+		bp::make_tuple(outsz[0],outsz[1],outsz[2]),
+		bp::make_tuple(outsz[1]*outsz[2]*sizeof(real), outsz[2]*sizeof(real), sizeof(real)),
 		self
 	);
-    std::cout<<"return the output array..."<<std::endl;
-    return ret;
 }
-
-
 
 bp::tuple CNet_fov( bp::object const & self )
 {
 	network& net = boost::python::extract<network&>(self)();
 	vec3i fov_vec =  net.fov();
-	// std::cout<< "fov (x,y,z): "<<fov_vec[0] <<"x"<< fov_vec[1]<<"x"<<fov_vec[2]<<std::endl;
+#ifdef NDEBUG
+	std::cout<< "fov (z,y,x): "<<fov_vec[0] <<"x"<< fov_vec[1]<<"x"<<fov_vec[2]<<std::endl;
+#endif
 	return 	bp::make_tuple(fov_vec[0], fov_vec[1], fov_vec[2]);
 }
 

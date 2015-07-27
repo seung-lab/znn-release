@@ -4,7 +4,7 @@ import pyznn
 vin = np.random.rand(100,100,100)
 
 # print vin
-outsz = np.asarray([1,1,1])
+outsz = np.asarray([1,5,5])
 print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
 net = pyznn.CNet('/usr/people/jingpeng/seungmount/research/Jingpeng/01_ZNN/znn-v4python/networks/N4.znn',\
                           outsz[0],outsz[1],outsz[2],2)
@@ -18,4 +18,6 @@ vin = vin[:insz[0], :insz[1], :insz[2]]
 print "input volume shape: {}x{}x{}".format(vin.shape[0], vin.shape[1], vin.shape[2])
 vout = net.forward(vin)
 print "successfully returned volume"
-#print vout
+
+print vout
+print "output volume shape: {}x{}x{}".format( vout.shape[0], vout.shape[1], vout.shape[2] )
