@@ -4,7 +4,7 @@ import pyznn
 vin = np.random.rand(100,100,100)
 
 # print vin
-outsz = np.asarray([1,2,2])
+outsz = np.asarray([1,1,1])
 print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
 net = pyznn.CNet('/usr/people/jingpeng/seungmount/research/Jingpeng/01_ZNN/znn-v4python/networks/N4.znn',\
                           outsz[0],outsz[1],outsz[2],2)

@@ -1,10 +1,27 @@
+
+//
+//// Copyright (C) 2015  Jinppeng Wu <jingpeng@princeton.edu>
+//// ----------------------------------------------------------
+////
+//// This program is free software: you can redistribute it and/or modify
+//// it under the terms of the GNU General Public License as published by
+//// the Free Software Foundation, either version 3 of the License, or
+//// (at your option) any later version.
+////
+//// This program is distributed in the hope that it will be useful,
+//// but WITHOUT ANY WARRANTY; without even the implied warranty of
+//// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//// GNU General Public License for more details.
+////
+//// You should have received a copy of the GNU General Public License
+//// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+////
+//
 // boost python
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-
 #include <Python.h>
 #include <boost/python.hpp>
 #include <boost/numpy.hpp>
-#include <numpy/ndarrayobject.h>
 
 // system
 #include <string>
@@ -44,7 +61,7 @@ std::shared_ptr< network > CNet_Init(
 np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 {
 	// extract the class from self
-	network& netref = boost::python::extract<network&>(self)();
+	network& net = boost::python::extract<network&>(self)();
 
 	// volume size
 	std::size_t sz = inarray.shape(0);
@@ -63,27 +80,36 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 
     // run forward and get output
     std::cout<<"run forward..."<<std::endl;
-    auto prop = netref.forward( std::move(insample) );
+    auto prop = net.forward( std::move(insample) );
     cube<real> out_cube(*prop["output"][0]);
+    
+    // copy data to a new volume to let python free the out_cube
+    //std::size_t n = static_cast<std::size_t>( out_cube.num_elements() );
+    //void* out = znn_malloc(n);
+    //for (std::size_t i=0; i<n; i++)
+      //  out[i] = out_cube.data()[i];
+    cube_p<real> out_p = get_copy( out_cube );
 
     // create a PyObject * from pointer and data to return
-    std::cout<<"return ndarray..."<<std::endl;
-    return np::from_data(
-		out_cube.data(),
+    std::cout<<"build return ndarray..."<<std::endl;
+    np::ndarray ret = np::from_data(
+		out_p->data(),
 		np::dtype::get_builtin<real>(),
-		bp::make_tuple(sz,sy,sx),
+		bp::make_tuple(sx,sy,sz),
 		bp::make_tuple(sy*sx*sizeof(real), sx*sizeof(real), sizeof(real)),
 		self
 	);
+    std::cout<<"return the output array..."<<std::endl;
+    return ret;
 }
 
 
 
 bp::tuple CNet_fov( bp::object const & self )
 {
-	network& netref = boost::python::extract<network&>(self)();
-	vec3i fov_vec =  netref.fov();
-	std::cout<< "fov (x,y,z): "<<fov_vec[0] <<"x"<< fov_vec[1]<<"x"<<fov_vec[2]<<std::endl;
+	network& net = boost::python::extract<network&>(self)();
+	vec3i fov_vec =  net.fov();
+	// std::cout<< "fov (x,y,z): "<<fov_vec[0] <<"x"<< fov_vec[1]<<"x"<<fov_vec[2]<<std::endl;
 	return 	bp::make_tuple(fov_vec[0], fov_vec[1], fov_vec[2]);
 }
 
