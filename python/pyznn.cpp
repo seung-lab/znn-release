@@ -85,9 +85,10 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
     cube_p<real> out_p = get_copy( out_cube );
 
     // create a PyObject * from pointer and data to return
+    void* data_p = out_p->data();
     std::cout<<"build return ndarray..."<<std::endl;
     np::ndarray ret = np::from_data(
-		out_p->data(),
+		data_p,
 		np::dtype::get_builtin<real>(),
 		bp::make_tuple(sx,sy,sz),
 		bp::make_tuple(sy*sx*sizeof(real), sx*sizeof(real), sizeof(real)),
