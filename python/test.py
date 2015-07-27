@@ -18,4 +18,4 @@ vin = vin[:insz[0], :insz[1], :insz[2]]
 print "input volume shape: {}x{}x{}".format(vin.shape[0], vin.shape[1], vin.shape[2])
 vout = net.forward(vin)
 print "successfully returned volume"
-print vout
+#print vout
