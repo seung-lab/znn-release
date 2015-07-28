@@ -71,13 +71,15 @@ for i in xrange(1,1000000):
     
     # forward pass
     prop = net.forward(vol_in)
-    print "prop in python:"
-    print prop
-    time.sleep(1)
         
     cerr, ccls, grdt = square_loss( prop, lbl_out )  
     err = err + cerr
     cls = cls + ccls  
+    
+    print "prop in python:"
+    print prop
+    time.sleep(1)
+    
     # run backward pass
     net.backward(grdt)
     
