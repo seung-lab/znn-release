@@ -177,16 +177,17 @@ int main(int argc, char** argv)
         net.backward(std::move(outsample));
 
         ++i;
-        if ( i % 100 == 0 )
+        if ( i % 1000 == 0 )
         {
-            err /= 100;
+            err /= 1000;
             err /= x;
             err /= y;
             err /= z;
-            cls /= 100; cls /= ( x * y * z );
+            cls /= 1000; cls /= ( x * y * z );
             std::cout << "Iteration: " << i << " done, sqerr: " << err
                       << " clserr: " << cls << std::endl;
             err = 0;
+		cls = 0;
         }
 
     }

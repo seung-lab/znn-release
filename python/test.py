@@ -8,7 +8,7 @@ fnet_spec = '../networks/srini2d.znn'
 # learning rate
 eta = 0.01
 # output size
-outsz = np.asarray([5,50,50])
+outsz = np.asarray([1,5,5])
 num_threads = 1
 
 # prepare input
@@ -35,9 +35,9 @@ def get_sample( vol, insz, lbl, outsz ):
     set_sz = vol.shape - margin_sz - half_in_sz
     # get random location
     loc = np.zeros(3)
-    loc[0] = np.random.randint(half_in_sz[0], half_in_sz[0] + set_sz[0])
-    loc[1] = np.random.randint(half_in_sz[1], half_in_sz[1] + set_sz[1])
-    loc[2] = np.random.randint(half_in_sz[2], half_in_sz[2] + set_sz[2])
+    loc[0] = np.random.randint(half_in_sz[0], half_in_sz[0] + set_sz[0]-1)
+    loc[1] = np.random.randint(half_in_sz[1], half_in_sz[1] + set_sz[1]-1)
+    loc[2] = np.random.randint(half_in_sz[2], half_in_sz[2] + set_sz[2]-1)
     # extract volume
     vol_in  = vol[  loc[0]-half_in_sz[0]  : loc[0]-half_in_sz[0] + insz[0],\
                     loc[1]-half_in_sz[1]  : loc[1]-half_in_sz[1] + insz[1],\
@@ -52,8 +52,9 @@ def square_loss(prop, lbl):
     """
     compute square loss 
     """
-    grdt = np.copy(prop).astype('float32')
     cls = float(np.count_nonzero( (prop>0.5)!= lbl ))
+    
+    grdt = prop.astype('float32')
     grdt = grdt - lbl
     err = np.sum( grdt * grdt ).astype('float32')
     grdt = grdt * 2
@@ -63,10 +64,8 @@ def square_loss(prop, lbl):
 err = 0;
 cls = 0;
 # get gradient
-for i in xrange(1):
+for i in xrange(1000000):
     vol_in, lbl_out = get_sample( vol, insz, lbl, outsz )
-#    vol_in = vol_trn[0:11,0:86,0:86]
-#    lbl_out = vol_lbl[3:8,18:68,18:68]
     
     # forward pass
     prop = net.forward(vol_in)
@@ -78,9 +77,9 @@ for i in xrange(1):
     # run backward pass
     net.backward(grdt)
     
-    if i%10==0:
-        err = err /10 / outsz[0] / outsz[1] / outsz[2] 
-        cls = cls /10 / outsz[0] / outsz[1] / outsz[2]
+    if i%100==0:
+        err = err /100 / outsz[0] / outsz[1] / outsz[2] 
+        cls = cls /100 / outsz[0] / outsz[1] / outsz[2]
         print "err : {},    cls: {}".format(err, cls)
         err = 0
         cls = 0

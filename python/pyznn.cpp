@@ -85,10 +85,10 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 
     // run forward and get output
     auto prop = net.forward( std::move(insample) );
-    cube<real> out_cube(*prop["output"][0]);
+    cube_p<real> out_cube_p = get_copy(*prop["output"][0]);
     
     // output size assert
-    vec3i outsz( out_cube.shape()[0], out_cube.shape()[1], out_cube.shape()[2] );
+    vec3i outsz( out_cube_p->shape()[0], out_cube_p->shape()[1], out_cube_p->shape()[2] );
 #ifndef NDEBUG
     // input volume size
 	std::size_t sz = inarray.shape(0);
@@ -97,13 +97,13 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 	vec3i insz( sz, sy, sx );
 	vec3i fov = net.fov();
 	assert(outsz == insz - fov + 1);
-	std::cout<<"output size: "  <<out_cube.shape()[0]<<"x"<<out_cube.shape()[1]<<"x"
-								<<out_cube.shape()[2]<<std::endl;
+	std::cout<<"output size: "  <<out_cube_p->shape()[0]<<"x"<<out_cube_p->shape()[1]<<"x"
+								<<out_cube_p->shape()[2]<<std::endl;
 #endif
 
     // return ndarray
     return np::from_data(
-		out_cube.data(),
+		out_cube_p->data(),
 		np::dtype::get_builtin<real>(),
 		bp::make_tuple(outsz[0],outsz[1],outsz[2]),
 		bp::make_tuple(outsz[1]*outsz[2]*sizeof(real), outsz[2]*sizeof(real), sizeof(real)),
@@ -111,7 +111,7 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 	);
 }
 
-void CNet_backward( bp::object const & self, np::ndarray grad )
+void CNet_backward( bp::object & self, np::ndarray grad )
 {
 	// extract the class from self
 	network& net = boost::python::extract<network&>(self)();
