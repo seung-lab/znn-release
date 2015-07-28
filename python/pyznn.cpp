@@ -85,7 +85,7 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 
     // run forward and get output
     auto prop = net.forward( std::move(insample) );
-    cube_p<real> out_cube_p = get_copy(*prop["output"][0]);
+    cube_p<real> out_cube_p = prop["output"][0];
     
     // output size assert
     vec3i outsz( out_cube_p->shape()[0], out_cube_p->shape()[1], out_cube_p->shape()[2] );

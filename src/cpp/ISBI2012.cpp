@@ -187,7 +187,7 @@ int main(int argc, char** argv)
             std::cout << "Iteration: " << i << " done, sqerr: " << err
                       << " clserr: " << cls << std::endl;
             err = 0;
-		cls = 0;
+            cls = 0;
         }
 
     }

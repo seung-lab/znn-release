@@ -9,7 +9,7 @@ fnet_spec = '../networks/srini2d.znn'
 eta = 0.01
 # output size
 outsz = np.asarray([1,5,5])
-num_threads = 1
+num_threads = 3
 
 # prepare input
 vol = emirt.io.imread(ftrn).astype('float32')
@@ -77,10 +77,10 @@ for i in xrange(1000000):
     # run backward pass
     net.backward(grdt)
     
-    if i%100==0:
-        err = err /100 / outsz[0] / outsz[1] / outsz[2] 
-        cls = cls /100 / outsz[0] / outsz[1] / outsz[2]
-        print "err : {},    cls: {}".format(err, cls)
+    if i%1000==0:
+        err = err / float(1000 * outsz[0] * outsz[1] * outsz[2]) 
+        cls = cls / float(1000 * outsz[0] * outsz[1] * outsz[2])
+        print "sqerr : {},    clserr: {}".format(err, cls)
         err = 0
         cls = 0
         
