@@ -69,16 +69,21 @@ cls = 0;
 for i in xrange(1,1000000):
     vol_in, lbl_out = get_sample( vol, insz, lbl, outsz )
     
+#     print "input in python:"
+#     print vol_in
+#     time.sleep(1)
+
+    
     # forward pass
-    prop = net.forward(vol_in)
+    prop = net.forward(vol_in.astype('float32'))
         
     cerr, ccls, grdt = square_loss( prop, lbl_out )  
     err = err + cerr
     cls = cls + ccls  
     
-    print "prop in python:"
-    print prop
-    time.sleep(1)
+#     print "prop in python:"
+#     print prop
+#     time.sleep(1)
     
     # run backward pass
     net.backward(grdt)

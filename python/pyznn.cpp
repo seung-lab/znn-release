@@ -89,8 +89,16 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
     
     // output size assert
     vec3i outsz( out_cube_p->shape()[0], out_cube_p->shape()[1], out_cube_p->shape()[2] );
+
 #ifndef NDEBUG
-    // input volume size
+	// print the whole output cube
+    cube_p<real> in_p = insample["input"][0];
+	std::cout<<"input in c++: "<<std::endl;
+	for(std::size_t i=0; i< in_p->num_elements(); i++)
+		std::cout<<in_p->data()[i]<<", ";
+	std::cout<<std::endl;
+
+	// input volume size
 	std::size_t sz = inarray.shape(0);
 	std::size_t sy = inarray.shape(1);
 	std::size_t sx = inarray.shape(2);
