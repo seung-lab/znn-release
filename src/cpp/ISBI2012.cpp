@@ -4,6 +4,7 @@
 
 using namespace znn::v4;
 
+// g++ -std=c++11 src/cpp/ISBI2012.cpp -o isbi -DNDEBUG -O3 -DZNN_USE_FLOATS -DZNN_CUBE_POOL_LOCKFREE -I. -I./src/include -lpthread -lrt -ljemalloc -lfftw3f
 
 namespace ISBI2012 {
 
@@ -188,6 +189,20 @@ int main(int argc, char** argv)
                       << " clserr: " << cls << std::endl;
             err = 0;
             cls = 0;
+
+            // show prop
+            cube_p<real> outcube_p = prop["output"][0];
+            std::cout<<"prop output cube:"<<std::endl;
+            for(std::size_t i=0; i<outcube_p->num_elements(); i++)
+            	std::cout<< outcube_p->data()[i]<< ",";
+            std::cout<<std::endl;
+
+            // show gradient
+            cube_p<real> grad_p = std::get<2>(grad);
+			std::cout<<"gradient:"<<std::endl;
+			for(std::size_t i=0; i<grad_p->num_elements(); i++)
+				std::cout<< grad_p->data()[i]<< ",";
+			std::cout<<std::endl;
         }
 
     }

@@ -1,6 +1,7 @@
 import numpy as np
 import pyznn
 import emirt
+import time
 # parameters
 ftrn = "../dataset/ISBI2012/data/original/train-volume.tif"
 flbl = "../dataset/ISBI2012/data/original/train-labels.tif"
@@ -9,7 +10,8 @@ fnet_spec = '../networks/srini2d.znn'
 eta = 0.01
 # output size
 outsz = np.asarray([1,5,5])
-num_threads = 3
+# number of threads
+num_threads = 7
 
 # prepare input
 vol = emirt.io.imread(ftrn).astype('float32')
@@ -20,7 +22,7 @@ lbl = (lbl>0.5).astype('float32')
 
 print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
 net = pyznn.CNet(fnet_spec, outsz[0],outsz[1],outsz[2],num_threads)
-net.set_eta( eta / outsz[0] / outsz[1] / outsz[2] )
+net.set_eta( eta / float(outsz[0] * outsz[1] * outsz[2]) )
 
 # compute inputsize and get input
 fov = np.asarray(net.get_fov())
@@ -64,14 +66,16 @@ def square_loss(prop, lbl):
 err = 0;
 cls = 0;
 # get gradient
-for i in xrange(1000000):
+for i in xrange(1,1000000):
     vol_in, lbl_out = get_sample( vol, insz, lbl, outsz )
     
     # forward pass
     prop = net.forward(vol_in)
+    print "prop in python:"
+    print prop
+    time.sleep(1)
         
     cerr, ccls, grdt = square_loss( prop, lbl_out )  
-#    print "cerr: {}, ccls: {}".format( cerr, ccls )
     err = err + cerr
     cls = cls + ccls  
     # run backward pass
