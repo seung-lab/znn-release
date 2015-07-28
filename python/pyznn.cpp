@@ -59,24 +59,29 @@ std::shared_ptr< network > CNet_Init(
     return net;
 }
 
+cube_p<real> array2cube_p( np::ndarray array)
+{
+	// input volume size
+	std::size_t sz = array.shape(0);
+	std::size_t sy = array.shape(1);
+	std::size_t sx = array.shape(2);
+
+	// copy data to avoid the pointer free error
+	cube_p<real> cube_p = get_cube<real>(vec3i(sz,sy,sx));
+	for (std::size_t k=0; k<sz*sy*sx; k++)
+		cube_p->data()[k] = array.get_data()[k];
+	return cube_p;
+}
+
 np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 {
 	// extract the class from self
 	network& net = boost::python::extract<network&>(self)();
 
-	// input volume size
-	std::size_t sz = inarray.shape(0);
-	std::size_t sy = inarray.shape(1);
-	std::size_t sx = inarray.shape(2);
-    
-    // copy data to avoid the pointer free error
-    cube_p<real> incube_p = get_cube<real>(vec3i(sz,sy,sx));
-    for (std::size_t k=0; k<sz*sy*sx; k++)
-        incube_p->data()[k] = inarray.get_data()[k];
-
+	// setting up input sample
 	std::map<std::string, std::vector<cube_p< real >>> insample;
 	insample["input"].resize(1);
-    insample["input"][0] = incube_p;
+    insample["input"][0] = array2cube_p( inarray );
 
     // run forward and get output
     auto prop = net.forward( std::move(insample) );
@@ -85,9 +90,15 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
     // output size assert
     vec3i outsz( out_cube.shape()[0], out_cube.shape()[1], out_cube.shape()[2] );
 #ifndef NDEBUG
+    // input volume size
+	std::size_t sz = inarray.shape(0);
+	std::size_t sy = inarray.shape(1);
+	std::size_t sx = inarray.shape(2);
 	vec3i insz( sz, sy, sx );
 	vec3i fov = net.fov();
 	assert(outsz == insz - fov + 1);
+	std::cout<<"output size: "  <<out_cube.shape()[0]<<"x"<<out_cube.shape()[1]<<"x"
+								<<out_cube.shape()[2]<<std::endl;
 #endif
 
     // return ndarray
@@ -98,6 +109,21 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 		bp::make_tuple(outsz[1]*outsz[2]*sizeof(real), outsz[2]*sizeof(real), sizeof(real)),
 		self
 	);
+}
+
+void CNet_backward( bp::object const & self, np::ndarray grad )
+{
+	// extract the class from self
+	network& net = boost::python::extract<network&>(self)();
+
+	// setting up output sample
+	std::map<std::string, std::vector<cube_p<real>>> outsample;
+	outsample["output"].resize(1);
+	outsample["output"][0] = array2cube_p( grad );
+
+	// backward
+	net.backward( std::move(outsample) );
+	return;
 }
 
 bp::tuple CNet_fov( bp::object const & self )
@@ -120,5 +146,6 @@ BOOST_PYTHON_MODULE(pyznn)
         .def("set_eta",    	&network::set_eta)
         .def("get_fov",     &CNet_fov)
 		.def("forward",     &CNet_forward)
+		.def("backward",	&CNet_backward)
         ;
 }
