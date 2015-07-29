@@ -1,4 +1,3 @@
-
 //
 //// Copyright (C) 2015  Jinppeng Wu <jingpeng@princeton.edu>
 //// ----------------------------------------------------------
@@ -23,6 +22,7 @@
 // we just match znn(x,y,z) and python(z,y,x) directly,				//
 // so the z in python matches the x in znn!!!						//
 // -----------------------------------------------------------------//
+
 // boost python
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <Python.h>
@@ -163,12 +163,6 @@ bp::tuple CNet_fov( bp::object const & self )
 	return 	bp::make_tuple(fov_vec[0], fov_vec[1], fov_vec[2]);
 }
 
-void CNet_set_eta(bp::object & self, real eta)
-{
-	network& net = bp::extract<network&>(self)();
-	net.set_eta( eta );
-}
-
 std::size_t CNet_get_input_num( bp::object const & self )
 {
 	network& net = bp::extract<network&>(self)();
@@ -193,7 +187,7 @@ BOOST_PYTHON_MODULE(pyznn)
         .def("get_fov",     		&CNet_fov)
 		.def("forward",     		&CNet_forward)
 		.def("backward",			&CNet_backward)
-		.def("set_eta",    			&CNet_set_eta)
+		.def("set_eta",    			&network::set_eta)
 		.def("set_momentum",		&network::set_momentum)
 		.def("set_weight_decay",	&network::set_weight_decay )
 		.def("get_input_num", 		&CNet_get_input_num)
