@@ -76,7 +76,7 @@ cube_p<real> array2cube_p( np::ndarray array)
 np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 {
 	// extract the class from self
-	network& net = boost::python::extract<network&>(self)();
+	network& net = bp::extract<network&>(self)();
 
 	// setting up input sample
 	std::map<std::string, std::vector<cube_p< real >>> insample;
@@ -127,7 +127,7 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 void CNet_backward( bp::object & self, np::ndarray& grad )
 {
 	// extract the class from self
-	network& net = boost::python::extract<network&>(self)();
+	network& net = bp::extract<network&>(self)();
 
 	// setting up output sample
 	std::map<std::string, std::vector<cube_p<real>>> outsample;
@@ -155,7 +155,7 @@ void CNet_backward( bp::object & self, np::ndarray& grad )
 
 bp::tuple CNet_fov( bp::object const & self )
 {
-	network& net = boost::python::extract<network&>(self)();
+	network& net = bp::extract<network&>(self)();
 	vec3i fov_vec =  net.fov();
 #ifndef NDEBUG
 	std::cout<< "fov (z,y,x): "<<fov_vec[0] <<"x"<< fov_vec[1]<<"x"<<fov_vec[2]<<std::endl;
@@ -165,8 +165,22 @@ bp::tuple CNet_fov( bp::object const & self )
 
 void CNet_set_eta(bp::object & self, real eta)
 {
-	network& net = boost::python::extract<network&>(self)();
+	network& net = bp::extract<network&>(self)();
 	net.set_eta( eta );
+}
+
+std::size_t CNet_get_input_num( bp::object const & self )
+{
+	network& net = bp::extract<network&>(self)();
+	std::map<std::string, std::pair<vec3i, std::size_t>> ins = net.inputs();
+	return ins["input"].second;
+}
+
+std::size_t CNet_get_output_num( bp::object const & self )
+{
+	network& net = bp::extract<network&>(self)();
+	std::map<std::string, std::pair<vec3i,std::size_t>> outs = net.outputs();
+	return outs["output"].second;
 }
 
 BOOST_PYTHON_MODULE(pyznn)
@@ -176,9 +190,13 @@ BOOST_PYTHON_MODULE(pyznn)
 
     bp::class_<network, std::shared_ptr<network>, boost::noncopyable>("CNet",bp::no_init)
         .def("__init__", bp::make_constructor(&CNet_Init))
-        .def("set_eta",    	&CNet_set_eta)
-        .def("get_fov",     &CNet_fov)
-		.def("forward",     &CNet_forward)
-		.def("backward",	&CNet_backward)
+        .def("get_fov",     		&CNet_fov)
+		.def("forward",     		&CNet_forward)
+		.def("backward",			&CNet_backward)
+		.def("set_eta",    			&CNet_set_eta)
+		.def("set_momentum",		&network::set_momentum)
+		.def("set_weight_decay",	&network::set_weight_decay )
+		.def("get_input_num", 		&CNet_get_input_num)
+		.def("get_output_num", 		&CNet_get_output_num)
         ;
 }
