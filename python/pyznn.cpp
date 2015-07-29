@@ -163,6 +163,12 @@ bp::tuple CNet_fov( bp::object const & self )
 	return 	bp::make_tuple(fov_vec[0], fov_vec[1], fov_vec[2]);
 }
 
+void CNet_set_eta(bp::object & self, real eta)
+{
+	network& net = boost::python::extract<network&>(self)();
+	net.set_eta( eta );
+}
+
 BOOST_PYTHON_MODULE(pyznn)
 {
 	Py_Initialize();
@@ -170,7 +176,7 @@ BOOST_PYTHON_MODULE(pyznn)
 
     bp::class_<network, std::shared_ptr<network>, boost::noncopyable>("CNet",bp::no_init)
         .def("__init__", bp::make_constructor(&CNet_Init))
-        .def("set_eta",    	&network::set_eta)
+        .def("set_eta",    	&CNet_set_eta)
         .def("get_fov",     &CNet_fov)
 		.def("forward",     &CNet_forward)
 		.def("backward",	&CNet_backward)
