@@ -11,8 +11,8 @@ def square_loss(prop, lbl):
     """
     cls = float(np.count_nonzero( (prop>0.5)!= lbl ))
     
-    grdt = prop.astype('float32')
-    grdt = grdt - lbl
+    grdt = prop.copy()
+    grdt = grdt.astype('float32') - lbl.astype('float32')
     err = np.sum( grdt * grdt ).astype('float32')
     grdt = grdt * 2
     return (err, cls, grdt)

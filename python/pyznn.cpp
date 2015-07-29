@@ -91,12 +91,12 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
     vec3i outsz( out_cube_p->shape()[0], out_cube_p->shape()[1], out_cube_p->shape()[2] );
 
 #ifndef NDEBUG
-	// print the whole output cube
-    cube_p<real> in_p = insample["input"][0];
-	std::cout<<"input in c++: "<<std::endl;
-	for(std::size_t i=0; i< in_p->num_elements(); i++)
-		std::cout<<in_p->data()[i]<<", ";
-	std::cout<<std::endl;
+	// print the whole input cube
+//    cube_p<real> in_p = insample["input"][0];
+//	std::cout<<"input in c++: "<<std::endl;
+//	for(std::size_t i=0; i< in_p->num_elements(); i++)
+//		std::cout<<in_p->data()[i]<<", ";
+//	std::cout<<std::endl;
 
 	// input volume size
 	std::size_t sz = inarray.shape(0);
@@ -107,11 +107,11 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 	assert(outsz == insz - fov + 1);
 	std::cout<<"output size: "  <<out_cube_p->shape()[0]<<"x"<<out_cube_p->shape()[1]<<"x"
 								<<out_cube_p->shape()[2]<<std::endl;
-//	// print the whole output cube
-//	std::cout<<"output in c++: "<<std::endl;
-//	for(std::size_t i=0; i< out_cube_p->num_elements(); i++)
-//		std::cout<<out_cube_p->data()[i]<<", ";
-//	std::cout<<std::endl;
+	// print the whole output cube
+	std::cout<<"output in c++: "<<std::endl;
+	for(std::size_t i=0; i< out_cube_p->num_elements(); i++)
+		std::cout<<out_cube_p->data()[i]<<", ";
+	std::cout<<std::endl;
 #endif
 
     // return ndarray
@@ -137,15 +137,15 @@ void CNet_backward( bp::object & self, np::ndarray& grad )
 #ifndef NDEBUG
 	// print the whole gradient cube
 
-	cube_p<real> grdt_p = array2cube_p( grad );
-	std::cout<<"gradient from python: "<<std::endl;
-		for(std::size_t i=0; i< grdt_p->num_elements(); i++)
-			std::cout<<reinterpret_cast<real*>(grad.get_data())[i]<<", ";
-		std::cout<<std::endl;
-	std::cout<<"gradient in c++: "<<std::endl;
-	for(std::size_t i=0; i< grdt_p->num_elements(); i++)
-		std::cout<<grdt_p->data()[i]<<", ";
-	std::cout<<std::endl;
+//	cube_p<real> grdt_p = array2cube_p( grad );
+//	std::cout<<"gradient from python: "<<std::endl;
+//		for(std::size_t i=0; i< grdt_p->num_elements(); i++)
+//			std::cout<<reinterpret_cast<real*>(grad.get_data())[i]<<", ";
+//		std::cout<<std::endl;
+//	std::cout<<"gradient in c++: "<<std::endl;
+//	for(std::size_t i=0; i< grdt_p->num_elements(); i++)
+//		std::cout<<grdt_p->data()[i]<<", ";
+//	std::cout<<std::endl;
 #endif
 
 	// backward

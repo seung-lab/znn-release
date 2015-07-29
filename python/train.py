@@ -7,6 +7,7 @@ import numpy as np
 import pyznn
 import emirt
 import time
+import matplotlib.pylab as plt
 # parameters
 ftrn = "../dataset/ISBI2012/data/original/train-volume.tif"
 flbl = "../dataset/ISBI2012/data/original/train-labels.tif"
@@ -14,7 +15,7 @@ fnet_spec = '../networks/srini2d.znn'
 # learning rate
 eta = 0.01
 # output size
-outsz = np.asarray([1,5,5])
+outsz = np.asarray([1,20,20])
 # number of threads
 num_threads = 7
 
@@ -22,7 +23,7 @@ num_threads = 7
 vol = emirt.io.imread(ftrn).astype('float32')
 lbl = emirt.io.imread(flbl).astype('float32')
 # normalize the training volume
-vol = emirt.volume_util.norm( vol )
+vol = vol / 255
 lbl = (lbl>0.5).astype('float32')
 
 print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
@@ -39,18 +40,19 @@ cls = 0;
 # get gradient
 from front_end import get_sample
 from cost_fn import square_loss
+plt.ion()
+plt.show()
+
 for i in xrange(1,1000000):
     vol_in, lbl_out = get_sample( vol, insz, lbl, outsz )
     
     # forward pass
-    prop = net.forward(vol_in.astype('float32'))
-        
+    prop = net.forward(np.ascontiguousarray(vol_in))
+    
+    # cost function and accumulate errors
     cerr, ccls, grdt = square_loss( prop, lbl_out )  
     err = err + cerr
-    cls = cls + ccls  
-    
-    # run backward pass
-    net.backward(grdt)
+    cls = cls + ccls   
     
     if i%1000==0:
         err = err / float(1000 * outsz[0] * outsz[1] * outsz[2]) 
@@ -58,7 +60,25 @@ for i in xrange(1,1000000):
         print "iteration %d,    sqerr: %.4f,    clserr: %.4f"%(i, err, cls)
         err = 0
         cls = 0
+        # real time visualization
+        norm_prop = emirt.volume_util.norm(prop)   
+        norm_lbl_out = emirt.volume_util.norm( lbl_out )
+        abs_grdt = np.abs(grdt)
+
+        plt.subplot(221),   plt.imshow(vol_in[0,:,:],   cmap='gray')
+        plt.xlabel('input')
+        plt.subplot(222),   plt.imshow(norm_prop[0,:,:],    interpolation='nearest', cmap='gray')
+        plt.xlabel('inference')
+        plt.subplot(223),   plt.imshow(norm_lbl_out[0,:,:], interpolation='nearest', cmap='gray')
+        plt.xlabel('lable')
+        plt.subplot(224),   plt.imshow(abs_grdt[0,:,:],     interpolation='nearest', cmap='gray')
+        plt.xlabel('gradient')
+        plt.pause(3)
+           
+    # run backward pass    
+    net.backward( np.ascontiguousarray(grdt) )
+
         
 #%% visualization
-com = emirt.show.CompareVol((vol_in, lbl_out))
-com.vol_compare_slice()
+#com = emirt.show.CompareVol((vol_in, lbl_out))
+#com.vol_compare_slice()
