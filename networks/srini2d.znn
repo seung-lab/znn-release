@@ -29,7 +29,7 @@ size 10
 
 nodes output
 type transfer
-function rectify_linear
+function logistics
 size 1
 
 edges conv1
