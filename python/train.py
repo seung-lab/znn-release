@@ -50,12 +50,12 @@ plt.show()
 start = time.time()
 for i in xrange(1,1000000):
     vol_in, lbl_out = get_sample( vol, insz, lbl, outsz )
-    
+    inputs = list(np.ascontiguousarray(vol_in))
     # forward pass
-    prop = net.forward(np.ascontiguousarray(vol_in))
+    props = net.forward( inputs )
     
     # cost function and accumulate errors
-    cerr, ccls, grdt = square_loss( prop, lbl_out )  
+    cerr, ccls, grdt = square_loss( props[0], lbl_out )  
     err = err + cerr
     cls = cls + ccls   
     
@@ -87,9 +87,10 @@ for i in xrange(1,1000000):
         # reset err and cls
         err = 0
         cls = 0
+        
            
     # run backward pass    
-    net.backward( np.ascontiguousarray(grdt) )
+    net.backward( list(np.ascontiguousarray(grdt)) )
 
         
 #%% visualization

@@ -28,6 +28,7 @@
 #include <Python.h>
 #include <boost/python.hpp>
 #include <boost/numpy.hpp>
+#include <boost/python/stl_iterator.hpp>
 
 // system
 #include <string>
@@ -59,7 +60,8 @@ std::shared_ptr< network > CNet_Init(
     return net;
 }
 
-cube_p<real> array2cube_p( np::ndarray array)
+template <typename T>
+cube_p<T> array2cube_p( np::ndarray array)
 {
 	// input volume size
 	std::size_t sz = array.shape(0);
@@ -67,28 +69,49 @@ cube_p<real> array2cube_p( np::ndarray array)
 	std::size_t sx = array.shape(2);
 
 	// copy data to avoid the pointer free error
-	cube_p<real> cube_p = get_cube<real>(vec3i(sz,sy,sx));
+	cube_p<T> cube_p = get_cube<T>(vec3i(sz,sy,sx));
 	for (std::size_t k=0; k<sz*sy*sx; k++)
-		cube_p->data()[k] = reinterpret_cast<real*>(array.get_data())[k];
+		cube_p->data()[k] = reinterpret_cast<T*>(array.get_data())[k];
 	return cube_p;
 }
 
-np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
+bp::list CNet_forward( bp::object const & self, const bp::list& inarrays )
 {
 	// extract the class from self
 	network& net = bp::extract<network&>(self)();
 
+	// number of input arrays
+	std::size_t len = boost::python::extract<std::size_t>(inarrays.attr("__len__")());
+
 	// setting up input sample
 	std::map<std::string, std::vector<cube_p< real >>> insample;
-	insample["input"].resize(1);
-    insample["input"][0] = array2cube_p( inarray );
+	insample["input"].resize(len);
+	for (std::size_t i=0; i<len; i++)
+		insample["input"][i] = array2cube_p<real>( bp::extract<np::ndarray>( inarrays[i] ));
 
     // run forward and get output
     auto prop = net.forward( std::move(insample) );
-    cube_p<real> out_cube_p = prop["output"][0];
     
-    // output size assert
-    vec3i outsz( out_cube_p->shape()[0], out_cube_p->shape()[1], out_cube_p->shape()[2] );
+    // initalize the return list
+    bp::list ret;
+
+    // number of output cubes
+    std::size_t num_out = prop["output"].size();
+    for (std::size_t i=0; i<num_out; i++)
+    {
+    	cube_p<real> out_cube_p = prop["output"][i];
+    	// output size assert
+		vec3i outsz( out_cube_p->shape()[0], out_cube_p->shape()[1], out_cube_p->shape()[2] );
+    	// return ndarray
+		np::ndarray outarray = 	np::from_data(
+									out_cube_p->data(),
+									np::dtype::get_builtin<real>(),
+									bp::make_tuple(outsz[0],outsz[1],outsz[2]),
+									bp::make_tuple(outsz[1]*outsz[2]*sizeof(real), outsz[2]*sizeof(real), sizeof(real)),
+									self
+								);
+		ret.append( outarray );
+    }
 
 #ifndef NDEBUG
 	// print the whole input cube
@@ -114,25 +137,21 @@ np::ndarray CNet_forward( bp::object const & self, const np::ndarray& inarray )
 	std::cout<<std::endl;
 #endif
 
-    // return ndarray
-    return np::from_data(
-		out_cube_p->data(),
-		np::dtype::get_builtin<real>(),
-		bp::make_tuple(outsz[0],outsz[1],outsz[2]),
-		bp::make_tuple(outsz[1]*outsz[2]*sizeof(real), outsz[2]*sizeof(real), sizeof(real)),
-		self
-	);
+	return ret;
 }
 
-void CNet_backward( bp::object & self, np::ndarray& grad )
+void CNet_backward( bp::object & self, bp::list& grads )
 {
 	// extract the class from self
 	network& net = bp::extract<network&>(self)();
 
+	// number of gradient volume
+	std::size_t len = boost::python::extract<std::size_t>(grads.attr("__len__")());
 	// setting up output sample
 	std::map<std::string, std::vector<cube_p<real>>> outsample;
-	outsample["output"].resize(1);
-	outsample["output"][0] = array2cube_p( grad );
+	outsample["output"].resize(len);
+	for (std::size_t i=0; i<len; i++)
+		outsample["output"][i] = array2cube_p<real>( bp::extract<np::ndarray>( grads[i] ));
 
 #ifndef NDEBUG
 	// print the whole gradient cube
