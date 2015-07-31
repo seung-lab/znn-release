@@ -5,21 +5,32 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
 
-def square_loss(prop, lbl):
+def square_loss(props, lbls):
     """
     compute square loss 
     
     Parameters:
-    prop:   forward pass output
-    lbl:    ground truth labeling
+    props:   list of forward pass output
+    lbls:    list of ground truth labeling
+    Return:
+    err:    cost energy
+    cls:    classification error
     """
-    cls = float(np.count_nonzero( (prop>0.5)!= lbl ))
-    
-    grdt = prop.copy()
-    grdt = grdt.astype('float32') - lbl.astype('float32')
-    err = np.sum( grdt * grdt ).astype('float32')
-    grdt = grdt * 2
-    return (err, cls, grdt)
+    grdts = list()
+    cls = 0
+    err = 0
+    for prop, lbl in zip( props, lbls ):
+        cls = cls + float(np.count_nonzero( (prop>0.5)!= lbl ))
+        
+        grdt = prop.copy()
+        grdt = grdt.astype('float32') - lbl.astype('float32')
+        err = err + np.sum( grdt * grdt ).astype('float32')
+        grdt = grdt * 2
+        grdt = np.ascontiguousarray(grdt, dtype='float32')
+        grdts.append( grdt )
+    cls = cls / float( len(props) )
+    err = err / float( len(props) )
+    return (err, cls, grdts)
 
 def rebalance(lbls):
     """

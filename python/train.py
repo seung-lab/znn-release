@@ -9,9 +9,12 @@ import emirt
 import time
 import matplotlib.pylab as plt
 # parameters
-ftrn = "../dataset/ISBI2012/data/original/train-volume.tif"
-flbl = "../dataset/ISBI2012/data/original/train-labels.tif"
+ftrn = "/usr/people/jingpeng/seungmount/research/Jingpeng/43_zfish/fish_train/Merlin_raw2.tif"
+flbl = "/usr/people/jingpeng/seungmount/research/Jingpeng/43_zfish/fish_train/ExportLabels_32bit_Merlin2.tif"
 fnet_spec = '../networks/srini2d.znn'
+
+# mode
+dp_type = 'affinity'
 # learning rate
 eta = 0.01
 # momentum
@@ -27,7 +30,6 @@ vol = emirt.io.imread(ftrn).astype('float32')
 lbl = emirt.io.imread(flbl).astype('float32')
 # normalize the training volume
 vol = vol / 255
-lbl = (lbl>0.5).astype('float32')
 
 print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
 net = pyznn.CNet(fnet_spec, outsz[0],outsz[1],outsz[2],num_threads)
@@ -49,13 +51,13 @@ plt.show()
 
 start = time.time()
 for i in xrange(1,1000000):
-    vol_in, lbl_out = get_sample( vol, insz, lbl, outsz )
+    vol_in, lbls = get_sample( vol, insz, lbl, outsz, type=dp_type )
     inputs = list()
     inputs.append( np.ascontiguousarray(vol_in) )
     # forward pass
     props = net.forward( inputs )
     # cost function and accumulate errors
-    cerr, ccls, grdt = square_loss( props[0], lbl_out ) 
+    cerr, ccls, grdts = square_loss( props, lbls ) 
     err = err + cerr
     cls = cls + ccls   
     
@@ -69,14 +71,15 @@ for i in xrange(1,1000000):
                 %(i, err, cls, elapsed)
         # real time visualization
         norm_prop = emirt.volume_util.norm(props[0])   
-        norm_lbl_out = emirt.volume_util.norm( lbl_out )
-        abs_grdt = np.abs(grdt)
+        norm_lbl_out = emirt.volume_util.norm( lbls[1] )
+        abs_grdt = np.abs(grdts[0])
 
         plt.subplot(221),   plt.imshow(vol_in[0,:,:],   cmap='gray')
         plt.xlabel('input')
         plt.subplot(222),   plt.imshow(norm_prop[0,:,:],    interpolation='nearest', cmap='gray')
         plt.xlabel('inference')
         plt.subplot(223),   plt.imshow(norm_lbl_out[0,:,:], interpolation='nearest', cmap='gray')
+        emirt.show.random_color_show(lbls[1])
         plt.xlabel('lable')
         plt.subplot(224),   plt.imshow(abs_grdt[0,:,:],     interpolation='nearest', cmap='gray')
         plt.xlabel('gradient')
@@ -90,8 +93,6 @@ for i in xrange(1,1000000):
         
            
     # run backward pass    
-    grdts = list()
-    grdts.append(np.ascontiguousarray(grdt))
     net.backward( grdts )
 
         
