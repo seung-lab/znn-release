@@ -70,9 +70,9 @@ for i in xrange(1,1000000):
         print "iteration %d,    sqerr: %.3f,    clserr: %.3f,   elapsed: %.1f s"\
                 %(i, err, cls, elapsed)
         # real time visualization
-        norm_prop = emirt.volume_util.norm(props[0])   
-        norm_lbl_out = emirt.volume_util.norm( lbl_outs[0] )
-        abs_grdt = np.abs(grdts[0])
+        norm_prop = emirt.volume_util.norm(props[1])   
+        norm_lbl_out = emirt.volume_util.norm( lbl_outs[1] )
+        abs_grdt = np.abs(grdts[1])
 
         plt.subplot(221),   plt.imshow(vol_in[0,:,:],   cmap='gray')
         plt.xlabel('input')
