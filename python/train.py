@@ -51,13 +51,13 @@ plt.show()
 
 start = time.time()
 for i in xrange(1,1000000):
-    vol_in, lbls = get_sample( vol, insz, lbl, outsz, type=dp_type )
+    vol_in, lbl_outs = get_sample( vol, insz, lbl, outsz, type=dp_type )
     inputs = list()
     inputs.append( np.ascontiguousarray(vol_in) )
     # forward pass
     props = net.forward( inputs )
     # cost function and accumulate errors
-    cerr, ccls, grdts = square_loss( props, lbls ) 
+    cerr, ccls, grdts = square_loss( props, lbl_outs ) 
     err = err + cerr
     cls = cls + ccls   
     
@@ -71,7 +71,7 @@ for i in xrange(1,1000000):
                 %(i, err, cls, elapsed)
         # real time visualization
         norm_prop = emirt.volume_util.norm(props[0])   
-        norm_lbl_out = emirt.volume_util.norm( lbls[1] )
+        norm_lbl_out = emirt.volume_util.norm( lbl_outs[0] )
         abs_grdt = np.abs(grdts[0])
 
         plt.subplot(221),   plt.imshow(vol_in[0,:,:],   cmap='gray')
@@ -79,7 +79,6 @@ for i in xrange(1,1000000):
         plt.subplot(222),   plt.imshow(norm_prop[0,:,:],    interpolation='nearest', cmap='gray')
         plt.xlabel('inference')
         plt.subplot(223),   plt.imshow(norm_lbl_out[0,:,:], interpolation='nearest', cmap='gray')
-        emirt.show.random_color_show(lbls[1])
         plt.xlabel('lable')
         plt.subplot(224),   plt.imshow(abs_grdt[0,:,:],     interpolation='nearest', cmap='gray')
         plt.xlabel('gradient')
