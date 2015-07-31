@@ -50,12 +50,12 @@ plt.show()
 start = time.time()
 for i in xrange(1,1000000):
     vol_in, lbl_out = get_sample( vol, insz, lbl, outsz )
-    inputs = list(np.ascontiguousarray(vol_in))
+    inputs = list()
+    inputs.append( np.ascontiguousarray(vol_in) )
     # forward pass
     props = net.forward( inputs )
-    
     # cost function and accumulate errors
-    cerr, ccls, grdt = square_loss( props[0], lbl_out )  
+    cerr, ccls, grdt = square_loss( props[0], lbl_out ) 
     err = err + cerr
     cls = cls + ccls   
     
@@ -68,7 +68,7 @@ for i in xrange(1,1000000):
         print "iteration %d,    sqerr: %.3f,    clserr: %.3f,   elapsed: %.1f s"\
                 %(i, err, cls, elapsed)
         # real time visualization
-        norm_prop = emirt.volume_util.norm(prop)   
+        norm_prop = emirt.volume_util.norm(props[0])   
         norm_lbl_out = emirt.volume_util.norm( lbl_out )
         abs_grdt = np.abs(grdt)
 
@@ -90,7 +90,9 @@ for i in xrange(1,1000000):
         
            
     # run backward pass    
-    net.backward( list(np.ascontiguousarray(grdt)) )
+    grdts = list()
+    grdts.append(np.ascontiguousarray(grdt))
+    net.backward( grdts )
 
         
 #%% visualization

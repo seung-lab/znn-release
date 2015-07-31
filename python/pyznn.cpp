@@ -69,13 +69,13 @@ cube_p<T> array2cube_p( np::ndarray array)
 	std::size_t sx = array.shape(2);
 
 	// copy data to avoid the pointer free error
-	cube_p<T> cube_p = get_cube<T>(vec3i(sz,sy,sx));
+	cube_p<T> ret = get_cube<T>(vec3i(sz,sy,sx));
 	for (std::size_t k=0; k<sz*sy*sx; k++)
-		cube_p->data()[k] = reinterpret_cast<T*>(array.get_data())[k];
-	return cube_p;
+		ret->data()[k] = reinterpret_cast<T*>(array.get_data())[k];
+	return ret;
 }
 
-bp::list CNet_forward( bp::object const & self, const bp::list& inarrays )
+bp::list CNet_forward( bp::object const & self, bp::list& inarrays )
 {
 	// extract the class from self
 	network& net = bp::extract<network&>(self)();
@@ -87,7 +87,20 @@ bp::list CNet_forward( bp::object const & self, const bp::list& inarrays )
 	std::map<std::string, std::vector<cube_p< real >>> insample;
 	insample["input"].resize(len);
 	for (std::size_t i=0; i<len; i++)
-		insample["input"][i] = array2cube_p<real>( bp::extract<np::ndarray>( inarrays[i] ));
+	{
+		np::ndarray array = bp::extract<np::ndarray>( inarrays[i] );
+		insample["input"][i] = array2cube_p<real>( array );
+	}
+
+#ifndef NDEBUG
+//	std::cout<<"lenth of input list of arrays: "<<len<<std::endl;
+	// print the whole input cube
+//    cube_p<real> in_p = insample["input"][0];
+//	std::cout<<"input in c++: "<<std::endl;
+//	for(std::size_t i=0; i< in_p->num_elements(); i++)
+//		std::cout<<in_p->data()[i]<<", ";
+//	std::cout<<std::endl;
+#endif
 
     // run forward and get output
     auto prop = net.forward( std::move(insample) );
@@ -97,11 +110,21 @@ bp::list CNet_forward( bp::object const & self, const bp::list& inarrays )
 
     // number of output cubes
     std::size_t num_out = prop["output"].size();
+
+#ifndef NDEBUG
+    std::cout<<"number of output cubes: "<<num_out<<std::endl;
+#endif
+
     for (std::size_t i=0; i<num_out; i++)
     {
     	cube_p<real> out_cube_p = prop["output"][i];
     	// output size assert
 		vec3i outsz( out_cube_p->shape()[0], out_cube_p->shape()[1], out_cube_p->shape()[2] );
+
+#ifndef NDEBUG
+		std::cout<<"output size: "<<outsz[0]<<"x"<<outsz[1]<<"x"<<outsz[2]<<std::endl;
+#endif
+
     	// return ndarray
 		np::ndarray outarray = 	np::from_data(
 									out_cube_p->data(),
@@ -114,26 +137,21 @@ bp::list CNet_forward( bp::object const & self, const bp::list& inarrays )
     }
 
 #ifndef NDEBUG
-	// print the whole input cube
-//    cube_p<real> in_p = insample["input"][0];
-//	std::cout<<"input in c++: "<<std::endl;
-//	for(std::size_t i=0; i< in_p->num_elements(); i++)
-//		std::cout<<in_p->data()[i]<<", ";
-//	std::cout<<std::endl;
 
 	// input volume size
+    np::ndarray inarray = bp::extract<np::ndarray>( inarrays[0] );
 	std::size_t sz = inarray.shape(0);
 	std::size_t sy = inarray.shape(1);
 	std::size_t sx = inarray.shape(2);
 	vec3i insz( sz, sy, sx );
 	vec3i fov = net.fov();
+	vec3i outsz( prop["output"][0]->shape()[0], prop["output"][0]->shape()[1], prop["output"][0]->shape()[2] );
 	assert(outsz == insz - fov + 1);
-	std::cout<<"output size: "  <<out_cube_p->shape()[0]<<"x"<<out_cube_p->shape()[1]<<"x"
-								<<out_cube_p->shape()[2]<<std::endl;
+	std::cout<<"output size: "  <<outsz[0]<<"x"<<outsz[1]<<"x"<<outsz[2]<<std::endl;
 	// print the whole output cube
 	std::cout<<"output in c++: "<<std::endl;
-	for(std::size_t i=0; i< out_cube_p->num_elements(); i++)
-		std::cout<<out_cube_p->data()[i]<<", ";
+	for(std::size_t i=0; i< prop["output"][0]->num_elements(); i++)
+		std::cout<<prop["output"][0]->data()[i]<<", ";
 	std::cout<<std::endl;
 #endif
 
@@ -176,9 +194,6 @@ bp::tuple CNet_fov( bp::object const & self )
 {
 	network& net = bp::extract<network&>(self)();
 	vec3i fov_vec =  net.fov();
-#ifndef NDEBUG
-	std::cout<< "fov (z,y,x): "<<fov_vec[0] <<"x"<< fov_vec[1]<<"x"<<fov_vec[2]<<std::endl;
-#endif
 	return 	bp::make_tuple(fov_vec[0], fov_vec[1], fov_vec[2]);
 }
 

@@ -22,6 +22,15 @@ def square_loss(prop, lbl):
     return (err, cls, grdt)
 
 def rebalance(lbls):
+    """
+    get rebalance weight of gradient.
+    make the nonboundary and boundary region have same contribution of training.
+    
+    Parameters:
+    lbls: list of ground truth label
+    Return:
+    weights: list of weight of gradient
+    """
     weights = list()
     for lbl in lbls:
         # number of nonzero elements
