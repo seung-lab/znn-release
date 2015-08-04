@@ -115,6 +115,53 @@ def rebalance(grdts, lbls):
         ret.append( grdt * weight )
     return ret
 
+def find_root(ind, seg):
+    """
+    quick find with path compression
+
+    Parameters
+    ----------
+    ind:   index of node. start from 1
+    seg:   segmenation ID, should be flat
+
+    Return
+    ------
+    ind: root index of input node
+    seg:  updated segmentation
+    """
+    path = list()
+    while seg[ind-1]!=ind:
+        path.append( ind )
+        # get the parent index
+        ind = seg[ind-1]
+    # path compression
+    for node in path:
+        seg[node-1] = ind
+    return (ind, seg)
+
+def union_find(ind1, ind2, seg, weight):
+    """
+    union-find algorithm: weighted quick union with path compression
+
+    Parameters
+    ----------
+    ind1,ind2:  index of two nodes
+    seg:   the segmenation volume with segment id. this array should be flatterned.
+    weight: the size of tree
+
+    Return
+    ------
+    seg:       updated segmentation
+    weight:    updated weight
+    """
+    # find roots
+    r1, seg = find_root(ind1, seg)
+    r2, seg = find_root(ind2, seg)
+    # merge small tree to big tree according to size
+    if weight[r1-1] < weight[r2-1]:
+        seg[r1-1] = r2
+        weight[r2-1] = weight[r2-1] + weight[r1-1]
+    return (seg, weight)
 
 def seg_aff( affs, threshold=0.5 ):
     """
@@ -122,9 +169,11 @@ def seg_aff( affs, threshold=0.5 ):
     weighted quick union with path compression: https://www.cs.princeton.edu/~rs/AlgsDS07/01UnionFind.pdf
 
     Parameters:
+    -----------
     affs:  list of affinity graph
 
     Returns:
+    --------
     seg:   segmentation of affinity graph
     """
     # get affinity graphs, copy the array to avoid changing of raw affinity graph
@@ -142,19 +191,48 @@ def seg_aff( affs, threshold=0.5 ):
 
     # initialize segmentation with individual label of each voxel
     N = xaff.size
-    seg = np.arange(1, N+1).reshape( xaff.shape )
+    indmat = np.arange(1, N+1).reshape( xaff.shape )
+    seg = np.copy( indmat ).flatten()
+    weight = np.ones( seg.shape ).flatten()
+    # create edge pair
+    for e in xedges:
+        # get the index of connected nodes
+        ind1 = indmat[e[0], e[1], e[2]]
+        ind2 = indmat[e[0], e[1], e[2]-1]
+        # union-find algorithm
+        seg, weight = union_find(ind1, ind2, seg, weight)
+    for e in yedges:
+        # get the index of connected nodes
+        ind1 = indmat[e[0], e[1],   e[2]]
+        ind2 = indmat[e[0], e[1]-1, e[2]]
+        # union-find algorithm
+        seg, weight = union_find(ind1, ind2, seg, weight)
+    for e in zedges:
+        # get the index of connected nodes
+        ind1 = indmat[e[0]  , e[1], e[2]]
+        ind2 = indmat[e[0]-1, e[1], e[2]]
+        # union-find algorithm
+        seg, weight = union_find(ind1, ind2, seg, weight)
 
+    # relabel all the trees to root id
+    it = np.nditer(seg, flags=['f_index'])
+    while not it.finished:
+        root_ind, seg = find_root(it[0], seg)
+        seg[it.index-1] = root_ind
 
+    return seg
 def malis(affs, true_affs, masks):
     """
     compute malis weight
 
     Parameters:
+    -----------
     affs:      list of forward pass output affinity graphs, size: Z*Y*X
     true_affs: list of ground truth affinity graphs
     masks:     list of masks of affinity graphs
 
     Return:
+    ------
     err:     cost energy
     cls:     classification error
     grdts:   gradient volumes of affinity graph
@@ -162,3 +240,4 @@ def malis(affs, true_affs, masks):
     """
     # get segmentation of affinity graph
     seg = seg_aff(affs)
+    # sort all the edges
