@@ -15,7 +15,7 @@ def get_sample( vol, insz, lbl, outsz, type='volume' ):
     loc = np.zeros(3)
     # list of ground truth labels
     lbls = list()
-    
+
     if 'vol' in type:
         loc[0] = np.random.randint(half_in_sz[0], half_in_sz[0] + set_sz[0]-1)
         loc[1] = np.random.randint(half_in_sz[1], half_in_sz[1] + set_sz[1]-1)
@@ -48,5 +48,28 @@ def get_sample( vol, insz, lbl, outsz, type='volume' ):
         lbls.append( lbl_x.astype('float32') )
     else:
         raise NameError('unknown mode type.')
-        
+
     return (vol_in, lbls)
+
+def softmax(props):
+    """
+    softmax activation
+
+    Parameters:
+    props:  list of net forward output volumes
+
+    Returns:
+    ret:   list of softmax activation volumes
+    """
+    n = len(props)
+    pesum = np.zeros(props[0].shape)
+    pes = list()
+    for prop in props:
+        prop = np.exp( prop )
+        pes.append( prop )
+        pesum = pesum + prop
+
+    ret = list()
+    for pe in pes:
+        ret.append( pe / pesum )
+    return ret

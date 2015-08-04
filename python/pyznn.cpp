@@ -15,13 +15,13 @@
 //// You should have received a copy of the GNU General Public License
 //// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ////
-// ----------------------------NOTE---------------------------------//
-// both znn and python use C-order									//
-// znn v4 use x,y,z and z is changing the fastest					//
-// python code use z,y,x and x is changing the fastest				//
-// we just match znn(x,y,z) and python(z,y,x) directly,				//
-// so the z in python matches the x in znn!!!						//
-// -----------------------------------------------------------------//
+// ----------------------------NOTE-----------------------------//
+// both znn and python use C-order                              //
+// znn v4 use x,y,z and z is changing the fastest               //
+// python code use z,y,x and x is changing the fastest          //
+// we just match znn(x,y,z) and python(z,y,x) directly,         //
+// so the z in python matches the x in znn!!!                   //
+// -------------------------------------------------------------//
 
 // boost python
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
@@ -104,7 +104,7 @@ bp::list CNet_forward( bp::object const & self, bp::list& inarrays )
 
     // run forward and get output
     auto prop = net.forward( std::move(insample) );
-    
+
     // initalize the return list
     bp::list ret;
 
@@ -185,46 +185,46 @@ void CNet_backward( bp::object & self, bp::list& grads )
 //	std::cout<<std::endl;
 #endif
 
-	// backward
-	net.backward( std::move(outsample) );
-	return;
+// backward
+        net.backward( std::move(outsample) );
+        return;
 }
 
 bp::tuple CNet_fov( bp::object const & self )
 {
-	network& net = bp::extract<network&>(self)();
-	vec3i fov_vec =  net.fov();
-	return 	bp::make_tuple(fov_vec[0], fov_vec[1], fov_vec[2]);
+    network& net = bp::extract<network&>(self)();
+    vec3i fov_vec =  net.fov();
+    return 	bp::make_tuple(fov_vec[0], fov_vec[1], fov_vec[2]);
 }
 
 std::size_t CNet_get_input_num( bp::object const & self )
 {
-	network& net = bp::extract<network&>(self)();
-	std::map<std::string, std::pair<vec3i, std::size_t>> ins = net.inputs();
-	return ins["input"].second;
+    network& net = bp::extract<network&>(self)();
+    std::map<std::string, std::pair<vec3i, std::size_t>> ins = net.inputs();
+    return ins["input"].second;
 }
 
 std::size_t CNet_get_output_num( bp::object const & self )
 {
-	network& net = bp::extract<network&>(self)();
-	std::map<std::string, std::pair<vec3i,std::size_t>> outs = net.outputs();
-	return outs["output"].second;
+    network& net = bp::extract<network&>(self)();
+    std::map<std::string, std::pair<vec3i,std::size_t>> outs = net.outputs();
+    return outs["output"].second;
 }
 
 BOOST_PYTHON_MODULE(pyznn)
 {
-	Py_Initialize();
-	np::initialize();
+    Py_Initialize();
+    np::initialize();
 
     bp::class_<network, std::shared_ptr<network>, boost::noncopyable>("CNet",bp::no_init)
         .def("__init__", bp::make_constructor(&CNet_Init))
         .def("get_fov",     		&CNet_fov)
-		.def("forward",     		&CNet_forward)
-		.def("backward",			&CNet_backward)
-		.def("set_eta",    			&network::set_eta)
-		.def("set_momentum",		&network::set_momentum)
-		.def("set_weight_decay",	&network::set_weight_decay )
-		.def("get_input_num", 		&CNet_get_input_num)
-		.def("get_output_num", 		&CNet_get_output_num)
+	.def("forward",     		&CNet_forward)
+	.def("backward",			&CNet_backward)
+	.def("set_eta",    			&network::set_eta)
+	.def("set_momentum",		&network::set_momentum)
+	.def("set_weight_decay",	&network::set_weight_decay )
+	.def("get_input_num", 		&CNet_get_input_num)
+	.def("get_output_num", 		&CNet_get_output_num)
         ;
 }
