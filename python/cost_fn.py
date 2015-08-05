@@ -9,10 +9,13 @@ def square_loss(props, lbls):
     """
     compute square loss
 
-    Parameters:
+    Parameters
+    ----------
     props:   list of forward pass output
     lbls:    list of ground truth labeling
-    Return:
+    
+    Return
+    ------
     err:    cost energy
     cls:    classification error
     grdts:  list of gradient volumes
@@ -37,11 +40,13 @@ def binomial_cross_entropy(props, lbls):
     """
     compute binomial cost
 
-    Parameters:
+    Parameters
+    ----------
     props:  list of forward pass output
     lbls:   list of ground truth labeling
 
-    Return:
+    Return
+    ------
     err:    cost energy
     cls:    classification error
     grdts:  list of gradient volumes
@@ -62,11 +67,13 @@ def multinomial_cross_entropy(props, lbls):
     """
     compute multinomial cross entropy
 
-    Parameters:
+    Parameters
+    ----------
     props:    list of forward pass output
     lbls:     list of ground truth labeling
 
-    Return:
+    Return
+    ------
     err:    cost energy
     cls:    classfication error
     grdts:  list of gradient volumes
@@ -83,15 +90,21 @@ def multinomial_cross_entropy(props, lbls):
     err = err / float( len(props) )
     return (err, cls, grdts)
 
+def hinge_loss(props, lbls):
+    
+
 def rebalance(grdts, lbls):
     """
     get rebalance tree_size of gradient.
     make the nonboundary and boundary region have same contribution of training.
 
-    Parameters:
+    Parameters
+    ----------
     grdts: list of gradient volumes
     lbls: list of ground truth label
-    Return:
+    
+    Return
+    ------
     ret: list of balanced gradient volumes
     """
     ret = list()
@@ -115,7 +128,7 @@ def rebalance(grdts, lbls):
         ret.append( grdt * tree_size )
     return ret
 
-def malis(affs, true_affs, threshold=0.5):
+def malis_weights(affs, threshold=0.5):
     """
     compute malis tree_size
 
@@ -136,6 +149,9 @@ def malis(affs, true_affs, threshold=0.5):
     xaff = affs.pop()
     yaff = affs.pop()
     zaff = affs.pop()
+    true_xaff = true_affs.pop()
+    true_yaff = true_affs.pop()
+    true_zaff = true_affs.pop()
 
     # initialize segmentation with individual label of each voxel
     N = xaff.size
@@ -143,24 +159,27 @@ def malis(affs, true_affs, threshold=0.5):
     seg = np.copy( ids ).flatten()
     tree_size = np.ones( seg.shape ).flatten()
 
-    # initialize edges
+    # initialize edges: aff, id1, id2, z/y/x, true_aff
     edges = list()
+    weights = list()
+    # z,y,x of weight
+    weights.append( np.zeros(seg.size) )
+    weights.append( np.zeros(seg.size) )
+    weights.append( np.zeros(seg.size) )
 
     for z in xrange(seg.shape[0]):
         for y in xrange(seg.shape[1]):
             for x in xrange(1,seg.shape[2]):
-                if xaff[z,y,x] > threshold:
-                    edges.append( xaff[z,y,x], ids[z,y,x], ids[z,y,x-1] )
+                if xaff[z,y,x] > threshold
+                edges.append( xaff[z,y,x], ids[z,y,x], ids[z,y,x-1], 2, true_xaff[z,y,x] )
     for z in xrange(seg.shape[0]):
         for y in xrange(1,seg.shape[1]):
             for x in xrange(seg.shape[2]):
-                if yaff[z,y,x]>threshold:
-                    edges.append( yaff[z,y,x], ids[z,y,x], ids[z,y-1,x] )
+                edges.append( yaff[z,y,x], ids[z,y,x], ids[z,y-1,x], 1, true_yaff[z,y,x] )
     for z in xrange(1,seg.shape[0]):
         for y in xrange(seg.shape[1]):
             for x in xrange(seg.shape[2]):
-                if zaff[z,y,x]>threshold:
-                    edges.append( zaff[z,y,x], ids[z,y,x], ids[z-1,y,x] )
+                edges.append( zaff[z,y,x], ids[z,y,x], ids[z-1,y,x], 0, true_zaff[z,y,x] )
     # descending sort
     edges.sort(reverse=True)
 
@@ -173,9 +192,19 @@ def malis(affs, true_affs, threshold=0.5):
         
         if r1!=r2:
             # not in a same set, this a maximin edge
-            # merge or union the two sets or trees
+            # get the size of two sets/trees 
+            s1 = tree_size[r1-1]
+            s2 = tree_size[r2-1]
+            # accumulate weights
+            weights[e[3]][r1-1] = weights[e[3]][r1-1] + s1*s2
+            # merge the two sets/trees
             seg, tree_size = emirt.volume_util.union_tree(r1, r2, seg, tree_size)
-
+    # reshape the weights 
+    weights[0].reshape( xaff.shape )
+    weights[1].reshape( yaff.shape )
+    weights[2].reshape( zaff.shape )
+    return weights
+   
 def mask_filter(grdts, masks):
     """
     eliminate some region of gradient using a mask
