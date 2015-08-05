@@ -85,7 +85,7 @@ def multinomial_cross_entropy(props, lbls):
 
 def rebalance(grdts, lbls):
     """
-    get rebalance weight of gradient.
+    get rebalance tree_size of gradient.
     make the nonboundary and boundary region have same contribution of training.
 
     Parameters:
@@ -104,140 +104,92 @@ def rebalance(grdts, lbls):
         if num_nz == num or num_nz==0:
             ret.append(grdt)
             continue
-        # weight of non-boundary and boundary
+        # tree_size of non-boundary and boundary
         wnb = 0.5 * num / num_nz
         wb  = 0.5 * num / (num - num_nz)
 
         # give value
-        weight = np.copy( lbl ).astype('float32')
-        weight[lbl>0] = wnb
-        weight[lbl==0]= wb
-        ret.append( grdt * weight )
+        tree_size = np.copy( lbl ).astype('float32')
+        tree_size[lbl>0] = wnb
+        tree_size[lbl==0]= wb
+        ret.append( grdt * tree_size )
     return ret
 
-def find_root(ind, seg):
+def malis(affs, true_affs, threshold=0.5):
     """
-    quick find with path compression
-
-    Parameters
-    ----------
-    ind:   index of node. start from 1
-    seg:   segmenation ID, should be flat
-
-    Return
-    ------
-    ind: root index of input node
-    seg:  updated segmentation
-    """
-    path = list()
-    while seg[ind-1]!=ind:
-        path.append( ind )
-        # get the parent index
-        ind = seg[ind-1]
-    # path compression
-    for node in path:
-        seg[node-1] = ind
-    return (ind, seg)
-
-def union_find(ind1, ind2, seg, weight):
-    """
-    union-find algorithm: weighted quick union with path compression
-
-    Parameters
-    ----------
-    ind1,ind2:  index of two nodes
-    seg:   the segmenation volume with segment id. this array should be flatterned.
-    weight: the size of tree
-
-    Return
-    ------
-    seg:       updated segmentation
-    weight:    updated weight
-    """
-    # find roots
-    r1, seg = find_root(ind1, seg)
-    r2, seg = find_root(ind2, seg)
-    # merge small tree to big tree according to size
-    if weight[r1-1] < weight[r2-1]:
-        seg[r1-1] = r2
-        weight[r2-1] = weight[r2-1] + weight[r1-1]
-    return (seg, weight)
-
-def seg_aff( affs, threshold=0.5 ):
-    """
-    get segmentation from affinity graph using union-find algorithm.
-    weighted quick union with path compression: https://www.cs.princeton.edu/~rs/AlgsDS07/01UnionFind.pdf
-
-    Parameters:
-    -----------
-    affs:  list of affinity graph
-
-    Returns:
-    --------
-    seg:   segmentation of affinity graph
-    """
-    # get affinity graphs, copy the array to avoid changing of raw affinity graph
-    xaff = np.copy( affs.pop() )
-    yaff = np.copy( affs.pop() )
-    zaff = np.copy( affs.pop() )
-    # remove the boundary edges
-    xaff[:,:,0] = 0
-    yaff[:,0,:] = 0
-    zaff[0,:,:] = 0
-    # get edges
-    xedges = np.argwhere( xaff>threshold )
-    yedges = np.argwhere( yaff>threshold )
-    zedges = np.argwhere( zaff>threshold )
-
-    # initialize segmentation with individual label of each voxel
-    N = xaff.size
-    indmat = np.arange(1, N+1).reshape( xaff.shape )
-    seg = np.copy( indmat ).flatten()
-    weight = np.ones( seg.shape ).flatten()
-    # create edge pair
-    for e in xedges:
-        # get the index of connected nodes
-        ind1 = indmat[e[0], e[1], e[2]]
-        ind2 = indmat[e[0], e[1], e[2]-1]
-        # union-find algorithm
-        seg, weight = union_find(ind1, ind2, seg, weight)
-    for e in yedges:
-        # get the index of connected nodes
-        ind1 = indmat[e[0], e[1],   e[2]]
-        ind2 = indmat[e[0], e[1]-1, e[2]]
-        # union-find algorithm
-        seg, weight = union_find(ind1, ind2, seg, weight)
-    for e in zedges:
-        # get the index of connected nodes
-        ind1 = indmat[e[0]  , e[1], e[2]]
-        ind2 = indmat[e[0]-1, e[1], e[2]]
-        # union-find algorithm
-        seg, weight = union_find(ind1, ind2, seg, weight)
-
-    # relabel all the trees to root id
-    it = np.nditer(seg, flags=['f_index'])
-    while not it.finished:
-        root_ind, seg = find_root(it[0], seg)
-        seg[it.index-1] = root_ind
-
-    return seg
-def malis(affs, true_affs, masks):
-    """
-    compute malis weight
+    compute malis tree_size
 
     Parameters:
     -----------
     affs:      list of forward pass output affinity graphs, size: Z*Y*X
     true_affs: list of ground truth affinity graphs
-    masks:     list of masks of affinity graphs
+
 
     Return:
     ------
     err:     cost energy
     cls:     classification error
     grdts:   gradient volumes of affinity graph
-    weights: the weight volumes of each affinity edge
+    tree_sizes: the tree_size volumes of each affinity edge
     """
-    # get segmentation of affinity graph
-    seg = seg_aff(affs)
-    # sort all the edges
+    # get affinity graphs
+    xaff = affs.pop()
+    yaff = affs.pop()
+    zaff = affs.pop()
+
+    # initialize segmentation with individual label of each voxel
+    N = xaff.size
+    ids = np.arange(1, N+1).reshape( xaff.shape )
+    seg = np.copy( ids ).flatten()
+    tree_size = np.ones( seg.shape ).flatten()
+
+    # initialize edges
+    edges = list()
+
+    for z in xrange(seg.shape[0]):
+        for y in xrange(seg.shape[1]):
+            for x in xrange(1,seg.shape[2]):
+                if xaff[z,y,x] > threshold:
+                    edges.append( xaff[z,y,x], ids[z,y,x], ids[z,y,x-1] )
+    for z in xrange(seg.shape[0]):
+        for y in xrange(1,seg.shape[1]):
+            for x in xrange(seg.shape[2]):
+                if yaff[z,y,x]>threshold:
+                    edges.append( yaff[z,y,x], ids[z,y,x], ids[z,y-1,x] )
+    for z in xrange(1,seg.shape[0]):
+        for y in xrange(seg.shape[1]):
+            for x in xrange(seg.shape[2]):
+                if zaff[z,y,x]>threshold:
+                    edges.append( zaff[z,y,x], ids[z,y,x], ids[z-1,y,x] )
+    # descending sort
+    edges.sort(reverse=True)
+
+    # find the maximum-spanning tree based on union-find algorithm
+    import emirt
+    for e in edges:
+        # find operation with path compression
+        r1,seg = emirt.volume_util.find_root(e[1], seg)
+        r2,seg = emirt.volume_util.find_root(e[2], seg)
+        
+        if r1!=r2:
+            # not in a same set, this a maximin edge
+            # merge or union the two sets or trees
+            seg, tree_size = emirt.volume_util.union_tree(r1, r2, seg, tree_size)
+
+def mask_filter(grdts, masks):
+    """
+    eliminate some region of gradient using a mask
+
+    Parameters
+    ----------
+    grdts:  list of gradient volumes
+    masks:  list of masks of affinity graphs
+
+    Return
+    ------
+    grdts:  list of gradient volumes
+    """
+    ret = list()
+    for grdt, mask in zip(grdts, masks):
+        ret.append( grdt * mask )
+    return ret
