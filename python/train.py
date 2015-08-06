@@ -98,6 +98,7 @@ for i in xrange(1,1000000):
         grdts = cost_fn.weight_gradient(grdts, rb_weights)
     if is_malis:
         malis_weights = cost_fn.malis_weights(props)
+        grdt_tmp = np.copy( grdts[1] )
         grdts = cost_fn.weight_gradient( grdts, malis_weights )
 
     if i%Num_iter_per_show==0:
@@ -109,24 +110,23 @@ for i in xrange(1,1000000):
         print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s"\
                 %(i, err, cls, elapsed)
         # real time visualization
-        norm_prop = emirt.volume_util.norm(props[1])
-        norm_lbl_out = emirt.volume_util.norm( lbl_outs[1] )
-        abs_grdt = np.abs(grdts[1])
-
         plt.subplot(321),   plt.imshow(vol_in[0,:,:],       interpolation='nearest', cmap='gray')
         plt.xlabel('input')
-        plt.subplot(322),   plt.imshow(norm_prop[0,:,:],    interpolation='nearest', cmap='gray')
+        plt.subplot(322),   plt.imshow(prop[1][0,:,:],    interpolation='nearest', cmap='gray')
         plt.xlabel('inference')
-        plt.subplot(323),   plt.imshow(norm_lbl_out[0,:,:], interpolation='nearest', cmap='gray')
+        plt.subplot(323),   plt.imshow(lbl_outs[1][0,:,:], interpolation='nearest', cmap='gray')
         plt.xlabel('lable')
-        plt.subplot(324),   plt.imshow(abs_grdt[0,:,:],     interpolation='nearest', cmap='gray')
-        plt.xlabel('gradient')
+        plt.subplot(324),   plt.imshow(np.log( grdts[1][0,:,:] ),     interpolation='nearest', cmap='gray')
+        plt.xlabel('gradient (log)')
         if is_rebalance:
             plt.subplot(325),   plt.imshow(   rb_weights[1][0,:,:],interpolation='nearest', cmap='gray')
             plt.xlabel('rebalance weight')
         if is_malis:
-            plt.subplot(325),   plt.imshow(malis_weights[1][0,:,:],interpolation='nearest', cmap='gray')
-            plt.xlabel('malis weight')
+            plt.subplot(325),   plt.imshow(np.log(malis_weights[1][0,:,:]),interpolation='nearest', cmap='gray')
+            plt.xlabel('malis weight (log)')
+            plt.subplot(326),   plt.imshow( np.abs(grdt_tmp[0,:,:] ),interpolation='nearest', cmap='gray')
+            plt.xlabel('gradient befor malis')
+            
         plt.pause(3)
 
         # reset time
@@ -134,7 +134,6 @@ for i in xrange(1,1000000):
         # reset err and cls
         err = 0
         cls = 0
-
 
     # run backward pass
     net.backward( grdts )
