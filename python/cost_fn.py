@@ -90,10 +90,13 @@ def multinomial_cross_entropy(props, lbls):
     err = err / float( len(props) )
     return (err, cls, grdts)
 
-def hinge_loss(props, lbls):
+#def hinge_loss(props, lbls):
     
+def weight_gradient(grdts, weights):
+    grdts[:] = [ grdt*weight for grdt, weight in zip(grdts, weights) ]        
+    return grdts
 
-def rebalance(grdts, lbls):
+def rebalance( lbls ):
     """
     get rebalance tree_size of gradient.
     make the nonboundary and boundary region have same contribution of training.
@@ -107,26 +110,26 @@ def rebalance(grdts, lbls):
     ------
     ret: list of balanced gradient volumes
     """
-    ret = list()
-    for grdt, lbl in zip(grdts,lbls):
+    weights = list()
+    for lbl in lbls:
         # number of nonzero elements
         num_nz = float( np.count_nonzero(lbl) )
         # total number of elements
         num = float( np.size(lbl) )
 
         if num_nz == num or num_nz==0:
-            ret.append(grdt)
+            weights.append( np.ones(lbl.shape) )
             continue
-        # tree_size of non-boundary and boundary
+        # weight of non-boundary and boundary
         wnb = 0.5 * num / num_nz
         wb  = 0.5 * num / (num - num_nz)
 
         # give value
-        tree_size = np.copy( lbl ).astype('float32')
-        tree_size[lbl>0] = wnb
-        tree_size[lbl==0]= wb
-        ret.append( grdt * tree_size )
-    return ret
+        weight = np.copy( lbl ).astype('float32')
+        weight[lbl>0] = wnb
+        weight[lbl==0]= wb
+        weights.append( weight )
+    return weights
 
 def malis_weights(affs, threshold=0.5):
     """
@@ -146,12 +149,10 @@ def malis_weights(affs, threshold=0.5):
     tree_sizes: the tree_size volumes of each affinity edge
     """
     # get affinity graphs
-    xaff = affs.pop()
-    yaff = affs.pop()
-    zaff = affs.pop()
-    true_xaff = true_affs.pop()
-    true_yaff = true_affs.pop()
-    true_zaff = true_affs.pop()
+    xaff = affs[2]
+    yaff = affs[1]
+    zaff = affs[0]
+    shape = xaff.shape
 
     # initialize segmentation with individual label of each voxel
     N = xaff.size
@@ -167,19 +168,18 @@ def malis_weights(affs, threshold=0.5):
     weights.append( np.zeros(seg.size) )
     weights.append( np.zeros(seg.size) )
 
-    for z in xrange(seg.shape[0]):
-        for y in xrange(seg.shape[1]):
-            for x in xrange(1,seg.shape[2]):
-                if xaff[z,y,x] > threshold
-                edges.append( xaff[z,y,x], ids[z,y,x], ids[z,y,x-1], 2, true_xaff[z,y,x] )
-    for z in xrange(seg.shape[0]):
-        for y in xrange(1,seg.shape[1]):
-            for x in xrange(seg.shape[2]):
-                edges.append( yaff[z,y,x], ids[z,y,x], ids[z,y-1,x], 1, true_yaff[z,y,x] )
-    for z in xrange(1,seg.shape[0]):
-        for y in xrange(seg.shape[1]):
-            for x in xrange(seg.shape[2]):
-                edges.append( zaff[z,y,x], ids[z,y,x], ids[z-1,y,x], 0, true_zaff[z,y,x] )
+    for z in xrange(shape[0]):
+        for y in xrange(shape[1]):
+            for x in xrange(1,shape[2]):
+                edges.append( (xaff[z,y,x], ids[z,y,x], ids[z,y,x-1], 2) )
+    for z in xrange(shape[0]):
+        for y in xrange(1,shape[1]):
+            for x in xrange(shape[2]):
+                edges.append( (yaff[z,y,x], ids[z,y,x], ids[z,y-1,x], 1) )
+    for z in xrange(1,shape[0]):
+        for y in xrange(shape[1]):
+            for x in xrange(shape[2]):
+                edges.append( (zaff[z,y,x], ids[z,y,x], ids[z-1,y,x], 0) )
     # descending sort
     edges.sort(reverse=True)
 
@@ -199,10 +199,9 @@ def malis_weights(affs, threshold=0.5):
             weights[e[3]][r1-1] = weights[e[3]][r1-1] + s1*s2
             # merge the two sets/trees
             seg, tree_size = emirt.volume_util.union_tree(r1, r2, seg, tree_size)
-    # reshape the weights 
-    weights[0].reshape( xaff.shape )
-    weights[1].reshape( yaff.shape )
-    weights[2].reshape( zaff.shape )
+    # normalize the weights
+    weights[:] = [weight.astype('float32') * (3*N) / ( N*(N-1)/2 ) for weight in weights]
+    weights[:] = [weight.reshape( shape ) for weight in weights]
     return weights
    
 def mask_filter(grdts, masks):

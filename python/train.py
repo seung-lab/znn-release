@@ -35,10 +35,24 @@ is_softmax = False
 # rebalance
 is_rebalance = True
 
+# malis weight
+is_malis = True
+
 # cost function
 cfn = cost_fn.binomial_cross_entropy
 
-#%% prepare input
+# number of iteration per show
+Num_iter_per_show = 100
+
+#%% print parameters
+if is_softmax:
+    print "using softmax layer"
+if is_rebalance:
+    print "rebalance the gradients"
+if is_malis:
+    print "using malis weight"
+
+#%% prepare original input
 vol_org = emirt.io.imread(ftrn).astype('float32')
 lbl_org = emirt.io.imread(flbl).astype('float32')
 # normalize the training volume
@@ -75,34 +89,44 @@ for i in xrange(1,1000000):
 
     # cost function and accumulate errors
     cerr, ccls, grdts = cfn( props, lbl_outs )
-
-    # rebalance
-    if is_rebalance:
-        grdts = cost_fn.rebalance(grdts, lbl_outs)
     err = err + cerr
     cls = cls + ccls
+    
+    # rebalance
+    if is_rebalance:
+        rb_weights = cost_fn.rebalance( lbl_outs )
+        grdts = cost_fn.weight_gradient(grdts, rb_weights)
+    if is_malis:
+        malis_weights = cost_fn.malis_weights(props)
+        grdts = cost_fn.weight_gradient( grdts, malis_weights )
 
-    if i%1000==0:
-        err = err / float(1000 * outsz[0] * outsz[1] * outsz[2])
-        cls = cls / float(1000 * outsz[0] * outsz[1] * outsz[2])
+    if i%Num_iter_per_show==0:
+        err = err / float(Num_iter_per_show * outsz[0] * outsz[1] * outsz[2])
+        cls = cls / float(Num_iter_per_show * outsz[0] * outsz[1] * outsz[2])
 
         # time
         elapsed = time.time() - start
-        print "iteration %d,    sqerr: %.3f,    clserr: %.3f,   elapsed: %.1f s"\
+        print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s"\
                 %(i, err, cls, elapsed)
         # real time visualization
         norm_prop = emirt.volume_util.norm(props[1])
         norm_lbl_out = emirt.volume_util.norm( lbl_outs[1] )
         abs_grdt = np.abs(grdts[1])
 
-        plt.subplot(221),   plt.imshow(vol_in[0,:,:],   cmap='gray')
+        plt.subplot(321),   plt.imshow(vol_in[0,:,:],       interpolation='nearest', cmap='gray')
         plt.xlabel('input')
-        plt.subplot(222),   plt.imshow(norm_prop[0,:,:],    interpolation='nearest', cmap='gray')
+        plt.subplot(322),   plt.imshow(norm_prop[0,:,:],    interpolation='nearest', cmap='gray')
         plt.xlabel('inference')
-        plt.subplot(223),   plt.imshow(norm_lbl_out[0,:,:], interpolation='nearest', cmap='gray')
+        plt.subplot(323),   plt.imshow(norm_lbl_out[0,:,:], interpolation='nearest', cmap='gray')
         plt.xlabel('lable')
-        plt.subplot(224),   plt.imshow(abs_grdt[0,:,:],     interpolation='nearest', cmap='gray')
-        plt.xlabel('gradient')
+        plt.subplot(324),   plt.imshow(abs_grdt[0,:,:],     interpolation='nearest', cmap='gray')
+        plt.xlabel('original gradient')
+        if is_rebalance:
+            plt.subplot(325),   plt.imshow(   rb_weights[1][0,:,:],interpolation='nearest', cmap='gray')
+            plt.xlabel('rebalance weight')
+        if is_malis:
+            plt.subplot(325),   plt.imshow(malis_weights[1][0,:,:],interpolation='nearest', cmap='gray')
+            plt.xlabel('malis weight')
         plt.pause(1)
 
         # reset time
