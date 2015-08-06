@@ -33,13 +33,13 @@ num_threads = 7
 is_softmax = False
 
 # rebalance
-is_rebalance = True
+is_rebalance = False
 
 # malis weight
 is_malis = True
 
 # cost function
-cfn = cost_fn.binomial_cross_entropy
+cfn = cost_fn.square_loss
 
 # number of iteration per show
 Num_iter_per_show = 100
@@ -120,14 +120,14 @@ for i in xrange(1,1000000):
         plt.subplot(323),   plt.imshow(norm_lbl_out[0,:,:], interpolation='nearest', cmap='gray')
         plt.xlabel('lable')
         plt.subplot(324),   plt.imshow(abs_grdt[0,:,:],     interpolation='nearest', cmap='gray')
-        plt.xlabel('original gradient')
+        plt.xlabel('gradient')
         if is_rebalance:
             plt.subplot(325),   plt.imshow(   rb_weights[1][0,:,:],interpolation='nearest', cmap='gray')
             plt.xlabel('rebalance weight')
         if is_malis:
             plt.subplot(325),   plt.imshow(malis_weights[1][0,:,:],interpolation='nearest', cmap='gray')
             plt.xlabel('malis weight')
-        plt.pause(1)
+        plt.pause(3)
 
         # reset time
         start = time.time()

@@ -197,9 +197,11 @@ def malis_weights(affs, threshold=0.5):
             s2 = tree_size[r2-1]
             # accumulate weights
             weights[e[3]][r1-1] = weights[e[3]][r1-1] + s1*s2
+#            print "s1: %d, s2: %d"%(s1,s2)
             # merge the two sets/trees
             seg, tree_size = emirt.volume_util.union_tree(r1, r2, seg, tree_size)
     # normalize the weights
+    N = float(N)
     weights[:] = [weight.astype('float32') * (3*N) / ( N*(N-1)/2 ) for weight in weights]
     weights[:] = [weight.reshape( shape ) for weight in weights]
     return weights
