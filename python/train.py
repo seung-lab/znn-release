@@ -42,7 +42,8 @@ is_malis = True
 cfn = cost_fn.square_loss
 
 # number of iteration per show
-Num_iter_per_show = 100
+Num_iter_per_show = 200
+Max_iter = 100000
 
 #%% print parameters
 if is_softmax:
@@ -71,12 +72,15 @@ insz = fov + outsz - 1
 
 err = 0;
 cls = 0;
+err_list = list()
+cls_list = list()
+
 # get gradient
 plt.ion()
 plt.show()
 
 start = time.time()
-for i in xrange(1,1000000):
+for i in xrange( Max_iter ):
     vol_in, lbl_outs = front_end.get_sample( vol_org, insz, lbl_org, outsz, type=dp_type )
     inputs = list()
     inputs.append( np.ascontiguousarray(vol_in) )
@@ -100,45 +104,48 @@ for i in xrange(1,1000000):
         malis_weights = cost_fn.malis_weights(props)
         grdt_tmp = np.copy( grdts[1] )
         grdts = cost_fn.weight_gradient( grdts, malis_weights )
-
+    
+    # run backward pass
+    net.backward( grdts )
+    
     if i%Num_iter_per_show==0:
         err = err / float(Num_iter_per_show * outsz[0] * outsz[1] * outsz[2])
         cls = cls / float(Num_iter_per_show * outsz[0] * outsz[1] * outsz[2])
+        
+        err_list.append( err )
+        cls_list.append( cls )
 
         # time
         elapsed = time.time() - start
         print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s"\
                 %(i, err, cls, elapsed)
         # real time visualization
-        plt.subplot(321),   plt.imshow(vol_in[0,:,:],       interpolation='nearest', cmap='gray')
+        plt.subplot(331),   plt.imshow(vol_in[0,:,:],       interpolation='nearest', cmap='gray')
         plt.xlabel('input')
-        plt.subplot(322),   plt.imshow(prop[1][0,:,:],    interpolation='nearest', cmap='gray')
+        plt.subplot(332),   plt.imshow(props[1][0,:,:],    interpolation='nearest', cmap='gray')
         plt.xlabel('inference')
-        plt.subplot(323),   plt.imshow(lbl_outs[1][0,:,:], interpolation='nearest', cmap='gray')
+        plt.subplot(333),   plt.imshow(lbl_outs[1][0,:,:], interpolation='nearest', cmap='gray')
         plt.xlabel('lable')
-        plt.subplot(324),   plt.imshow(np.log( grdts[1][0,:,:] ),     interpolation='nearest', cmap='gray')
+        plt.subplot(334),   plt.imshow(np.log( grdts[1][0,:,:] ),     interpolation='nearest', cmap='gray')
         plt.xlabel('gradient (log)')
         if is_rebalance:
-            plt.subplot(325),   plt.imshow(   rb_weights[1][0,:,:],interpolation='nearest', cmap='gray')
+            plt.subplot(335),   plt.imshow(   rb_weights[1][0,:,:],interpolation='nearest', cmap='gray')
             plt.xlabel('rebalance weight')
         if is_malis:
-            plt.subplot(325),   plt.imshow(np.log(malis_weights[1][0,:,:]),interpolation='nearest', cmap='gray')
+            plt.subplot(335),   plt.imshow(np.log(malis_weights[1][0,:,:]),interpolation='nearest', cmap='gray')
             plt.xlabel('malis weight (log)')
-            plt.subplot(326),   plt.imshow( np.abs(grdt_tmp[0,:,:] ),interpolation='nearest', cmap='gray')
+            plt.subplot(336),   plt.imshow( np.abs(grdt_tmp[0,:,:] ),interpolation='nearest', cmap='gray')
             plt.xlabel('gradient befor malis')
+        x = np.arange(0, i+1, Num_iter_per_show)
+        plt.subplot(337), plt.plot(x, err_list, 'r')
+        plt.xlabel('iteration'), plt.ylabel('cost energy')
+        plt.subplot(338), plt.plot(x, cls_list, 'b')
+        plt.xlabel('iteration'), plt.ylabel( 'classification error' )
             
-        plt.pause(3)
+        plt.pause(1)
 
         # reset time
         start = time.time()
         # reset err and cls
         err = 0
         cls = 0
-
-    # run backward pass
-    net.backward( grdts )
-
-
-#%% visualization
-#com = emirt.show.CompareVol((vol_in, lbl_out))
-#com.vol_compare_slice()
