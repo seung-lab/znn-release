@@ -77,13 +77,14 @@ err = 0;
 cls = 0;
 err_list = list()
 cls_list = list()
+it_list = list()
 
 # interactive visualization
 plt.ion()
 plt.show()
 
 start = time.time()
-for i in xrange( Max_iter ):
+for i in xrange(1, Max_iter ):
     vol_ins, lbl_outs = front_end.get_sample( vol_orgs, insz, lbl_orgs, outsz, type=dp_type )
     if is_data_aug:
         vol_ins, vol_outs = front_end.data_aug( vol_ins, lbl_outs )
@@ -118,6 +119,7 @@ for i in xrange( Max_iter ):
         
         err_list.append( err )
         cls_list.append( cls )
+        it_list.append( i )
 
         # time
         elapsed = time.time() - start
@@ -140,10 +142,10 @@ for i in xrange( Max_iter ):
             plt.xlabel('malis weight (log)')
             plt.subplot(336),   plt.imshow( np.abs(grdt_tmp[0,:,:] ),interpolation='nearest', cmap='gray')
             plt.xlabel('gradient befor malis')
-        x = np.arange(0, i+1, Num_iter_per_show)
-        plt.subplot(337), plt.plot(x, err_list, 'r')
+        
+        plt.subplot(337), plt.plot(it_list, err_list, 'r')
         plt.xlabel('iteration'), plt.ylabel('cost energy')
-        plt.subplot(338), plt.plot(x, cls_list, 'b')
+        plt.subplot(338), plt.plot(it_list, cls_list, 'b')
         plt.xlabel('iteration'), plt.ylabel( 'classification error' )
             
         plt.pause(1)
