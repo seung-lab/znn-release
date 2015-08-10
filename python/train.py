@@ -23,7 +23,6 @@ eta = 0.01
 # momentum
 momentum = 0
 
-
 # output size
 outsz = np.asarray([1,20,20])
 # number of threads
