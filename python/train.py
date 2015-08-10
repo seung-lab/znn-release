@@ -12,8 +12,12 @@ import front_end
 import cost_fn
 
 #%% parameters
-ftrn = "/usr/people/jingpeng/seungmount/research/Jingpeng/43_zfish/fish_train/Merlin_raw2.tif"
-flbl = "/usr/people/jingpeng/seungmount/research/Jingpeng/43_zfish/fish_train/ExportLabels_32bit_Merlin2.tif"
+ftrns = list()
+flbls = list()
+Dir = "/usr/people/jingpeng/seungmount/research/Jingpeng/43_zfish/fish_train/"
+ftrns.append( Dir + "Merlin_raw2.tif" )
+flbls.append( Dir + "ExportLabels_32bit_Merlin2.tif" )
+# network architecture
 fnet_spec = '../networks/srini2d.znn'
 
 # mode
@@ -37,6 +41,9 @@ is_rebalance = False
 # malis weight
 is_malis = True
 
+# data augmentation
+is_data_aug = True
+
 # cost function
 cfn = cost_fn.square_loss
 
@@ -53,10 +60,7 @@ if is_malis:
     print "using malis weight"
 
 #%% prepare original input
-vol_org = emirt.io.imread(ftrn).astype('float32')
-lbl_org = emirt.io.imread(flbl).astype('float32')
-# normalize the training volume
-vol_org = vol_org / 255
+vol_orgs, lbl_orgs = front_end.read_tifs(ftrns, flbls)
 
 #%% create and initialize the network
 print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
@@ -64,7 +68,7 @@ net = pyznn.CNet(fnet_spec, outsz[0],outsz[1],outsz[2],num_threads)
 net.set_eta( eta / float(outsz[0] * outsz[1] * outsz[2]) )
 net.set_momentum( momentum )
 
-# compute inputsize and get input
+#%% compute inputsize and get input
 fov = np.asarray(net.get_fov())
 print "field of view: {}x{}x{}".format(fov[0],fov[1], fov[2])
 insz = fov + outsz - 1
@@ -74,17 +78,18 @@ cls = 0;
 err_list = list()
 cls_list = list()
 
-# get gradient
+# interactive visualization
 plt.ion()
 plt.show()
 
 start = time.time()
 for i in xrange( Max_iter ):
-    vol_in, lbl_outs = front_end.get_sample( vol_org, insz, lbl_org, outsz, type=dp_type )
-    inputs = list()
-    inputs.append( np.ascontiguousarray(vol_in) )
+    vol_ins, lbl_outs = front_end.get_sample( vol_orgs, insz, lbl_orgs, outsz, type=dp_type )
+    if is_data_aug:
+        vol_ins, vol_outs = front_end.data_aug( vol_ins, lbl_outs )
+        
     # forward pass
-    props = net.forward( inputs )
+    props = net.forward( vol_ins )
 
     # softmax
     if is_softmax:
@@ -119,7 +124,7 @@ for i in xrange( Max_iter ):
         print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s"\
                 %(i, err, cls, elapsed)
         # real time visualization
-        plt.subplot(331),   plt.imshow(vol_in[0,:,:],       interpolation='nearest', cmap='gray')
+        plt.subplot(331),   plt.imshow(vol_ins[0][0,:,:],       interpolation='nearest', cmap='gray')
         plt.xlabel('input')
         plt.subplot(332),   plt.imshow(props[1][0,:,:],    interpolation='nearest', cmap='gray')
         plt.xlabel('inference')

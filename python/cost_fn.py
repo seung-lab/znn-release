@@ -93,6 +93,18 @@ def multinomial_cross_entropy(props, lbls):
 #def hinge_loss(props, lbls):
     
 def weight_gradient(grdts, weights):
+    """
+    update the gradient volumes by weight
+    
+    Parameters
+    ----------
+    grdts   : list of gradient volumes.
+    weights : list of weight volumes
+    
+    Returns
+    -------
+    grdts : list of grdient volumes (list of numpy array).
+    """
     grdts[:] = [ grdt*weight for grdt, weight in zip(grdts, weights) ]        
     return grdts
 
