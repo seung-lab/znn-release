@@ -5,6 +5,8 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
 import emirt
+# numba accelaration
+from numba.decorators import autojit
 
 def read_tifs(ftrns, flbls):
     """
@@ -32,6 +34,7 @@ def read_tifs(ftrns, flbls):
         lbls.append( lbl )
     return (vols, lbls)
 
+#@autojit
 def get_sample( vols, insz, lbls, outsz, type='volume' ):
     """
     get random sample from training and labeling volumes
@@ -103,6 +106,7 @@ def get_sample( vols, insz, lbls, outsz, type='volume' ):
     vol_ins.append( np.ascontiguousarray( vol_in ) )
     return (vol_ins, lbls)
 
+@autojit
 def data_aug( vol_ins, lbl_outs ):
     """
     data augmentation, transform volumes randomly to enrich the training dataset.
@@ -151,24 +155,26 @@ def data_aug( vol_ins, lbl_outs ):
         vol_outs2.append( vout )
     return (vol_ins2, vol_outs2)
 
-def softmax(props):
+def read_config( fcon ):
     """
-    softmax activation
-
-    Parameters:
-    props:  list of net forward output volumes
-
-    Returns:
-    ret:   list of softmax activation volumes
+    read the configuration parameters
+    
+    Parameters
+    ----------
+    fcon : name of configuration file
+    
+    Returns
+    -------
+    config : dictionary of configuration parameters
     """
-    pesum = np.zeros(props[0].shape)
-    pes = list()
-    for prop in props:
-        prop = np.exp( prop )
-        pes.append( prop )
-        pesum = pesum + prop
-
-    ret = list()
-    for pe in pes:
-        ret.append( pe / pesum )
-    return ret
+    config = {"config_file": fcon}
+    
+    f = open( fcon, 'r' )
+    for line in f:
+        if line[0]=='#' or not line:
+            continue
+        # split the line by space
+        words = line.split()
+        config[words[0]] = words[1]
+    f.close()
+    

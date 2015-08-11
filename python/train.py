@@ -5,51 +5,45 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
 import pyznn
-import emirt
 import time
 import matplotlib.pylab as plt
 import front_end
 import cost_fn
+import ConfigParser
+
 
 #%% parameters
-ftrns = list()
-flbls = list()
-Dir = "/usr/people/jingpeng/seungmount/research/Jingpeng/43_zfish/fish_train/"
-ftrns.append( Dir + "Merlin_raw2.tif" )
-flbls.append( Dir + "ExportLabels_32bit_Merlin2.tif" )
-# network architecture
-fnet_spec = '../networks/srini2d.znn'
+config = ConfigParser.ConfigParser()
+config.read('pyznn.cfg')
 
-# mode
-dp_type = 'affinity'
-# learning rate
-eta = 0.01
-# momentum
-momentum = 0
+num_threads = int( config.get('general', 'num_threads') )
+is_softmax = config.getboolean('general', 'is_softmax')
 
-# output size
-outsz = np.asarray([1,20,20])
-# number of threads
-num_threads = 7
-
-# softmax
-is_softmax = False
-
-# rebalance
-is_rebalance = False
-
-# malis weight
-is_malis = True
-
-# data augmentation
-is_data_aug = True
+ftrns       = config.get('train', 'ftrns').split(',\n')
+flbls       = config.get('train', 'flbls').split(',\n')
+fnet_spec   = config.get('train', 'fnet_spec')
+dp_type     = config.get('train', 'dp_type')
+eta         = config.getfloat('train', 'eta') 
+momentum    = config.getfloat('train', 'momentum') 
+weight_decay= config.getfloat('train', 'weight_decay')
+outsz       = np.asarray( [int(x) for x in config.get('train', 'outsz').split(',') ] )
+is_data_aug = config.getboolean('train', 'is_data_aug')
+is_rebalance= config.getboolean('train', 'is_rebalance')
+is_malis    = config.getboolean('train', 'is_malis')
+cost_fn_str = config.get('train', 'cost_fn')
+Num_iter_per_show = config.getint('train', 'Num_iter_per_show')
+Max_iter    = config.getint('train', 'Max_iter')
 
 # cost function
-cfn = cost_fn.square_loss
-
-# number of iteration per show
-Num_iter_per_show = 200
-Max_iter = 100000
+if cost_fn_str == "square_loss":
+    cfn = cost_fn.square_loss
+elif cost_fn_str == "binomial_cross_entropy":
+    cfn = cost_fn.binomial_cross_entropy
+elif cost_fn_str == "multinomial_cross_entropy":
+    cfn = cost_fn.multinomial_cross_entropy 
+else:
+    raise NameError('unknown type of cost function')
+    
 
 #%% print parameters
 if is_softmax:
@@ -94,7 +88,7 @@ for i in xrange(1, Max_iter ):
 
     # softmax
     if is_softmax:
-        props = front_end.softmax(props)
+        props = cost_fn.softmax(props)
 
     # cost function and accumulate errors
     cerr, ccls, grdts = cfn( props, lbl_outs )
