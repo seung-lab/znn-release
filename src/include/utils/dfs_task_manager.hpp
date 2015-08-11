@@ -16,41 +16,33 @@
 
 #include <zi/utility/singleton.hpp>
 #include <zi/time.hpp>
-//#include <boost/pool/pool_alloc.hpp>
+#include <boost/lockfree/stack.hpp>
 
 #include "log.hpp"
 #include "global_task_manager.hpp"
 
-#include "dfs_task_manager.hpp"
-
-#if 0
-
 namespace znn { namespace v4 {
 
-namespace detail {
+namespace {
+thread_local size_t znn_thread_id = 0;
+}
 
-class function_base
+struct regular_task
 {
-public:
-    virtual ~function_base() {}
-    virtual void operator()() = 0;
+    std::function<void()> fn;
+    size_t                thread_id;
+    list<regular_task*>::const_iterator local ;
+    list<regular_task*>::const_iterator global;
+
+    template<class... Args>
+    explicit regular_task( size_t tid,
+                           Args && ... args )
+        : thread_id(tid)
+        , fn(std::bind(std::forward<Args>(args)...))
+    {}
 };
 
-template<typename T>
-class function_wrapper: function_base
-{
-private:
-    T t_;
-public:
-    function_wrapper(T && t): t_(t) {};
-    function_wrapper(T const &) = delete;
-};
-
-
-
-} // namespace detail
-
-class task_manager
+class dfs_task_manager
 {
 private:
     typedef std::function<void()> callable_t;
@@ -65,7 +57,7 @@ private:
 
         list<std::shared_ptr<unprivileged_task>>::iterator it_;
 
-        friend class task_manager;
+        friend class dfs_task_manager;
 
     public:
         template<class... Args>
@@ -78,10 +70,6 @@ public:
     typedef std::shared_ptr<unprivileged_task> task_handle;
 
 private:
-    map<std::size_t, list<callable_t*>> tasks_                  ;
-    size_t                                       tot_tasks_ = 0 ;
-    list<task_handle>                            unprivileged_  ;
-
     std::size_t spawned_threads_;
     std::size_t concurrency_    ;
     std::size_t idle_threads_   ;
@@ -89,6 +77,11 @@ private:
     std::mutex              mutex_;
     std::condition_variable manager_cv_;
     std::condition_variable workers_cv_;
+
+    list<task_handle>                   unprivileged_  ;
+    list<regular_task*>                 tasks_         ;
+    list<regular_task*>                 local_tasks_[1000];
+    size_t                              tot_tasks_ = 0 ;
 
 private:
     void worker_loop()
@@ -101,7 +94,7 @@ private:
                 return;
             }
 
-            ++spawned_threads_;
+            znn_thread_id = ++spawned_threads_;
             if ( spawned_threads_ == concurrency_ )
             {
                 manager_cv_.notify_all();
@@ -112,7 +105,7 @@ private:
 
         while (true)
         {
-            callable_t* f1 = nullptr;
+            regular_task* f1 = nullptr;
 
             {
                 std::unique_lock<std::mutex> g(mutex_);
@@ -150,8 +143,8 @@ private:
 
             if ( f1 )
             {
-                (*f1)();
-                allocator<callable_t> alloc;
+                f1->fn();
+                allocator<regular_task> alloc;
                 alloc.destroy(f1);
                 alloc.deallocate(f1,1);
             }
@@ -187,7 +180,7 @@ private:
     }
 
 public:
-    task_manager(std::size_t concurrency = std::thread::hardware_concurrency())
+    dfs_task_manager(std::size_t concurrency = std::thread::hardware_concurrency())
         : spawned_threads_{0}
         , concurrency_{0}
         , idle_threads_{0}
@@ -195,13 +188,13 @@ public:
         set_concurrency(concurrency);
     }
 
-    task_manager(const task_manager&) = delete;
-    task_manager& operator=(const task_manager&) = delete;
+    dfs_task_manager(const dfs_task_manager&) = delete;
+    dfs_task_manager& operator=(const dfs_task_manager&) = delete;
 
-    task_manager(task_manager&& other) = delete;
-    task_manager& operator=(task_manager&&) = delete;
+    dfs_task_manager(dfs_task_manager&& other) = delete;
+    dfs_task_manager& operator=(dfs_task_manager&&) = delete;
 
-    ~task_manager()
+    ~dfs_task_manager()
     {
         set_concurrency(0);
     }
@@ -220,9 +213,9 @@ public:
 
         for ( std::size_t i = 0; i < to_spawn; ++i )
         {
-            //std::thread t(&task_manager::worker_loop, this);
+            //std::thread t(&dfs_task_manager::worker_loop, this);
             //t.detach();
-            global_task_manager.schedule(&task_manager::worker_loop, this);
+            global_task_manager.schedule(&dfs_task_manager::worker_loop, this);
         }
 
         workers_cv_.notify_all();
@@ -254,19 +247,25 @@ public:
     }
 
 private:
-    callable_t* next_task()
+    regular_task* next_task()
     {
-        callable_t* f = tasks_.rbegin()->second.front();
+        regular_task* f;
+        size_t const id = znn_thread_id;
 
-        tasks_.rbegin()->second.pop_front();
-        if ( tasks_.rbegin()->second.size() == 0 )
+        if ( local_tasks_[id].size() )
         {
-            tasks_.erase(tasks_.rbegin()->first);
+            f = local_tasks_[id].front();
+            local_tasks_[id].erase(f->local);
+            tasks_.erase(f->global);
+        }
+        else
+        {
+            f = tasks_.front();
+            local_tasks_[f->thread_id].erase(f->local);
+            tasks_.erase(f->global);
         }
 
         --tot_tasks_;
-        // LOG(info) << tot_tasks_
-        //           << ", " << unprivileged_.size() << ";";
 
         return f;
     }
@@ -281,14 +280,18 @@ private:
 
 public:
     template<typename... Args>
-    void schedule(std::size_t priority, Args&&... args)
+    void schedule(std::size_t, Args&&... args)
     {
-        allocator<callable_t> alloc;
-        callable_t* fn = alloc.allocate(1);
-        alloc.construct(fn, std::bind(std::forward<Args>(args)...));
+        size_t const id = znn_thread_id;
+
+        allocator<regular_task> alloc;
+        regular_task* t = alloc.allocate(1);
+
+        alloc.construct(t, id, std::bind(std::forward<Args>(args)...));
         {
             std::lock_guard<std::mutex> g(mutex_);
-            tasks_[priority].emplace_front(fn);
+            t->local  = local_tasks_[id].insert(local_tasks_[id].begin(),t);
+            t->global = tasks_.insert(tasks_.begin(),t);
             ++tot_tasks_;
             if ( idle_threads_ > 0 ) workers_cv_.notify_one();
         }
@@ -297,15 +300,7 @@ public:
     template<typename... Args>
     void asap(Args&&... args)
     {
-        allocator<callable_t> alloc;
-        callable_t* fn = alloc.allocate(1);
-        alloc.construct(fn, std::bind(std::forward<Args>(args)...));
-        {
-            std::lock_guard<std::mutex> g(mutex_);
-            tasks_[std::numeric_limits<std::size_t>::max()].emplace_front(fn);
-            ++tot_tasks_;
-            if ( idle_threads_ > 0 ) workers_cv_.notify_one();
-        }
+        schedule(0, std::forward<Args>(args)...);
     }
 
     template<typename... Args>
@@ -319,6 +314,10 @@ public:
         }
 
         bool stolen = false;
+
+        allocator<callable_t> alloc;
+        callable_t* after = alloc.allocate(1);
+        alloc.construct(after, std::bind(std::forward<Args>(args)...));
 
         {
             std::lock_guard<std::mutex> g(mutex_);
@@ -334,10 +333,7 @@ public:
                 if ( t->status_ == 2 )
                 {
                     ZI_ASSERT(t->then_==nullptr);
-                    allocator<callable_t> alloc;
-                    t->then_ = alloc.allocate(1);
-                    alloc.construct(t->then_,
-                                    std::bind(std::forward<Args>(args)...));
+                    t->then_ = after;
                     return;
                 }
             }
@@ -349,7 +345,9 @@ public:
             t->fn_ = nullptr;
         }
 
-        std::bind(std::forward<Args>(args)...)();
+        (*after)();
+        alloc.destroy(after);
+        alloc.deallocate(after,1);
     }
 
 
@@ -367,9 +365,8 @@ public:
         return t;
     }
 
-}; // class task_manager
+}; // class dfs_task_manager
 
+using task_manager = dfs_task_manager;
 
 }} // namespace znn::v4
-
-#endif
