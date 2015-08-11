@@ -8,6 +8,7 @@ import emirt
 # numba accelaration
 from numba.decorators import autojit
 
+@autojit
 def read_tifs(ftrns, flbls):
     """
     read a list of tif files of original volume and lable
@@ -154,27 +155,4 @@ def data_aug( vol_ins, lbl_outs ):
         vol_ins2.append( vin )
         vol_outs2.append( vout )
     return (vol_ins2, vol_outs2)
-
-def read_config( fcon ):
-    """
-    read the configuration parameters
-    
-    Parameters
-    ----------
-    fcon : name of configuration file
-    
-    Returns
-    -------
-    config : dictionary of configuration parameters
-    """
-    config = {"config_file": fcon}
-    
-    f = open( fcon, 'r' )
-    for line in f:
-        if line[0]=='#' or not line:
-            continue
-        # split the line by space
-        words = line.split()
-        config[words[0]] = words[1]
-    f.close()
     

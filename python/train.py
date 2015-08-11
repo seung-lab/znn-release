@@ -24,6 +24,7 @@ flbls       = config.get('train', 'flbls').split(',\n')
 fnet_spec   = config.get('train', 'fnet_spec')
 dp_type     = config.get('train', 'dp_type')
 eta         = config.getfloat('train', 'eta') 
+anneal_factor=config.getfloat('train', 'anneal_factor')
 momentum    = config.getfloat('train', 'momentum') 
 weight_decay= config.getfloat('train', 'weight_decay')
 outsz       = np.asarray( [int(x) for x in config.get('train', 'outsz').split(',') ] )
@@ -59,7 +60,8 @@ vol_orgs, lbl_orgs = front_end.read_tifs(ftrns, flbls)
 #%% create and initialize the network
 print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
 net = pyznn.CNet(fnet_spec, outsz[0],outsz[1],outsz[2],num_threads)
-net.set_eta( eta / float(outsz[0] * outsz[1] * outsz[2]) )
+eta = eta / float(outsz[0] * outsz[1] * outsz[2])
+net.set_eta( eta )
 net.set_momentum( momentum )
 
 #%% compute inputsize and get input
@@ -108,6 +110,9 @@ for i in xrange(1, Max_iter ):
     net.backward( grdts )
     
     if i%Num_iter_per_show==0:
+        # anneal factor
+        eta = eta * anneal_factor
+        net.set_eta(eta)
         err = err / float(Num_iter_per_show * outsz[0] * outsz[1] * outsz[2])
         cls = cls / float(Num_iter_per_show * outsz[0] * outsz[1] * outsz[2])
         
@@ -117,8 +122,8 @@ for i in xrange(1, Max_iter ):
 
         # time
         elapsed = time.time() - start
-        print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s"\
-                %(i, err, cls, elapsed)
+        print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s, learning rate: %.4f"\
+                %(i, err, cls, elapsed, eta*float(outsz[0] * outsz[1] * outsz[2]) )
         # real time visualization
         plt.subplot(331),   plt.imshow(vol_ins[0][0,:,:],       interpolation='nearest', cmap='gray')
         plt.xlabel('input')
