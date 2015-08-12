@@ -35,6 +35,7 @@
 #include <memory>
 #include <cstdint>
 #include <assert.h>
+//#include <H5Cpp.h>
 // znn
 #include "network/parallel/network.hpp"
 #include "cube/cube.hpp"
@@ -44,6 +45,7 @@ namespace bp = boost::python;
 namespace np = boost::numpy;
 using namespace znn::v4;
 using namespace znn::v4::parallel_network;
+
 
 std::shared_ptr< network > CNet_Init(
     std::string net_config_file, std::int64_t outz,
@@ -211,6 +213,166 @@ std::size_t CNet_get_output_num( bp::object const & self )
     return outs["output"].second;
 }
 
+//Takes a comma delimited string (from option object), and converts it into
+// a vector
+std::vector<std::size_t> comma_delim_to_vector( std::string const comma_delim)
+{
+	//Debug
+	std::cout << "tuple string" << comma_delim << std::endl;
+	//size can either be length 1 or length 3
+	std::vector<std::size_t> res;
+
+	std::string substring = comma_delim;
+
+	while ( true )
+	{
+		std::size_t comma_ind = substring.find(',');
+
+		if ( substring.find(',') == std::string::npos )
+		{
+			res.push_back( stoi(substring) );
+			break;
+		}
+
+		res.push_back( stoi(substring.substr(0, comma_ind)) );
+		substring = substring.substr(comma_ind+1);
+
+	}
+	return res;
+}
+
+bp::tuple string_to_np_array( std::string const & bin, 
+	std::vector<std::size_t> size,
+	bp::object const & self )
+{
+	real const * data = reinterpret_cast<real const *>(bin.data());
+
+	if ( size.size() == 1 )
+	{	
+		return bp::make_tuple(
+			//values
+			np::from_data(data,
+						np::dtype::get_builtin<real>(),
+						bp::make_tuple(size[0]),
+						bp::make_tuple(sizeof(real)),
+						self
+						),
+			//momentum values
+			np::from_data(data,
+						np::dtype::get_builtin<real>(),
+						bp::make_tuple(size[0]),
+						bp::make_tuple(sizeof(real)),
+						self
+						)
+			);
+
+	}
+	else //size.size() == 3
+	{
+		return bp::make_tuple(
+			//values
+			np::from_data(data,
+						np::dtype::get_builtin<real>(),
+						bp::make_tuple(size[0],size[1],size[2]),
+						bp::make_tuple(size[1]*size[2]*sizeof(real), size[2]*sizeof(real), sizeof(real)),
+						self
+						),
+			//momentum values
+			np::from_data(data,
+						np::dtype::get_builtin<real>(),
+						bp::make_tuple(size[0],size[1],size[2]),
+						bp::make_tuple(size[1]*size[2]*sizeof(real), size[2]*sizeof(real), sizeof(real)),
+						self
+						)
+			);
+	}
+}
+
+bp::tuple vec_to_tuple( std::vector<std::size_t> vec )
+{
+	if ( vec.size() == 1 )
+	{
+		return bp::make_tuple(vec[0]);
+	}
+	else //vec.size == 3
+	{
+		return bp::make_tuple(vec[0], vec[1], vec[2]);
+	}
+}
+
+//znn::options -> dict
+bp::dict opt_to_dict( options const opt, bp::object const & self )
+{
+	bp::dict res;
+	std::vector<std::size_t> size;
+
+	//First do a conversion of all fields except
+	// biases and filters
+	for ( auto & p : opt )
+	{
+		if ( p.first == "size" )
+		{
+			size = comma_delim_to_vector(p.second);
+			res[p.first] = vec_to_tuple(size);
+		}
+		else if ( p.first == "stride" )
+		{
+			res[p.first] = vec_to_tuple(comma_delim_to_vector(p.second));
+		}
+		else if ( p.first != "biases" && p.first != "filters" )
+		{
+			res[p.first] = p.second;
+		}
+	}
+
+	//Then scan again, for a field we can reshape into a np array
+	for (auto & p : opt )
+	{
+		if (p.first == "biases" || p.first == "filters" )
+		{
+			//Debug
+			res["raw_biases"] = p.second;
+			res[p.first] = string_to_np_array(p.second, size, self);
+		}
+	}
+	return res;
+}
+
+//IO
+bp::tuple CNet_getopts( bp::object const & self )
+{
+	network& net = bp::extract<network&>(self)();
+	//Grabbing "serialized" options
+	//opts.first => node options
+	//opts.second => edge options
+	std::pair<std::vector<options>,std::vector<options>> opts = net.serialize();
+
+	//Debug
+	opts.first[1].dump();
+	std::cout<<std::endl;
+	opts.second[1].dump();
+	std::cout<<std::endl;
+
+	//Init
+	bp::list node_opts;
+	bp::list edge_opts;
+
+	//Node options
+	for ( std::size_t i=0; i < opts.first.size(); i++ )
+	{
+		//Convert the map to a python dict, and append it
+		node_opts.append( opt_to_dict(opts.first[i], self) );
+	}
+
+	for ( std::size_t i=0; i < opts.second.size(); i++ )
+	{
+		//Convert the map to a python dict, and append it
+		edge_opts.append( opt_to_dict(opts.second[i], self) );
+	}
+
+	return bp::make_tuple(node_opts, edge_opts);
+}
+
 BOOST_PYTHON_MODULE(pyznn)
 {
     Py_Initialize();
@@ -226,5 +388,6 @@ BOOST_PYTHON_MODULE(pyznn)
 	.def("set_weight_decay",	&network::set_weight_decay )
 	.def("get_input_num", 		&CNet_get_input_num)
 	.def("get_output_num", 		&CNet_get_output_num)
+	.def("get_opts",				&CNet_getopts)
         ;
 }
