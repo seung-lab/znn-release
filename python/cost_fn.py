@@ -4,7 +4,10 @@ __doc__ = """
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
+# numba accelaration
+from numba.decorators import autojit
 
+@autojit
 def square_loss(props, lbls):
     """
     compute square loss
@@ -36,6 +39,7 @@ def square_loss(props, lbls):
     err = err / float( len(props) )
     return (err, cls, grdts)
 
+@autojit
 def binomial_cross_entropy(props, lbls):
     """
     compute binomial cost
@@ -63,6 +67,7 @@ def binomial_cross_entropy(props, lbls):
     err = err / float( len(props) )
     return (err, cls, grdts)
 
+@autojit
 def multinomial_cross_entropy(props, lbls):
     """
     compute multinomial cross entropy
@@ -91,11 +96,25 @@ def multinomial_cross_entropy(props, lbls):
     return (err, cls, grdts)
 
 #def hinge_loss(props, lbls):
-    
+
+@autojit
 def weight_gradient(grdts, weights):
+    """
+    update the gradient volumes by weight
+    
+    Parameters
+    ----------
+    grdts   : list of gradient volumes.
+    weights : list of weight volumes
+    
+    Returns
+    -------
+    grdts : list of grdient volumes (list of numpy array).
+    """
     grdts[:] = [ grdt*weight for grdt, weight in zip(grdts, weights) ]        
     return grdts
 
+@autojit
 def rebalance( lbls ):
     """
     get rebalance tree_size of gradient.
@@ -222,4 +241,26 @@ def mask_filter(grdts, masks):
     ret = list()
     for grdt, mask in zip(grdts, masks):
         ret.append( grdt * mask )
+    return ret
+
+def softmax(props):
+    """
+    softmax activation
+
+    Parameters:
+    props:  list of net forward output volumes
+
+    Returns:
+    ret:   list of softmax activation volumes
+    """
+    pesum = np.zeros(props[0].shape)
+    pes = list()
+    for prop in props:
+        prop = np.exp( prop )
+        pes.append( prop )
+        pesum = pesum + prop
+
+    ret = list()
+    for pe in pes:
+        ret.append( pe / pesum )
     return ret
