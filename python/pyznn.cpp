@@ -35,6 +35,7 @@
 #include <memory>
 #include <cstdint>
 #include <assert.h>
+//#include <H5Cpp.h>
 // znn
 #include "network/parallel/network.hpp"
 #include "cube/cube.hpp"
@@ -44,6 +45,7 @@ namespace bp = boost::python;
 namespace np = boost::numpy;
 using namespace znn::v4;
 using namespace znn::v4::parallel_network;
+
 
 std::shared_ptr< network > CNet_Init(
 		std::string const net_config_file,
@@ -173,7 +175,10 @@ std::size_t CNet_get_output_num( bp::object const & self )
     return outs["output"].second;
 }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> d5c164099dbb26863a6fe717dde2094591b942ad
 //Takes a comma delimited string (from option object), and converts it into
 // a vector
 std::vector<std::size_t> comma_delim_to_vector( std::string const comma_delim)
@@ -202,14 +207,22 @@ std::vector<std::size_t> comma_delim_to_vector( std::string const comma_delim)
 	return res;
 }
 
+<<<<<<< HEAD
 bp::tuple string_to_np_array( std::string const & bin,
+=======
+bp::tuple string_to_np_array( std::string const & bin, 
+>>>>>>> d5c164099dbb26863a6fe717dde2094591b942ad
 	std::vector<std::size_t> size,
 	bp::object const & self )
 {
 	real const * data = reinterpret_cast<real const *>(bin.data());
 
 	if ( size.size() == 1 )
+<<<<<<< HEAD
 	{
+=======
+	{	
+>>>>>>> d5c164099dbb26863a6fe717dde2094591b942ad
 		return bp::make_tuple(
 			//values
 			np::from_data(data,
@@ -267,7 +280,11 @@ bp::dict opt_to_dict( options const opt, bp::object const & self )
 	bp::dict res;
 	std::vector<std::size_t> size;
 
+<<<<<<< HEAD
 	// First do a conversion of all fields except
+=======
+	//First do a conversion of all fields except
+>>>>>>> d5c164099dbb26863a6fe717dde2094591b942ad
 	// biases and filters
 	for ( auto & p : opt )
 	{
@@ -342,6 +359,7 @@ BOOST_PYTHON_MODULE(pyznn)
     bp::class_<network, std::shared_ptr<network>, boost::noncopyable>("CNet",bp::no_init)
         .def("__init__", bp::make_constructor(&CNet_Init))
         .def("get_fov",     		&CNet_fov)
+<<<<<<< HEAD
         .def("forward",     		&CNet_forward)
         .def("backward",			&CNet_backward)
         .def("set_eta",    			&network::set_eta)
@@ -350,5 +368,15 @@ BOOST_PYTHON_MODULE(pyznn)
         .def("get_input_num", 		&CNet_get_input_num)
         .def("get_output_num", 		&CNet_get_output_num)
 		.def("get_opts",			&CNet_getopts)
+=======
+		.def("forward",     		&CNet_forward)
+		.def("backward",			&CNet_backward)
+		.def("set_eta",    			&network::set_eta)
+		.def("set_momentum",		&network::set_momentum)
+		.def("set_weight_decay",	&network::set_weight_decay )
+		.def("get_input_num", 		&CNet_get_input_num)
+		.def("get_output_num", 		&CNet_get_output_num)
+		.def("get_opts",				&CNet_getopts)
+>>>>>>> d5c164099dbb26863a6fe717dde2094591b942ad
         ;
 }
