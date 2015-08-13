@@ -14,20 +14,20 @@ import ConfigParser
 
 #%% parameters
 config = ConfigParser.ConfigParser()
-config.read('pyznn.cfg')
+config.read('config.cfg')
 
+fnet_spec   = config.get('general', 'fnet_spec')
 num_threads = int( config.get('general', 'num_threads') )
 is_softmax = config.getboolean('general', 'is_softmax')
+dp_type     = config.get('general', 'dp_type')
 
 ftrns       = config.get('train', 'ftrns').split(',\n')
 flbls       = config.get('train', 'flbls').split(',\n')
-fnet_spec   = config.get('train', 'fnet_spec')
-dp_type     = config.get('train', 'dp_type')
 eta         = config.getfloat('train', 'eta') 
 anneal_factor=config.getfloat('train', 'anneal_factor')
 momentum    = config.getfloat('train', 'momentum') 
 weight_decay= config.getfloat('train', 'weight_decay')
-outsz       = np.asarray( [int(x) for x in config.get('train', 'outsz').split(',') ] )
+outsz       = np.asarray( [x for x in config.get('train', 'outsz').split(',') ], dtype=np.int64 )
 is_data_aug = config.getboolean('train', 'is_data_aug')
 is_rebalance= config.getboolean('train', 'is_rebalance')
 is_malis    = config.getboolean('train', 'is_malis')
@@ -44,7 +44,6 @@ elif cost_fn_str == "multinomial_cross_entropy":
     cfn = cost_fn.multinomial_cross_entropy 
 else:
     raise NameError('unknown type of cost function')
-    
 
 #%% print parameters
 if is_softmax:
@@ -59,7 +58,7 @@ vol_orgs, lbl_orgs = front_end.read_tifs(ftrns, flbls)
 
 #%% create and initialize the network
 print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
-net = pyznn.CNet(fnet_spec, outsz[0],outsz[1],outsz[2],num_threads)
+net = pyznn.CNet(fnet_spec, outsz, num_threads)
 eta = eta / float(outsz[0] * outsz[1] * outsz[2])
 net.set_eta( eta )
 net.set_momentum( momentum )
@@ -81,33 +80,33 @@ plt.show()
 
 start = time.time()
 for i in xrange(1, Max_iter ):
-    vol_ins, lbl_outs = front_end.get_sample( vol_orgs, insz, lbl_orgs, outsz, type=dp_type )
+    vol_ins, lbl_outs = front_end.get_sample( vol_orgs, insz, lbl_orgs, outsz, dp_type=dp_type )
     if is_data_aug:
-        vol_ins, vol_outs = front_end.data_aug( vol_ins, lbl_outs )
+        vol_ins, lbl_outs = front_end.data_aug( vol_ins, lbl_outs )
         
     # forward pass
-    props = net.forward( vol_ins )
+    props = net.forward( np.ascontiguousarray(vol_ins) ).astype('float32')
 
     # softmax
     if is_softmax:
         props = cost_fn.softmax(props)
-
+    
     # cost function and accumulate errors
-    cerr, ccls, grdts = cfn( props, lbl_outs )
+    cerr, grdts = cfn( props, lbl_outs )
+    ccls = cost_fn.classification_error(props, lbl_outs)
     err = err + cerr
     cls = cls + ccls
     
     # rebalance
     if is_rebalance:
         rb_weights = cost_fn.rebalance( lbl_outs )
-        grdts = cost_fn.weight_gradient(grdts, rb_weights)
+        grdts = grdts * rb_weights
     if is_malis:
         malis_weights = cost_fn.malis_weights(props)
-        grdt_tmp = np.copy( grdts[1] )
-        grdts = cost_fn.weight_gradient( grdts, malis_weights )
+        grdts = grdts * malis_weights 
     
     # run backward pass
-    net.backward( grdts )
+    net.backward( np.ascontiguousarray(grdts) )
     
     if i%Num_iter_per_show==0:
         # anneal factor
@@ -125,21 +124,21 @@ for i in xrange(1, Max_iter ):
         print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s, learning rate: %.4f"\
                 %(i, err, cls, elapsed, eta*float(outsz[0] * outsz[1] * outsz[2]) )
         # real time visualization
-        plt.subplot(331),   plt.imshow(vol_ins[0][0,:,:],       interpolation='nearest', cmap='gray')
+        plt.subplot(331),   plt.imshow(vol_ins[0,0,:,:],       interpolation='nearest', cmap='gray')
         plt.xlabel('input')
-        plt.subplot(332),   plt.imshow(props[1][0,:,:],    interpolation='nearest', cmap='gray')
+        plt.subplot(332),   plt.imshow(props[1,0,:,:],    interpolation='nearest', cmap='gray')
         plt.xlabel('inference')
-        plt.subplot(333),   plt.imshow(lbl_outs[1][0,:,:], interpolation='nearest', cmap='gray')
+        plt.subplot(333),   plt.imshow(lbl_outs[1,0,:,:], interpolation='nearest', cmap='gray')
         plt.xlabel('lable')
-        plt.subplot(334),   plt.imshow(np.log( grdts[1][0,:,:] ),     interpolation='nearest', cmap='gray')
-        plt.xlabel('gradient (log)')
+        plt.subplot(334),   plt.imshow(grdts[1,0,:,:],     interpolation='nearest', cmap='gray')
+        plt.xlabel('gradient')
         if is_rebalance:
-            plt.subplot(335),   plt.imshow(   rb_weights[1][0,:,:],interpolation='nearest', cmap='gray')
+            plt.subplot(335),   plt.imshow(   rb_weights[1,0,:,:],interpolation='nearest', cmap='gray')
             plt.xlabel('rebalance weight')
         if is_malis:
-            plt.subplot(335),   plt.imshow(np.log(malis_weights[1][0,:,:]),interpolation='nearest', cmap='gray')
+            plt.subplot(335),   plt.imshow(np.log(malis_weights[1,0,:,:]),interpolation='nearest', cmap='gray')
             plt.xlabel('malis weight (log)')
-            plt.subplot(336),   plt.imshow( np.abs(grdt_tmp[0,:,:] ),interpolation='nearest', cmap='gray')
+            plt.subplot(336),   plt.imshow( np.abs(grdts[1,0,:,:] ),interpolation='nearest', cmap='gray')
             plt.xlabel('gradient befor malis')
         
         plt.subplot(337), plt.plot(it_list, err_list, 'r')

@@ -5,69 +5,75 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
 # numba accelaration
-from numba.decorators import autojit
+from numba import jit
 
-@autojit
+def classification_error(props, lbls):
+    cls = float(np.count_nonzero( (props>0.5)!= lbls ))
+    cls = cls / float( props.shape[0] )
+    return cls
+
+#@jit(nopython=True)
 def square_loss(props, lbls):
     """
     compute square loss
 
     Parameters
     ----------
-    props:   list of forward pass output
-    lbls:    list of ground truth labeling
+    props: numpy array, forward pass output
+    lbls:  numpy array, ground truth labeling
     
     Return
     ------
-    err:    cost energy
-    cls:    classification error
-    grdts:  list of gradient volumes
+    err:   cost energy
+    grdts: numpy array, gradient volumes
     """
-    grdts = list()
-    cls = 0
-    err = 0
-    for prop, lbl in zip( props, lbls ):
-        cls = cls + float(np.count_nonzero( (prop>0.5)!= lbl ))
+    assert(props.shape==lbls.shape)
+    grdts = props - lbls
+    # cost and classification error
+    err = np.sum( grdts * grdts ) 
+    grdts = grdts * 2
+    # normalization
+    err = err / float( props.shape[0] )
+    return (err, grdts)
 
-        grdt = prop.copy()
-        grdt = grdt.astype('float32') - lbl.astype('float32')
-        err = err + np.sum( grdt * grdt ).astype('float32')
-        grdt = grdt * 2
-        grdt = np.ascontiguousarray(grdt, dtype='float32')
-        grdts.append( grdt )
-    cls = cls / float( len(props) )
-    err = err / float( len(props) )
-    return (err, cls, grdts)
-
-@autojit
+#@jit(nopython=True)
 def binomial_cross_entropy(props, lbls):
     """
     compute binomial cost
 
     Parameters
     ----------
-    props:  list of forward pass output
-    lbls:   list of ground truth labeling
+    props:  forward pass output
+    lbls:   ground truth labeling
 
     Return
     ------
     err:    cost energy
-    cls:    classification error
     grdts:  list of gradient volumes
     """
-    grdts = list()
-    cls = 0
-    err = 0
-    for prop, lbl in zip( props, lbls ):
-        cls = cls + float(np.count_nonzero( (prop>0.5)!= lbl ))
-        grdt = prop.astype('float32') - lbl.astype('float32')
-        err = err + np.sum(  -lbl*np.log(prop) - (1-lbl)*np.log(1-prop) )
-        grdts.append( grdt )
-    cls = cls / float( len(props) )
-    err = err / float( len(props) )
-    return (err, cls, grdts)
+#    assert(props.shape==lbls.shape)
+    grdts = props.astype('float32') - lbls.astype('float32')
+    err = np.sum(  -lbls*np.log(props) - (1-lbls)*np.log(1-props) )
+    # normalization
+    err = err / float( props.shape[0] )
+    return (err, grdts)
 
-@autojit
+#@jit(nopython=True)
+def softmax(props):
+    """
+    softmax activation
+
+    Parameters:
+    props:  numpy array, net forward output volumes
+
+    Returns:
+    ret:   numpy array, softmax activation volumes
+    """
+    pesum = np.sum(np.exp(props), axis=0)
+    ret = props / pesum
+    return ret
+
+#@jit(nopython=True)
 def multinomial_cross_entropy(props, lbls):
     """
     compute multinomial cross entropy
@@ -83,38 +89,16 @@ def multinomial_cross_entropy(props, lbls):
     cls:    classfication error
     grdts:  list of gradient volumes
     """
-    grdts = list()
-    cls = 0
-    err = 0
-    for prop, lbl in zip( props, lbls ):
-        cls = cls + float(np.count_nonzero( (prop>0.5) != lbl ))
-        grdt = prop.astype('float32') - lbl.astype('float32')
-        err = err + np.sum( -lbl * np.log(prop) )
-        grdts.append( grdt )
-    cls = cls / float( len(props) )
-    err = err / float( len(props) )
-    return (err, cls, grdts)
+    assert(props.shape==lbls.shape)
+    grdts = lbls - props
+    err = np.sum( -lbls * np.log(props) )
+    # normalization
+    err = err / float( props.shape[0] )
+    return (err, grdts)
 
 #def hinge_loss(props, lbls):
 
-@autojit
-def weight_gradient(grdts, weights):
-    """
-    update the gradient volumes by weight
-    
-    Parameters
-    ----------
-    grdts   : list of gradient volumes.
-    weights : list of weight volumes
-    
-    Returns
-    -------
-    grdts : list of grdient volumes (list of numpy array).
-    """
-    grdts[:] = [ grdt*weight for grdt, weight in zip(grdts, weights) ]        
-    return grdts
-
-@autojit
+#@jit(nopython=True)
 def rebalance( lbls ):
     """
     get rebalance tree_size of gradient.
@@ -150,6 +134,7 @@ def rebalance( lbls ):
         weights.append( weight )
     return weights
 
+#@jit(nopython=True)
 def malis_weights(affs, threshold=0.5):
     """
     compute malis tree_size
@@ -224,43 +209,5 @@ def malis_weights(affs, threshold=0.5):
     weights[:] = [weight.astype('float32') * (3*N) / ( N*(N-1)/2 ) for weight in weights]
     weights[:] = [weight.reshape( shape ) for weight in weights]
     return weights
-   
-def mask_filter(grdts, masks):
-    """
-    eliminate some region of gradient using a mask
 
-    Parameters
-    ----------
-    grdts:  list of gradient volumes
-    masks:  list of masks of affinity graphs
 
-    Return
-    ------
-    grdts:  list of gradient volumes
-    """
-    ret = list()
-    for grdt, mask in zip(grdts, masks):
-        ret.append( grdt * mask )
-    return ret
-
-def softmax(props):
-    """
-    softmax activation
-
-    Parameters:
-    props:  list of net forward output volumes
-
-    Returns:
-    ret:   list of softmax activation volumes
-    """
-    pesum = np.zeros(props[0].shape)
-    pes = list()
-    for prop in props:
-        prop = np.exp( prop )
-        pes.append( prop )
-        pesum = pesum + prop
-
-    ret = list()
-    for pe in pes:
-        ret.append( pe / pesum )
-    return ret

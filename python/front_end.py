@@ -6,9 +6,8 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 import emirt
 # numba accelaration
-from numba.decorators import autojit
+#from numba import jit
 
-@autojit
 def read_tifs(ftrns, flbls):
     """
     read a list of tif files of original volume and lable
@@ -35,8 +34,7 @@ def read_tifs(ftrns, flbls):
         lbls.append( lbl )
     return (vols, lbls)
 
-#@autojit
-def get_sample( vols, insz, lbls, outsz, type='volume' ):
+def get_sample( vols, insz, lbls, outsz, dp_type='volume' ):
     """
     get random sample from training and labeling volumes
     
@@ -67,92 +65,105 @@ def get_sample( vols, insz, lbls, outsz, type='volume' ):
     set_sz = vol.shape - margin_sz - half_in_sz
     # get random location
     loc = np.zeros(3)
-    # list of ground truth labels
-    lbls = list()
+    
 
-    if 'vol' in type:
+    if 'vol' in dp_type:
+        # list of ground truth labels
+        vol_ins = np.empty(np.hstack((1,insz)), dtype='float32')
+        lbl_outs= np.empty(np.hstack((3,outsz)), dtype='float32')
         loc[0] = np.random.randint(half_in_sz[0], half_in_sz[0] + set_sz[0]-1)
         loc[1] = np.random.randint(half_in_sz[1], half_in_sz[1] + set_sz[1]-1)
         loc[2] = np.random.randint(half_in_sz[2], half_in_sz[2] + set_sz[2]-1)
         # extract volume
-        vol_in  = vol[  loc[0]-half_in_sz[0]  : loc[0]-half_in_sz[0] + insz[0],\
-                    loc[1]-half_in_sz[1]  : loc[1]-half_in_sz[1] + insz[1],\
-                    loc[2]-half_in_sz[2]  : loc[2]-half_in_sz[2] + insz[2]]
-        lbl_out = lbl[  loc[0]-half_out_sz[0] : loc[0]-half_out_sz[0]+outsz[0],\
-                        loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
-                        loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
-        lbls.append( (lbl_out>0).astype('float32') )
-    elif 'aff' in type:
+        vol_ins[0,:,:,:]  = vol[  loc[0]-half_in_sz[0]  : loc[0]-half_in_sz[0] + insz[0],\
+                            loc[1]-half_in_sz[1]  : loc[1]-half_in_sz[1] + insz[1],\
+                            loc[2]-half_in_sz[2]  : loc[2]-half_in_sz[2] + insz[2]]
+        lbl_outs[0,:,:,:] = lbl[  loc[0]-half_out_sz[0] : loc[0]-half_out_sz[0]+outsz[0],\
+                            loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
+                            loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
+        lbl_outs = lbl_outs.astype('float32')
+    elif 'aff' in dp_type:
+        # list of ground truth labels
+        vol_ins = np.empty(np.hstack((1,insz)), dtype='float32')
+        lbl_outs= np.empty(np.hstack((3,outsz)), dtype='float32')
+        
         loc[0] = np.random.randint(half_in_sz[0]+1, half_in_sz[0] + set_sz[0]-1)
         loc[1] = np.random.randint(half_in_sz[1]+1, half_in_sz[1] + set_sz[1]-1)
         loc[2] = np.random.randint(half_in_sz[2]+1, half_in_sz[2] + set_sz[2]-1)
         # extract volume
-        vol_in  = vol[  loc[0]-half_in_sz[0]    : loc[0]-half_in_sz[0] + insz[0],\
-                        loc[1]-half_in_sz[1]    : loc[1]-half_in_sz[1] + insz[1],\
-                        loc[2]-half_in_sz[2]    : loc[2]-half_in_sz[2] + insz[2]]
+        vol_ins[0,:,:,:]  = vol[  loc[0]-half_in_sz[0]    : loc[0]-half_in_sz[0] + insz[0],\
+                            loc[1]-half_in_sz[1]    : loc[1]-half_in_sz[1] + insz[1],\
+                            loc[2]-half_in_sz[2]    : loc[2]-half_in_sz[2] + insz[2]]
         lbl_out = lbl[  loc[0]-half_out_sz[0]-1 : loc[0]-half_out_sz[0]+outsz[0],\
                         loc[1]-half_out_sz[1]-1 : loc[1]-half_out_sz[1]+outsz[1],\
                         loc[2]-half_out_sz[2]-1 : loc[2]-half_out_sz[2]+outsz[2]]
         # z,y,x direction of affinity
-        lbl_z = (lbl_out[1:,1:,1:] == lbl_out[:-1,1:,1:]) & (lbl_out[1:,1:,1:]>0)
-        lbl_y = (lbl_out[1:,1:,1:] == lbl_out[1:,:-1,1:]) & (lbl_out[1:,1:,1:]>0)
-        lbl_x = (lbl_out[1:,1:,1:] == lbl_out[1:,1:,:-1]) & (lbl_out[1:,1:,1:]>0)
-        lbls.append( lbl_z.astype('float32') )
-        lbls.append( lbl_y.astype('float32') )
-        lbls.append( lbl_x.astype('float32') )
+        lbl_outs[0,:,:,:] = (lbl_out[1:,1:,1:] == lbl_out[:-1,1:,1:]) & (lbl_out[1:,1:,1:]>0)
+        lbl_outs[1,:,:,:] = (lbl_out[1:,1:,1:] == lbl_out[1:,:-1,1:]) & (lbl_out[1:,1:,1:]>0)
+        lbl_outs[2,:,:,:] = (lbl_out[1:,1:,1:] == lbl_out[1:,1:,:-1]) & (lbl_out[1:,1:,1:]>0)
+        lbl_outs = lbl_outs.astype('float32')
     else:
         raise NameError('unknown mode type.')
 
-    vol_ins = list()
-    vol_ins.append( np.ascontiguousarray( vol_in ) )
-    return (vol_ins, lbls)
+    return (vol_ins, lbl_outs)
 
-@autojit
-def data_aug( vol_ins, lbl_outs ):
+#@jit(nopython=True)
+def data_aug_transform(data, rft):
+    """
+    transform data according to a rule
+    
+    Parameters
+    ----------
+    data : 3D numpy array need to be transformed
+    rft : transform rule
+    
+    Returns
+    -------
+    data : the transformed array
+    """
+    # transform every pair of input and label volume
+    if rft[0]:
+        # first flip and than transpose
+        if rft[1]:
+            data  = np.fliplr( data )
+            if rft[2]:
+                data  = np.flipud( data )
+                if rft[3]:
+                    data = data[::-1, :,:]
+        if rft[4]:
+            data = data.transpose(0,2,1)
+    else:
+        # first transpose, than flip
+        if rft[4]:
+            data = data.transpose(0,2,1)
+        if rft[1]:
+            data = np.fliplr( data )
+            if rft[2]:
+                data = np.flipud( data )
+                if rft[3]:
+                    data = data[::-1, :,:]
+    return data
+
+#@jit(nopython=True)
+def data_aug( vols, lbls ):
     """
     data augmentation, transform volumes randomly to enrich the training dataset.
     
     Parameters
     ----------
-    vol_ins  :  input volumes of network.
-    lbl_outs : label volumes of network.
+    vol : input volumes of network.
+    lbl : label volumes of network.
     
     Returns
     -------
-    vol_ins2  : transformed input volumes of network.
-    vol_outs2 : transformed label volumes.
+    vol : transformed input volumes of network.
+    lbl : transformed label volumes.
     """
-    vol_ins2 = list()
-    vol_outs2 = list()
     # random flip and transpose: flip-transpose order, fliplr, flipud, flipz, transposeXY
     rft = (np.random.random(5)>0.5)
-    for vin, vout in zip(vol_ins, lbl_outs):
-        # transform every pair of input and label volume
-        if rft[0]:
-            # first flip and than transpose
-            if rft[1]:
-                vin  = np.fliplr( vin )
-                vout = np.fliplr( vout )
-                if rft[2]:
-                    vin  = np.flipud( vin )
-                    vout = np.flipud( vout )
-                    if rft[3]:
-                        vin =   vin[::-1, :,:]
-                        vout = vout[::-1, :,:]
-            vin = vin.transpose(0,2,1)
-        else:
-            # first transpose, than flip
-            vin = vin.transpose(0,2,1)
-            if rft[1]:
-                vin  = np.fliplr( vin )
-                vout = np.fliplr( vout )
-                if rft[2]:
-                    vin  = np.flipud( vin )
-                    vout = np.flipud( vout )
-                    if rft[3]:
-                        vin =   vin[::-1, :,:]
-                        vout = vout[::-1, :,:]
-        vol_ins2.append( vin )
-        vol_outs2.append( vout )
-    return (vol_ins2, vol_outs2)
+    for i in xrange(vols.shape[0]):
+        vols[i,:,:,:] = data_aug_transform(vols[i,:,:,:], rft)
+    for i in xrange(lbls.shape[0]):
+        lbls[i,:,:,:] = data_aug_transform(lbls[i,:,:,:], rft)
+    return (vols, lbls)
     
