@@ -76,25 +76,13 @@ std::vector<cube_p< T >> array2cubelist( np::ndarray& vols )
 	std::size_t sy = vols.shape(2);
 	std::size_t sx = vols.shape(3);
 
-#ifndef NDEBUG
-			std::cout<<"array2cubelist:"<<std::endl;
-#endif
-
 	for (std::size_t c=0; c<vols.shape(0); c++)
 	{
 		cube_p<T> cp = get_cube<T>(vec3i(sz,sy,sx));
 		for (std::size_t k=0; k< sz*sy*sx; k++)
-		{
 			cp->data()[k] = reinterpret_cast<T*>( vols.get_data() )[c*sz*sy*sx + k];
-#ifndef NDEBUG
-			std::cout<<cp->data()[k]<<",";
-#endif
-		}
 		ret[c] = cp;
 	}
-#ifndef NDEBUG
-	std::cout<<std::endl<<"---------end--------"<<std::endl;
-#endif
 	return ret;
 }
 

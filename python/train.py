@@ -92,7 +92,7 @@ for i in xrange(1, Max_iter ):
         props = cost_fn.softmax(props)
     
     # cost function and accumulate errors
-    cerr, grdts = cfn( props, lbl_outs )
+    cerr, grdts = cfn( props.astype('float64'), lbl_outs.astype('float64') )
     ccls = cost_fn.classification_error(props, lbl_outs)
     err = err + cerr
     cls = cls + ccls
@@ -112,8 +112,9 @@ for i in xrange(1, Max_iter ):
         # anneal factor
         eta = eta * anneal_factor
         net.set_eta(eta)
-        err = err / float(Num_iter_per_show * outsz[0] * outsz[1] * outsz[2])
-        cls = cls / float(Num_iter_per_show * outsz[0] * outsz[1] * outsz[2])
+        # normalize
+        err = err / float(Num_iter_per_show * props.shape[0] * outsz[0] * outsz[1] * outsz[2])
+        cls = cls / float(Num_iter_per_show * props.shape[0] * outsz[0] * outsz[1] * outsz[2])
         
         err_list.append( err )
         cls_list.append( cls )

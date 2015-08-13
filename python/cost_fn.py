@@ -9,7 +9,6 @@ from numba import jit
 
 def classification_error(props, lbls):
     cls = float(np.count_nonzero( (props>0.5)!= lbls ))
-    cls = cls / float( props.shape[0] )
     return cls
 
 #@jit(nopython=True)
@@ -32,8 +31,6 @@ def square_loss(props, lbls):
     # cost and classification error
     err = np.sum( grdts * grdts ) 
     grdts = grdts * 2
-    # normalization
-    err = err / float( props.shape[0] )
     return (err, grdts)
 
 #@jit(nopython=True)
@@ -54,8 +51,6 @@ def binomial_cross_entropy(props, lbls):
 #    assert(props.shape==lbls.shape)
     grdts = props.astype('float32') - lbls.astype('float32')
     err = np.sum(  -lbls*np.log(props) - (1-lbls)*np.log(1-props) )
-    # normalization
-    err = err / float( props.shape[0] )
     return (err, grdts)
 
 #@jit(nopython=True)
@@ -92,8 +87,6 @@ def multinomial_cross_entropy(props, lbls):
     assert(props.shape==lbls.shape)
     grdts = lbls - props
     err = np.sum( -lbls * np.log(props) )
-    # normalization
-    err = err / float( props.shape[0] )
     return (err, grdts)
 
 #def hinge_loss(props, lbls):
