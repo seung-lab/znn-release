@@ -21,9 +21,9 @@
 #include "log.hpp"
 #include "global_task_manager.hpp"
 
-#include "dfs_task_manager.hpp"
-
-#if 0
+#ifdef ZNN_DFS_TASK_SCHEDULER
+#  include "dfs_task_manager.hpp"
+#else
 
 namespace znn { namespace v4 {
 
