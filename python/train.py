@@ -92,8 +92,8 @@ for i in xrange(1, Max_iter ):
         props = cost_fn.softmax(props)
     
     # cost function and accumulate errors
-    cerr, grdts = cfn( props.astype('float64'), lbl_outs.astype('float64') )
-    ccls = cost_fn.classification_error(props, lbl_outs)
+    cerr, grdts = cfn( props.astype('float32'), lbl_outs.astype('float32') )
+    ccls = np.count_nonzero( (props>0.5)!= lbl_outs )
     err = err + cerr
     cls = cls + ccls
     
@@ -102,6 +102,7 @@ for i in xrange(1, Max_iter ):
         rb_weights = cost_fn.rebalance( lbl_outs )
         grdts = grdts * rb_weights
     if is_malis:
+        grdts_bm = np.copy(grdts)
         malis_weights = cost_fn.malis_weights(props)
         grdts = grdts * malis_weights 
     
@@ -139,7 +140,7 @@ for i in xrange(1, Max_iter ):
         if is_malis:
             plt.subplot(335),   plt.imshow(np.log(malis_weights[1,0,:,:]),interpolation='nearest', cmap='gray')
             plt.xlabel('malis weight (log)')
-            plt.subplot(336),   plt.imshow( np.abs(grdts[1,0,:,:] ),interpolation='nearest', cmap='gray')
+            plt.subplot(336),   plt.imshow( np.abs(grdts_bm[1,0,:,:] ),interpolation='nearest', cmap='gray')
             plt.xlabel('gradient befor malis')
         
         plt.subplot(337), plt.plot(it_list, err_list, 'r')

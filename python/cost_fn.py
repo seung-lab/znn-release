@@ -5,11 +5,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
 # numba accelaration
-from numba import jit
-
-def classification_error(props, lbls):
-    cls = float(np.count_nonzero( (props>0.5)!= lbls ))
-    return cls
+#from numba import jit
 
 #@jit(nopython=True)
 def square_loss(props, lbls):
@@ -99,32 +95,26 @@ def rebalance( lbls ):
 
     Parameters
     ----------
-    grdts: list of gradient volumes
-    lbls: list of ground truth label
+    grdts: 4D array of gradient volumes
+    lbls:  4D array of ground truth label
     
     Return
     ------
-    ret: list of balanced gradient volumes
+    ret: 4D array of balanced gradient volumes
     """
-    weights = list()
-    for lbl in lbls:
-        # number of nonzero elements
-        num_nz = float( np.count_nonzero(lbl) )
-        # total number of elements
-        num = float( np.size(lbl) )
+    # number of nonzero elements
+    num_nz = float( np.count_nonzero(lbls) )
+    # total number of elements
+    num = float( np.size(lbls) )
 
-        if num_nz == num or num_nz==0:
-            weights.append( np.ones(lbl.shape) )
-            continue
-        # weight of non-boundary and boundary
-        wnb = 0.5 * num / num_nz
-        wb  = 0.5 * num / (num - num_nz)
+    # weight of non-boundary and boundary
+    wnb = 0.5 * num / num_nz
+    wb  = 0.5 * num / (num - num_nz)
 
-        # give value
-        weight = np.copy( lbl ).astype('float32')
-        weight[lbl>0] = wnb
-        weight[lbl==0]= wb
-        weights.append( weight )
+    # give value
+    weights = np.empty( lbls.shape, dtype='float32' )
+    weights[lbls>0] = wnb
+    weights[lbls==0]= wb
     return weights
 
 #@jit(nopython=True)
@@ -134,16 +124,13 @@ def malis_weights(affs, threshold=0.5):
 
     Parameters:
     -----------
-    affs:      list of forward pass output affinity graphs, size: Z*Y*X
-    true_affs: list of ground truth affinity graphs
+    affs:      4D array of forward pass output affinity graphs, size: C*Z*Y*X
+    threshold: threshold for segmentation
 
 
     Return:
     ------
-    err:     cost energy
-    cls:     classification error
-    grdts:   gradient volumes of affinity graph
-    tree_sizes: the tree_size volumes of each affinity edge
+    weights : 4D array of weights
     """
     # get affinity graphs
     xaff = affs[2]
@@ -159,11 +146,6 @@ def malis_weights(affs, threshold=0.5):
 
     # initialize edges: aff, id1, id2, z/y/x, true_aff
     edges = list()
-    weights = list()
-    # z,y,x of weight
-    weights.append( np.zeros(seg.size) )
-    weights.append( np.zeros(seg.size) )
-    weights.append( np.zeros(seg.size) )
 
     for z in xrange(shape[0]):
         for y in xrange(shape[1]):
@@ -182,6 +164,7 @@ def malis_weights(affs, threshold=0.5):
 
     # find the maximum-spanning tree based on union-find algorithm
     import emirt
+    weights = np.zeros( np.hstack((affs.shape[0], xaff.size)), dtype='float32' )
     for e in edges:
         # find operation with path compression
         r1,seg = emirt.volume_util.find_root(e[1], seg)
@@ -193,14 +176,14 @@ def malis_weights(affs, threshold=0.5):
             s1 = tree_size[r1-1]
             s2 = tree_size[r2-1]
             # accumulate weights
-            weights[e[3]][r1-1] = weights[e[3]][r1-1] + s1*s2
+            weights[e[3], r1-1] = weights[e[3],r1-1] + s1*s2
 #            print "s1: %d, s2: %d"%(s1,s2)
             # merge the two sets/trees
             seg, tree_size = emirt.volume_util.union_tree(r1, r2, seg, tree_size)
     # normalize the weights
     N = float(N)
-    weights[:] = [weight.astype('float32') * (3*N) / ( N*(N-1)/2 ) for weight in weights]
-    weights[:] = [weight.reshape( shape ) for weight in weights]
+    weights = weights * (3*N) / ( N*(N-1)/2 )
+    weights = weights.reshape( affs.shape )
     return weights
 
 
