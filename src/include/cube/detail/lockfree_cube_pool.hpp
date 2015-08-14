@@ -74,6 +74,9 @@ public:
 
 template <typename T> struct qube: boost::multi_array_ref<T,4>
 {
+private:
+    using base_type =  boost::multi_array_ref<T,4>;
+public:
     explicit qube(const vec4i& s, T* data)
         : boost::multi_array_ref<T,4>(data,extents[s[0]][s[1]][s[2]][s[3]])
     {
@@ -83,6 +86,19 @@ template <typename T> struct qube: boost::multi_array_ref<T,4>
     {
         znn_free(this);
     }
+
+    qube& operator=(const qube& x)
+        {
+            base_type::operator=(static_cast<base_type>(x));
+            return *this;
+        }
+
+	template< class Array >
+	qube& operator=(const Array& x)
+	{
+		base_type::operator=(x);
+		return *this;
+	}
 };
 
 template<typename T>
@@ -173,6 +189,38 @@ public:
 
 }; // single_type_cube_pool
 
+template< typename T >
+class single_type_qube_pool
+{
+private:
+    std::array<memory_bucket,32> buckets_;
+
+public:
+    single_type_qube_pool()
+    {
+        for ( size_t i = 0; i < 32; ++i )
+        {
+            buckets_[i].mem_size_ = static_cast<size_t>(1) << i;
+        }
+    }
+
+public:
+
+    std::shared_ptr<qube<T>> get( const vec4i& s )
+        {
+            size_t bucket = 64 - __builtin_clzl( __znn_aligned_size<qube<T>>::value
+                                                 + s[0]*s[1]*s[2]*s[3]*sizeof(T) - 1 );
+
+            void*    mem  = buckets_[bucket].get();
+            T*       data = __offset_cast<T>(mem, __znn_aligned_size<qube<T>>::value);
+            qube<T>* c    = new (mem) qube<T>(s,data);
+
+            return std::shared_ptr<qube<T>>(c,[this,bucket](qube<T>* c) {
+                    this->buckets_[bucket].return_memory(c);
+                }, allocator<qube<T>>());
+        }
+
+}; // single_type_qube_pool
 
 template< typename T >
 struct pool
@@ -193,14 +241,41 @@ public:
 };
 
 template< typename T >
+struct pool_q
+{
+private:
+    static single_type_qube_pool<T>& instance;
+
+public:
+    static std::shared_ptr<qube<T>> get( const vec4i& s )
+	{
+		return instance.get(s);
+	}
+
+    static std::shared_ptr<qube<T>> get( size_t x, size_t y, size_t z, size_t c )
+    {
+        return instance.get( vec4i(x,y,z,c) );
+    }
+};
+
+template< typename T >
 single_type_cube_pool<T>& pool<T>::instance =
     zi::singleton<single_type_cube_pool<T>>::instance();
 
+template< typename T >
+single_type_qube_pool<T>& pool_q<T>::instance =
+    zi::singleton<single_type_qube_pool<T>>::instance();
 
 template<typename T>
 std::shared_ptr<cube<T>> get_cube(const vec3i& s)
 {
     return pool<T>::get(s);
+}
+
+template<typename T>
+std::shared_ptr<qube<T>> get_qube(const vec4i& s)
+{
+    return pool_q<T>::get(s);
 }
 
 }} // namespace znn::v4
