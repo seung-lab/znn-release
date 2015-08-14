@@ -30,8 +30,8 @@ def read_tifs(ftrns, flbls):
     for ftrn, flbl in zip( ftrns, flbls ):
         vol = emirt.io.imread(ftrn).astype('float32')
         lbl = emirt.io.imread(flbl).astype('float32')
-        # normalize the training volume
-        vol = vol / 255
+        # normalize the original volume
+        vol = (vol - np.mean(vol)) / np.std(vol)
         vols.append( vol )
         lbls.append( lbl )
     return (vols, lbls)
@@ -109,23 +109,7 @@ def get_sample( vols, insz, lbls, outsz, dp_type='volume' ):
 
     return (vol_ins, lbl_outs)
 
-def data_norm( data ):
-    """
-    normalize data for network
-    centerize to zero; adjust range to [-1,1]
-    
-    Parameters
-    ----------
-    data : 4D array
-    
-    Returns
-    -------
-    data : 4D array
-    """
-    # centerize to zero    
-    data = data - np.mean(data)
-    # adjust range to [-1,1]
-#    np.    
+
     
 @jit(nopython=True)
 def data_aug_transform(data, rft):
