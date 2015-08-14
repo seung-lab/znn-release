@@ -120,20 +120,9 @@ for i in xrange(1, Max_iter ):
         err_list.append( err )
         cls_list.append( cls )
         it_list.append( i )
-
-        # time
-        elapsed = time.time() - start
-        print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s, learning rate: %.4f"\
-                %(i, err, cls, elapsed, eta*float(outsz[0] * outsz[1] * outsz[2]) )
-        # real time visualization
-        plt.subplot(331),   plt.imshow(vol_ins[0,0,:,:],       interpolation='nearest', cmap='gray')
-        plt.xlabel('input')
-        plt.subplot(332),   plt.imshow(props[1,0,:,:],    interpolation='nearest', cmap='gray')
-        plt.xlabel('inference')
-        plt.subplot(333),   plt.imshow(lbl_outs[1,0,:,:], interpolation='nearest', cmap='gray')
-        plt.xlabel('lable')
-        plt.subplot(334),   plt.imshow(grdts[1,0,:,:],     interpolation='nearest', cmap='gray')
-        plt.xlabel('gradient')
+        start = front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
+                                        eta*float(outsz[0] * outsz[1] * outsz[2]), \
+                                        vol_ins, props, lbl_outs, grdts )
         if is_rebalance:
             plt.subplot(335),   plt.imshow(   rb_weights[1,0,:,:],interpolation='nearest', cmap='gray')
             plt.xlabel('rebalance weight')
@@ -142,16 +131,3 @@ for i in xrange(1, Max_iter ):
             plt.xlabel('malis weight (log)')
             plt.subplot(336),   plt.imshow( np.abs(grdts_bm[1,0,:,:] ),interpolation='nearest', cmap='gray')
             plt.xlabel('gradient befor malis')
-        
-        plt.subplot(337), plt.plot(it_list, err_list, 'r')
-        plt.xlabel('iteration'), plt.ylabel('cost energy')
-        plt.subplot(338), plt.plot(it_list, cls_list, 'b')
-        plt.xlabel('iteration'), plt.ylabel( 'classification error' )
-            
-        plt.pause(1)
-
-        # reset time
-        start = time.time()
-        # reset err and cls
-        err = 0
-        cls = 0

@@ -6,7 +6,9 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 import emirt
 # numba accelaration
-#from numba import jit
+from numba import jit
+import time
+import matplotlib.pylab as plt
 
 def read_tifs(ftrns, flbls):
     """
@@ -107,7 +109,25 @@ def get_sample( vols, insz, lbls, outsz, dp_type='volume' ):
 
     return (vol_ins, lbl_outs)
 
-#@jit(nopython=True)
+def data_norm( data ):
+    """
+    normalize data for network
+    centerize to zero; adjust range to [-1,1]
+    
+    Parameters
+    ----------
+    data : 4D array
+    
+    Returns
+    -------
+    data : 4D array
+    """
+    # centerize to zero    
+    data = data - np.mean(data)
+    # adjust range to [-1,1]
+#    np.    
+    
+@jit(nopython=True)
 def data_aug_transform(data, rft):
     """
     transform data according to a rule
@@ -166,4 +186,34 @@ def data_aug( vols, lbls ):
     for i in xrange(lbls.shape[0]):
         lbls[i,:,:,:] = data_aug_transform(lbls[i,:,:,:], rft)
     return (vols, lbls)
+
+def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
+                eta, vol_ins, props, lbl_outs, grdts ):
+    # time
+    elapsed = time.time() - start
+    print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s, learning rate: %.4f"\
+            %(i, err, cls, elapsed, eta )
+    # real time visualization
+    plt.subplot(331),   plt.imshow(vol_ins[0,0,:,:],       interpolation='nearest', cmap='gray')
+    plt.xlabel('input')
+    plt.subplot(332),   plt.imshow(props[1,0,:,:],    interpolation='nearest', cmap='gray')
+    plt.xlabel('inference')
+    plt.subplot(333),   plt.imshow(lbl_outs[1,0,:,:], interpolation='nearest', cmap='gray')
+    plt.xlabel('lable')
+    plt.subplot(334),   plt.imshow(grdts[1,0,:,:],     interpolation='nearest', cmap='gray')
+    plt.xlabel('gradient')
+
     
+    plt.subplot(337), plt.plot(it_list, err_list, 'r')
+    plt.xlabel('iteration'), plt.ylabel('cost energy')
+    plt.subplot(338), plt.plot(it_list, cls_list, 'b')
+    plt.xlabel('iteration'), plt.ylabel( 'classification error' )
+        
+    plt.pause(1)
+
+    # reset time
+    start = time.time()
+    # reset err and cls
+    err = 0
+    cls = 0
+    return start
