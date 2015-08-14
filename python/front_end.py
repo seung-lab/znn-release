@@ -203,38 +203,6 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     cls = 0
     return start
 
-# DON'T KNOW IF THIS IS NECESSARY
-    # for vin, vout in zip(vol_ins, lbl_outs):
-    #     # transform every pair of input and label volume
-    #     if rft[0]:
-    #         # first flip and than transpose
-    #         if rft[1]:
-    #             vin  = np.fliplr( vin )
-    #             vout = np.fliplr( vout )
-    #             if rft[2]:
-    #                 vin  = np.flipud( vin )
-    #                 vout = np.flipud( vout )
-    #                 if rft[3]:
-    #                     vin =   vin[::-1, :,:]
-    #                     vout = vout[::-1, :,:]
-    #         vin = vin.transpose(0,2,1)
-    #     else:
-    #         # first transpose, than flip
-    #         vin = vin.transpose(0,2,1)
-    #         if rft[1]:
-    #             vin  = np.fliplr( vin )
-    #             vout = np.fliplr( vout )
-    #             if rft[2]:
-    #                 vin  = np.flipud( vin )
-    #                 vout = np.flipud( vout )
-    #                 if rft[3]:
-    #                     vin =   vin[::-1, :,:]
-    #                     vout = vout[::-1, :,:]
-    #     vol_ins2.append( vin )
-    #     vol_outs2.append( vout )
-    # return (vol_ins2, vol_outs2)
-# /DON'T KNOW IF THIS IS NECESSARY
-
 def get_h5_dset_name(layer_name, field):
     return "/%s/%s" % (layer_name, field)
 
