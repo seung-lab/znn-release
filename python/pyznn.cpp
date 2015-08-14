@@ -192,7 +192,10 @@ std::vector<std::size_t> comma_delim_to_vector( std::string const comma_delim)
 	return res;
 }
 
-//Takes a binary string, and converts it to a numpy array
+//Takes a binary string, and converts it to a tuple of numpy arrays
+// (bias values, momentum values)
+//Assumes the intended array is one-dimensional (fitting for biases)
+// and that momentum values are stored following the original values
 bp::tuple bias_string_to_np( std::string const & bin, 
 	std::vector<std::size_t> size,
 	bp::object const & self )
@@ -221,7 +224,8 @@ bp::tuple bias_string_to_np( std::string const & bin,
 		);
 }
 
-
+//Same thing for convolution filters
+// Assumes the input size is THREE dimensional
 bp::tuple filter_string_to_np( std::string const & bin,
 	std::vector<std::size_t> size,
 	std::size_t nodes_in,
@@ -273,7 +277,7 @@ bp::tuple vec_to_tuple( std::vector<std::size_t> vec )
 	}
 }
 
-//znn::options -> dict
+//znn::options -> dict for nodes (no need for input/output node sizes)
 bp::dict node_opt_to_dict( options const opt, 
 	bp::object const & self )
 {
@@ -309,6 +313,8 @@ bp::dict node_opt_to_dict( options const opt,
 	return res;
 }
 
+//Finds the number of nodes for all node groups specified within a vector
+// of options. This is useful in importing the convolution filters
 std::map<std::string, std::size_t> extract_layer_sizes( std::vector<options> opts )
 {
 
@@ -388,7 +394,10 @@ bp::dict edge_opt_to_dict( options const opt,
 
 //IO FUNCTIONS
 
-//Returns a list of 
+//Returns a tuple of list of dictionaries of the following form
+// (node_opts, edge_opts)
+// node_opts = [node_group_option_dict, ...]
+// edge_opts = [edge_group_option_dict, ...]
 bp::tuple CNet_getopts( bp::object const & self )
 {
 	network& net = bp::extract<network&>(self)();
