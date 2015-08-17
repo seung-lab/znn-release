@@ -161,13 +161,15 @@ std::size_t CNet_get_output_num( bp::object const & self )
     return outs["output"].second;
 }
 
+//IO HELPER FUNCTIONS
 
 //Takes a comma delimited string (from option object), and converts it into
 // a vector
+// Used to convert strings like "1,7,7" to a numeric represenstation
 std::vector<std::size_t> comma_delim_to_vector( std::string const comma_delim)
 {
 	//Debug
-	std::cout << "tuple string" << comma_delim << std::endl;
+	// std::cout << "tuple string" << comma_delim << std::endl;
 	//size can either be length 1 or length 3
 	std::vector<std::size_t> res;
 
@@ -190,53 +192,79 @@ std::vector<std::size_t> comma_delim_to_vector( std::string const comma_delim)
 	return res;
 }
 
-bp::tuple string_to_np_array( std::string const & bin,
+//Takes a binary string, and converts it to a tuple of numpy arrays
+// (bias values, momentum values)
+//Assumes the intended array is one-dimensional (fitting for biases)
+// and that momentum values are stored following the original values
+bp::tuple bias_string_to_np( std::string const & bin, 
 	std::vector<std::size_t> size,
 	bp::object const & self )
 {
 	real const * data = reinterpret_cast<real const *>(bin.data());
 
-	if ( size.size() == 1 )
-	{
-		return bp::make_tuple(
-			//values
-			np::from_data(data,
-						np::dtype::get_builtin<real>(),
-						bp::make_tuple(size[0]),
-						bp::make_tuple(sizeof(real)),
-						self
-						),
-			//momentum values
-			np::from_data(data,
-						np::dtype::get_builtin<real>(),
-						bp::make_tuple(size[0]),
-						bp::make_tuple(sizeof(real)),
-						self
-						)
-			);
+	//momentum values stored immediately after array values
+	std::size_t gap = bin.size() / (2 * sizeof(real));
+	real const * momentum = data + gap;
 
-	}
-	else //size.size() == 3
-	{
-		return bp::make_tuple(
-			//values
-			np::from_data(data,
-						np::dtype::get_builtin<real>(),
-						bp::make_tuple(size[0],size[1],size[2]),
-						bp::make_tuple(size[1]*size[2]*sizeof(real), size[2]*sizeof(real), sizeof(real)),
-						self
-						),
-			//momentum values
-			np::from_data(data,
-						np::dtype::get_builtin<real>(),
-						bp::make_tuple(size[0],size[1],size[2]),
-						bp::make_tuple(size[1]*size[2]*sizeof(real), size[2]*sizeof(real), sizeof(real)),
-						self
-						)
-			);
-	}
+	return bp::make_tuple(
+		//values
+		np::from_data(data,
+					np::dtype::get_builtin<real>(),
+					bp::make_tuple(size[0]),
+					bp::make_tuple(sizeof(real)),
+					self
+					),
+		//momentum values
+		np::from_data(momentum,
+					np::dtype::get_builtin<real>(),
+					bp::make_tuple(size[0]),
+					bp::make_tuple(sizeof(real)),
+					self
+					)
+		);
 }
 
+//Same thing for convolution filters
+// Assumes the input size is THREE dimensional
+bp::tuple filter_string_to_np( std::string const & bin,
+	std::vector<std::size_t> size,
+	std::size_t nodes_in,
+	std::size_t nodes_out,
+	bp::object const & self)
+{
+	real const * data = reinterpret_cast<real const *>(bin.data());
+
+	//momentum values stored immediately after array values
+	std::size_t gap = bin.size() / (2 * sizeof(real));
+	real const * momentum = data + gap;
+
+	return bp::make_tuple(
+		//values
+		np::from_data(data,
+					np::dtype::get_builtin<real>(),
+					bp::make_tuple(nodes_in, nodes_out, size[0],size[1],size[2]),
+					bp::make_tuple(nodes_out*size[0]*size[1]*size[2]*sizeof(real),
+								   size[0]*size[1]*size[2]*sizeof(real),
+								   size[1]*size[2]*sizeof(real), 
+								   size[2]*sizeof(real), 
+								   sizeof(real)),
+					self
+					),
+		//momentum values
+		np::from_data(momentum,
+					np::dtype::get_builtin<real>(),
+					bp::make_tuple(nodes_in, nodes_out, size[0],size[1],size[2]),
+					bp::make_tuple(nodes_out*size[0]*size[1]*size[2]*sizeof(real),
+								   size[0]*size[1]*size[2]*sizeof(real),
+								   size[1]*size[2]*sizeof(real), 
+								   size[2]*sizeof(real), 
+								   sizeof(real)),
+					self
+					)
+		);
+}
+//Converts std::vector<std::size_t> vector to tuple of std::size_t
+// used to format size and stride options before passing to python
 bp::tuple vec_to_tuple( std::vector<std::size_t> vec )
 {
 	if ( vec.size() == 1 )
@@ -249,14 +277,16 @@ bp::tuple vec_to_tuple( std::vector<std::size_t> vec )
 	}
 }
 
-//znn::options -> dict
-bp::dict opt_to_dict( options const opt, bp::object const & self )
+//znn::options -> dict for nodes (no need for input/output node sizes)
+bp::dict node_opt_to_dict( options const opt, 
+	bp::object const & self )
 {
 	bp::dict res;
 	std::vector<std::size_t> size;
 
-	// First do a conversion of all fields except
-	// biases and filters
+	//First do a conversion of all fields except
+	// biases and filters to gather necessary information
+	// (size of filters, # input and output filters)
 	for ( auto & p : opt )
 	{
 		if ( p.first == "size" )
@@ -264,11 +294,7 @@ bp::dict opt_to_dict( options const opt, bp::object const & self )
 			size = comma_delim_to_vector(p.second);
 			res[p.first] = vec_to_tuple(size);
 		}
-		else if ( p.first == "stride" )
-		{
-			res[p.first] = vec_to_tuple(comma_delim_to_vector(p.second));
-		}
-		else if ( p.first != "biases" && p.first != "filters" )
+		else if ( p.first != "biases" )
 		{
 			res[p.first] = p.second;
 		}
@@ -280,14 +306,98 @@ bp::dict opt_to_dict( options const opt, bp::object const & self )
 		if (p.first == "biases" || p.first == "filters" )
 		{
 			//Debug
-			res["raw_biases"] = p.second;
-			res[p.first] = string_to_np_array(p.second, size, self);
+			// res["raw_biases"] = p.second;
+			res[p.first] = bias_string_to_np(p.second, size, self);
 		}
 	}
 	return res;
 }
 
-//IO
+//Finds the number of nodes for all node groups specified within a vector
+// of options. This is useful in importing the convolution filters
+std::map<std::string, std::size_t> extract_layer_sizes( std::vector<options> opts )
+{
+
+	std::map<std::string, std::size_t> res;
+
+	for ( std::size_t i=0; i < opts.size(); i++ )
+	{
+		std::string layer_name = opts[i]["name"];
+		std::size_t layer_size = stoi(opts[i]["size"]);
+
+		res[layer_name] = layer_size;
+	}
+
+	return res;
+}
+
+//Edge version, also takes the layer_sizes dict necessary to import filters
+// properly
+bp::dict edge_opt_to_dict( options const opt, 
+	std::map<std::string, std::size_t> layer_sizes,
+	bp::object const & self )
+{
+	bp::dict res;
+	std::vector<std::size_t> size;
+	std::string input = "";
+	std::string output = "";
+
+	//First do a conversion of all fields except
+	// biases and filters to gather necessary information
+	// (size of filters, # input and output filters)
+	for ( auto & p : opt )
+	{
+		if ( p.first == "size" )
+		{
+			size = comma_delim_to_vector(p.second);
+			res[p.first] = vec_to_tuple(size);
+		}
+		else if ( p.first == "stride" )
+		{
+			res[p.first] = vec_to_tuple(comma_delim_to_vector(p.second));
+		}
+		else if ( p.first == "input" )
+		{
+			input = p.second;
+			res[p.first] = p.second;
+		}
+		else if ( p.first == "output" )
+		{
+			output = p.second;
+			res[p.first] = p.second;
+		}
+		else if ( p.first != "filters" )
+		{
+			res[p.first] = p.second;
+		}
+	}
+
+	//Then scan again, for a field we can reshape into a np array
+	for (auto & p : opt )
+	{
+		if (p.first == "filters" )
+		{
+			//Debug
+			// res["raw_biases"] = p.second;
+			std::size_t nodes_in = layer_sizes[input];
+			std::size_t nodes_out = layer_sizes[output];
+
+			res[p.first] = filter_string_to_np(p.second, size, 
+											nodes_in,
+											nodes_out, 
+											self);
+		}
+	}
+	return res;
+}
+
+
+//IO FUNCTIONS
+
+//Returns a tuple of list of dictionaries of the following form
+// (node_opts, edge_opts)
+// node_opts = [node_group_option_dict, ...]
+// edge_opts = [edge_group_option_dict, ...]
 bp::tuple CNet_getopts( bp::object const & self )
 {
 	network& net = bp::extract<network&>(self)();
@@ -297,10 +407,10 @@ bp::tuple CNet_getopts( bp::object const & self )
 	std::pair<std::vector<options>,std::vector<options>> opts = net.serialize();
 
 	//Debug
-	opts.first[1].dump();
-	std::cout<<std::endl;
-	opts.second[1].dump();
-	std::cout<<std::endl;
+	// opts.first[1].dump();
+	// std::cout<<std::endl;
+	// opts.second[1].dump();
+	// std::cout<<std::endl;
 
 	//Init
 	bp::list node_opts;
@@ -310,13 +420,17 @@ bp::tuple CNet_getopts( bp::object const & self )
 	for ( std::size_t i=0; i < opts.first.size(); i++ )
 	{
 		//Convert the map to a python dict, and append it
-		node_opts.append( opt_to_dict(opts.first[i], self) );
+		node_opts.append( node_opt_to_dict(opts.first[i], self) );
 	}
 
+	//TO DO: Derive size layer dictionary from node opts
+	std::map<std::string, std::size_t> layer_sizes = extract_layer_sizes( opts.first );
+
+	//Edge opts
 	for ( std::size_t i=0; i < opts.second.size(); i++ )
 	{
 		//Convert the map to a python dict, and append it
-		edge_opts.append( opt_to_dict(opts.second[i], self) );
+		edge_opts.append( edge_opt_to_dict(opts.second[i], layer_sizes, self) );
 	}
 
 	return bp::make_tuple(node_opts, edge_opts);
