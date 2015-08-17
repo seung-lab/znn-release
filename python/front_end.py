@@ -13,12 +13,12 @@ import matplotlib.pylab as plt
 def read_tifs(ftrns, flbls):
     """
     read a list of tif files of original volume and lable
-    
+
     Parameters
     ----------
     ftrns:  list of file name of train volumes
     flbls:  list of file name of lable volumes
-    
+
     Return
     ------
     vols:  list of training volumes
@@ -28,8 +28,8 @@ def read_tifs(ftrns, flbls):
     vols = list()
     lbls = list()
     for ftrn, flbl in zip( ftrns, flbls ):
-        vol = emirt.io.imread(ftrn).astype('float32')
-        lbl = emirt.io.imread(flbl).astype('float32')
+        vol = emirt.emio.imread(ftrn).astype('float32')
+        lbl = emirt.emio.imread(flbl).astype('float32')
         # normalize the original volume
         vol = (vol - np.mean(vol)) / np.std(vol)
         vols.append( vol )
@@ -39,7 +39,7 @@ def read_tifs(ftrns, flbls):
 def get_sample( vols, insz, lbls, outsz, dp_type='volume' ):
     """
     get random sample from training and labeling volumes
-    
+
     Parameters
     ----------
     vols :  list of training volumes.
@@ -47,7 +47,7 @@ def get_sample( vols, insz, lbls, outsz, dp_type='volume' ):
     lbls :  list of labeling volumes.
     outsz:  output size of network.
     type :  output data type: volume or affinity graph.
-    
+
     Returns
     -------
     vol_ins  : input volume of network.
@@ -59,7 +59,7 @@ def get_sample( vols, insz, lbls, outsz, dp_type='volume' ):
     vid = np.random.randint( len(vols) )
     vol = vols[vid]
     lbl = lbls[vid]
-    # configure size    
+    # configure size
     half_in_sz  = insz.astype('uint32')  / 2
     half_out_sz = outsz.astype('uint32') / 2
     # margin consideration for even-sized input
@@ -67,7 +67,7 @@ def get_sample( vols, insz, lbls, outsz, dp_type='volume' ):
     set_sz = vol.shape - margin_sz - half_in_sz
     # get random location
     loc = np.zeros(3)
-    
+
 
     if 'vol' in dp_type:
         # list of ground truth labels
@@ -88,7 +88,7 @@ def get_sample( vols, insz, lbls, outsz, dp_type='volume' ):
         # list of ground truth labels
         vol_ins = np.empty(np.hstack((1,insz)), dtype='float32')
         lbl_outs= np.empty(np.hstack((3,outsz)), dtype='float32')
-        
+
         loc[0] = np.random.randint(half_in_sz[0]+1, half_in_sz[0] + set_sz[0]-1)
         loc[1] = np.random.randint(half_in_sz[1]+1, half_in_sz[1] + set_sz[1]-1)
         loc[2] = np.random.randint(half_in_sz[2]+1, half_in_sz[2] + set_sz[2]-1)
@@ -110,17 +110,17 @@ def get_sample( vols, insz, lbls, outsz, dp_type='volume' ):
     return (vol_ins, lbl_outs)
 
 
-    
+
 @jit(nopython=True)
 def data_aug_transform(data, rft):
     """
     transform data according to a rule
-    
+
     Parameters
     ----------
     data : 3D numpy array need to be transformed
     rft : transform rule
-    
+
     Returns
     -------
     data : the transformed array
@@ -152,12 +152,12 @@ def data_aug_transform(data, rft):
 def data_aug( vols, lbls ):
     """
     data augmentation, transform volumes randomly to enrich the training dataset.
-    
+
     Parameters
     ----------
     vol : input volumes of network.
     lbl : label volumes of network.
-    
+
     Returns
     -------
     vol : transformed input volumes of network.
@@ -187,12 +187,12 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     plt.subplot(334),   plt.imshow(grdts[1,0,:,:],     interpolation='nearest', cmap='gray')
     plt.xlabel('gradient')
 
-    
+
     plt.subplot(337), plt.plot(it_list, err_list, 'r')
     plt.xlabel('iteration'), plt.ylabel('cost energy')
     plt.subplot(338), plt.plot(it_list, cls_list, 'b')
     plt.xlabel('iteration'), plt.ylabel( 'classification error' )
-        
+
     plt.pause(1)
 
     # reset time
