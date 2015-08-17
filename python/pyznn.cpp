@@ -35,10 +35,14 @@
 #include <memory>
 #include <cstdint>
 #include <assert.h>
+
 // znn
 #include "network/parallel/network.hpp"
 #include "cube/cube.hpp"
 #include <zi/zargs/zargs.hpp>
+
+//utils
+#include "pyznn_utils.hpp"
 
 namespace bp = boost::python;
 namespace np = boost::numpy;
@@ -161,237 +165,6 @@ std::size_t CNet_get_output_num( bp::object const & self )
     return outs["output"].second;
 }
 
-//IO HELPER FUNCTIONS
-
-//Takes a comma delimited string (from option object), and converts it into
-// a vector
-// Used to convert strings like "1,7,7" to a numeric represenstation
-std::vector<std::size_t> comma_delim_to_vector( std::string const comma_delim)
-{
-	//Debug
-	// std::cout << "tuple string" << comma_delim << std::endl;
-	//size can either be length 1 or length 3
-	std::vector<std::size_t> res;
-
-	std::string substring = comma_delim;
-
-	while ( true )
-	{
-		std::size_t comma_ind = substring.find(',');
-
-		if ( substring.find(',') == std::string::npos )
-		{
-			res.push_back( stoi(substring) );
-			break;
-		}
-
-		res.push_back( stoi(substring.substr(0, comma_ind)) );
-		substring = substring.substr(comma_ind+1);
-
-	}
-	return res;
-}
-
-//Takes a binary string, and converts it to a tuple of numpy arrays
-// (bias values, momentum values)
-//Assumes the intended array is one-dimensional (fitting for biases)
-// and that momentum values are stored following the original values
-bp::tuple bias_string_to_np( std::string const & bin, 
-	std::vector<std::size_t> size,
-	bp::object const & self )
-{
-	real const * data = reinterpret_cast<real const *>(bin.data());
-
-	//momentum values stored immediately after array values
-	std::size_t gap = bin.size() / (2 * sizeof(real));
-	real const * momentum = data + gap;
-
-	return bp::make_tuple(
-		//values
-		np::from_data(data,
-					np::dtype::get_builtin<real>(),
-					bp::make_tuple(size[0]),
-					bp::make_tuple(sizeof(real)),
-					self
-					),
-		//momentum values
-		np::from_data(momentum,
-					np::dtype::get_builtin<real>(),
-					bp::make_tuple(size[0]),
-					bp::make_tuple(sizeof(real)),
-					self
-					)
-		);
-}
-
-//Same thing for convolution filters
-// Assumes the input size is THREE dimensional
-bp::tuple filter_string_to_np( std::string const & bin,
-	std::vector<std::size_t> size,
-	std::size_t nodes_in,
-	std::size_t nodes_out,
-	bp::object const & self)
-{
-	real const * data = reinterpret_cast<real const *>(bin.data());
-
-	//momentum values stored immediately after array values
-	std::size_t gap = bin.size() / (2 * sizeof(real));
-	real const * momentum = data + gap;
-
-	return bp::make_tuple(
-		//values
-		np::from_data(data,
-					np::dtype::get_builtin<real>(),
-					bp::make_tuple(nodes_in, nodes_out, size[0],size[1],size[2]),
-					bp::make_tuple(nodes_out*size[0]*size[1]*size[2]*sizeof(real),
-								   size[0]*size[1]*size[2]*sizeof(real),
-								   size[1]*size[2]*sizeof(real), 
-								   size[2]*sizeof(real), 
-								   sizeof(real)),
-					self
-					),
-		//momentum values
-		np::from_data(momentum,
-					np::dtype::get_builtin<real>(),
-					bp::make_tuple(nodes_in, nodes_out, size[0],size[1],size[2]),
-					bp::make_tuple(nodes_out*size[0]*size[1]*size[2]*sizeof(real),
-								   size[0]*size[1]*size[2]*sizeof(real),
-								   size[1]*size[2]*sizeof(real), 
-								   size[2]*sizeof(real), 
-								   sizeof(real)),
-					self
-					)
-		);
-}
-//Converts std::vector<std::size_t> vector to tuple of std::size_t
-// used to format size and stride options before passing to python
-bp::tuple vec_to_tuple( std::vector<std::size_t> vec )
-{
-	if ( vec.size() == 1 )
-	{
-		return bp::make_tuple(vec[0]);
-	}
-	else //vec.size == 3
-	{
-		return bp::make_tuple(vec[0], vec[1], vec[2]);
-	}
-}
-
-//znn::options -> dict for nodes (no need for input/output node sizes)
-bp::dict node_opt_to_dict( options const opt, 
-	bp::object const & self )
-{
-	bp::dict res;
-	std::vector<std::size_t> size;
-
-	//First do a conversion of all fields except
-	// biases and filters to gather necessary information
-	// (size of filters, # input and output filters)
-	for ( auto & p : opt )
-	{
-		if ( p.first == "size" )
-		{
-			size = comma_delim_to_vector(p.second);
-			res[p.first] = vec_to_tuple(size);
-		}
-		else if ( p.first != "biases" )
-		{
-			res[p.first] = p.second;
-		}
-	}
-
-	//Then scan again, for a field we can reshape into a np array
-	for (auto & p : opt )
-	{
-		if (p.first == "biases" || p.first == "filters" )
-		{
-			//Debug
-			// res["raw_biases"] = p.second;
-			res[p.first] = bias_string_to_np(p.second, size, self);
-		}
-	}
-	return res;
-}
-
-//Finds the number of nodes for all node groups specified within a vector
-// of options. This is useful in importing the convolution filters
-std::map<std::string, std::size_t> extract_layer_sizes( std::vector<options> opts )
-{
-
-	std::map<std::string, std::size_t> res;
-
-	for ( std::size_t i=0; i < opts.size(); i++ )
-	{
-		std::string layer_name = opts[i]["name"];
-		std::size_t layer_size = stoi(opts[i]["size"]);
-
-		res[layer_name] = layer_size;
-	}
-
-	return res;
-}
-
-//Edge version, also takes the layer_sizes dict necessary to import filters
-// properly
-bp::dict edge_opt_to_dict( options const opt, 
-	std::map<std::string, std::size_t> layer_sizes,
-	bp::object const & self )
-{
-	bp::dict res;
-	std::vector<std::size_t> size;
-	std::string input = "";
-	std::string output = "";
-
-	//First do a conversion of all fields except
-	// biases and filters to gather necessary information
-	// (size of filters, # input and output filters)
-	for ( auto & p : opt )
-	{
-		if ( p.first == "size" )
-		{
-			size = comma_delim_to_vector(p.second);
-			res[p.first] = vec_to_tuple(size);
-		}
-		else if ( p.first == "stride" )
-		{
-			res[p.first] = vec_to_tuple(comma_delim_to_vector(p.second));
-		}
-		else if ( p.first == "input" )
-		{
-			input = p.second;
-			res[p.first] = p.second;
-		}
-		else if ( p.first == "output" )
-		{
-			output = p.second;
-			res[p.first] = p.second;
-		}
-		else if ( p.first != "filters" )
-		{
-			res[p.first] = p.second;
-		}
-	}
-
-	//Then scan again, for a field we can reshape into a np array
-	for (auto & p : opt )
-	{
-		if (p.first == "filters" )
-		{
-			//Debug
-			// res["raw_biases"] = p.second;
-			std::size_t nodes_in = layer_sizes[input];
-			std::size_t nodes_out = layer_sizes[output];
-
-			res[p.first] = filter_string_to_np(p.second, size, 
-											nodes_in,
-											nodes_out, 
-											self);
-		}
-	}
-	return res;
-}
-
-
 //IO FUNCTIONS
 
 //Returns a tuple of list of dictionaries of the following form
@@ -436,6 +209,31 @@ bp::tuple CNet_getopts( bp::object const & self )
 	return bp::make_tuple(node_opts, edge_opts);
 }
 
+std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
+	std::string const net_config_file,
+	np::ndarray const & outsz_a,
+	std::size_t const tc )
+{
+
+	bp::list node_opts_list = bp::extract<bp::list>( opts[0] );
+	bp::list edge_opts_list = bp::extract<bp::list>( opts[1] );
+
+	std::vector<options> node_opts = pyopt_to_znnopt(node_opts_list);
+	std::vector<options> edge_opts = pyopt_to_znnopt(edge_opts_list);
+
+	parse_net_file(node_opts, edge_opts, net_config_file);
+
+	vec3i out_sz(	reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
+					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
+					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
+					);	
+
+    std::shared_ptr<network> net(
+        new network(node_opts,edge_opts,out_sz,tc));
+    // return net;	
+    return net;
+}
+
 BOOST_PYTHON_MODULE(pyznn)
 {
     Py_Initialize();
@@ -443,6 +241,7 @@ BOOST_PYTHON_MODULE(pyznn)
 
     bp::class_<network, std::shared_ptr<network>, boost::noncopyable>("CNet",bp::no_init)
         .def("__init__", bp::make_constructor(&CNet_Init))
+        .def("__init__", bp::make_constructor(&CNet_loadopts))
         .def("get_fov",     		&CNet_fov)
         .def("forward",     		&CNet_forward)
         .def("backward",			&CNet_backward)

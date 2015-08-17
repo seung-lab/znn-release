@@ -328,5 +328,6 @@ def load_opts(filename):
 
     return (node_opts, edge_opts)
 
-# def load_network(filename):
-    # return CNet(load_opts(filename))
+def load_network(hdf5_filename, fnet_spec, outsz, num_threads):
+    opts = load_opts(hdf5_filename)
+    return CNet(opts, fnet_spec, outsz, num_threads)
