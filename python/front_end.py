@@ -284,7 +284,7 @@ def save_opts(opts, filename):
                 filters_dset_name = "/%s/%s" % (layer_name, "filters")
                 f.create_dataset(filters_dset_name, data=layer["filters"][0])
 
-                momentum_dset_name = "/%s/%s" % (layer_name, "momentum")
+                momentum_dset_name = "/%s/%s" % (layer_name, "momentum_vol")
                 f.create_dataset(momentum_dset_name, data=layer["filters"][1])
 
             elif "biases" in fields:
@@ -292,7 +292,7 @@ def save_opts(opts, filename):
                 biases_dset_name = "/%s/%s" % (layer_name, "biases")
                 f.create_dataset(biases_dset_name, data=layer["biases"][0])
 
-                momentum_dset_name = "/%s/%s" % (layer_name, "momentum")
+                momentum_dset_name = "/%s/%s" % (layer_name, "momentum_vol")
                 f.create_dataset(momentum_dset_name, data=layer["biases"][1])
 
             if "size" in fields:
@@ -316,6 +316,7 @@ def save_opts(opts, filename):
                     continue #already taken care of
 
                 attr_name = "/%s/%s" % (layer_name, field)
+                print field
                 f[attr_name] = layer[field]
 
             #Final flag for node_group type
@@ -344,7 +345,7 @@ def load_opts(filename):
 
             if field == "filters":
 
-                momentum_dset_name = "/%s/%s" % (group, "momentum")
+                momentum_dset_name = "/%s/%s" % (group, "momentum_vol")
 
                 layer["filters"] = (
                     f[dset_name].value,
@@ -353,7 +354,7 @@ def load_opts(filename):
 
             elif field == "biases":
 
-                momentum_dset_name = "/%s/%s" % (group, "momentum")
+                momentum_dset_name = "/%s/%s" % (group, "momentum_vol")
 
                 layer["biases"] = (
                     f[dset_name].value,
