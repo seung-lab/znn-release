@@ -9,7 +9,54 @@ import h5py
 # numba accelaration
 from numba import jit
 import time
+import ConfigParser
+import cost_fn
 import matplotlib.pylab as plt
+
+def parser( conf_fname ):
+    config = ConfigParser.ConfigParser()
+    config.read( conf_fname )
+    
+    # general, train and forward
+    gpars = dict()    
+    tpars = dict()
+    fpars = dict()
+    
+    gpars['fnet_spec']   = config.get('general', 'fnet_spec')
+    gpars['fnet']        = config.get('general', 'fnet')
+    gpars['num_threads'] = int( config.get('general', 'num_threads') )
+    gpars['dp_type']     = config.get('general', 'dp_type')
+    
+    tpars['ftrns']       = config.get('train', 'ftrns').split(',\n')
+    tpars['flbls']       = config.get('train', 'flbls').split(',\n')
+    tpars['eta']         = config.getfloat('train', 'eta') 
+    tpars['anneal_factor']=config.getfloat('train', 'anneal_factor')
+    tpars['momentum']    = config.getfloat('train', 'momentum') 
+    tpars['weight_decay']= config.getfloat('train', 'weight_decay')
+    tpars['outsz']       = np.asarray( [x for x in config.get('train', 'outsz').split(',') ], dtype=np.int64 )
+    tpars['is_data_aug'] = config.getboolean('train', 'is_data_aug')
+    tpars['is_rebalance']= config.getboolean('train', 'is_rebalance')
+    tpars['is_malis']    = config.getboolean('train', 'is_malis')
+    tpars['cost_fn_str'] = config.get('train', 'cost_fn')
+    tpars['Num_iter_per_show'] = config.getint('train', 'Num_iter_per_show')
+    tpars['Max_iter']    = config.getint('train', 'Max_iter')
+    
+    # cost function
+    if tpars['cost_fn_str'] == "square_loss":
+        tpars['cost_fn'] = cost_fn.square_loss
+    elif tpars['cost_fn_str'] == "binomial_cross_entropy":
+        tpars['cost_fn'] = cost_fn.binomial_cross_entropy
+    elif tpars['cost_fn_str'] == "multinomial_cross_entropy":
+        tpars['cost_fn'] = cost_fn.multinomial_cross_entropy 
+    else:
+        raise NameError('unknown type of cost function')
+    
+    #%% print parameters
+    if tpars['is_rebalance']:
+        print "rebalance the gradients"
+    if tpars['is_malis']:
+        print "using malis weight"
+    return gpars, tpars, fpars
 
 def read_tifs(ftrns, flbls):
     """
@@ -173,7 +220,8 @@ def data_aug( vols, lbls ):
     return (vols, lbls)
 
 def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
-                eta, vol_ins, props, lbl_outs, grdts ):
+                eta, vol_ins, props, lbl_outs, grdts, tpars, \
+                rb_weights=0, malis_weights=0, grdts_bm=0):
     # time
     elapsed = time.time() - start
     print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s, learning rate: %.4f"\
@@ -194,14 +242,22 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     plt.subplot(338), plt.plot(it_list, cls_list, 'b')
     plt.xlabel('iteration'), plt.ylabel( 'classification error' )
 
-    plt.pause(1)
-
     # reset time
     start = time.time()
     # reset err and cls
     err = 0
     cls = 0
-    return start
+    
+    if tpars['is_rebalance']:
+        plt.subplot(335),   plt.imshow(   rb_weights[1,0,:,:],interpolation='nearest', cmap='gray')
+        plt.xlabel('rebalance weight')
+    if tpars['is_malis']:
+        plt.subplot(335),   plt.imshow(np.log(malis_weights[1,0,:,:]),interpolation='nearest', cmap='gray')
+        plt.xlabel('malis weight (log)')
+        plt.subplot(336),   plt.imshow( np.abs(grdts_bm[1,0,:,:] ),interpolation='nearest', cmap='gray')
+        plt.xlabel('gradient befor malis')
+    plt.pause(1)
+    return start, err, cls
 
 def get_h5_dset_name(layer_name, field):
     return "/%s/%s" % (layer_name, field)
