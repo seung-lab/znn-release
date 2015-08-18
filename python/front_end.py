@@ -12,6 +12,7 @@ import time
 import ConfigParser
 import cost_fn
 import matplotlib.pylab as plt
+import pyznn
 
 def parser( conf_fname ):
     config = ConfigParser.ConfigParser()
@@ -40,6 +41,9 @@ def parser( conf_fname ):
     tpars['cost_fn_str'] = config.get('train', 'cost_fn')
     tpars['Num_iter_per_show'] = config.getint('train', 'Num_iter_per_show')
     tpars['Max_iter']    = config.getint('train', 'Max_iter')
+    
+    # forward parameters
+    fpars['outsz']       = np.asarray( [x for x in config.get('forward', 'outsz').split(',') ], dtype=np.int64 )    
     
     # cost function
     if tpars['cost_fn_str'] == "square_loss":
@@ -339,6 +343,7 @@ def load_opts(filename):
         layer = {}
 
         for field in f[group]:
+            field = str(field)
 
             dset_name = "/%s/%s" % (group, field)
 
@@ -386,4 +391,4 @@ def load_opts(filename):
 
 def load_network(hdf5_filename, fnet_spec, outsz, num_threads):
     opts = load_opts(hdf5_filename)
-    return CNet(opts, fnet_spec, outsz, num_threads)
+    return pyznn.CNet(opts, fnet_spec, outsz, num_threads)

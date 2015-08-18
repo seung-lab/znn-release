@@ -277,7 +277,6 @@ std::string comma_delim( bp::tuple const & tup )
 
 std::string opt_to_string( bp::dict const & layer_dict, std::string key )
 {
-
 	if ( key == "size" )
 	{ //either (#,) or (#,#,#)
 		std::size_t tuple_len = bp::extract<std::size_t>( 
@@ -333,6 +332,10 @@ std::vector<options> pyopt_to_znnopt( bp::list const & opts )
 
 		for (std::size_t k=0; k < keys.size(); k++ )
 		{
+			if ( keys[k] == "momentum_vol" )
+			{
+				continue;
+			}
 			std::string opt_string = opt_to_string( layer_dict, keys[k] );
 			res.back().push( keys[k], opt_string );
 		}
@@ -340,6 +343,55 @@ std::vector<options> pyopt_to_znnopt( bp::list const & opts )
 	}
 
 	return res;
+}
+
+template <typename T>
+std::vector<cube_p< T >> array2cubelist( np::ndarray& vols )
+{
+	// ensure that the input ndarray is 4 dimension
+	assert( vols.get_nd() == 4 );
+
+	std::vector<cube_p< T >> ret;
+	ret.resize( vols.shape(0) );
+	// input volume size
+	std::size_t sz = vols.shape(1);
+	std::size_t sy = vols.shape(2);
+	std::size_t sx = vols.shape(3);
+
+	for (std::size_t c=0; c<vols.shape(0); c++)
+	{
+		cube_p<T> cp = get_cube<T>(vec3i(sz,sy,sx));
+		for (std::size_t k=0; k< sz*sy*sx; k++)
+			cp->data()[k] = reinterpret_cast<T*>( vols.get_data() )[c*sz*sy*sx + k];
+		ret[c] = cp;
+	}
+	return ret;
+}
+
+template <typename T>
+np::ndarray cubelist2array( bp::object const & self, std::vector<cube_p< T >> clist )
+{
+	// number of output cubes
+	std::size_t sc = clist.size();
+	std::size_t sz = clist[0]->shape()[0];
+	std::size_t sy = clist[1]->shape()[1];
+	std::size_t sx = clist[2]->shape()[2];
+
+	// temporal 4D qube pointer
+	qube_p<T> tqp = get_qube<T>( vec4i(sc,sz,sy,sx) );
+	for (std::size_t c=0; c<sc; c++)
+	{
+		for (std::size_t k=0; k<sz*sy*sx; k++)
+			tqp->data()[c*sz*sy*sx+k] = clist[c]->data()[k];
+	}
+	// return ndarray
+	return 	np::from_data(
+				tqp->data(),
+				np::dtype::get_builtin<T>(),
+				bp::make_tuple(sc,sz,sy,sx),
+				bp::make_tuple(sx*sy*sz*sizeof(T), sx*sy*sizeof(T), sx*sizeof(T), sizeof(T)),
+				self
+			);
 }
 
 }} //namespace znn::v4
