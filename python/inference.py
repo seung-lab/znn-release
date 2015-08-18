@@ -6,24 +6,12 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 
 import numpy as np
 import pyznn
-import emirt
-import time
-import matplotlib.pylab as plt
-import cPickle as pk
+import front_end
 #%% parameters
-ftrn = "../dataset/ISBI2012/data/original/train-volume.tif"
-flbl = "../dataset/ISBI2012/data/original/train-labels.tif"
-fnet_spec = '../networks/srini2d.znn'
-fnet = 'net.pickle'
-# output size
-outsz = np.asarray([1,20,20])
-# number of threads
-num_threads = 7
+gpars, tpars, fpars = front_end.parser( 'config.cfg' )
+vol_orgs, lbl_orgs = front_end.read_tifs(tpars['ftrns'], tpars['flbls'])
 
 #%% load network
-net = pk.load( fnet )
+net = front_end.load_network(gpars['fnet'], gpars['fnet_spec'], fpars['outsz'], gpars['num_threads'])
 
-# compute inputsize and get input
-fov = np.asarray(net.get_fov())
-print "field of view: {}x{}x{}".format(fov[0],fov[1], fov[2])
-insz = fov + outsz - 1
+#%% run forward pass

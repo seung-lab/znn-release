@@ -12,8 +12,6 @@ import cost_fn
 
 #%% parameters
 gpars, tpars, fpars = front_end.parser( 'config.cfg' )
-
-#%% prepare original input
 vol_orgs, lbl_orgs = front_end.read_tifs(tpars['ftrns'], tpars['flbls'])
 
 #%% create and initialize the network
