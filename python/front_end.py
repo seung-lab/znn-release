@@ -316,7 +316,6 @@ def save_opts(opts, filename):
                     continue #already taken care of
 
                 attr_name = "/%s/%s" % (layer_name, field)
-                print field
                 f[attr_name] = layer[field]
 
             #Final flag for node_group type
