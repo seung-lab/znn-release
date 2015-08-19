@@ -9,10 +9,12 @@ import time
 import matplotlib.pylab as plt
 import front_end
 import cost_fn
+import test
 
 #%% parameters
 gpars, tpars, fpars = front_end.parser( 'config.cfg' )
-vol_orgs, lbl_orgs = front_end.read_tifs(tpars['ftrns'], tpars['flbls'])
+vol_orgs, lbl_orgs = front_end.read_tifs(tpars['ftrns'], tpars['flbls'], dp_type=gpars['dp_type'])
+tvl_orgs, tlb_orgs = front_end.read_tifs(tpars['ftsts'], tpars['ftlbs'], dp_type=gpars['dp_type'])
 
 #%% create and initialize the network
 outsz = tpars['outsz']
@@ -32,6 +34,8 @@ err = 0;
 cls = 0;
 err_list = list()
 cls_list = list()
+terr_list = list()
+tcls_list = list()
 it_list = list()
 # the temporal weights
 rb_weights=[] 
@@ -44,7 +48,7 @@ plt.show()
 
 start = time.time()
 for i in xrange(1, tpars['Max_iter'] ):
-    vol_ins, lbl_outs = front_end.get_sample( vol_orgs, insz, lbl_orgs, outsz, dp_type=gpars['dp_type'] )
+    vol_ins, lbl_outs = front_end.get_sample( vol_orgs, insz, lbl_orgs, outsz )
     if tpars['is_data_aug']:
         vol_ins, lbl_outs = front_end.data_aug( vol_ins, lbl_outs )
         
@@ -84,7 +88,12 @@ for i in xrange(1, tpars['Max_iter'] ):
         err_list.append( err )
         cls_list.append( cls )
         it_list.append( i )
+        # test the net
+        terr_list, tcls_list = test.znn_test(net, tpars, gpars, tvl_orgs, tlb_orgs,\
+                                insz, outsz, terr_list, tcls_list)
+        # show results To-do: run in a separate thread
         start, err, cls = front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
+                                        terr_list, tcls_list, \
                                         eta*float(outsz[0] * outsz[1] * outsz[2]), \
                                         vol_ins, props, lbl_outs, grdts, tpars, \
                                         rb_weights, malis_weights, grdts_bm)
