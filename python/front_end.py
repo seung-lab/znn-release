@@ -263,9 +263,6 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     plt.pause(1)
     return start, err, cls
 
-def get_h5_dset_name(layer_name, field):
-    return "/%s/%s" % (layer_name, field)
-
 np_array_fields = ("filters","biases","size","stride")
 def save_opts(opts, filename):
     #Note: opts is a tuple of lists of dictionaries
@@ -332,17 +329,24 @@ def save_network(network, filename):
     save_opts(network.get_opts(), filename)
 
 def load_opts(filename):
+    '''Loads a pyopt structure (tuple of list of dicts) from a stored h5 file'''
 
     f = h5py.File(filename, 'r')
 
     node_opts = []
     edge_opts = []
 
+    #each file has a collection of h5 groups which details a
+    # network layer
     for group in f:
 
         layer = {}
 
+        #each network layer has a number of fields
         for field in f[group]:
+            
+            #h5 file loads unicode strings, which causes issues later
+            # when passing to c++
             field = str(field)
 
             dset_name = "/%s/%s" % (group, field)
@@ -375,12 +379,20 @@ def load_opts(filename):
 
             elif field == "group_type":
 
+                #group_type is handled after the dict is complete
+                # (after the if statements here)
+                continue
+
+            elif field == "momentum_vol":
+
+                #This should be loaded by the filters or biases option
                 continue
 
             else:
 
                 layer[field] = f[dset_name].value
 
+        #Figuring out where this layer belongs (group_type)
         group_type_name = "/%s/%s" % (group, "group_type")
         if f[group_type_name].value == "node":
             node_opts.append(layer)
