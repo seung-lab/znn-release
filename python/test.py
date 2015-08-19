@@ -38,7 +38,7 @@ def znn_test(net, tpars, gpars, tvl_orgs, tlb_orgs, insz, outsz, terr_list, tcls
         props = cost_fn.softmax(props)
     
     # cost function and accumulate errors
-    err, grdts = tpars['cost_fn']( props.astype('float32'), lbl_outs.astype('float32') )
+    err, grdts = tpars['cost_fn']( props, lbl_outs )
     cls = np.count_nonzero( (props>0.5)!= lbl_outs )
     
     # normalize

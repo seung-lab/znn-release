@@ -12,11 +12,13 @@ import cost_fn
 import test
 
 #%% parameters
+print "reading data..."
 gpars, tpars, fpars = front_end.parser( 'config.cfg' )
 vol_orgs, lbl_orgs = front_end.read_tifs(tpars['ftrns'], tpars['flbls'], dp_type=gpars['dp_type'])
 tvl_orgs, tlb_orgs = front_end.read_tifs(tpars['ftsts'], tpars['ftlbs'], dp_type=gpars['dp_type'])
 
 #%% create and initialize the network
+print "initializing network..."
 outsz = tpars['outsz']
 print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
 net = pyznn.CNet(gpars['fnet_spec'], outsz, gpars['num_threads'])
@@ -48,42 +50,42 @@ plt.show()
 
 start = time.time()
 for i in xrange(1, tpars['Max_iter'] ):
-    vol_ins, lbl_outs = front_end.get_sample( vol_orgs, insz, lbl_orgs, outsz )
+    vol_in, lbl_out = front_end.get_sample( vol_orgs, insz, lbl_orgs, outsz )
     if tpars['is_data_aug']:
-        vol_ins, lbl_outs = front_end.data_aug( vol_ins, lbl_outs )
+        vol_in, lbl_out = front_end.data_aug( vol_in, lbl_out )
         
     # forward pass
-    props = net.forward( np.ascontiguousarray(vol_ins) ).astype('float32')
+    prop = net.forward( np.ascontiguousarray(vol_in) ).astype('float32')
 
     # softmax
     if tpars['cost_fn_str']=='multinomial_cross_entropy':
-        props = cost_fn.softmax(props)
+        prop = cost_fn.softmax(prop)
     
     # cost function and accumulate errors
-    cerr, grdts = tpars['cost_fn']( props.astype('float32'), lbl_outs.astype('float32') )
-    ccls = np.count_nonzero( (props>0.5)!= lbl_outs )
+    cerr, grdt = tpars['cost_fn']( prop.astype('float32'), lbl_out.astype('float32') )
+    ccls = np.count_nonzero( (prop>0.5)!= lbl_out )
     err = err + cerr
     cls = cls + ccls
     
     # rebalance
     if tpars['is_rebalance']:
-        rb_weights = cost_fn.rebalance( lbl_outs )
-        grdts = grdts * rb_weights
+        rb_weight = cost_fn.rebalance( lbl_out )
+        grdt = grdt * rb_weight
     if tpars['is_malis']:
-        grdts_bm = np.copy(grdts)
-        malis_weights = cost_fn.malis_weights(props)
-        grdts = grdts * malis_weights 
+        grdt_bm = np.copy(grdt)
+        malis_weight = cost_fn.malis_weight(prop)
+        grdt = grdt * malis_weight 
     
     # run backward pass
-    net.backward( np.ascontiguousarray(grdts) )
+    net.backward( np.ascontiguousarray(grdt) )
     
     if i%tpars['Num_iter_per_show']==0:
         # anneal factor
         eta = eta * tpars['anneal_factor']
         net.set_eta(eta)
         # normalize
-        err = err / float(tpars['Num_iter_per_show'] * props.shape[0] * outsz[0] * outsz[1] * outsz[2])
-        cls = cls / float(tpars['Num_iter_per_show'] * props.shape[0] * outsz[0] * outsz[1] * outsz[2])
+        err = err / float(tpars['Num_iter_per_show'] * prop.shape[0] * outsz[0] * outsz[1] * outsz[2])
+        cls = cls / float(tpars['Num_iter_per_show'] * prop.shape[0] * outsz[0] * outsz[1] * outsz[2])
         
         err_list.append( err )
         cls_list.append( cls )
@@ -92,11 +94,11 @@ for i in xrange(1, tpars['Max_iter'] ):
         terr_list, tcls_list = test.znn_test(net, tpars, gpars, tvl_orgs, tlb_orgs,\
                                 insz, outsz, terr_list, tcls_list)
         # show results To-do: run in a separate thread
-        start, err, cls = front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
-                                        terr_list, tcls_list, \
-                                        eta*float(outsz[0] * outsz[1] * outsz[2]), \
-                                        vol_ins, props, lbl_outs, grdts, tpars, \
-                                        rb_weights, malis_weights, grdts_bm)
+#        start, err, cls = front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
+#                                        terr_list, tcls_list, \
+#                                        eta*float(outsz[0] * outsz[1] * outsz[2]), \
+#                                        vol_in, prop, lbl_out, grdt, tpars, \
+#                                        rb_weights, malis_weights, grdt_bm)
         
         # save network
         print "save network"

@@ -118,7 +118,7 @@ def rebalance( lbls ):
     return weights
 
 #@jit(nopython=True)
-def malis_weights(affs, threshold=0.5):
+def malis_weight(affs, threshold=0.5):
     """
     compute malis tree_size
 

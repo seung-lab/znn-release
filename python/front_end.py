@@ -145,12 +145,6 @@ def get_sample( vols, insz, lbls, outsz):
     vol_ins[0,:,:,:]  = vol[    loc[0]-half_in_sz[0]  : loc[0]-half_in_sz[0] + insz[0],\
                                 loc[1]-half_in_sz[1]  : loc[1]-half_in_sz[1] + insz[1],\
                                 loc[2]-half_in_sz[2]  : loc[2]-half_in_sz[2] + insz[2]]
-#    print "info:"
-#    print lbl.shape
-#    print loc
-#    print half_out_sz    
-#    print outsz
-    
     lbl_outs[:,:,:,:] = lbl[ :, loc[0]-half_out_sz[0] : loc[0]-half_out_sz[0]+outsz[0],\
                                 loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
                                 loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
