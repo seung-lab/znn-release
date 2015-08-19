@@ -122,6 +122,7 @@ std::size_t CNet_get_output_num( bp::object const & self )
 // (node_opts, edge_opts)
 // node_opts = [node_group_option_dict, ...]
 // edge_opts = [edge_group_option_dict, ...]
+// See pyznn_utils.hpp for helper functions
 bp::tuple CNet_getopts( bp::object const & self )
 {
 	network& net = bp::extract<network&>(self)();
@@ -129,12 +130,6 @@ bp::tuple CNet_getopts( bp::object const & self )
 	//opts.first => node options
 	//opts.second => edge options
 	std::pair<std::vector<options>,std::vector<options>> opts = net.serialize();
-
-	//Debug
-	// opts.first[1].dump();
-	// std::cout<<std::endl;
-	// opts.second[1].dump();
-	// std::cout<<std::endl;
 
 	//Init
 	bp::list node_opts;
@@ -147,7 +142,7 @@ bp::tuple CNet_getopts( bp::object const & self )
 		node_opts.append( node_opt_to_dict(opts.first[i], self) );
 	}
 
-	//TO DO: Derive size layer dictionary from node opts
+	//Derive size layer dictionary from node opts
 	std::map<std::string, std::size_t> layer_sizes = extract_layer_sizes( opts.first );
 
 	//Edge opts
@@ -160,6 +155,7 @@ bp::tuple CNet_getopts( bp::object const & self )
 	return bp::make_tuple(node_opts, edge_opts);
 }
 
+//Initializes a CNet instance based on the passed options
 std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
 	std::string const net_config_file,
 	np::ndarray const & outsz_a,
@@ -169,6 +165,7 @@ std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
 	bp::list node_opts_list = bp::extract<bp::list>( opts[0] );
 	bp::list edge_opts_list = bp::extract<bp::list>( opts[1] );
 
+	//See pyznn_utils.hpp
 	std::vector<options> node_opts = pyopt_to_znnopt(node_opts_list);
 	std::vector<options> edge_opts = pyopt_to_znnopt(edge_opts_list);
 

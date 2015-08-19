@@ -197,8 +197,8 @@ bp::dict edge_opt_to_dict( options const opt,
 {
 	bp::dict res;
 	std::vector<std::size_t> size;
-	std::string input = "";
-	std::string output = "";
+	std::string input_layer = "";
+	std::string output_layer = "";
 
 	//First do a conversion of all fields except
 	// biases and filters to gather necessary information
@@ -216,12 +216,12 @@ bp::dict edge_opt_to_dict( options const opt,
 		}
 		else if ( p.first == "input" )
 		{
-			input = p.second;
+			input_layer = p.second;
 			res[p.first] = p.second;
 		}
 		else if ( p.first == "output" )
 		{
-			output = p.second;
+			output_layer = p.second;
 			res[p.first] = p.second;
 		}
 		else if ( p.first != "filters" )
@@ -237,8 +237,8 @@ bp::dict edge_opt_to_dict( options const opt,
 		{
 			//Debug
 			// res["raw_filters"] = p.second;
-			std::size_t nodes_in = layer_sizes[input];
-			std::size_t nodes_out = layer_sizes[output];
+			std::size_t nodes_in = layer_sizes[input_layer];
+			std::size_t nodes_out = layer_sizes[output_layer];
 
 			res[p.first] = filter_string_to_np(p.second, size, 
 											nodes_in,
@@ -249,6 +249,8 @@ bp::dict edge_opt_to_dict( options const opt,
 	return res;
 };
 
+//Loops over a bp::dict, and returns a vector of key strings
+// used to define loop in pyopt_to_znnopt
 std::vector<std::string> extract_dict_keys( bp::dict const & layer_dict )
 {
 	std::vector<std::string> res;
@@ -263,6 +265,8 @@ std::vector<std::string> extract_dict_keys( bp::dict const & layer_dict )
 	return res;
 }
 
+//Creates a comma-delimited string out of a length-3 bp::tuple
+// used to convert "size" or "stride" fields within opt_to_string
 std::string comma_delim( bp::tuple const & tup )
 {
 	char buffer[20];
@@ -275,6 +279,8 @@ std::string comma_delim( bp::tuple const & tup )
 	return buffer;
 }
 
+//Takes a bp::dict field and converts the field to a string
+// which we can store within a options struct (pyopt_to_znnopt)
 std::string opt_to_string( bp::dict const & layer_dict, std::string key )
 {
 	if ( key == "size" )
@@ -316,12 +322,15 @@ std::string opt_to_string( bp::dict const & layer_dict, std::string key )
 	}
 }
 
+//Takes a list of dictionaries (pyopt) and converts them to 
+// a vector of znn options
 std::vector<options> pyopt_to_znnopt( bp::list const & opts )
 {
 
 	std::vector<options> res;
 	std::size_t num_layers = bp::extract<std::size_t>( opts.attr("__len__")() );
 
+	//list loop
 	for (std::size_t i=0; i < num_layers; i++ )
 	{
 
@@ -330,12 +339,9 @@ std::vector<options> pyopt_to_znnopt( bp::list const & opts )
 		bp::dict layer_dict = bp::extract<bp::dict>( opts[i] );
 		std::vector<std::string> keys = extract_dict_keys( layer_dict );
 
+		//dict loop
 		for (std::size_t k=0; k < keys.size(); k++ )
 		{
-			if ( keys[k] == "momentum_vol" )
-			{
-				continue;
-			}
 			std::string opt_string = opt_to_string( layer_dict, keys[k] );
 			res.back().push( keys[k], opt_string );
 		}
