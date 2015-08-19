@@ -94,11 +94,11 @@ for i in xrange(1, tpars['Max_iter'] ):
         terr_list, tcls_list = test.znn_test(net, tpars, gpars, tvl_orgs, tlb_orgs,\
                                 insz, outsz, terr_list, tcls_list)
         # show results To-do: run in a separate thread
-#        start, err, cls = front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
-#                                        terr_list, tcls_list, \
-#                                        eta*float(outsz[0] * outsz[1] * outsz[2]), \
-#                                        vol_in, prop, lbl_out, grdt, tpars, \
-#                                        rb_weights, malis_weights, grdt_bm)
+        start, err, cls = front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
+                                        terr_list, tcls_list, \
+                                        eta*float(outsz[0] * outsz[1] * outsz[2]), \
+                                        vol_in, prop, lbl_out, grdt, tpars, \
+                                        rb_weights, malis_weights, grdt_bm)
         
         # save network
         print "save network"
