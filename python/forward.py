@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 __doc__ = """
 
+Nicholas Turner <nturner.stanford@gmail.com>
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 
+from emirt import emio
 import numpy as np
 import pyznn
 import front_end
@@ -126,13 +128,17 @@ def generate_output_volume(input_vol, output_patch_shape, fov):
 
 	return output_vol
 
-def save_output_volumes(output_volumes, filename):
-	pass
+def save_output_volumes(output_volumes, prefixes):
+
+	for i in range(len(output_volumes)):
+
+		emio.znn_img_save(output_volumes[i], prefixes[i])
 
 def main():
 
-	#%% parameters
+	# parameters
 	gpars, tpars, fpars = front_end.parser( 'config.cfg' )
+
 	# read image stacks
 	input_volumes = front_end.read_tifs(fpars['ffwds'])
 	output_volumes = []
@@ -141,17 +147,19 @@ def main():
 	fov = np.asarray(net.get_fov())
 	print "field of view: {}x{}x{}".format(fov[0],fov[1], fov[2])
 
-	#%% load network
+	# load network
 	net = front_end_io.load_network(gpars['fnet'], 
 									gpars['fnet_spec'], 
 									fpars['outsz'], 
 									gpars['num_threads'])
 
 
+	# generating output volumes for each input
 	for input_vol in input_volumes:
 
 		output_volumes.append(
 			generate_output_volume(input_vol, output_patch_shape, fov)
 			)
 
-	save_output_volumes(output_volumes, "NOT IMPLEMENTED")
+	# saving
+	save_output_volumes(output_volumes, fpars['out_prefix'])

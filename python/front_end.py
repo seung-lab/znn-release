@@ -46,6 +46,7 @@ def parser( conf_fname ):
     
     # forward parameters
     fpars['outsz']       = np.asarray( [x for x in config.get('forward', 'outsz').split(',') ], dtype=np.int64 )    
+    fpars['out_prefix']  = config.get('forward','out_prefix').split(',\n')
     
     # cost function
     if tpars['cost_fn_str'] == "square_loss":
