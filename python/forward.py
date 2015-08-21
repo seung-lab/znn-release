@@ -31,7 +31,7 @@ def patch_bounds(input_vol_width, output_patch_width, fov_width):
 	bounds = []
 
 	beginning = 0
-	ending = fov_width
+	ending = output_patch_width + fov_width - 1
 
 	while ending < input_vol_width:
 
@@ -44,7 +44,7 @@ def patch_bounds(input_vol_width, output_patch_width, fov_width):
 
 	#last bound
 	bounds.append(
-		( input_vol_width - fov_width, input_vol_width)
+		( input_vol_width - (output_patch_width + fov_width - 1), input_vol_width)
 		)
 
 	return bounds
@@ -133,6 +133,12 @@ def save_output_volumes(output_volumes, prefixes):
 	for i in range(len(output_volumes)):
 
 		emio.znn_img_save(output_volumes[i], prefixes[i])
+
+def test(input_patch, fov):
+
+	output_patch_shape = input_patch.shape - fov + 1
+
+	return generate_output_volume(input_patch, output_patch_shape, fov)
 
 def main():
 

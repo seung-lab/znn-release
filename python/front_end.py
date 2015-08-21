@@ -79,7 +79,7 @@ def read_tifs(ftrns, flbls=[], dp_type='volume'):
     vols:  list of training volumes
     lbls:  list of labeling volumes
     """
-#    assert ( len(ftrns) == len(flbls) )
+    # assert ( len(ftrns) == len(flbls) )
     vols = list()
     for ftrn in ftrns:
         vol = emirt.emio.imread(ftrn).astype('float32')
@@ -131,8 +131,8 @@ def get_sample( vols, insz, lbls, outsz):
     # configure size    
     half_in_sz  = insz.astype('uint32')  / 2
     half_out_sz = outsz.astype('uint32') / 2
-#    # margin consideration for even-sized input
-#    margin_sz = (insz-1) / 2
+   # margin consideration for even-sized input
+   # margin_sz = (insz-1) / 2
     set_sz = vol.shape - insz + 1
     # get random location
     loc = np.zeros(3)
@@ -150,6 +150,15 @@ def get_sample( vols, insz, lbls, outsz):
                                 loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
                                 loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
     return (vol_ins, lbl_outs)
+
+def get_sparse_sample( vols, lbls, input_patch_shape, output_patch_shape ):
+    vol_index = np.random.randint( len(vols) )
+    vol = vols[vol_index]
+    lbl = lbls[lbl_index]
+
+    nonzero_indices = np.nonzero(lbl)
+
+    pass
 
 @jit(nopython=True)
 def data_aug_transform(data, rft):

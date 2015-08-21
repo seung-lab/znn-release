@@ -187,4 +187,31 @@ def malis_weight(affs, threshold=0.5):
     weights = weights.reshape( affs.shape )
     return weights
 
+def sparse_cost(outputs, labels, cost_fn):
+    """
+    Sparse Versions of Pixel-Wise Cost Functions
+
+    Parameters
+    ----------
+    outputs: numpy array, forward pass output
+    labels:  numpy array, ground truth labeling
+    
+    Return
+    ------
+    err:   cost energy
+    grdts: numpy array, gradient volumes
+    """
+
+    flat_outputs = outputs[labels != 0]
+    flat_labels = labels[labels != 0]
+
+    errors, gradients = cost_fn(flat_outputs, flat_labels)
+
+    # full_errors = np.zeros(labels.shape)
+    full_gradients = np.zeros(labels.shape)
+
+    # full_errors[labels != 0] = errors
+    full_gradients[labels != 0] = gradients
+
+    return (errors, full_gradients)
 
