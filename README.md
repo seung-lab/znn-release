@@ -43,7 +43,9 @@ C++ source code.
 #### [zi](./zi/) 
 General purpose C++ library, written and maintained by Aleksander Zlateski.
 
-
+Publication
+------
+* [Recursive Training of 2D-3D Convolutional Networks for Neuronal Boundary Detection](http://arxiv.org/pdf/1508.04843.pdf)
 
 Slides
 ------
