@@ -60,8 +60,9 @@ def softmax(props):
     Returns:
     ret:   numpy array, softmax activation volumes
     """
-    pesum = np.sum(np.exp(props), axis=0)
-    ret = props / pesum
+    props_exp = np.exp(props)
+    pesum = np.sum(props_exp, axis=0)
+    ret = props_exp / pesum
     return ret
 
 #@jit(nopython=True)
