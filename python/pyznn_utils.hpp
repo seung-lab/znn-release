@@ -400,4 +400,44 @@ np::ndarray cubelist2array( bp::object const & self, std::vector<cube_p< T >> cl
 			);
 }
 
+template <typename T>
+cube_p<T> array2cube( np::ndarray & vol )
+{
+	assert( vol.get_nd() == 3 );
+
+	cube_p<T> ret;
+	std::size_t sz = vol.shape(0);
+	std::size_t sy = vol.shape(1);
+	std::size_t sx = vol.shape(2);
+
+	cube_p<T> cp = get_cube<T>(vec3i(sz,sy,sx));
+	for (std::size_t k=0; k< sz*sy*sx; k++)
+	{
+		cp->data()[k] = reinterpret_cast<T*>( vol.get_data() )[k];
+	}
+	return cp;
+}
+
+//NOT IMPORTANT YET (another version of masked training)
+// may implement layer if I have time
+// template <typename T>
+// cube_p<T> x_chainvol( cube_p const & label )
+// {
+// 	vec3i shape = label.size();
+
+// 	cube_p<T> chainvol = get_cube<T>(shape);
+
+// 	for (std::size_t i=0; i < shape[0]; i++)
+// 	{
+// 		for (std::size_t j=0; i < shape[1]; j++)
+// 		{
+// 			for (std::size_t k=0; k < shape[2]; k++)
+// 			{
+
+// 			}
+// 		}
+// 	}
+// }
+
+
 }} //namespace znn::v4
