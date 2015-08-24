@@ -82,7 +82,7 @@ def multinomial_cross_entropy(props, lbls):
     grdts:  list of gradient volumes
     """
     assert(props.shape==lbls.shape)
-    grdts = lbls - props
+    grdts = props - lbls
     err = np.sum( -lbls * np.log(props) )
     return (err, grdts)
 
