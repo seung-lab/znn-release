@@ -13,6 +13,7 @@ import ConfigParser
 import cost_fn
 import matplotlib.pylab as plt
 import pyznn
+from emirt import volume_util
 
 def parser( conf_fname ):
     config = ConfigParser.ConfigParser()
@@ -152,13 +153,48 @@ def get_sample( vols, insz, lbls, outsz):
     return (vol_ins, lbl_outs)
 
 def get_sparse_sample( vols, lbls, input_patch_shape, output_patch_shape ):
+
+    #Select volume
     vol_index = np.random.randint( len(vols) )
     vol = vols[vol_index]
     lbl = lbls[lbl_index]
 
-    nonzero_indices = np.nonzero(lbl)
+    # Shape of labels only containing valid locations for input patch
+    valid_lbl_shape = lbl.shape - input_patch_shape + 1
+    valid_lbl = volume_util.crop3d(lbl, valid_lbl_shape, round_up=True)
+    
+    input_patch_margin  = input_patch_shape  / 2 #rounds down
+    output_patch_margin = output_patch_shape / 2 #ditto
 
-    pass
+    # Could be computationally expensive (may be worth modifying)
+    nonzero_indices = np.nonzero(valid_lbl)
+
+    next_offset_index = np.random_choice(nonzero_indices):
+    next_index = next_offset_index + input_patch_margin
+
+    input_vols = np.empty(np.hstack(1,input_patch_shape), dtype='float32')
+    output_labels = np.empty(np.hstack(3,output_patch_shape), dtype='float32')
+
+    input_vols[0,:,:,:] = vol[      next_index[0]-input_patch_margin[0]  :  
+                                        next_index[0]-input_patch_margin[0]
+                                        + input_patch_shape[0],
+                                    next_index[1]-input_patch_margin[1]  :  
+                                        next_index[1]-input_patch_margin[1]
+                                        + input_patch_shape[1],
+                                    next_index[2]-input_patch_margin[2]  :  
+                                        next_index[2]-input_patch_margin[2]
+                                        + input_patch_shape[2]]
+    output_labels[:,:,:,:] = lbl[   next_index[0]-output_patch_margin[0] :
+                                        next_index[0]-output_patch_margin
+                                        + output_patch_shape[0],
+                                    next_index[1]-output_patch_margin[1] :
+                                        next_index[1]-output_patch_margin
+                                        + output_patch_shape[1],
+                                    next_index[2]-output_patch_margin[2] :
+                                        next_index[2]-output_patch_margin
+                                        + output_patch_shape[2]]
+
+    return (input_vols, output_labels)
 
 @jit(nopython=True)
 def data_aug_transform(data, rft):
