@@ -140,9 +140,9 @@ def get_sample( vols, insz, lbls, outsz):
     
     vol_ins = np.empty(np.hstack((1,insz)), dtype='float32')
     lbl_outs= np.empty(np.hstack((3,outsz)), dtype='float32')
-    loc[0] = np.random.randint(half_in_sz[0]+1, half_in_sz[0]+1 + set_sz[0])
-    loc[1] = np.random.randint(half_in_sz[1]+1, half_in_sz[1]+1 + set_sz[1])
-    loc[2] = np.random.randint(half_in_sz[2]+1, half_in_sz[2]+1 + set_sz[2])
+    loc[0] = np.random.randint(half_in_sz[0], half_in_sz[0] + set_sz[0])
+    loc[1] = np.random.randint(half_in_sz[1], half_in_sz[1] + set_sz[1])
+    loc[2] = np.random.randint(half_in_sz[2], half_in_sz[2] + set_sz[2])
     # extract volume
     vol_ins[0,:,:,:]  = vol[    loc[0]-half_in_sz[0]  : loc[0]-half_in_sz[0] + insz[0],\
                                 loc[1]-half_in_sz[1]  : loc[1]-half_in_sz[1] + insz[1],\
