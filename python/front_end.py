@@ -170,7 +170,7 @@ def get_sparse_sample( vols, lbls, input_patch_shape, output_patch_shape ):
     # Could be computationally expensive (may be worth modifying)
     nonzero_indices = np.nonzero(valid_lbl)
 
-    next_offset_index = np.random_choice(nonzero_indices):
+    next_offset_index = np.random_choice(nonzero_indices)
     next_index = next_offset_index + input_patch_margin
 
     input_vols = np.empty(np.hstack(1,input_patch_shape), dtype='float32')
