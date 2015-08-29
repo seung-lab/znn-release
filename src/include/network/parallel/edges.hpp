@@ -38,7 +38,7 @@ inline edges::edges( nodes * in,
     real eta  = opts.optional_as<real>("eta", 0.0001);
     real mom  = opts.optional_as<real>("momentum", 0.0);
     real wd   = opts.optional_as<real>("weight_decay", 0.0);
-    auto   sz   = opts.require_as<ovec3i>("size");
+    auto sz   = opts.require_as<ovec3i>("size");
 
     size_ = sz;
 
@@ -49,20 +49,25 @@ inline edges::edges( nodes * in,
 
     std::string filter_values;
 
-
     if ( opts.contains("filters") )
     {
         filter_values = opts.require_as<std::string>("filters");
     }
     else
     {
-        size_t n_values = n*m*size_[0]*size_[1]*size_[2];
+        size_t n_coeffs = size_[0]*size_[1]*size_[2];
+        size_t n_values = n*m*n_coeffs;
         real * filters_raw = new real[n_values];
 
-        auto initf = get_initializator(opts);
+        // additional information for initialization
+        // e.g. fan-in, fan-out
+        options info;
+        info.push("fan-in",n*n_coeffs);
+        info.push("fan-out",m*n_coeffs);
 
+        auto initf = get_initializator( opts, &info );
 
-        initf->initialize( filters_raw, n*m*size_[0]*size_[1]*size_[2] );
+        initf->initialize( filters_raw, n_values );
 
         filter_values = std::string( reinterpret_cast<char*>(filters_raw),
                                      sizeof(real) * n_values );
