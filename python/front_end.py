@@ -5,14 +5,12 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
 import emirt
-import h5py
-# numba accelaration
-from numba import jit
 import time
 import ConfigParser
 import cost_fn
 import matplotlib.pylab as plt
-import pyznn
+# numba accelaration
+from numba import jit
 
 def parser( conf_fname ):
     config = ConfigParser.ConfigParser()
@@ -105,112 +103,115 @@ def read_tifs(ftrns, flbls=[], dp_type='volume'):
             lbls.append( lbl_net )
         return (vols, lbls)
 
-def get_sample( vols, insz, lbls, outsz):
-    """
-    get random sample from training and labeling volumes
-
-    Parameters
-    ----------
-    vols :  list of training volumes.
-    insz :  input size.
-    lbls :  list of labeling volumes.
-    outsz:  output size of network.
-    type :  output data type: volume or affinity graph.
-
-    Returns
-    -------
-    vol_ins  : input volume of network.
-    vol_outs : label volume of network.
-    """
-    # pick random volume from volume list
-    vid = np.random.randint( len(vols) )
-    vol = vols[vid]
-    lbl = lbls[vid]
-    assert( vol.shape == lbl.shape[1:] )
+class CSample:
+    """class of sample, similar with Dataset module of pylearn2"""
+    def __init__(self, vols, lbls):
+        self.vols = vols
+        self.lbls = lbls
+        
+    def get_sample(self, vols, insz, lbls, outsz):
+        """
+        get random sample from training and labeling volumes
     
-    # configure size    
-    half_in_sz  = insz.astype('uint32')  / 2
-    half_out_sz = outsz.astype('uint32') / 2
-   # margin consideration for even-sized input
-   # margin_sz = (insz-1) / 2
-    set_sz = vol.shape - insz + 1
-    # get random location
-    loc = np.zeros(3)
+        Parameters
+        ----------
+        vols :  list of training volumes.
+        insz :  input size.
+        lbls :  list of labeling volumes.
+        outsz:  output size of network.
+        type :  output data type: volume or affinity graph.
     
-    vol_ins = np.empty(np.hstack((1,insz)), dtype='float32')
-    lbl_outs= np.empty(np.hstack((3,outsz)), dtype='float32')
-    loc[0] = np.random.randint(half_in_sz[0]+1, half_in_sz[0]+1 + set_sz[0])
-    loc[1] = np.random.randint(half_in_sz[1]+1, half_in_sz[1]+1 + set_sz[1])
-    loc[2] = np.random.randint(half_in_sz[2]+1, half_in_sz[2]+1 + set_sz[2])
-    # extract volume
-    vol_ins[0,:,:,:]  = vol[    loc[0]-half_in_sz[0]  : loc[0]-half_in_sz[0] + insz[0],\
-                                loc[1]-half_in_sz[1]  : loc[1]-half_in_sz[1] + insz[1],\
-                                loc[2]-half_in_sz[2]  : loc[2]-half_in_sz[2] + insz[2]]
-    lbl_outs[:,:,:,:] = lbl[ :, loc[0]-half_out_sz[0] : loc[0]-half_out_sz[0]+outsz[0],\
-                                loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
-                                loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
-    return (vol_ins, lbl_outs)
+        Returns
+        -------
+        vol_ins  : input volume of network.
+        vol_outs : label volume of network.
+        """
+        # pick random volume from volume list
+        vid = np.random.randint( len(vols) )
+        vol = vols[vid]
+        lbl = lbls[vid]
+        assert( vol.shape == lbl.shape[1:] )
+        
+        # configure size    
+        half_in_sz  = insz.astype('uint32')  / 2
+        half_out_sz = outsz.astype('uint32') / 2
+       # margin consideration for even-sized input
+       # margin_sz = (insz-1) / 2
+        set_sz = vol.shape - insz + 1
+        # get random location
+        loc = np.zeros(3)
+        
+        self.vol_ins = np.empty(np.hstack((1,insz)), dtype='float32')
+        self.lbl_outs= np.empty(np.hstack((3,outsz)), dtype='float32')
+        loc[0] = np.random.randint(half_in_sz[0]+1, half_in_sz[0]+1 + set_sz[0])
+        loc[1] = np.random.randint(half_in_sz[1]+1, half_in_sz[1]+1 + set_sz[1])
+        loc[2] = np.random.randint(half_in_sz[2]+1, half_in_sz[2]+1 + set_sz[2])
+        # extract volume
+        self.vol_ins[0,:,:,:]  = vol[   loc[0]-half_in_sz[0]  : loc[0]-half_in_sz[0] + insz[0],\
+                                        loc[1]-half_in_sz[1]  : loc[1]-half_in_sz[1] + insz[1],\
+                                        loc[2]-half_in_sz[2]  : loc[2]-half_in_sz[2] + insz[2]]
+        self.lbl_outs[:,:,:,:] = lbl[:, loc[0]-half_out_sz[0] : loc[0]-half_out_sz[0]+outsz[0],\
+                                        loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
+                                        loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
 
 
-@jit(nopython=True)
-def data_aug_transform(data, rft):
-    """
-    transform data according to a rule
+    def data_aug_transform(self, data, rft):
+        """
+        transform data according to a rule
+    
+        Parameters
+        ----------
+        data : 3D numpy array need to be transformed
+        rft : transform rule
+    
+        Returns
+        -------
+        data : the transformed array
+        """
+        # transform every pair of input and label volume
+        if rft[0]:
+            # first flip and than transpose
+            if rft[1]:
+                data  = np.fliplr( data )
+                if rft[2]:
+                    data  = np.flipud( data )
+                    if rft[3]:
+                        data = data[::-1, :,:]
+            if rft[4]:
+                data = data.transpose(0,2,1)
+        else:
+            # first transpose, than flip
+            if rft[4]:
+                data = data.transpose(0,2,1)
+            if rft[1]:
+                data = np.fliplr( data )
+                if rft[2]:
+                    data = np.flipud( data )
+                    if rft[3]:
+                        data = data[::-1, :,:]
+        return data
 
-    Parameters
-    ----------
-    data : 3D numpy array need to be transformed
-    rft : transform rule
-
-    Returns
-    -------
-    data : the transformed array
-    """
-    # transform every pair of input and label volume
-    if rft[0]:
-        # first flip and than transpose
-        if rft[1]:
-            data  = np.fliplr( data )
-            if rft[2]:
-                data  = np.flipud( data )
-                if rft[3]:
-                    data = data[::-1, :,:]
-        if rft[4]:
-            data = data.transpose(0,2,1)
-    else:
-        # first transpose, than flip
-        if rft[4]:
-            data = data.transpose(0,2,1)
-        if rft[1]:
-            data = np.fliplr( data )
-            if rft[2]:
-                data = np.flipud( data )
-                if rft[3]:
-                    data = data[::-1, :,:]
-    return data
-
-#@jit(nopython=True)
-def data_aug( vols, lbls ):
-    """
-    data augmentation, transform volumes randomly to enrich the training dataset.
-
-    Parameters
-    ----------
-    vol : input volumes of network.
-    lbl : label volumes of network.
-
-    Returns
-    -------
-    vol : transformed input volumes of network.
-    lbl : transformed label volumes.
-    """
-    # random flip and transpose: flip-transpose order, fliplr, flipud, flipz, transposeXY
-    rft = (np.random.random(5)>0.5)
-    for i in xrange(vols.shape[0]):
-        vols[i,:,:,:] = data_aug_transform(vols[i,:,:,:], rft)
-    for i in xrange(lbls.shape[0]):
-        lbls[i,:,:,:] = data_aug_transform(lbls[i,:,:,:], rft)
-    return (vols, lbls)
+    def volume_aug(self, vols, lbls, dp_type = 'volume' ):
+        """
+        data augmentation, transform volumes randomly to enrich the training dataset.
+    
+        Parameters
+        ----------
+        vol : input volumes of network.
+        lbl : label volumes of network.
+    
+        Returns
+        -------
+        vol : transformed input volumes of network.
+        lbl : transformed label volumes.
+        """
+        # random flip and transpose: flip-transpose order, fliplr, flipud, flipz, transposeXY
+        rft = (np.random.random(5)>0.5)
+        for i in xrange(vols.shape[0]):
+            vols[i,:,:,:] = data_aug_transform(vols[i,:,:,:], rft)
+        for i in xrange(lbls.shape[0]):
+            lbls[i,:,:,:] = self.data_aug_transform(lbls[i,:,:,:], rft)
+        return (vols, lbls)
 
 def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
                 terr_list, tcls_list, \
