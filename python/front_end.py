@@ -9,8 +9,8 @@ import time
 import ConfigParser
 import cost_fn
 import matplotlib.pylab as plt
-# numba accelaration
-from numba import jit
+import pyznn
+from emirt import volume_util
 
 def parser( conf_fname ):
     config = ConfigParser.ConfigParser()
@@ -153,6 +153,65 @@ class CSample:
         self.lbl_outs[:,:,:,:] = lbl[:, loc[0]-half_out_sz[0] : loc[0]-half_out_sz[0]+outsz[0],\
                                         loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
                                         loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
+        vol_ins = np.empty(np.hstack((1,insz)), dtype='float32')
+        lbl_outs= np.empty(np.hstack((3,outsz)), dtype='float32')
+        loc[0] = np.random.randint(half_in_sz[0], half_in_sz[0] + set_sz[0])
+        loc[1] = np.random.randint(half_in_sz[1], half_in_sz[1] + set_sz[1])
+        loc[2] = np.random.randint(half_in_sz[2], half_in_sz[2] + set_sz[2])
+        # extract volume
+        vol_ins[0,:,:,:]  = vol[    loc[0]-half_in_sz[0]  : loc[0]-half_in_sz[0] + insz[0],\
+                                    loc[1]-half_in_sz[1]  : loc[1]-half_in_sz[1] + insz[1],\
+                                    loc[2]-half_in_sz[2]  : loc[2]-half_in_sz[2] + insz[2]]
+        lbl_outs[:,:,:,:] = lbl[ :, loc[0]-half_out_sz[0] : loc[0]-half_out_sz[0]+outsz[0],\
+                                    loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
+                                    loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
+        return (vol_ins, lbl_outs)
+
+
+def get_sparse_sample( vols, lbls, input_patch_shape, output_patch_shape ):
+
+    #Select volume
+    index = np.random.randint( len(vols) )
+    vol = vols[index]
+    lbl = lbls[index]
+
+    # Shape of labels only containing valid locations for input patch
+    valid_lbl_shape = lbl.shape - input_patch_shape + 1
+    valid_lbl = volume_util.crop3d(lbl, valid_lbl_shape, round_up=True)
+    
+    input_patch_margin  = input_patch_shape  / 2 #rounds down
+    output_patch_margin = output_patch_shape / 2 #ditto
+
+    # Could be computationally expensive (may be worth modifying)
+    nonzero_indices = np.nonzero(valid_lbl)
+
+    next_offset_index = np.random_choice(nonzero_indices)
+    next_index = next_offset_index + input_patch_margin
+
+    input_vols = np.empty(np.hstack(1,input_patch_shape), dtype='float32')
+    output_labels = np.empty(np.hstack(3,output_patch_shape), dtype='float32')
+
+    input_vols[0,:,:,:] = vol[      next_index[0]-input_patch_margin[0]  :  
+                                        next_index[0]-input_patch_margin[0]
+                                        + input_patch_shape[0],
+                                    next_index[1]-input_patch_margin[1]  :  
+                                        next_index[1]-input_patch_margin[1]
+                                        + input_patch_shape[1],
+                                    next_index[2]-input_patch_margin[2]  :  
+                                        next_index[2]-input_patch_margin[2]
+                                        + input_patch_shape[2]]
+    output_labels[:,:,:,:] = lbl[   next_index[0]-output_patch_margin[0] :
+                                        next_index[0]-output_patch_margin
+                                        + output_patch_shape[0],
+                                    next_index[1]-output_patch_margin[1] :
+                                        next_index[1]-output_patch_margin
+                                        + output_patch_shape[1],
+                                    next_index[2]-output_patch_margin[2] :
+                                        next_index[2]-output_patch_margin
+                                        + output_patch_shape[2]]
+
+    return (input_vols, output_labels)
+
 
 
     def data_aug_transform(self, data, rft):
