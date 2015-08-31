@@ -63,7 +63,13 @@ def parser( conf_fname ):
         print "using malis weight"
     return gpars, tpars, fpars
 
-def read_tifs(ftrns, flbls=[], dp_type='volume'):
+class CSamples:
+    """class of sample, similar with Dataset module of pylearn2"""
+    def __init__(self, vols, lbls):
+        self.vols = vols
+        self.lbls = lbls
+    
+    def read_tifs(ftrns, flbls=[], dp_type='volume'):
     """
     read a list of tif files of original volume and lable
 
@@ -102,13 +108,6 @@ def read_tifs(ftrns, flbls=[], dp_type='volume'):
                 raise NameError("invalid data type name")
             lbls.append( lbl_net )
         return (vols, lbls)
-
-class CSample:
-    """class of sample, similar with Dataset module of pylearn2"""
-    def __init__(self, vols, lbls):
-        self.vols = vols
-        self.lbls = lbls
-        
     def get_sample(self, vols, insz, lbls, outsz):
         """
         get random sample from training and labeling volumes
@@ -168,49 +167,49 @@ class CSample:
         return (vol_ins, lbl_outs)
 
 
-def get_sparse_sample( vols, lbls, input_patch_shape, output_patch_shape ):
-
-    #Select volume
-    index = np.random.randint( len(vols) )
-    vol = vols[index]
-    lbl = lbls[index]
-
-    # Shape of labels only containing valid locations for input patch
-    valid_lbl_shape = lbl.shape - input_patch_shape + 1
-    valid_lbl = volume_util.crop3d(lbl, valid_lbl_shape, round_up=True)
+    def get_sparse_sample( vols, lbls, input_patch_shape, output_patch_shape ):
     
-    input_patch_margin  = input_patch_shape  / 2 #rounds down
-    output_patch_margin = output_patch_shape / 2 #ditto
-
-    # Could be computationally expensive (may be worth modifying)
-    nonzero_indices = np.nonzero(valid_lbl)
-
-    next_offset_index = np.random_choice(nonzero_indices)
-    next_index = next_offset_index + input_patch_margin
-
-    input_vols = np.empty(np.hstack(1,input_patch_shape), dtype='float32')
-    output_labels = np.empty(np.hstack(3,output_patch_shape), dtype='float32')
-
-    input_vols[0,:,:,:] = vol[      next_index[0]-input_patch_margin[0]  :  
-                                        next_index[0]-input_patch_margin[0]
-                                        + input_patch_shape[0],
-                                    next_index[1]-input_patch_margin[1]  :  
-                                        next_index[1]-input_patch_margin[1]
-                                        + input_patch_shape[1],
-                                    next_index[2]-input_patch_margin[2]  :  
-                                        next_index[2]-input_patch_margin[2]
-                                        + input_patch_shape[2]]
-    output_labels[:,:,:,:] = lbl[   next_index[0]-output_patch_margin[0] :
-                                        next_index[0]-output_patch_margin
-                                        + output_patch_shape[0],
-                                    next_index[1]-output_patch_margin[1] :
-                                        next_index[1]-output_patch_margin
-                                        + output_patch_shape[1],
-                                    next_index[2]-output_patch_margin[2] :
-                                        next_index[2]-output_patch_margin
-                                        + output_patch_shape[2]]
-
-    return (input_vols, output_labels)
+        #Select volume
+        index = np.random.randint( len(vols) )
+        vol = vols[index]
+        lbl = lbls[index]
+    
+        # Shape of labels only containing valid locations for input patch
+        valid_lbl_shape = lbl.shape - input_patch_shape + 1
+        valid_lbl = volume_util.crop3d(lbl, valid_lbl_shape, round_up=True)
+        
+        input_patch_margin  = input_patch_shape  / 2 #rounds down
+        output_patch_margin = output_patch_shape / 2 #ditto
+    
+        # Could be computationally expensive (may be worth modifying)
+        nonzero_indices = np.nonzero(valid_lbl)
+    
+        next_offset_index = np.random_choice(nonzero_indices)
+        next_index = next_offset_index + input_patch_margin
+    
+        input_vols = np.empty(np.hstack(1,input_patch_shape), dtype='float32')
+        output_labels = np.empty(np.hstack(3,output_patch_shape), dtype='float32')
+    
+        input_vols[0,:,:,:] = vol[      next_index[0]-input_patch_margin[0]  :  
+                                            next_index[0]-input_patch_margin[0]
+                                            + input_patch_shape[0],
+                                        next_index[1]-input_patch_margin[1]  :  
+                                            next_index[1]-input_patch_margin[1]
+                                            + input_patch_shape[1],
+                                        next_index[2]-input_patch_margin[2]  :  
+                                            next_index[2]-input_patch_margin[2]
+                                            + input_patch_shape[2]]
+        output_labels[:,:,:,:] = lbl[   next_index[0]-output_patch_margin[0] :
+                                            next_index[0]-output_patch_margin
+                                            + output_patch_shape[0],
+                                        next_index[1]-output_patch_margin[1] :
+                                            next_index[1]-output_patch_margin
+                                            + output_patch_shape[1],
+                                        next_index[2]-output_patch_margin[2] :
+                                            next_index[2]-output_patch_margin
+                                            + output_patch_shape[2]]
+    
+        return (input_vols, output_labels)
 
 
 
