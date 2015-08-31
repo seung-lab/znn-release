@@ -9,6 +9,9 @@ Supports Linux and MacOS. When using MKL fftw is not required
 |:-----:|-------------------|
 |[fftw](http://www.fftw.org/)|libfftw3-dev|
 |[boost](http://www.boost.org/)|libboost-all-dev|
+|[BoostNumpy](http://github.com/ndarray/Boost.NumPy)|NA|
+|[jemalloc](http://www.canonware.com/jemalloc/)|libjemalloc-dev|
+
 
 Compiler flags
 --------------

@@ -195,6 +195,7 @@ def sparse_cost(outputs, labels, cost_fn):
     ----------
     outputs: numpy array, forward pass output
     labels:  numpy array, ground truth labeling
+    cost_fn: function to make sparse
     
     Return
     ------

@@ -45,7 +45,7 @@ def parser( conf_fname ):
     # forward parameters
     fpars['outsz']       = np.asarray( [x for x in config.get('forward', 'outsz').split(',') ], dtype=np.int64 )    
     fpars['out_prefix']  = config.get('forward','out_prefix').split(',\n')
-    fpard['ffwds']       = config.get('forward','ffwds').split(',\n')
+    fpars['ffwds']       = config.get('forward','ffwds').split(',\n')
     
     # cost function
     if tpars['cost_fn_str'] == "square_loss":
@@ -71,44 +71,45 @@ class CSamples:
         self.lbls = lbls
     
     def read_tifs(ftrns, flbls=[], dp_type='volume'):
-    """
-    read a list of tif files of original volume and lable
+        """
+        read a list of tif files of original volume and lable
 
-    Parameters
-    ----------
-    ftrns:  list of file name of train volumes
-    flbls:  list of file name of lable volumes
+        Parameters
+        ----------
+        ftrns:  list of file name of train volumes
+        flbls:  list of file name of lable volumes
 
-    Return
-    ------
-    vols:  list of training volumes
-    lbls:  list of labeling volumes
-    """
-    # assert ( len(ftrns) == len(flbls) )
-    vols = list()
-    for ftrn in ftrns:
-        vol = emirt.emio.imread(ftrn).astype('float32')
-        # normalize the original volume
-        vol = (vol - np.mean(vol)) / np.std(vol)
-        vols.append( vol )
-    if not flbls:
-        return vols
-    else:
-        lbls = list()
-        for flbl in flbls:
-            lbl = emirt.emio.imread(flbl).astype('float32')
-            # transform lable data to network output format
-            if 'vol' in dp_type:
-                lbl_net = lbl.reshape((1,)+lbl.shape).astype('float32')
-            elif 'aff' in dp_type:
-                lbl_net = np.zeros((3,)+lbl.shape, dtype='float32') 
-                lbl_net[0,1:,:,:] = (lbl[1:,:,:] == lbl[:-1,:,:]) & (lbl[1:,:,:]>0)
-                lbl_net[1,:,1:,:] = (lbl[:,1:,:] == lbl[:,:-1,:]) & (lbl[:,1:,:]>0)
-                lbl_net[2,:,:,1:] = (lbl[:,:,1:] == lbl[:,:,:-1]) & (lbl[:,:,1:]>0)
-            else:
-                raise NameError("invalid data type name")
-            lbls.append( lbl_net )
-        return (vols, lbls)
+        Return
+        ------
+        vols:  list of training volumes
+        lbls:  list of labeling volumes
+        """
+        vols = list()
+        # assert ( len(ftrns) == len(flbls) )
+        for ftrn in ftrns:
+            vol = emirt.emio.imread(ftrn).astype('float32')
+            # normalize the original volume
+            vol = (vol - np.mean(vol)) / np.std(vol)
+            vols.append( vol )
+        if not flbls:
+            return vols
+        else:
+            lbls = list()
+            for flbl in flbls:
+                lbl = emirt.emio.imread(flbl).astype('float32')
+                # transform lable data to network output format
+                if 'vol' in dp_type:
+                    lbl_net = lbl.reshape((1,)+lbl.shape).astype('float32')
+                elif 'aff' in dp_type:
+                    lbl_net = np.zeros((3,)+lbl.shape, dtype='float32') 
+                    lbl_net[0,1:,:,:] = (lbl[1:,:,:] == lbl[:-1,:,:]) & (lbl[1:,:,:]>0)
+                    lbl_net[1,:,1:,:] = (lbl[:,1:,:] == lbl[:,:-1,:]) & (lbl[:,1:,:]>0)
+                    lbl_net[2,:,:,1:] = (lbl[:,:,1:] == lbl[:,:,:-1]) & (lbl[:,:,1:]>0)
+                else:
+                    raise NameError("invalid data type name")
+                lbls.append( lbl_net )
+            return (vols, lbls)
+
     def get_sample(self, vols, insz, lbls, outsz):
         """
         get random sample from training and labeling volumes
