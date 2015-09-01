@@ -1,6 +1,7 @@
 #pragma once
 
 #include "edges_fwd.hpp"
+#include "softmax_edges.hpp"
 #include "filter_edge.hpp"
 #include "fft_filter_edge.hpp"
 #include "filter_ds_edge.hpp"
@@ -71,7 +72,7 @@ inline edges::edges( nodes * in,
 
     load_filters(filters_, size_, filter_values);
 
-    int does_fft = options_.optional_as<int>("fft", "1");
+    int does_fft = options_.optional_as<int>("fft", "0");
     auto repeat  = options_.optional_as<ovec3i>("repeat", "1,1,1");
 
     if ( size_ == vec3i::one ) does_fft = 0;
@@ -137,6 +138,31 @@ inline edges::edges( nodes * in,
             (in, i, out, i, tm);
     }
 }
+
+
+inline edges::edges( nodes * in,
+                     nodes * out,
+                     options const & opts,
+                     task_manager & tm,
+                     softmax_tag )
+    : options_(opts)
+    , tm_(tm)
+{
+    ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
+
+    size_t n = in->num_out_nodes();
+    edges_.resize(n);
+    waiter_.set(n);
+
+    auto layer = std::make_shared<softmax_edge::layer>(n,tm);
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        edges_[i] = std::make_unique<softmax_edge>
+            (in, i, out, i, tm, layer);
+    }
+}
+
 
 
 inline edges::edges( nodes * in,

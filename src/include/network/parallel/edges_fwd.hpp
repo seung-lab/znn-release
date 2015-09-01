@@ -18,6 +18,7 @@ public:
     struct dummy_tag {};
     struct max_pooling_tag{};
     struct real_pooling_tag{};
+    struct softmax_tag {};
 
 protected:
     options                                options_;
@@ -38,6 +39,8 @@ public:
 
     edges( nodes *, nodes *, options const &, vec3i const &,
            task_manager &, real_pooling_tag );
+
+    edges( nodes *, nodes *, options const &, task_manager &, softmax_tag );
 
     std::string name() const
     {

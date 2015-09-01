@@ -1,6 +1,7 @@
 #pragma once
 
 #include "edges.hpp"
+#include "softmax_edges.hpp"
 #include "input_nodes.hpp"
 #include "transfer_nodes.hpp"
 #include "../../initializator/initializators.hpp"
