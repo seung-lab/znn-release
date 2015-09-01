@@ -65,7 +65,6 @@ def softmax(props):
     ret = props_exp / pesum
     return ret
 
-#@jit(nopython=True)
 def multinomial_cross_entropy(props, lbls):
     """
     compute multinomial cross entropy

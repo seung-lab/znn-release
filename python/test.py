@@ -7,17 +7,15 @@ import numpy as np
 import cost_fn
 import front_end
 
-def znn_test(net, tpars, gpars, tvl_orgs, tlb_orgs, insz, outsz, terr_list, tcls_list):
+def znn_test(net, pars, sample, insz, outsz, terr_list, tcls_list):
     """
     test the net 
     
     Parameters
     ----------
     net : network
-    tpars : dict, train parameters
-    gpars : dict, general parameters
-    tvl_orgs : list of array, original test volume
-    tlb_orgs : list of array, original test lable
+    pars : dict, parameters
+    sample : a input and output sample
     insz : 1D array, input size
     outsz : 1D array, output size
     terr_list : list of float32, test cost
@@ -28,17 +26,17 @@ def znn_test(net, tpars, gpars, tvl_orgs, tlb_orgs, insz, outsz, terr_list, tcls
     terr_list : list of float32, test cost
     tcls_list : list of float32, test classification error
     """
-    vol_ins, lbl_outs = front_end.get_sample( tvl_orgs, insz, tlb_orgs, outsz )
+    vol_ins, lbl_outs = sample.get_random_sample( insz, outsz )
    
     # forward pass
     props = net.forward( np.ascontiguousarray(vol_ins) ).astype('float32')
 
     # softmax
-    if tpars['cost_fn_str']=='multinomial_cross_entropy':
+    if pars['cost_fn_str']=='multinomial_cross_entropy':
         props = cost_fn.softmax(props)
     
     # cost function and accumulate errors
-    err, grdts = tpars['cost_fn']( props, lbl_outs )
+    err, grdts = pars['cost_fn']( props, lbl_outs )
     cls = np.count_nonzero( (props>0.5)!= lbl_outs )
     
     # normalize
