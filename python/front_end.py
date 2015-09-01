@@ -67,8 +67,8 @@ def parser( conf_fname ):
     pars['Max_iter']    = config.getint('parameters', 'Max_iter')
 
     # forward parameters
-    pars['forward_range']= parseIntSet( config.get('parameters', 'forward_range') )
-    pars['forward_outsz']       = np.asarray( [x for x in config.get('parameters', 'forward_outsz').split(',') ], dtype=np.int64 )
+    pars['forward_range'] = parseIntSet( config.get('parameters', 'forward_range') )
+    pars['forward_outsz'] = np.asarray( [x for x in config.get('parameters', 'forward_outsz').split(',') ], dtype=np.int64 )
     pars['output_prefix'] = config.get('parameters', 'output_prefix')
 
     # cost function
@@ -399,7 +399,5 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     if tpars['is_malis']:
         plt.subplot(335),   plt.imshow(np.log(malis_weights[1,0,:,:]),interpolation='nearest', cmap='gray')
         plt.xlabel('malis weight (log)')
-        plt.subplot(336),   plt.imshow( np.abs(grdts_bm[1,0,:,:] ),interpolation='nearest', cmap='gray')
-        plt.xlabel('gradient befor malis')
     plt.pause(1)
     return start, err, cls
