@@ -380,8 +380,8 @@ np::ndarray cubelist2array( bp::object const & self, std::vector<cube_p< T >> cl
 	// number of output cubes
 	std::size_t sc = clist.size();
 	std::size_t sz = clist[0]->shape()[0];
-	std::size_t sy = clist[1]->shape()[1];
-	std::size_t sx = clist[2]->shape()[2];
+	std::size_t sy = clist[0]->shape()[1];
+	std::size_t sx = clist[0]->shape()[2];
 
 	// temporal 4D qube pointer
 	qube_p<T> tqp = get_qube<T>( vec4i(sc,sz,sy,sx) );

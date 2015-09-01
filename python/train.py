@@ -95,13 +95,13 @@ for i in xrange(1, pars['Max_iter'] ):
         cls_list.append( cls )
         it_list.append( i )
         
-        # show results To-do: run in a separate thread
-        start, err, cls = front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
-                                        terr_list, tcls_list, \
-                                        eta*float(outsz[0] * outsz[1] * outsz[2]), \
-                                        vol_in, prop, lbl_out, grdt, pars, \
-                                        rb_weights, malis_weights, grdt_bm)
+#        # show results To-do: run in a separate thread
+#        start, err, cls = front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
+#                                        terr_list, tcls_list, \
+#                                        eta*float(outsz[0] * outsz[1] * outsz[2]), \
+#                                        vol_in, prop, lbl_out, grdt, pars, \
+#                                        rb_weights, malis_weights, grdt_bm)
     if i%pars['Num_iter_per_save']==0:
         # save network
         print "save network"
-        front_end_io.save_network(net, pars['fnet'])
+        front_end_io.save_network(net, pars['fnet'], num_iters=i)

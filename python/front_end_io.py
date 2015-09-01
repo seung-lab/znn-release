@@ -2,6 +2,9 @@
 import numpy as np
 import h5py
 import pyznn
+import os.path, shutil
+
+archive_directory_name = 'ARCHIVE'
 
 np_array_fields = ("filters","biases","size","stride")
 def save_opts(opts, filename):
@@ -65,8 +68,27 @@ def save_opts(opts, filename):
 
     f.close()
 
-def save_network(network, filename):
+def save_network(network, filename, num_iters=None):
+    '''Saves a network under an h5 file. Appends the number
+    of iterations if passed, and updates a "current" file with
+    the most recent (uncorrupted) information'''
+
+    if not os.path.exists(archive_directory_name):
+        os.mkdir(archive_directory_name)
+
+    filename = "{}/{}".format(archive_directory_name, filename)
+
+    root, ext = os.path.splitext(filename)
+
+    filename_current = "{}{}{}".format(root, '_current', ext)
+
+    if num_iters is not None:
+        filename = "{}{}{}{}".format(root, '_', num_iters, ext)
+
     save_opts(network.get_opts(), filename)
+
+    # Overwriting most current file with completely saved version
+    shutil.copyfile(filename, filename_current)
 
 def load_opts(filename):
     '''Loads a pyopt structure (tuple of list of dicts) from a stored h5 file'''

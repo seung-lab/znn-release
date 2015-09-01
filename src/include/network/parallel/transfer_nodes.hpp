@@ -156,7 +156,7 @@ private:
     void do_forward(size_t n)
     {
         fs_[n] = fwd_accumulators_[n]->reset();
-        STRONG_ASSERT(!fwd_done_[n]);
+        //STRONG_ASSERT(!fwd_done_[n]);
         fwd_done_[n] = true;
 
 
@@ -223,7 +223,7 @@ public:
 private:
     void do_backward(size_t n, cube_p<real> const & g)
     {
-        STRONG_ASSERT(fwd_done_[n]);
+        //STRONG_ASSERT(fwd_done_[n]);
         fwd_done_[n] = false;
 
         if ( func_ )

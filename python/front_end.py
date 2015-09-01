@@ -38,51 +38,51 @@ def parseIntSet(nputstr=""):
     # Report invalid tokens before returning valid selection
 #    print "Invalid set: " + str(invalid)
 #    print "selected ids: " + str(selection)
-    return selection        
+    return selection
 
 def parser( conf_fname ):
     config = ConfigParser.ConfigParser()
     config.read( conf_fname )
-    
+
     # general, train and forward
     pars = dict()
-    
+
     pars['fnet_spec']   = config.get('parameters', 'fnet_spec')
     pars['fnet']        = config.get('parameters', 'fnet')
     pars['num_threads'] = int( config.get('parameters', 'num_threads') )
     pars['dp_type']     = config.get('parameters', 'dp_type')
-    
+
     pars['train_range'] = parseIntSet( config.get('parameters',   'train_range') )
     pars['test_range']  = parseIntSet( config.get('parameters',   'test_range') )
-    pars['eta']         = config.getfloat('parameters', 'eta') 
+    pars['eta']         = config.getfloat('parameters', 'eta')
     pars['anneal_factor']=config.getfloat('parameters', 'anneal_factor')
-    pars['momentum']    = config.getfloat('parameters', 'momentum') 
+    pars['momentum']    = config.getfloat('parameters', 'momentum')
     pars['weight_decay']= config.getfloat('parameters', 'weight_decay')
     pars['train_outsz']       = np.asarray( [x for x in config.get('parameters', 'train_outsz').split(',') ], dtype=np.int64 )
     pars['is_data_aug'] = config.getboolean('parameters', 'is_data_aug')
     pars['is_rebalance']= config.getboolean('parameters', 'is_rebalance')
     pars['is_malis']    = config.getboolean('parameters', 'is_malis')
     pars['cost_fn_str'] = config.get('parameters', 'cost_fn')
-    
+
     pars['Num_iter_per_show'] = config.getint('parameters', 'Num_iter_per_show')
     pars['Num_iter_per_test'] = config.getint('parameters', 'Num_iter_per_test')
     pars['Num_iter_per_save'] = config.getint('parameters', 'Num_iter_per_save')
     pars['Max_iter']    = config.getint('parameters', 'Max_iter')
-    
+
     # forward parameters
     pars['forward_range']= parseIntSet( config.get('parameters', 'forward_range') )
-    pars['train_outsz']       = np.asarray( [x for x in config.get('parameters', 'forward_outsz').split(',') ], dtype=np.int64 )    
-    
+    pars['forward_outsz']       = np.asarray( [x for x in config.get('parameters', 'forward_outsz').split(',') ], dtype=np.int64 )
+
     # cost function
     if pars['cost_fn_str'] == "square_loss":
         pars['cost_fn'] = cost_fn.square_loss
     elif pars['cost_fn_str'] == "binomial_cross_entropy":
         pars['cost_fn'] = cost_fn.binomial_cross_entropy
     elif pars['cost_fn_str'] == "multinomial_cross_entropy":
-        pars['cost_fn'] = cost_fn.multinomial_cross_entropy 
+        pars['cost_fn'] = cost_fn.multinomial_cross_entropy
     else:
         raise NameError('unknown type of cost function')
-      
+
     #%% print parameters
     if pars['is_rebalance']:
         print "rebalance the gradients"
@@ -94,11 +94,11 @@ class CSample:
     def _read_files(self, files):
         """
         read a list of tif files of original volume and lable
-    
+
         Parameters
         ----------
         files : list of string, file names
-    
+
         Return
         ------
         ret:  list of 3D array
@@ -107,27 +107,27 @@ class CSample:
         for fl in files:
             vol = emirt.emio.imread(fl).astype('float32')
             ret.append( vol )
-        return ret 
-        
+        return ret
+
     def _lbl2aff( self, lbl ):
         """
         Parameters
         ----------
         lbl : 4D array, labels.
                 note that the list can only contain 1 volume.
-        
+
         Returns
         -------
         aff : 4D array, affinity graph.
         """
         assert( len(lbl)==1 )
         lbl = lbl[0]
-        aff = np.zeros((3,)+lbl.shape, dtype='float32') 
+        aff = np.zeros((3,)+lbl.shape, dtype='float32')
         aff[0,1:,:,:] = (lbl[1:,:,:] == lbl[:-1,:,:]) & (lbl[1:,:,:]>0)
         aff[1,:,1:,:] = (lbl[:,1:,:] == lbl[:,:-1,:]) & (lbl[:,1:,:]>0)
         aff[2,:,:,1:] = (lbl[:,:,1:] == lbl[:,:,:-1]) & (lbl[:,:,1:]>0)
         return aff
-    
+
     def _preprocess_vol(self, vol, pp_type):
         if 'standard2D' == pp_type:
             for z in xrange( vol.shape[0] ):
@@ -139,23 +139,23 @@ class CSample:
         else:
             raise NameError( 'invalid preprocessing type' )
         return vol
-        
+
     def _preprocess(self):
         vols = self.vols
         self.vols = list()
         for vol, pp_type in zip(vols, self.pp_types):
             vol = self._preprocess_vol(vol, pp_type)
             self.vols.append( vol )
-            
+
     def _center_crop(self, vol, shape):
         """
         crop the volume from the center
-        
+
         Parameters
         ----------
         vol : the array to be croped
         shape : the croped shape
-        
+
         Returns
         -------
         vol : the croped volume
@@ -180,42 +180,42 @@ class CSample:
         for vol in self.vols:
             splist.append( vol.shape )
         sz_min = min( splist )
-        
-        # crop every volume 
+
+        # crop every volume
         for k in xrange( len(self.vols) ):
             self.vols[k] = self._center_crop( self.vols[k], sz_min )
         return
-        
+
     """class of sample, similar with Dataset module of pylearn2"""
     def __init__(self, sample_id, config, pars):
         self.pars = pars
         dp_type = pars['dp_type']
-            
+
         sec_name = "sample%d" % (sample_id,)
         fvols  = config.get(sec_name, 'fvols').split(',\n')
         flbls  = config.get(sec_name, 'flbls').split(',\n')
         self.pp_types = config.get(sec_name, 'pp_type').split(',')
         self.vols = self._read_files( fvols )
         self.lbls = self._read_files( flbls )
-        
+
         # preprocess the input volumes
         self._preprocess()
-        
+
         if config.getboolean(sec_name, 'is_auto_crop'):
             self._auto_crop()
-        
+
         if 'aff' in dp_type:
             self.lbls = self._lbl2aff(self.lbls)
-        
+
     def _get_random_subvol(self, insz, outsz):
         """
         get random sample from training and labeling volumes
-    
+
         Parameters
         ----------
         insz :  input size.
         outsz:  output size of network.
-    
+
         Returns
         -------
         vol_ins  : input volume of network.
@@ -223,8 +223,12 @@ class CSample:
         """
         c = len(self.vols)
         self.vol_ins = np.empty(np.hstack((c,insz)), dtype='float32')
-        self.lbl_outs= np.empty(np.hstack((3,outsz)), dtype='float32')
-        # configure size    
+        dp_type = self.pars['dp_type']
+        if 'vol' in dp_type or 'boundary' in dp_type:
+            self.lbl_outs= np.empty(np.hstack((1,outsz)), dtype='float32')
+        elif 'aff' in dp_type:
+            self.lbl_outs= np.empty(np.hstack((3,outsz)), dtype='float32')
+        # configure size
         half_in_sz  = insz.astype('uint32')  / 2
         half_out_sz = outsz.astype('uint32') / 2
        # margin consideration for even-sized input
@@ -241,20 +245,25 @@ class CSample:
                                             loc[1]-half_in_sz[1]  : loc[1]-half_in_sz[1] + insz[1],\
                                             loc[2]-half_in_sz[2]  : loc[2]-half_in_sz[2] + insz[2]]
         for k, lbl in enumerate( self.lbls ):
-            self.lbl_outs[:,:,:,:] = lbl[   loc[0]-half_out_sz[0] : loc[0]-half_out_sz[0]+outsz[0],\
-                                            loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
-                                            loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
+            if 'vol' in dp_type or 'boundary' in dp_type:
+                self.lbl_outs[0,:,:,:] = lbl[   loc[0]-half_out_sz[0] : loc[0]-half_out_sz[0]+outsz[0],\
+                                                loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
+                                                loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
+            elif 'aff' in dp_type:
+                self.lbl_outs[:,:,:,:] = lbl[:, loc[0]-half_out_sz[0] : loc[0]-half_out_sz[0]+outsz[0],\
+                                                loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
+                                                loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
         return (self.vol_ins, self.lbl_outs)
 
     def _data_aug_transform(self, data, rft):
         """
         transform data according to a rule
-    
+
         Parameters
         ----------
         data : 3D numpy array need to be transformed
         rft : transform rule
-    
+
         Returns
         -------
         data : the transformed array
@@ -285,12 +294,12 @@ class CSample:
     def _data_aug(self, vols, lbls, dp_type ):
         """
         data augmentation, transform volumes randomly to enrich the training dataset.
-    
+
         Parameters
         ----------
         vol : input volumes of network.
         lbl : label volumes of network.
-    
+
         Returns
         -------
         vol : transformed input volumes of network.
@@ -309,29 +318,29 @@ class CSample:
         if self.pars['is_data_aug']:
             vins, vouts = self._data_aug( vins, vouts, dp_type )
         return ( vins, vouts )
-        
+
 class CSamples:
     def __init__(self, ids, config, pars):
         """
         Parameters
         ----------
         ids : vector of sample ids
-        
+
         Return
         ------
-        
+
         """
         self.samples = list()
         self.pars = pars
         for sid in ids:
             sample = CSample(sid, config, pars)
             self.samples.append( sample )
-            
+
     def get_random_sample(self, insz, outsz):
         i = np.random.randint( len(self.samples) )
         vins, vouts = self.samples[i].get_random_sample( insz, outsz)
         return (vins, vouts)
-        
+
 def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
                 terr_list, tcls_list, \
                 eta, vol_ins, props, lbl_outs, grdts, tpars, \
@@ -361,7 +370,7 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     # reset err and cls
     err = 0
     cls = 0
-    
+
     if tpars['is_rebalance']:
         plt.subplot(335),   plt.imshow(   rb_weights[1,0,:,:],interpolation='nearest', cmap='gray')
         plt.xlabel('rebalance weight')
@@ -372,4 +381,3 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
         plt.xlabel('gradient befor malis')
     plt.pause(1)
     return start, err, cls
-
