@@ -197,7 +197,7 @@ class CSample:
         fvols  = config.get(sec_name, 'fvols').split(',\n')
         self.vols = self._read_files( fvols )       
         
-        if config.has_option( sec_name, 'flbls' )
+        if config.has_option( sec_name, 'flbls' ):
             flbls  = config.get(sec_name, 'flbls').split(',\n')
             self.lbls = self._read_files( flbls )
             
@@ -348,7 +348,6 @@ class CSamples:
         
     def get_inputs(self, sid):
         return self.samples[sid].vols
-        
 
 def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
                 titr_list, terr_list, tcls_list, \
