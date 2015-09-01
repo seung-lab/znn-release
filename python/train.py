@@ -37,9 +37,11 @@ err = 0;
 cls = 0;
 err_list = list()
 cls_list = list()
+it_list = list()
+
 terr_list = list()
 tcls_list = list()
-it_list = list()
+titr_list = list()
 # the temporal weights
 rb_weights=[]
 malis_weights=[]
@@ -70,8 +72,7 @@ for i in xrange(1, pars['Max_iter'] ):
     if pars['is_rebalance']:
         rb_weight = cost_fn.rebalance( lbl_out )
         grdt = grdt * rb_weight
-    if pars['is_malis']:
-        grdt_bm = np.copy(grdt)
+    if pars['is_malis'] :
         malis_weight = cost_fn.malis_weight(prop)
         grdt = grdt * malis_weight
 
@@ -82,6 +83,8 @@ for i in xrange(1, pars['Max_iter'] ):
         # test the net
         terr_list, tcls_list = test.znn_test(net, pars, smp_tst,\
                                 insz, outsz, terr_list, tcls_list)
+        titr_list.append(i)
+        
 
     if i%pars['Num_iter_per_show']==0:
         # anneal factor
@@ -95,12 +98,12 @@ for i in xrange(1, pars['Max_iter'] ):
         cls_list.append( cls )
         it_list.append( i )
         
-#        # show results To-do: run in a separate thread
-#        start, err, cls = front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
-#                                        terr_list, tcls_list, \
-#                                        eta*float(outsz[0] * outsz[1] * outsz[2]), \
-#                                        vol_in, prop, lbl_out, grdt, pars, \
-#                                        rb_weights, malis_weights, grdt_bm)
+        # show results To-do: run in a separate thread
+        start, err, cls = front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
+                                        titr_list, terr_list, tcls_list, \
+                                        eta*float(outsz[0] * outsz[1] * outsz[2]), \
+                                        vol_in, prop, lbl_out, grdt, pars, \
+                                        rb_weights, malis_weights)
     if i%pars['Num_iter_per_save']==0:
         # save network
         print "save network"

@@ -35,9 +35,6 @@ def parseIntSet(nputstr=""):
           except:
              # not an int and not a range...
              invalid.add(i)
-    # Report invalid tokens before returning valid selection
-#    print "Invalid set: " + str(invalid)
-#    print "selected ids: " + str(selection)
     return selection
 
 def parser( conf_fname ):
@@ -89,6 +86,11 @@ def parser( conf_fname ):
         print "rebalance the gradients"
     if pars['is_malis']:
         print "using malis weight"
+        
+    #%% assert some options
+    if pars['is_malis']:
+        if 'aff' not in pars['dp_type']:
+            raise NameError( 'malis weight should be used with affinity label type!' )
     return config, pars
 
 class CSample:
@@ -195,18 +197,21 @@ class CSample:
 
         sec_name = "sample%d" % (sample_id,)
         fvols  = config.get(sec_name, 'fvols').split(',\n')
-        flbls  = config.get(sec_name, 'flbls').split(',\n')
+        self.vols = self._read_files( fvols )       
+        
+        if config.has_option( sec_name, 'flbls' )
+            flbls  = config.get(sec_name, 'flbls').split(',\n')
+            self.lbls = self._read_files( flbls )
+            
         self.pp_types = config.get(sec_name, 'pp_type').split(',')
-        self.vols = self._read_files( fvols )
-        self.lbls = self._read_files( flbls )
-
+         
         # preprocess the input volumes
         self._preprocess()
 
         if config.getboolean(sec_name, 'is_auto_crop'):
             self._auto_crop()
 
-        if 'aff' in dp_type:
+        if 'aff' in dp_type and config.has_option( sec_name, 'flbls' ):
             self.lbls = self._lbl2aff(self.lbls)
 
     def _get_random_subvol(self, insz, outsz):
@@ -342,6 +347,10 @@ class CSamples:
         i = np.random.randint( len(self.samples) )
         vins, vouts = self.samples[i].get_random_sample( insz, outsz)
         return (vins, vouts)
+        
+    def get_inputs(self, sid):
+        return self.samples[sid].vols
+        
 
     def volume_dump(self):
         '''Returns ALL contained volumes
@@ -356,9 +365,9 @@ class CSamples:
 
 
 def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
-                terr_list, tcls_list, \
+                titr_list, terr_list, tcls_list, \
                 eta, vol_ins, props, lbl_outs, grdts, tpars, \
-                rb_weights=0, malis_weights=0, grdts_bm=0):
+                rb_weights=0, malis_weights=0):
     # time
     elapsed = time.time() - start
     print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s, learning rate: %.4f"\
@@ -366,17 +375,17 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     # real time visualization
     plt.subplot(331),   plt.imshow(vol_ins[0,0,:,:],       interpolation='nearest', cmap='gray')
     plt.xlabel('input')
-    plt.subplot(332),   plt.imshow(props[1,0,:,:],    interpolation='nearest', cmap='gray')
+    plt.subplot(332),   plt.imshow(props[0,0,:,:],    interpolation='nearest', cmap='gray')
     plt.xlabel('inference')
-    plt.subplot(333),   plt.imshow(lbl_outs[1,0,:,:], interpolation='nearest', cmap='gray')
+    plt.subplot(333),   plt.imshow(lbl_outs[0,0,:,:], interpolation='nearest', cmap='gray')
     plt.xlabel('lable')
-    plt.subplot(334),   plt.imshow(grdts[1,0,:,:],     interpolation='nearest', cmap='gray')
+    plt.subplot(334),   plt.imshow(grdts[0,0,:,:],     interpolation='nearest', cmap='gray')
     plt.xlabel('gradient')
 
 
-    plt.subplot(337), plt.plot(it_list, err_list, 'b', it_list, terr_list, 'r')
+    plt.subplot(337), plt.plot(it_list, err_list, 'b', titr_list, terr_list, 'r')
     plt.xlabel('iteration'), plt.ylabel('cost energy')
-    plt.subplot(338), plt.plot(it_list, cls_list, 'b', it_list, tcls_list, 'r')
+    plt.subplot(338), plt.plot(it_list, cls_list, 'b', titr_list, tcls_list, 'r')
     plt.xlabel('iteration'), plt.ylabel( 'classification error' )
 
     # reset time
