@@ -72,6 +72,7 @@ def parser( conf_fname ):
     # forward parameters
     pars['forward_range']= parseIntSet( config.get('parameters', 'forward_range') )
     pars['forward_outsz']       = np.asarray( [x for x in config.get('parameters', 'forward_outsz').split(',') ], dtype=np.int64 )
+    pars['output_prefix'] = config.get('parameters', 'output_prefix')
 
     # cost function
     if pars['cost_fn_str'] == "square_loss":
@@ -168,6 +169,7 @@ class CSample:
         return vol[ off1[0]:-off2[0],\
                     off1[1]:-off2[1],\
                     off1[2]:-off2[2]]
+
     def _auto_crop(self):
         """
         crop the list of volumes to make sure that volume sizes are the same.
@@ -340,6 +342,18 @@ class CSamples:
         i = np.random.randint( len(self.samples) )
         vins, vouts = self.samples[i].get_random_sample( insz, outsz)
         return (vins, vouts)
+
+    def volume_dump(self):
+        '''Returns ALL contained volumes
+
+        Used within forward pass'''
+
+        vols = []
+        for i in range(len(self.samples)):
+            vols.extend(self.samples[i].vols)
+
+        return vols
+
 
 def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
                 terr_list, tcls_list, \

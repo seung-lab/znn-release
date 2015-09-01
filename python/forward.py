@@ -197,7 +197,7 @@ def save_output_volumes(output_volumes, prefix):
 							"{}.{}".format(prefix,i))
 
 def test(input_patch, output_patch_shape, net):
-	'''Generates an output patch for a single input patch'''
+	'''Silently generates an output patch for a single input patch'''
 
 	return generate_output_volume(input_patch, output_patch_shape,
 				net, verbose=False)
@@ -206,25 +206,23 @@ def main( config_filename ):
 	'''Script functionality'''
 
 	# parameters
-	(global_params, 
-     train_params, 
-     forward_params) = front_end.parser( config_filename )
+	config, params = front_end.parser( config_filename )
 
 	# read image stacks
-	sampler = front_end.CSamples('nothing','more nothing')
-	input_volumes = sampler.read_tifs(forward_params['ffwds'])
+	sampler = front_end.CSamples( params['forward_range'], config, params ) #preprocessing included here
+	input_volumes = sampler.volume_dump()
 	output_volumes = []
 
-	output_patch_shape = forward_params['outsz']
+	output_patch_shape = params['forward_outsz']
 
 
 	# load network
 	# Debug - random network
-	# net = train_nt.initialize_network(train_params, global_params)
-	net = front_end_io.load_network(global_params['fnet'], 
-					global_params['fnet_spec'], 
-					forward_params['outsz'], 
-					global_params['num_threads'])
+	# net = train_nt.initialize_network( params )
+	net = front_end_io.load_network(params['fnet'], 
+					params['fnet_spec'], 
+					params['forward_outsz'], 
+					params['num_threads'])
 
 
 	# generating output volumes for each input
@@ -235,7 +233,9 @@ def main( config_filename ):
 			)
 
 	# saving
-	save_output_volumes(output_volumes, forward_params['out_prefix'])
+	print "Saving Output Volumes..."
+	save_output_volumes(output_volumes, params['output_prefix'])
+	print "Done"
 
 if __name__ == '__main__':
 
