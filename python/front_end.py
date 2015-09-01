@@ -199,7 +199,7 @@ class CSample:
         fvols  = config.get(sec_name, 'fvols').split(',\n')
         self.vols = self._read_files( fvols )       
         
-        if config.has_option( sec_name, 'flbls' )
+        if config.has_option( sec_name, 'flbls' ):
             flbls  = config.get(sec_name, 'flbls').split(',\n')
             self.lbls = self._read_files( flbls )
             
