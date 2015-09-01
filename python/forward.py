@@ -5,6 +5,7 @@ Nicholas Turner <nturner.stanford@gmail.com>
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 
 TODO- Better argument handling
+- Fix single-volume output functionality
 
 """
 
@@ -16,21 +17,23 @@ from emirt import emio
 
 import pyznn
 import front_end, front_end_io
+import train_nt
 
-def load_output_patch_shape( output_patch_config_shape ):
-	'''Returns a 4d version of the output shape array. Prints a warning
-	message if output shape is 3d, and assumes affinity output'''
+def correct_output_patch_shape( output_patch_config_shape, net ):
+	'''Returns a 4d version of the output shape array. Always replaces
+	the 4th dimension with the num_output_vols specified
+
+	Doubt this is necessary anymore'''
+
+	num_output_vols = net.get_output_num()
 
 	if output_patch_config_shape.size == 4:
 
-		return output_shape_array
+		return np.hstack( (num_output_vols, output_patch_config_shape[1:]) )
 
 	elif output_patch_config_shape.size == 3:
 
-		print "WARNING: only 3 output patch dimensions specified"
-		print "Assuming 3-volume output"
-
-		return np.hstack( (3, output_patch_config_shape) )
+		return np.hstack( (num_output_vols, output_patch_config_shape) )
 
 def input_patch_shape(output_patch_shape, fov):
 	'''Determines the size of the input patch to feed into the network'''
@@ -40,13 +43,23 @@ def input_patch_shape(output_patch_shape, fov):
 		return np.hstack( (output_patch_shape[0],
 							output_patch_shape[-3:] + fov - 1) )
 
-def output_vol_shape(fov, input_vol_shape, num_vols):
+def output_vol_shape(input_vol_shape, net):
 	'''Derives the resulting shape of the full volume returned by the forward pass'''
-	return np.hstack( (num_vols, input_vol_shape[-3:] - fov + 1 ) )
+	fov = np.asarray(net.get_fov())
+	num_output_vols = net.get_output_num()
+
+	return np.hstack( (num_output_vols, input_vol_shape[-3:] - fov + 1 ) )
 
 def num_output_patches(output_vol_shape, output_patch_shape):
 	'''One way to derive the number of output patches in the resulting volume.
-	Mostly used for unit testing at this point'''
+	Mostly used for unit testing at this point
+
+	Restricts calculation to 3d shape'''
+
+	#3d Shape restriction
+	output_vol_shape = output_vol_shape[-3:]
+	output_patch_shape = output_patch_shape[-3:]
+
 	# # per axis  = dim length / patch length (rounded up)
 	num_per_axis = np.ceil(output_vol_shape / output_patch_shape.astype(np.float64))
 	return int(np.prod(num_per_axis))
@@ -78,7 +91,13 @@ def patch_bounds(input_vol_width, output_patch_width, fov_width):
 
 def input_patch_bounds(input_vol_shape, output_patch_shape, fov):
 	'''Finds the bounds for each input patch given the input volume shape,
-	the fov, and the output patch shape'''
+	the fov, and the output patch shape
+
+	Restricts calculation to 3d shape'''
+
+	#3d Shape restriction
+	input_vol_shape = input_vol_shape[-3:]
+	output_patch_shape = output_patch_shape[-3:]
 
 	#Can be decomposed into a similar problem for each axis
 	z_bounds = patch_bounds(input_vol_shape[0], output_patch_shape[0], fov[0])
@@ -110,28 +129,32 @@ def output_patch_bounds(output_vol_shape, output_patch_shape):
 				# within the patch_bounds function
 				np.ones(output_patch_shape.shape).astype('uint32'))
 
-def generate_output_volume(input_vol, output_patch_shape_4d, fov, net, verbose=True):
+def generate_output_volume(input_vol, output_patch_shape, net, verbose=True):
 	'''Generates a full output volume for a given input volume - the main 
-	functionality of the module'''
+	functionality of the module
 
-	input_patch_shape_3d = input_vol.shape[-3:]
-	output_patch_shape_3d = output_patch_shape_4d[-3:]
+	shape of the output patch may be specified in 3d or 4d, but we'll
+	overwrite any 4d specification with the output size of the net anyway'''
+
+	#Making the input volume 4d
+	if len(input_vol.shape) == 3:
+		input_vol = input_vol.reshape( np.hstack((1,input_vol.shape)) )
 
 	#Init
 	output_vol = np.empty( 
-			output_vol_shape(fov, input_vol.shape, output_patch_shape_4d[0])
-			# output_patch_shape_4d[0] = # output volumes for the net
-			).astype('float32')
+			output_vol_shape(input_vol.shape, net), 
+			dtype=np.float32)
 
 	#Derive bounds of input and output patches
-	input_bounds = input_patch_bounds( input_patch_shape_3d, 
-						output_patch_shape_3d,
+	fov = np.asarray(net.get_fov())
+	input_bounds = input_patch_bounds( input_vol.shape, 
+						output_patch_shape,
 						fov )
-	output_bounds = output_patch_bounds( output_vol.shape[-3:],
-						output_patch_shape_3d )
+	output_bounds = output_patch_bounds( output_vol.shape,
+						output_patch_shape )
 
 	#Stupidity checks (so far so good!)
-	assert num_output_patches( output_vol.shape[-3:], output_patch_shape_3d ) == len(output_bounds)
+	assert num_output_patches( output_vol.shape, output_patch_shape ) == len(output_bounds)
 	assert len( input_bounds ) == len( output_bounds )
 
 	for i in xrange(len( input_bounds )):
@@ -144,12 +167,10 @@ def generate_output_volume(input_vol, output_patch_shape_4d, fov, net, verbose=T
 		if verbose:
 			print "Input Volume [{}] to [{}]".format(input_beginning, input_end)
 		
-		input_patch = 		input_vol[
+		input_patch = 		input_vol[ :,
 						input_beginning[0]:input_end[0],
 						input_beginning[1]:input_end[1],
 						input_beginning[2]:input_end[2]]
-		#4dimensionalizing
-		input_patch = input_patch.reshape( np.hstack((1,input_patch.shape)) )
 
 		output_beginning = 	output_bounds[i][0]
 		output_end = 		output_bounds[i][1]
@@ -175,15 +196,11 @@ def save_output_volumes(output_volumes, prefix):
 		emio.znn_img_save(output_volumes[i].astype('double'), 
 							"{}.{}".format(prefix,i))
 
-def test(input_patch, output_patch_shape, net, fov=None):
+def test(input_patch, output_patch_shape, net):
 	'''Generates an output patch for a single input patch'''
 
-	if fov is None:
-		# fov = (input_patch.shape - output_patch_shape + 1)[-3:]
-		fov = np.asarray(net.get_fov())
-
 	return generate_output_volume(input_patch, output_patch_shape,
-			 fov, net, verbose=False)
+				net, verbose=False)
 
 def main( config_filename ):
 	'''Script functionality'''
@@ -194,10 +211,11 @@ def main( config_filename ):
      forward_params) = front_end.parser( config_filename )
 
 	# read image stacks
-	input_volumes = front_end.read_tifs(forward_params['ffwds'])
+	sampler = front_end.CSamples('nothing','more nothing')
+	input_volumes = sampler.read_tifs(forward_params['ffwds'])
 	output_volumes = []
 
-	output_patch_shape_4d = load_output_patch_shape(forward_params['outsz'])
+	output_patch_shape = forward_params['outsz']
 
 
 	# load network
@@ -208,14 +226,12 @@ def main( config_filename ):
 					forward_params['outsz'], 
 					global_params['num_threads'])
 
-	fov = np.asarray(net.get_fov())
-	print "field of view: {}x{}x{}".format(fov[0],fov[1], fov[2])
 
 	# generating output volumes for each input
 	for input_vol in input_volumes:
 
 		output_volumes.append(
-			generate_output_volume(input_vol, output_patch_shape_4d, fov, net)
+			generate_output_volume(input_vol, output_patch_shape, net)
 			)
 
 	# saving
