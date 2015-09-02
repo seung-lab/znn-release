@@ -48,7 +48,8 @@ def parser( conf_fname ):
     pars['num_threads'] = int( config.get('parameters', 'num_threads') )
     pars['dp_type']     = config.get('parameters', 'dp_type')
 
-    pars['train_net']        = config.get('parameters', 'train_net')
+    pars['train_save_net'] = config.get('parameters', 'train_save_net')
+    pars['train_load_net'] = config.get('parameters', 'train_load_net') 
     pars['train_range'] = parseIntSet( config.get('parameters',   'train_range') )
     pars['test_range']  = parseIntSet( config.get('parameters',   'test_range') )
     pars['eta']         = config.getfloat('parameters', 'eta')

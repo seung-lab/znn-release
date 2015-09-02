@@ -19,10 +19,16 @@ smp_trn = front_end.CSamples(pars['train_range'], config, pars)
 smp_tst = front_end.CSamples(pars['test_range'],  config, pars)
 
 #%% create and initialize the network
-print "initializing network..."
+
 outsz = pars['train_outsz']
 print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
-net = pyznn.CNet(pars['fnet_spec'], outsz, pars['num_threads'])
+
+if pars['train_load_net']:
+    print "loading network..."
+    net = netio.load_network( pars['train_load_net'], pars['fnet_spec'], outsz, pars['num_threads'])
+else:
+    print "initializing network..."
+    net = pyznn.CNet(pars['fnet_spec'], outsz, pars['num_threads'])
 eta = pars['eta'] / float(outsz[0] * outsz[1] * outsz[2])
 net.set_eta( eta )
 net.set_momentum( pars['momentum'] )
@@ -107,4 +113,4 @@ for i in xrange(1, pars['Max_iter'] ):
     if i%pars['Num_iter_per_save']==0:
         # save network
         print "save network"
-        netio.save_network(net, pars['train_net'], num_iters=i)
+        netio.save_network(net, pars['train_save_net'], num_iters=i)
