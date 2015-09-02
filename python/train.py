@@ -56,7 +56,7 @@ for i in xrange(1, pars['Max_iter'] ):
     vol_in, lbl_out = smp_trn.get_random_sample( insz, outsz )
 
     # forward pass
-    prop = net.forward( np.ascontiguousarray(vol_in) ).astype('float32')
+    prop = net.forward( np.ascontiguousarray(vol_in, dtype='float32') ).astype('float32')
 
     # softmax
     if pars['cost_fn_str']=='multinomial_cross_entropy':
@@ -77,7 +77,7 @@ for i in xrange(1, pars['Max_iter'] ):
         grdt = grdt * malis_weight
 
     # run backward pass
-    net.backward( np.ascontiguousarray(grdt) )
+    net.backward( np.ascontiguousarray(grdt, dtype='float32') )
     
     if i%pars['Num_iter_per_test']==0:
         # test the net
