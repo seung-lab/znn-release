@@ -383,9 +383,12 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     plt.xlabel('gradient')
 
 
-    plt.subplot(337), plt.plot(it_list, err_list, 'b', titr_list, terr_list, 'r')
+    plt.subplot(337)
+    plt.plot(it_list,   err_list,   'b', label='train')
+    plt.plot(titr_list, terr_list,  'r', label='test')
     plt.xlabel('iteration'), plt.ylabel('cost energy')
-    plt.subplot(338), plt.plot(it_list, cls_list, 'b', titr_list, tcls_list, 'r')
+    plt.subplot(338)
+    plt.plot(it_list, cls_list, 'b', titr_list, tcls_list, 'r')
     plt.xlabel('iteration'), plt.ylabel( 'classification error' )
 
     # reset time

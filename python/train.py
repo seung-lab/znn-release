@@ -8,7 +8,7 @@ import pyznn
 import time
 import matplotlib.pylab as plt
 import front_end
-import network_io
+import netio
 import cost_fn
 import test
 
@@ -107,4 +107,4 @@ for i in xrange(1, pars['Max_iter'] ):
     if i%pars['Num_iter_per_save']==0:
         # save network
         print "save network"
-        network_io.save_network(net, pars['fnet'], num_iters=i)
+        netio.save_network(net, pars['fnet'], num_iters=i)
