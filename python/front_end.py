@@ -45,10 +45,10 @@ def parser( conf_fname ):
     pars = dict()
 
     pars['fnet_spec']   = config.get('parameters', 'fnet_spec')
-    pars['fnet']        = config.get('parameters', 'fnet')
     pars['num_threads'] = int( config.get('parameters', 'num_threads') )
     pars['dp_type']     = config.get('parameters', 'dp_type')
 
+    pars['train_net']        = config.get('parameters', 'train_net')
     pars['train_range'] = parseIntSet( config.get('parameters',   'train_range') )
     pars['test_range']  = parseIntSet( config.get('parameters',   'test_range') )
     pars['eta']         = config.getfloat('parameters', 'eta')
@@ -68,6 +68,7 @@ def parser( conf_fname ):
 
     # forward parameters
     pars['forward_range'] = parseIntSet( config.get('parameters', 'forward_range') )
+    pars['forward_net']   = config.get('parameters', 'forward_net')
     pars['forward_outsz'] = np.asarray( [x for x in config.get('parameters', 'forward_outsz').split(',') ], dtype=np.int64 )
     pars['output_prefix'] = config.get('parameters', 'output_prefix')
 

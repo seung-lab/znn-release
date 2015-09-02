@@ -107,4 +107,4 @@ for i in xrange(1, pars['Max_iter'] ):
     if i%pars['Num_iter_per_save']==0:
         # save network
         print "save network"
-        netio.save_network(net, pars['fnet'], num_iters=i)
+        netio.save_network(net, pars['train_net'], num_iters=i)

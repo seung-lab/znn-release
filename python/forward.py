@@ -218,7 +218,7 @@ def main( config_filename ):
 	# load network
 	# Debug - random network
 	# net = train_nt.initialize_network( params )
-	net = netio.load_network(params['fnet'], 
+	net = netio.load_network(params['forward_net'], 
 					params['fnet_spec'], 
 					params['forward_outsz'], 
 					params['num_threads'])
