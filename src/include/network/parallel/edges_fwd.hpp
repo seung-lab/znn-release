@@ -18,6 +18,7 @@ public:
     struct dummy_tag {};
     struct max_pooling_tag{};
     struct real_pooling_tag{};
+    struct dropout_tag{};
 
 protected:
     options                                options_;

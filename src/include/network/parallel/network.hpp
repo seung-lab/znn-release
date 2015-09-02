@@ -265,6 +265,20 @@ private:
                     ( in, out, *e.second->opts, e.second->in_stride,
                       e.second->in_fsize, tm_, edges::filter_tag() );
             }
+            else if ( type == "dropout" )
+            {
+                // [kisuklee]
+                // This version of dropout is not actually disabling individual
+                // nodes, but making a random binary dropout masks for each node.
+                // This is the version that was implemented in v1, and the 
+                // effectiveness is yet to be proven.
+
+                throw std::logic_error(HERE() + "not implemented: " + type);
+
+                // e.second->dedges = std::make_unique<edges>
+                //     ( in, out, *e.second->opts, e.second->in_stride,
+                //       e.second->in_fsize, tm_, edges::dropout_tag() );
+            }
             else if ( type == "dummy" )
             {
                 e.second->dedges = std::make_unique<edges>
