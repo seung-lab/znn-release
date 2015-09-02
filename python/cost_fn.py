@@ -85,6 +85,11 @@ def multinomial_cross_entropy(props, lbls):
     err = np.sum( -lbls * np.log(props) )
     return (err, grdts)
 
+#@jit(nopython=True)
+def softmax_loss(props, lbls):
+    props = softmax(props)
+    return multinomial_cross_entropy(props, lbls)
+
 #def hinge_loss(props, lbls):
 
 #@jit(nopython=True)
