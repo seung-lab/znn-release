@@ -45,10 +45,11 @@ def parser( conf_fname ):
     pars = dict()
 
     pars['fnet_spec']   = config.get('parameters', 'fnet_spec')
-    pars['fnet']        = config.get('parameters', 'fnet')
     pars['num_threads'] = int( config.get('parameters', 'num_threads') )
     pars['dp_type']     = config.get('parameters', 'dp_type')
 
+    pars['train_save_net'] = config.get('parameters', 'train_save_net')
+    pars['train_load_net'] = config.get('parameters', 'train_load_net') 
     pars['train_range'] = parseIntSet( config.get('parameters',   'train_range') )
     pars['test_range']  = parseIntSet( config.get('parameters',   'test_range') )
     pars['eta']         = config.getfloat('parameters', 'eta')
@@ -68,6 +69,7 @@ def parser( conf_fname ):
 
     # forward parameters
     pars['forward_range'] = parseIntSet( config.get('parameters', 'forward_range') )
+    pars['forward_net']   = config.get('parameters', 'forward_net')
     pars['forward_outsz'] = np.asarray( [x for x in config.get('parameters', 'forward_outsz').split(',') ], dtype=np.int64 )
     pars['output_prefix'] = config.get('parameters', 'output_prefix')
 
@@ -112,24 +114,17 @@ class CSample:
             ret.append( vol )
         return ret
 
-    def _lbl2aff( self, lbl ):
+    def _lbl2aff( self ):
         """
-        Parameters
-        ----------
-        lbl : 4D array, labels.
-                note that the list can only contain 1 volume.
-
-        Returns
-        -------
-        aff : 4D array, affinity graph.
+        transform labels to affinity
         """
-        assert( len(lbl)==1 )
-        lbl = lbl[0]
+        assert( len(self.lbls)==1 )
+        lbl = self.lbls[0]
         aff = np.zeros((3,)+lbl.shape, dtype='float32')
         aff[0,1:,:,:] = (lbl[1:,:,:] == lbl[:-1,:,:]) & (lbl[1:,:,:]>0)
         aff[1,:,1:,:] = (lbl[:,1:,:] == lbl[:,:-1,:]) & (lbl[:,1:,:]>0)
         aff[2,:,:,1:] = (lbl[:,:,1:] == lbl[:,:,:-1]) & (lbl[:,:,1:]>0)
-        return aff
+        self.lbls = aff
 
     def _preprocess_vol(self, vol, pp_type):
         if 'standard2D' == pp_type:
@@ -190,6 +185,10 @@ class CSample:
             self.vols[k] = self._center_crop( self.vols[k], sz_min )
         return
 
+    def _threshold_label(self):
+        for k,lbl in enumerate( self.lbls ):
+            self.lbls[k] = (lbl>0).astype('float32')
+        
     """class of sample, similar with Dataset module of pylearn2"""
     def __init__(self, sample_id, config, pars):
         self.pars = pars
@@ -211,8 +210,12 @@ class CSample:
         if config.getboolean(sec_name, 'is_auto_crop'):
             self._auto_crop()
 
-        if 'aff' in dp_type and config.has_option( sec_name, 'flbls' ):
-            self.lbls = self._lbl2aff(self.lbls)
+        if config.has_option( sec_name, 'flbls' ):
+            if 'aff' in dp_type:
+                self._lbl2aff()
+            elif 'vol' in dp_type or 'boundary' in dp_type:
+                # threshold the lable
+                self._threshold_label()
 
     def _get_random_subvol(self, insz, outsz):
         """
@@ -382,9 +385,12 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     plt.xlabel('gradient')
 
 
-    plt.subplot(337), plt.plot(it_list, err_list, 'b', titr_list, terr_list, 'r')
+    plt.subplot(337)
+    plt.plot(it_list,   err_list,   'b', label='train')
+    plt.plot(titr_list, terr_list,  'r', label='test')
     plt.xlabel('iteration'), plt.ylabel('cost energy')
-    plt.subplot(338), plt.plot(it_list, cls_list, 'b', titr_list, tcls_list, 'r')
+    plt.subplot(338)
+    plt.plot(it_list, cls_list, 'b', titr_list, tcls_list, 'r')
     plt.xlabel('iteration'), plt.ylabel( 'classification error' )
 
     # reset time

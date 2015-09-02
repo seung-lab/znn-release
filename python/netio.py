@@ -4,8 +4,6 @@ import h5py
 import pyznn
 import os.path, shutil
 
-archive_directory_name = 'ARCHIVE'
-
 np_array_fields = ("filters","biases","size","stride")
 def save_opts(opts, filename):
     #Note: opts is a tuple of lists of dictionaries
@@ -72,11 +70,14 @@ def save_network(network, filename, num_iters=None):
     '''Saves a network under an h5 file. Appends the number
     of iterations if passed, and updates a "current" file with
     the most recent (uncorrupted) information'''
-
+    
+    # get directory name from file name
+    archive_directory_name = os.path.dirname( filename )
+#    filename = os.path.basename( filename )
     if not os.path.exists(archive_directory_name):
         os.mkdir(archive_directory_name)
 
-    filename = "{}/{}".format(archive_directory_name, filename)
+#    filename = "{}/{}".format(archive_directory_name, filename)
 
     root, ext = os.path.splitext(filename)
 

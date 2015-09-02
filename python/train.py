@@ -8,7 +8,7 @@ import pyznn
 import time
 import matplotlib.pylab as plt
 import front_end
-import network_io
+import netio
 import cost_fn
 import test
 
@@ -19,10 +19,16 @@ smp_trn = front_end.CSamples(pars['train_range'], config, pars)
 smp_tst = front_end.CSamples(pars['test_range'],  config, pars)
 
 #%% create and initialize the network
-print "initializing network..."
+
 outsz = pars['train_outsz']
 print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
-net = pyznn.CNet(pars['fnet_spec'], outsz, pars['num_threads'])
+
+if pars['train_load_net']:
+    print "loading network..."
+    net = netio.load_network( pars['train_load_net'], pars['fnet_spec'], outsz, pars['num_threads'])
+else:
+    print "initializing network..."
+    net = pyznn.CNet(pars['fnet_spec'], outsz, pars['num_threads'])
 eta = pars['eta'] / float(outsz[0] * outsz[1] * outsz[2])
 net.set_eta( eta )
 net.set_momentum( pars['momentum'] )
@@ -56,7 +62,7 @@ for i in xrange(1, pars['Max_iter'] ):
     vol_in, lbl_out = smp_trn.get_random_sample( insz, outsz )
 
     # forward pass
-    prop = net.forward( np.ascontiguousarray(vol_in) ).astype('float32')
+    prop = net.forward( np.ascontiguousarray(vol_in, dtype='float32') ).astype('float32')
 
     # softmax
     if pars['cost_fn_str']=='multinomial_cross_entropy':
@@ -64,9 +70,9 @@ for i in xrange(1, pars['Max_iter'] ):
 
     # cost function and accumulate errors
     cerr, grdt = pars['cost_fn']( prop.astype('float32'), lbl_out.astype('float32') )
-    ccls = np.count_nonzero( (prop>0.5)!= lbl_out )
     err = err + cerr
-    cls = cls + ccls
+    # classification error
+    cls = cls + np.count_nonzero( (prop>0.5)!= lbl_out )
 
     # rebalance
     if pars['is_rebalance']:
@@ -77,7 +83,7 @@ for i in xrange(1, pars['Max_iter'] ):
         grdt = grdt * malis_weight
 
     # run backward pass
-    net.backward( np.ascontiguousarray(grdt) )
+    net.backward( np.ascontiguousarray(grdt, dtype='float32') )
     
     if i%pars['Num_iter_per_test']==0:
         # test the net
@@ -107,4 +113,4 @@ for i in xrange(1, pars['Max_iter'] ):
     if i%pars['Num_iter_per_save']==0:
         # save network
         print "save network"
-        network_io.save_network(net, pars['fnet'], num_iters=i)
+        netio.save_network(net, pars['train_save_net'], num_iters=i)

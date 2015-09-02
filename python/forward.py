@@ -15,9 +15,9 @@ import numpy as np
 
 from emirt import emio
 
-import pyznn
-import front_end, front_end_io
-import train_nt
+#import pyznn
+import front_end, netio
+#import train_nt
 
 def correct_output_patch_shape( output_patch_config_shape, net ):
 	'''Returns a 4d version of the output shape array. Always replaces
@@ -192,9 +192,8 @@ def generate_output_volume(input_vol, output_patch_shape, net, verbose=True):
 def save_output_volumes(output_volumes, prefix):
 
 	for i in range(len(output_volumes)):
-
-		emio.znn_img_save(output_volumes[i].astype('double'), 
-							"{}.{}".format(prefix,i))
+		emio.imsave(output_volumes[i].astype('float32'), 
+							"{}.{}.tif".format(prefix,i))
 
 def test(input_patch, output_patch_shape, net):
 	'''Silently generates an output patch for a single input patch'''
@@ -219,7 +218,7 @@ def main( config_filename ):
 	# load network
 	# Debug - random network
 	# net = train_nt.initialize_network( params )
-	net = front_end_io.load_network(params['fnet'], 
+	net = netio.load_network(params['forward_net'], 
 					params['fnet_spec'], 
 					params['forward_outsz'], 
 					params['num_threads'])
