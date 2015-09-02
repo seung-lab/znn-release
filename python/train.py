@@ -64,9 +64,9 @@ for i in xrange(1, pars['Max_iter'] ):
 
     # cost function and accumulate errors
     cerr, grdt = pars['cost_fn']( prop.astype('float32'), lbl_out.astype('float32') )
-    ccls = np.count_nonzero( (prop>0.5)!= lbl_out )
     err = err + cerr
-    cls = cls + ccls
+    # classification error
+    cls = cls + np.count_nonzero( (prop>0.5)!= lbl_out )
 
     # rebalance
     if pars['is_rebalance']:

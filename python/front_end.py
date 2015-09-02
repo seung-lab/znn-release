@@ -112,24 +112,17 @@ class CSample:
             ret.append( vol )
         return ret
 
-    def _lbl2aff( self, lbl ):
+    def _lbl2aff( self ):
         """
-        Parameters
-        ----------
-        lbl : 4D array, labels.
-                note that the list can only contain 1 volume.
-
-        Returns
-        -------
-        aff : 4D array, affinity graph.
+        transform labels to affinity
         """
-        assert( len(lbl)==1 )
-        lbl = lbl[0]
+        assert( len(self.lbls)==1 )
+        lbl = self.lbls[0]
         aff = np.zeros((3,)+lbl.shape, dtype='float32')
         aff[0,1:,:,:] = (lbl[1:,:,:] == lbl[:-1,:,:]) & (lbl[1:,:,:]>0)
         aff[1,:,1:,:] = (lbl[:,1:,:] == lbl[:,:-1,:]) & (lbl[:,1:,:]>0)
         aff[2,:,:,1:] = (lbl[:,:,1:] == lbl[:,:,:-1]) & (lbl[:,:,1:]>0)
-        return aff
+        self.lbls = aff
 
     def _preprocess_vol(self, vol, pp_type):
         if 'standard2D' == pp_type:
@@ -190,6 +183,10 @@ class CSample:
             self.vols[k] = self._center_crop( self.vols[k], sz_min )
         return
 
+    def _threshold_label(self):
+        for k,lbl in enumerate( self.lbls ):
+            self.lbls[k] = (lbl>0).astype('float32')
+        
     """class of sample, similar with Dataset module of pylearn2"""
     def __init__(self, sample_id, config, pars):
         self.pars = pars
@@ -211,8 +208,12 @@ class CSample:
         if config.getboolean(sec_name, 'is_auto_crop'):
             self._auto_crop()
 
-        if 'aff' in dp_type and config.has_option( sec_name, 'flbls' ):
-            self.lbls = self._lbl2aff(self.lbls)
+        if config.has_option( sec_name, 'flbls' ):
+            if 'aff' in dp_type:
+                self._lbl2aff()
+            elif 'vol' in dp_type or 'boundary' in dp_type:
+                # threshold the lable
+                self._threshold_label()
 
     def _get_random_subvol(self, insz, outsz):
         """
