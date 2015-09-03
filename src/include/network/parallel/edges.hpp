@@ -7,11 +7,11 @@
 #include "fft_filter_ds_edge.hpp"
 #include "dummy_edge.hpp"
 #include "max_pooling_edge.hpp"
+#include "dropout_edge.hpp"
 #include "nodes.hpp"
 #include "../../utils/waiter.hpp"
 #include "../../options/options.hpp"
 #include "../filter.hpp"
-#include "network.hpp"
 
 
 namespace znn { namespace v4 { namespace parallel_network {
@@ -201,7 +201,7 @@ inline edges::edges( nodes * in,
                      options const & opts,                     
                      vec3i const & in_size,
                      task_manager & tm,
-                     network::phase phase
+                     phase phs,
                      dropout_tag )
     : options_(opts)
     , size_(in_size)
@@ -213,13 +213,13 @@ inline edges::edges( nodes * in,
     edges_.resize(n);
     waiter_.set(n);
 
-    auto ratio = opts.require_as<real>("ratio");
+    auto ratio = opts.optional_as<real>("ratio", 0.5);
 
     for ( size_t i = 0; i < n; ++i )
     {
         edges_[i]
             = std::make_unique<dropout_edge>
-            (in, i, out, i, tm_, ratio, phase);
+            (in, i, out, i, tm_, ratio, phs);
     }
 
 }

@@ -22,12 +22,12 @@ struct random_number_generator_impl: std::mutex
 class initializator
 {
 protected:
+    static detail::random_number_generator_impl& rng;
+
+protected:
     template <typename T>
     static void initialize_with_distribution(T&& dis, real* v, size_t n) noexcept
     {
-        static detail::random_number_generator_impl& rng =
-            zi::singleton<detail::random_number_generator_impl>::instance();
-
         guard g(rng);
 
         for ( std::size_t i = 0; i < n; ++i )
@@ -63,6 +63,9 @@ public:
     }
 
 }; // class initializator
+
+detail::random_number_generator_impl& initializator::rng = 
+        zi::singleton<detail::random_number_generator_impl>::instance();
 
 }} // namespace znn::v4
 

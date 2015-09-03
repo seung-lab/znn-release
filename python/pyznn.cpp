@@ -52,7 +52,8 @@ using namespace znn::v4::parallel_network;
 std::shared_ptr< network > CNet_Init(
 		std::string const net_config_file,
 		np::ndarray const & outsz_a,
-		std::size_t const tc )
+		std::size_t const tc,
+        phase       const phs = phase::TRAIN)
 {
     std::vector<options> nodes;
     std::vector<options> edges;
@@ -63,7 +64,7 @@ std::shared_ptr< network > CNet_Init(
 					);
     // construct the network class
     std::shared_ptr<network> net(
-        new network(nodes,edges,out_sz,network::training,tc));
+        new network(nodes,edges,out_sz,tc,phs));
     return net;
 }
 

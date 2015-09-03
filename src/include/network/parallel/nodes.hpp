@@ -7,6 +7,8 @@
 
 namespace znn { namespace v4 { namespace parallel_network {
 
+enum class phase : std::uint8_t {TRAIN = 0, TEST = 1};
+
 // Forward definition
 class edge;
 

@@ -13,9 +13,6 @@ namespace znn { namespace v4 { namespace parallel_network {
 
 class network
 {
-public:
-    enum class phase {TRAIN, TEST};
-
 private:
     struct nnodes;
 
@@ -292,9 +289,9 @@ private:
                 // effectiveness is yet to be proven.
                 throw std::logic_error(HERE() + "not implemented: " + type);
 
-                e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts,
-                      e.second->in_fsize, tm_, edges::crop_tag() );
+                // e.second->dedges = std::make_unique<edges>
+                //     ( in, out, *e.second->opts,
+                //       e.second->in_fsize, tm_, edges::crop_tag() );
             }
             else if ( type == "dummy" )
             {

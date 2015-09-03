@@ -40,6 +40,9 @@ public:
     edges( nodes *, nodes *, options const &, vec3i const &,
            task_manager &, real_pooling_tag );
 
+    edges( nodes *, nodes *, options const &, vec3i const &,
+           task_manager &, phase phs, dropout_tag );
+
     std::string name() const
     {
         return options_.require_as<std::string>("name");

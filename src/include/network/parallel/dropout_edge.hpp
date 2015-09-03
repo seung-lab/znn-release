@@ -2,63 +2,62 @@
 
 #include "edges_fwd.hpp"
 #include "nodes.hpp"
-#include "network.hpp"
+#include "../../initializator/bernoulli_init.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 
 class dropout_edge: public edge
 {
 private:
-    real            ratio ; // dropout ratio
-    cube_p<bool>    mask  ; // dropout mask
+    real            ratio_; // keeping ratio
+    cube_p<bool>    mask_ ; // dropout mask
     vec3i           insize;
     
-    network::phase  phase ; // TRAIN or TEST
+    phase           phase_; // TRAIN or TEST
 
 private:
     inline real scale() const
     { 
-        return static_cast<real>(1)/(static_cast<real>(1) - ratio);
+        return static_cast<real>(1)/ratio_;
     }
 
     // performs inplace dropout and returns dropout mask
     inline void dropout_forward(cube<real>& f)
     {
-        size_t s = f->num_elements();
+        if ( !mask_ )
+        {
+            mask_ = get_cube<bool>(size(f));
+        }
 
-        if ( !mask ) mask = get_cube<bool>(s);
+        // new random mask
+        bernoulli_init(ratio_).initialize(mask_);
 
+        size_t s = f.num_elements();
         for ( size_t i = 0; i < s; ++i )
         {
             // dropout
-            if ( zero_one_generator.rand() < ratio )
-            {
-                f->data()[i]    = static_cast<real>(0);
-                mask->data()[i] = false;
-            }
+            if ( mask_->data()[i] )
+                f.data()[i]  = static_cast<real>(0);
             else
-            {
-                f->data()[i]   *= scale();
-                mask->data()[i] = true;
-            }
+                f.data()[i] *= scale();
         }
     }
     
     // performs inplace dropout backward
     inline void dropout_backward(cube<real> & g)
     {
-        ZI_ASSERT(mask);
+        ZI_ASSERT(mask_);
 
-        size_t s = g->num_elements();
+        size_t s = g.num_elements();
         for ( size_t i = 0; i < s; ++i )
         {
-            if ( mask->data()[i] )
-                g->data()[i] *= scale();
+            if ( mask_->data()[i] )
+                g.data()[i] *= scale();
             else
-                g->data()[i]  = static_cast<real>(0);
+                g.data()[i]  = static_cast<real>(0);
         }
 
-        // Should I reset mask here?
+        // Should we reset mask_ here?
     }
 
 public:
@@ -68,10 +67,10 @@ public:
                   size_t outn,
                   task_manager & tm,
                   real p,
-                  network::phase phs = network::phase::TRAIN )
+                  phase phs = phase::TRAIN )
         : edge(in,inn,out,outn,tm)
-        , ratio(p)
-        , phase(phs)
+        , ratio_(p)
+        , phase_(phs)
     {
         insize = in->fsize();
 
@@ -84,9 +83,9 @@ public:
         ZI_ASSERT(size(*f)==insize);
         
         auto fmap = get_copy(*f);
-        if ( phase == network::phase::TRAIN )
+        if ( phase_ == phase::TRAIN )
         {
-            mask = dropout_forward(*fmap);
+            dropout_forward(*fmap);
         }
 
         out_nodes->forward(out_num, std::move(fmap));
@@ -97,7 +96,7 @@ public:
         ZI_ASSERT(insize==size(*g));
 
         auto gmap = get_copy(*g);
-        if ( phase == network::phase::TRAIN )
+        if ( phase_ == phase::TRAIN )
         {
             dropout_backward(*gmap);
         }
