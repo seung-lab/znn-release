@@ -93,6 +93,8 @@ private:
 
     task_manager tm_;
 
+    phase phase_;
+
 #ifdef ZNN_ANALYSE_TASK_MANAGER
     void dump() { tm_.dump(); }
 #endif
@@ -265,6 +267,32 @@ private:
                     ( in, out, *e.second->opts, e.second->in_stride,
                       e.second->in_fsize, tm_, edges::filter_tag() );
             }
+            else if ( type == "dropout" )
+            {
+                // [kisuklee]
+                // This version of dropout is not actually disabling individual
+                // nodes, but making a random binary dropout masks for each 
+                // node. This is the version that was implemented in v1, and 
+                // the effectiveness is yet to be proven.
+                throw std::logic_error(HERE() + "not implemented: " + type);
+                
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *e.second->opts, e.second->in_fsize, 
+                      tm_, phase_, edges::dropout_tag() );
+            }
+            else if ( type == "crop" )
+            {
+                // [kisuklee]
+                // This version of dropout is not actually disabling individual
+                // nodes, but making a random binary dropout masks for each node.
+                // This is the version that was implemented in v1, and the 
+                // effectiveness is yet to be proven.
+                throw std::logic_error(HERE() + "not implemented: " + type);
+
+                // e.second->dedges = std::make_unique<edges>
+                //     ( in, out, *e.second->opts,
+                //       e.second->in_fsize, tm_, edges::crop_tag() );
+            }
             else if ( type == "dummy" )
             {
                 e.second->dedges = std::make_unique<edges>
@@ -358,6 +386,12 @@ private:
             es->width  = op.require_as<ovec3i>("size");
             es->pool   = true;
         }
+        else if ( type == "dropout" )
+        {
+        }
+        else if ( type == "crop" )
+        {
+        }
         else if ( type == "dummy" )
         {
         }
@@ -372,9 +406,11 @@ private:
 public:
     network( std::vector<options> const & ns,
              std::vector<options> const & es,
-             vec3i const & outsz,
-             size_t n_threads = 1 )
+             vec3i const & outsz,             
+             size_t n_threads = 1,
+             phase phs = phase::TRAIN )
         : tm_(n_threads)
+        , phase_(phs)
     {
         for ( auto& n: ns ) add_nodes(n);
         for ( auto& e: es ) add_edges(e);

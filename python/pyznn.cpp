@@ -50,20 +50,23 @@ using namespace znn::v4;
 using namespace znn::v4::parallel_network;
 
 std::shared_ptr< network > CNet_Init(
-		std::string const net_config_file,
-		np::ndarray const & outsz_a,
-		std::size_t const tc )
+		std::string  const net_config_file,
+		np::ndarray  const & outsz_a,
+		std::size_t  const tc,
+        std::uint8_t const phs = 0) // 0:TRAIN, 1:TEST
 {
     std::vector<options> nodes;
     std::vector<options> edges;
     parse_net_file(nodes, edges, net_config_file);
-    vec3i out_sz(	reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
-    				reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
-					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
+    vec3i out_sz(   reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
+                    reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
+                    reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
 					);
+
     // construct the network class
     std::shared_ptr<network> net(
-        new network(nodes,edges,out_sz,tc));
+        new network(nodes,edges,out_sz,tc,static_cast<phase>(phs)));
+
     return net;
 }
 

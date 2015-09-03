@@ -93,36 +93,6 @@ def softmax_loss(props, lbls):
 #def hinge_loss(props, lbls):
 
 #@jit(nopython=True)
-def rebalance( lbls ):
-    """
-    get rebalance tree_size of gradient.
-    make the nonboundary and boundary region have same contribution of training.
-
-    Parameters
-    ----------
-    grdts: 4D array of gradient volumes
-    lbls:  4D array of ground truth label
-    
-    Return
-    ------
-    ret: 4D array of balanced gradient volumes
-    """
-    # number of nonzero elements
-    num_nz = float( np.count_nonzero(lbls) )
-    # total number of elements
-    num = float( np.size(lbls) )
-
-    # weight of non-boundary and boundary
-    wnb = 0.5 * num / num_nz
-    wb  = 0.5 * num / (num - num_nz)
-
-    # give value
-    weights = np.empty( lbls.shape, dtype='float32' )
-    weights[lbls>0] = wnb
-    weights[lbls==0]= wb
-    return weights
-
-#@jit(nopython=True)
 def malis_weight(affs, threshold=0.5):
     """
     compute malis tree_size
@@ -131,7 +101,6 @@ def malis_weight(affs, threshold=0.5):
     -----------
     affs:      4D array of forward pass output affinity graphs, size: C*Z*Y*X
     threshold: threshold for segmentation
-
 
     Return:
     ------

@@ -5,13 +5,14 @@
 #include "gaussian_init.hpp"
 #include "normalize_init.hpp"
 #include "constant_init.hpp"
+#include "bernoulli_init.hpp"
 
 #include "../assert.hpp"
 #include "../options/options.hpp"
 
 namespace znn { namespace v4 {
 
-std::shared_ptr<initializator> get_initializator( options const & op, options * info = nullptr )
+std::shared_ptr<initializator<real>> get_initializator( options const & op, options * info = nullptr )
 {
     std::string fn = op.require_as<std::string>("init");
 
@@ -48,6 +49,11 @@ std::shared_ptr<initializator> get_initializator( options const & op, options * 
         ZI_ASSERT(p.size()==2);
 
         return std::make_shared<gaussian_init>(p[0],p[1]);
+    }
+    else if ( fn == "bernoulli" )
+    {
+        real p = op.optional_as<real>("init_args", 0.5);
+        return std::make_shared<bernoulli_init<real>>(p);
     }
     else if ( fn == "xavier")
     {
