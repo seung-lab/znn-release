@@ -102,7 +102,6 @@ def malis_weight(affs, threshold=0.5):
     affs:      4D array of forward pass output affinity graphs, size: C*Z*Y*X
     threshold: threshold for segmentation
 
-
     Return:
     ------
     weights : 4D array of weights

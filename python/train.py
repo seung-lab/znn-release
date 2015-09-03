@@ -53,7 +53,6 @@ def main( conf_file='config.cfg' ):
     # the temporal weights
     rb_weights=[]
     malis_weights=[]
-    grdts_bm=[]
     
     # interactive visualization
     plt.ion()
