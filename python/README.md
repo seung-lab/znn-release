@@ -11,7 +11,6 @@ Supports Linux and MacOS.
 |[boost](http://www.boost.org/)|libboost-all-dev|
 |[BoostNumpy](http://github.com/ndarray/Boost.NumPy)|NA|
 |[jemalloc](http://www.canonware.com/jemalloc/)|libjemalloc-dev|
-|[]||
 
 Compiler flags
 --------------
