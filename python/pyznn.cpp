@@ -63,7 +63,7 @@ std::shared_ptr< network > CNet_Init(
 					);
     // construct the network class
     std::shared_ptr<network> net(
-        new network(nodes,edges,out_sz,tc));
+        new network(nodes,edges,out_sz,network::training,tc));
     return net;
 }
 

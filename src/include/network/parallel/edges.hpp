@@ -11,6 +11,7 @@
 #include "../../utils/waiter.hpp"
 #include "../../options/options.hpp"
 #include "../filter.hpp"
+#include "network.hpp"
 
 
 namespace znn { namespace v4 { namespace parallel_network {
@@ -117,9 +118,6 @@ inline edges::edges( nodes * in,
             }
         }
     }
-
-
-
 }
 
 inline edges::edges( nodes * in,
@@ -169,7 +167,6 @@ inline edges::edges( nodes * in,
             = std::make_unique<max_pooling_edge>
             (in, i, out, i, tm_, sz, stride);
     }
-
 }
 
 inline edges::edges( nodes * in,
@@ -195,6 +192,34 @@ inline edges::edges( nodes * in,
         edges_[i]
             = std::make_unique<real_pooling_edge>
             (in, i, out, i, tm_, sz);
+    }
+}
+
+// dropout
+inline edges::edges( nodes * in,
+                     nodes * out,
+                     options const & opts,                     
+                     vec3i const & in_size,
+                     task_manager & tm,
+                     network::phase phase
+                     dropout_tag )
+    : options_(opts)
+    , size_(in_size)
+    , tm_(tm)
+{
+    ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
+
+    size_t n = in->num_out_nodes();
+    edges_.resize(n);
+    waiter_.set(n);
+
+    auto ratio = opts.require_as<real>("ratio");
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        edges_[i]
+            = std::make_unique<dropout_edge>
+            (in, i, out, i, tm_, ratio, phase);
     }
 
 }

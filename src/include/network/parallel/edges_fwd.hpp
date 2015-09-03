@@ -16,9 +16,9 @@ class edges
 public:
     struct filter_tag {};
     struct dummy_tag {};
-    struct max_pooling_tag{};
-    struct real_pooling_tag{};
-    struct dropout_tag{};
+    struct max_pooling_tag {};
+    struct real_pooling_tag {};
+    struct dropout_tag {};
 
 protected:
     options                                options_;
