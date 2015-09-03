@@ -56,7 +56,7 @@ def parser( conf_fname ):
     pars['anneal_factor']=config.getfloat('parameters', 'anneal_factor')
     pars['momentum']    = config.getfloat('parameters', 'momentum')
     pars['weight_decay']= config.getfloat('parameters', 'weight_decay')
-    pars['train_outsz']       = np.asarray( [x for x in config.get('parameters', 'train_outsz').split(',') ], dtype=np.int64 )
+    pars['train_outsz'] = np.asarray( [x for x in config.get('parameters', 'train_outsz').split(',') ], dtype=np.int64 )
     pars['is_data_aug'] = config.getboolean('parameters', 'is_data_aug')
     pars['is_rebalance']= config.getboolean('parameters', 'is_rebalance')
     pars['is_malis']    = config.getboolean('parameters', 'is_malis')
@@ -64,6 +64,7 @@ def parser( conf_fname ):
 
     pars['Num_iter_per_show'] = config.getint('parameters', 'Num_iter_per_show')
     pars['Num_iter_per_test'] = config.getint('parameters', 'Num_iter_per_test')
+    pars['test_num']    = config.getint( 'parameters', 'test_num' )
     pars['Num_iter_per_save'] = config.getint('parameters', 'Num_iter_per_save')
     pars['Max_iter']    = config.getint('parameters', 'Max_iter')
 
