@@ -46,7 +46,7 @@ def parser( conf_fname ):
 
     pars['fnet_spec']   = config.get('parameters', 'fnet_spec')
     pars['num_threads'] = int( config.get('parameters', 'num_threads') )
-    pars['dp_type']     = config.get('parameters', 'dp_type')
+    pars['out_dtype']     = config.get('parameters', 'out_dtype')
 
     pars['train_save_net'] = config.get('parameters', 'train_save_net')
     pars['train_load_net'] = config.get('parameters', 'train_load_net') 
@@ -85,27 +85,15 @@ def parser( conf_fname ):
        
     #%% check the consistency of some options
     if pars['is_malis']:
-        if 'aff' not in pars['dp_type']:
+        if 'aff' not in pars['out_dtype']:
             raise NameError( 'malis weight should be used with affinity label type!' )
     return config, pars
 
 class CSample:
-    def _lbl2aff( self, lbls ):
-        """
-        transform labels to affinity
-        """
-        assert( len(lbls)==1 )
-        lbl = lbls[0]
-        aff = np.zeros((3,)+lbl.shape, dtype='float32')
-        aff[0,1:,:,:] = (lbl[1:,:,:] == lbl[:-1,:,:]) & (lbl[1:,:,:]>0)
-        aff[1,:,1:,:] = (lbl[:,1:,:] == lbl[:,:-1,:]) & (lbl[:,1:,:]>0)
-        aff[2,:,:,1:] = (lbl[:,:,1:] == lbl[:,:,:-1]) & (lbl[:,:,1:]>0)
-        return aff
-
     """class of sample, similar with Dataset module of pylearn2"""
     def __init__(self, sample_id, config, pars):
         self.pars = pars
-        dp_type = pars['dp_type']
+        out_dtype = pars['out_dtype']
 
         sec_name = "sample%d" % (sample_id,)
         fvols  = config.get(sec_name, 'fvols').split(',\n')
@@ -138,11 +126,9 @@ class CSample:
             self.vols = utils.auto_crop( self.vols )
         
         # process the label data
-        if config.has_option( sec_name, 'flbls' ):
-            if 'aff' in dp_type:
-                self.lbls = self._lbl2aff( self.lbls )
-            elif 'vol' in dp_type or 'boundary' in dp_type:
-                self.lbls = utils.binarize( self.lbls )
+        if config.has_option( sec_name, 'flbls' ) and \
+                ('vol' in out_dtype or 'boundary' in out_dtype):
+            self.lbls = utils.binarize( self.lbls )
                 
     def _rebalance( self, lbls ):
         """
@@ -183,10 +169,10 @@ class CSample:
         """
         c = len(self.vols)
         self.vol_ins = np.empty(np.hstack((c,insz)), dtype='float32')
-        dp_type = self.pars['dp_type']
-        if 'vol' in dp_type or 'boundary' in dp_type:
+        out_dtype = self.pars['out_dtype']
+        if 'vol' in out_dtype or 'boundary' in out_dtype:
             self.lbl_outs= np.empty(np.hstack((1,outsz)), dtype='float32')
-        elif 'aff' in dp_type:
+        elif 'aff' in out_dtype:
             self.lbl_outs= np.empty(np.hstack((3,outsz)), dtype='float32')
         # configure size
         half_in_sz  = insz.astype('uint32')  / 2
@@ -205,11 +191,11 @@ class CSample:
                                             loc[1]-half_in_sz[1]  : loc[1]-half_in_sz[1] + insz[1],\
                                             loc[2]-half_in_sz[2]  : loc[2]-half_in_sz[2] + insz[2]]
         for k, lbl in enumerate( self.lbls ):
-            if 'vol' in dp_type or 'boundary' in dp_type:
+            if 'vol' in out_dtype or 'boundary' in out_dtype:
                 self.lbl_outs[0,:,:,:] = lbl[   loc[0]-half_out_sz[0] : loc[0]-half_out_sz[0]+outsz[0],\
                                                 loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
                                                 loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
-            elif 'aff' in dp_type:
+            elif 'aff' in out_dtype:
                 self.lbl_outs[:,:,:,:] = lbl[:, loc[0]-half_out_sz[0] : loc[0]-half_out_sz[0]+outsz[0],\
                                                 loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
                                                 loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
@@ -230,28 +216,16 @@ class CSample:
         """
         # transform every pair of input and label volume
         if rft[0]:
-            # first flip and than transpose
-            if rft[1]:
-                data  = np.fliplr( data )
-                if rft[2]:
-                    data  = np.flipud( data )
-                    if rft[3]:
-                        data = data[::-1, :,:]
-            if rft[4]:
-                data = data.transpose(0,2,1)
-        else:
-            # first transpose, than flip
-            if rft[4]:
-                data = data.transpose(0,2,1)
-            if rft[1]:
-                data = np.fliplr( data )
-                if rft[2]:
-                    data = np.flipud( data )
-                    if rft[3]:
-                        data = data[::-1, :,:]
+            data  = np.fliplr( data )
+        if rft[1]:
+            data  = np.flipud( data )
+        if rft[2]:
+            data = data[::-1, :,:]
+        if rft[3]:
+            data = data.transpose(0,2,1)
         return data
 
-    def _data_aug(self, vols, lbls, dp_type ):
+    def _data_aug(self, vols, lbls ):
         """
         data augmentation, transform volumes randomly to enrich the training dataset.
 
@@ -266,17 +240,41 @@ class CSample:
         lbl : transformed label volumes.
         """
         # random flip and transpose: flip-transpose order, fliplr, flipud, flipz, transposeXY
-        rft = (np.random.random(5)>0.5)
+        rft = (np.random.random(4)>0.5)
         for i in xrange(vols.shape[0]):
             vols[i,:,:,:] = self._data_aug_transform(vols[i,:,:,:], rft)
         for i in xrange(lbls.shape[0]):
             lbls[i,:,:,:] = self._data_aug_transform(lbls[i,:,:,:], rft)
         return (vols, lbls)
+    
+    def _lbl2aff( vins, lbls ):
+        """
+        transform labels to affinity
+        """
+        assert( len(lbls)==1 )
+        lbl = lbls.pop()
+        aff_size = np.hstack( np.asarray([3]), np.asarray(lbl.shape)-1)
+        aff = np.zeros( tuple(aff_size) , dtype='float32')
+        aff[0,:,:,:] = (lbl[1:,1:,1:] == lbl[:-1, 1:  ,1: ]) & (lbl[1:,1:,1:]>0)
+        aff[1,:,:,:] = (lbl[1:,1:,1:] == lbl[1: , :-1 ,1: ]) & (lbl[1:,1:,1:]>0)
+        aff[2,:,:,:] = (lbl[1:,1:,1:] == lbl[1: , 1:  ,:-1]) & (lbl[:,:,1:]>0)
+        
+        # shrink the input volume
+        for k,arr in enumerate(vins):
+            vins[k] = arr[1:,1:,1:]
+        return vins, aff
+    
     def get_random_sample(self, insz, outsz):
-        dp_type = self.pars['dp_type']
-        vins, vouts = self._get_random_subvol( insz, outsz )
-        if self.pars['is_data_aug']:
-            vins, vouts = self._data_aug( vins, vouts, dp_type )
+        out_dtype = self.pars['out_dtype']
+        if 'vol' in out_dtype or 'boundary' in out_dtype:
+            vins, vouts = self._get_random_subvol( insz, outsz )
+            if self.pars['is_data_aug']:
+                vins, vouts = self._data_aug( vins, vouts )
+        elif 'aff' in out_dtype:
+            vins, vouts = self._get_random_subvol( insz+1, outsz+1 )
+            if self.pars['is_data_aug']:
+                vins, vouts = self._data_aug( vins, vouts )
+            vins, vouts = self._lbl2aff( vins, vouts )   
         return ( vins, vouts )
 
 class CSamples:
