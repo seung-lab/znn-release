@@ -63,6 +63,15 @@ std::vector<std::size_t> comma_delim_to_vector( std::string const comma_delim)
 	return res;
 };
 
+void print_data_string( real const * data, std::size_t num_items )
+{
+	for ( std::size_t i=0; i < num_items; i++)
+	{
+		std::cout << data[i] << std::endl;
+	}
+	return;
+};
+
 //Takes a binary string, and converts it to a tuple of numpy arrays
 // (bias values, momentum values)
 //Assumes the intended array is one-dimensional (fitting for biases)
@@ -76,6 +85,9 @@ bp::tuple bias_string_to_np( std::string const & bin,
 	//momentum values stored immediately after array values
 	std::size_t gap = bin.size() / (2 * sizeof(real));
 	real const * momentum = data + gap;
+
+	//Debug
+	//print_data_string(data, bin.size() / (2 * sizeof(real)));
 
 	return bp::make_tuple(
 		//values
@@ -108,6 +120,9 @@ bp::tuple filter_string_to_np( std::string const & bin,
 	//momentum values stored immediately after array values
 	std::size_t gap = bin.size() / (2 * sizeof(real));
 	real const * momentum = data + gap;
+
+	//Debug
+	//print_data_string(data, bin.size() / (2 * sizeof(real)));
 
 	return bp::make_tuple(
 		//values
@@ -183,6 +198,7 @@ bp::dict node_opt_to_dict( options const opt,
 		{
 			//Debug
 			// res["raw_biases"] = p.second;
+			//std::cout << opt.require_as<std::string>("name") << std::endl;
 			res[p.first] = bias_string_to_np(p.second, size, self);
 		}
 	}
@@ -237,6 +253,7 @@ bp::dict edge_opt_to_dict( options const opt,
 		{
 			//Debug
 			// res["raw_filters"] = p.second;
+			//std::cout << opt.require_as<std::string>("name") << std::endl;
 			std::size_t nodes_in = layer_sizes[input_layer];
 			std::size_t nodes_out = layer_sizes[output_layer];
 
@@ -322,13 +339,13 @@ std::string opt_to_string( bp::dict const & layer_dict, std::string key )
 	}
 }
 
-//Takes a list of dictionaries (pyopt) and converts them to 
-// a vector of znn options
-std::vector<options> pyopt_to_znnopt( bp::list const & opts )
+//Takes a list of dictionaries (pyopt)
+// and converts it to a vector of znn options
+std::vector<options> pyopt_to_znnopt( bp::list const & py_opts )
 {
 
 	std::vector<options> res;
-	std::size_t num_layers = bp::extract<std::size_t>( opts.attr("__len__")() );
+	std::size_t num_layers = bp::extract<std::size_t>( py_opts.attr("__len__")() );
 
 	//list loop
 	for (std::size_t i=0; i < num_layers; i++ )
@@ -336,7 +353,7 @@ std::vector<options> pyopt_to_znnopt( bp::list const & opts )
 
 		res.resize(res.size()+1);
 
-		bp::dict layer_dict = bp::extract<bp::dict>( opts[i] );
+		bp::dict layer_dict = bp::extract<bp::dict>( py_opts[i] );
 		std::vector<std::string> keys = extract_dict_keys( layer_dict );
 
 		//dict loop
