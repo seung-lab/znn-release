@@ -58,7 +58,7 @@ std::shared_ptr< network > CNet_Init(
     std::vector<options> nodes;
     std::vector<options> edges;
     parse_net_file(nodes, edges, net_config_file);
-    vec3i out_sz(	reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
+    vec3i out_sz(   reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
                     reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
                     reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
 					);

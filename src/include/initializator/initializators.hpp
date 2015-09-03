@@ -12,7 +12,7 @@
 
 namespace znn { namespace v4 {
 
-std::shared_ptr<initializator> get_initializator( options const & op, options * info = nullptr )
+std::shared_ptr<initializator<real>> get_initializator( options const & op, options * info = nullptr )
 {
     std::string fn = op.require_as<std::string>("init");
 
@@ -53,7 +53,7 @@ std::shared_ptr<initializator> get_initializator( options const & op, options * 
     else if ( fn == "bernoulli" )
     {
         real p = op.optional_as<real>("init_args", 0.5);
-        return std::make_shared<bernoulli_init>(p);
+        return std::make_shared<bernoulli_init<real>>(p);
     }
     else if ( fn == "xavier")
     {

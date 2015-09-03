@@ -30,7 +30,7 @@ private:
         }
 
         // new random mask
-        bernoulli_init(ratio_).initialize(mask_);
+        bernoulli_init<bool>(ratio_).initialize(mask_);
 
         size_t s = f.num_elements();
         for ( size_t i = 0; i < s; ++i )
