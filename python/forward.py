@@ -17,7 +17,7 @@ from emirt import emio
 
 #import pyznn
 import front_end, netio
-#import train_nt
+#import train_nt #used for debugging
 
 def correct_output_patch_shape( output_patch_config_shape, net ):
 	'''Returns a 4d version of the output shape array. Always replaces
@@ -38,10 +38,10 @@ def correct_output_patch_shape( output_patch_config_shape, net ):
 def input_patch_shape(output_patch_shape, fov):
 	'''Determines the size of the input patch to feed into the network'''
 	if output_patch_shape.size == 3:
-		res = output_patch_shape + fov - 1
+		return output_patch_shape + fov - 1
 	else: #len == 4
 		return np.hstack( (output_patch_shape[0],
-							output_patch_shape[-3:] + fov - 1) )
+					output_patch_shape[-3:] + fov - 1) )
 
 def output_vol_shape(input_vol_shape, net):
 	'''Derives the resulting shape of the full volume returned by the forward pass'''
@@ -141,7 +141,7 @@ def generate_output_volume(input_vol, output_patch_shape, net, verbose=True):
 		input_vol = input_vol.reshape( np.hstack((1,input_vol.shape)) )
 
 	#Init
-	output_vol = np.empty( 
+	output_vol = np.zeros( 
 			output_vol_shape(input_vol.shape, net), 
 			dtype=np.float32)
 
@@ -157,10 +157,14 @@ def generate_output_volume(input_vol, output_patch_shape, net, verbose=True):
 	assert num_output_patches( output_vol.shape, output_patch_shape ) == len(output_bounds)
 	assert len( input_bounds ) == len( output_bounds )
 
-	for i in xrange(len( input_bounds )):
+        fov = np.asarray(net.get_fov())
+        ips = input_patch_shape(output_patch_shape, fov).astype('uint32')
+	num_patches = len(input_bounds)
+
+	for i in xrange( num_patches ):
 
 		if verbose:
-			print "Output patch #{}:".format(i+1) # i is just an index
+			print "Output patch #{} out of {}:".format(i+1, num_patches) # i is just an index
 
 		input_beginning = 	input_bounds[i][0]
 		input_end = 		input_bounds[i][1]
@@ -176,11 +180,12 @@ def generate_output_volume(input_vol, output_patch_shape, net, verbose=True):
 		output_end = 		output_bounds[i][1]
 		if verbose:
 			print "Output Volume [{}] to [{}]".format(output_beginning, output_end)
+			print ""
 
 		# ACTUALLY RUNNING FORWARD PASS
 		#  Debug version to test indexing
-		#  output_patch = np.zeros( output_patch_shape ) #Debug
-		output_patch = net.forward( np.ascontiguousarray(input_patch) ).astype('float32')
+		#output_patch = np.ones( output_patch_shape ) #Debug
+		output_patch = net.forward( np.ascontiguousarray(input_patch, dtype='float32') ).astype('float32')
 
 		output_vol[ :,
 			output_beginning[0]:output_end[0],
@@ -217,7 +222,7 @@ def main( config_filename ):
 
 	# load network
 	# Debug - random network
-	# net = train_nt.initialize_network( params )
+	#net = train_nt.initialize_network( params )
 	net = netio.load_network(params['forward_net'], 
 					params['fnet_spec'], 
 					params['forward_outsz'], 

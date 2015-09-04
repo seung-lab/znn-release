@@ -172,17 +172,15 @@ std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
 	std::vector<options> node_opts = pyopt_to_znnopt(node_opts_list);
 	std::vector<options> edge_opts = pyopt_to_znnopt(edge_opts_list);
 
-	parse_net_file(node_opts, edge_opts, net_config_file);
-
 	vec3i out_sz(	reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
 					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
 					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
 					);	
 
-    std::shared_ptr<network> net(
-        new network(node_opts,edge_opts,out_sz,tc));
-    // return net;	
-    return net;
+	std::shared_ptr<network> net(
+		new network(node_opts,edge_opts,out_sz,tc));
+	
+	return net;
 }
 
 BOOST_PYTHON_MODULE(pyznn)
