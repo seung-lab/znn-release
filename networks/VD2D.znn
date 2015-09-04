@@ -176,15 +176,25 @@ type transfer
 function rectify_linear
 size 200
 
+edges dropout
+type dropout
+ratio 0.5
+input nl14
+output nl15
+
+nodes nl15
+type sum
+size 200
+
 edges output
 type conv
 init msra
 size 1,1,1
 stride 1,1,1
-input nl14
-output nl15
+input nl15
+output nl16
 
-nodes nl15
+nodes nl16
 type transfer
 function linear
 size 2
