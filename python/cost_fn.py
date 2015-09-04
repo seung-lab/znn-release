@@ -91,8 +91,8 @@ def softmax_loss(props, lbls):
     return multinomial_cross_entropy(props, lbls)
 
 #def hinge_loss(props, lbls):
+# TO-DO
 
-#@jit(nopython=True)
 def malis_weight(affs, threshold=0.5):
     """
     compute malis tree_size
