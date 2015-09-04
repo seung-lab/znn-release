@@ -49,7 +49,7 @@ def parser( conf_fname ):
     pars['out_dtype']     = config.get('parameters', 'out_dtype')
 
     pars['train_save_net'] = config.get('parameters', 'train_save_net')
-    pars['train_load_net'] = config.get('parameters', 'train_load_net') 
+    pars['train_load_net'] = config.get('parameters', 'train_load_net')
     pars['train_range'] = parseIntSet( config.get('parameters',   'train_range') )
     pars['test_range']  = parseIntSet( config.get('parameters',   'test_range') )
     pars['eta']         = config.getfloat('parameters', 'eta')
@@ -81,9 +81,11 @@ def parser( conf_fname ):
         pars['cost_fn'] = cost_fn.binomial_cross_entropy
     elif pars['cost_fn_str'] == "multinomial_cross_entropy":
         pars['cost_fn'] = cost_fn.multinomial_cross_entropy
+    elif pars['cost_fn_str'] == "softmax_loss":
+        pars['cost_fn'] = cost_fn.softmax_loss
     else:
         raise NameError('unknown type of cost function')
-       
+
     #%% check the consistency of some options
     if pars['is_malis']:
         if 'aff' not in pars['out_dtype']:
@@ -98,8 +100,8 @@ class CSample:
 
         sec_name = "sample%d" % (sample_id,)
         fvols  = config.get(sec_name, 'fvols').split(',\n')
-        self.vols = utils.read_files( fvols )       
-        
+        self.vols = utils.read_files( fvols )
+
         self.lbls=[]
         if config.has_option( sec_name, 'flbls' ) and config.get(sec_name, 'flbls'):
             flbls  = config.get(sec_name, 'flbls').split(',\n')
@@ -109,7 +111,7 @@ class CSample:
             fmsks  = config.get(sec_name, 'fmsks').split(',\n')
             self.msks = utils.read_files( fmsks )
             self.msks = utils.binarize( self.msks, dtype='float32' )
-            
+
         # rebalance
         if pars['is_rebalance']:
             weights = self._rebalance( self.lbls )
@@ -117,20 +119,20 @@ class CSample:
                 self.msks = utils.loa_mul(self.msks, weights)
             else:
                 self.msks = weights
-        
+
         # preprocess the input volumes
         pp_types = config.get(sec_name, 'pp_type').split(',')
         self.vols = utils.preprocess( self.vols, pp_types)
-        
-        # crop the surrounding region to fit the smallest size 
+
+        # crop the surrounding region to fit the smallest size
         if config.getboolean(sec_name, 'is_auto_crop'):
             self.vols = utils.auto_crop( self.vols )
-        
+
         # process the label data
         if config.has_option( sec_name, 'flbls' ) and \
                 ('vol' in out_dtype or 'boundary' in out_dtype):
             self.lbls = utils.binarize( self.lbls )
-                
+
     def _rebalance( self, lbls ):
         """
         get rebalance tree_size of gradient.
@@ -142,11 +144,11 @@ class CSample:
             num_nz = float( np.count_nonzero(lbl) )
             # total number of elements
             num = float( np.size(lbl) )
-        
+
             # weight of non-boundary and boundary
             wnb = 0.5 * num / num_nz
             wb  = 0.5 * num / (num - num_nz)
-        
+
             # give value
             weight = np.empty( lbl.shape, dtype='float32' )
             weight[lbl>0]  = wnb
@@ -240,7 +242,7 @@ class CSample:
         for i in xrange(lbls.shape[0]):
             lbls[i,:,:,:] = self._data_aug_transform(lbls[i,:,:,:], rft)
         return (vols, lbls)
-    
+
     def _lbl2aff( self, vins, lbl ):
         """
         transform labels to affinity
@@ -251,11 +253,11 @@ class CSample:
         aff[0,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,:-1, 1:  ,1: ]) & (lbl[0,1:,1:,1:]>0)
         aff[1,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , :-1 ,1: ]) & (lbl[0,1:,1:,1:]>0)
         aff[2,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , 1:  ,:-1]) & (lbl[0,1:,1:,1:]>0)
-        
+
         # shrink the input volume
         vins = vins[:,1:,1:,1:]
         return vins, aff
-    
+
     def get_random_sample(self, insz, outsz):
         out_dtype = self.pars['out_dtype']
         if 'vol' in out_dtype or 'boundary' in out_dtype:
@@ -266,7 +268,7 @@ class CSample:
             vins, vouts = self._get_random_subvol( insz+1, outsz+1 )
             if self.pars['is_data_aug']:
                 vins, vouts = self._data_aug( vins, vouts )
-            vins, vouts = self._lbl2aff( vins, vouts )   
+            vins, vouts = self._lbl2aff( vins, vouts )
         return ( vins, vouts )
 
 class CSamples:
@@ -290,7 +292,7 @@ class CSamples:
         i = np.random.randint( len(self.samples) )
         vins, vouts = self.samples[i].get_random_sample( insz, outsz)
         return (vins, vouts)
-        
+
     def get_inputs(self, sid):
         return self.samples[sid].vols
 
