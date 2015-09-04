@@ -30,7 +30,7 @@ def main( conf_file='config.cfg' ):
         net = netio.load_network( pars['train_load_net'], pars['fnet_spec'], outsz, pars['num_threads'])
     else:
         print "initializing network..."
-        net = pyznn.CNet(pars['fnet_spec'], outsz, pars['num_threads'])
+        net = pyznn.CNet(pars['fnet_spec'], outsz, pars['num_threads'], 0)
     eta = pars['eta'] / float(outsz[0] * outsz[1] * outsz[2])
     net.set_eta( eta )
     net.set_momentum( pars['momentum'] )

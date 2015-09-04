@@ -171,10 +171,8 @@ class CSample:
         c = len(self.vols)
         self.vol_ins = np.empty(np.hstack((c,insz)), dtype='float32')
         out_dtype = self.pars['out_dtype']
-        if 'vol' in out_dtype or 'boundary' in out_dtype:
-            self.lbl_outs= np.empty(np.hstack((1,outsz)), dtype='float32')
-        elif 'aff' in out_dtype:
-            self.lbl_outs= np.empty(np.hstack((3,outsz)), dtype='float32')
+        self.lbl_outs= np.empty(np.hstack((1,outsz)), dtype='float32')
+
         # configure size
         half_in_sz  = insz.astype('uint32')  / 2
         half_out_sz = outsz.astype('uint32') / 2
@@ -192,14 +190,9 @@ class CSample:
                                             loc[1]-half_in_sz[1]  : loc[1]-half_in_sz[1] + insz[1],\
                                             loc[2]-half_in_sz[2]  : loc[2]-half_in_sz[2] + insz[2]]
         for k, lbl in enumerate( self.lbls ):
-            if 'vol' in out_dtype or 'boundary' in out_dtype:
-                self.lbl_outs[0,:,:,:] = lbl[   loc[0]-half_out_sz[0] : loc[0]-half_out_sz[0]+outsz[0],\
-                                                loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
-                                                loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
-            elif 'aff' in out_dtype:
-                self.lbl_outs[:,:,:,:] = lbl[:, loc[0]-half_out_sz[0] : loc[0]-half_out_sz[0]+outsz[0],\
-                                                loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
-                                                loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
+            self.lbl_outs[0,:,:,:] = lbl[   loc[0]-half_out_sz[0] : loc[0]-half_out_sz[0]+outsz[0],\
+                                            loc[1]-half_out_sz[1] : loc[1]-half_out_sz[1]+outsz[1],\
+                                            loc[2]-half_out_sz[2] : loc[2]-half_out_sz[2]+outsz[2]]
         return (self.vol_ins, self.lbl_outs)
 
     def _data_aug_transform(self, data, rft):
@@ -248,21 +241,19 @@ class CSample:
             lbls[i,:,:,:] = self._data_aug_transform(lbls[i,:,:,:], rft)
         return (vols, lbls)
     
-    def _lbl2aff( vins, lbls ):
+    def _lbl2aff( self, vins, lbl ):
         """
         transform labels to affinity
         """
-        assert( len(lbls)==1 )
-        lbl = lbls.pop()
-        aff_size = np.hstack( np.asarray([3]), np.asarray(lbl.shape)-1)
+        aff_size = np.asarray(lbl.shape)-1
+        aff_size[0] = 3
         aff = np.zeros( tuple(aff_size) , dtype='float32')
-        aff[0,:,:,:] = (lbl[1:,1:,1:] == lbl[:-1, 1:  ,1: ]) & (lbl[1:,1:,1:]>0)
-        aff[1,:,:,:] = (lbl[1:,1:,1:] == lbl[1: , :-1 ,1: ]) & (lbl[1:,1:,1:]>0)
-        aff[2,:,:,:] = (lbl[1:,1:,1:] == lbl[1: , 1:  ,:-1]) & (lbl[:,:,1:]>0)
+        aff[0,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,:-1, 1:  ,1: ]) & (lbl[0,1:,1:,1:]>0)
+        aff[1,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , :-1 ,1: ]) & (lbl[0,1:,1:,1:]>0)
+        aff[2,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , 1:  ,:-1]) & (lbl[0,1:,1:,1:]>0)
         
         # shrink the input volume
-        for k,arr in enumerate(vins):
-            vins[k] = arr[1:,1:,1:]
+        vins = vins[:,1:,1:,1:]
         return vins, aff
     
     def get_random_sample(self, insz, outsz):
