@@ -243,6 +243,8 @@ def main( config_filename ):
 
 if __name__ == '__main__':
 
-	config_filename = argv[1]
-
-	main( config_filename )
+    import sys
+    if len(sys.argv)>1:
+        main( sys.argv[1] )
+    else:
+        main('config.cfg')
