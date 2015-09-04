@@ -93,19 +93,21 @@ def softmax_loss(props, lbls):
 #def hinge_loss(props, lbls):
 
 #@jit(nopython=True)
-def malis_weight(affs, threshold=0.5):
+def malis_weight(affs, true_affs, threshold=0.5):
     """
     compute malis tree_size
 
     Parameters:
     -----------
     affs:      4D array of forward pass output affinity graphs, size: C*Z*Y*X
+    true_affs : 4d array of ground truth affinity graph
     threshold: threshold for segmentation
 
     Return:
     ------
     weights : 4D array of weights
     """
+#    seg = segment(true_affs)
     # get affinity graphs
     xaff = affs[2]
     yaff = affs[1]

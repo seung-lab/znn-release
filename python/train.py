@@ -80,7 +80,7 @@ def main( conf_file='config.cfg' ):
             rb_weight = cost_fn.rebalance( lbl_out )
             grdt = grdt * rb_weight
         if pars['is_malis'] :
-            malis_weight = cost_fn.malis_weight(prop)
+            malis_weight = cost_fn.malis_weight(prop, lbl_out)
             grdt = grdt * malis_weight
     
         # run backward pass
