@@ -63,11 +63,12 @@ std::shared_ptr< network > CNet_Init(
                     reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
 					);
 
+    // optimize
+    network::optimize(nodes, edges, out_sz, tc, 10);
+
     // construct the network class
     std::shared_ptr<network> net(
         new network(nodes,edges,out_sz,tc,static_cast<phase>(phs)));
-
-    net->optimize(nodes, edges, out_sz, tc, 10);
 
     return net;
 }
@@ -177,11 +178,11 @@ std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
 	vec3i out_sz(	reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
 					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
 					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
-					);	
+					);
 
 	std::shared_ptr<network> net(
 		new network(node_opts,edge_opts,out_sz,tc));
-	
+
 	return net;
 }
 
