@@ -67,6 +67,8 @@ std::shared_ptr< network > CNet_Init(
     std::shared_ptr<network> net(
         new network(nodes,edges,out_sz,tc,static_cast<phase>(phs)));
 
+    net->optimize(nodes, edges, out_sz, tc, 10);
+
     return net;
 }
 

@@ -4,20 +4,15 @@ __doc__ = """
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
-import cost_fn
 
 def _single_test(net, pars, sample, insz, outsz):
     vol_ins, lbl_outs = sample.get_random_sample( insz, outsz )
    
     # forward pass
     props = net.forward( np.ascontiguousarray(vol_ins) ).astype('float32')
-
-    # softmax
-    if pars['cost_fn_str']=='multinomial_cross_entropy':
-        props = cost_fn.softmax(props)
-    
+   
     # cost function and accumulate errors
-    err, grdts = pars['cost_fn']( props, lbl_outs )
+    props, err, grdts = pars['cost_fn']( props, lbl_outs )
     cls = np.count_nonzero( (props>0.5)!= lbl_outs )
     
     # normalize

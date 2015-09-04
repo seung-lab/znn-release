@@ -65,12 +65,8 @@ def main( conf_file='config.cfg' ):
         # forward pass
         prop = net.forward( np.ascontiguousarray(vol_in, dtype='float32') ).astype('float32')
     
-        # softmax
-        if pars['cost_fn_str']=='multinomial_cross_entropy':
-            prop = cost_fn.softmax(prop)
-    
         # cost function and accumulate errors
-        cerr, grdt = pars['cost_fn']( prop.astype('float32'), lbl_out.astype('float32') )
+        props, cerr, grdt = pars['cost_fn']( prop.astype('float32'), lbl_out.astype('float32') )
         err = err + cerr
         # classification error
         cls = cls + np.count_nonzero( (prop>0.5)!= lbl_out )

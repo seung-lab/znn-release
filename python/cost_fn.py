@@ -27,7 +27,7 @@ def square_loss(props, lbls):
     # cost and classification error
     err = np.sum( grdts * grdts )
     grdts = grdts * 2
-    return (err, grdts)
+    return (props, err, grdts)
 
 #@jit(nopython=True)
 def binomial_cross_entropy(props, lbls):
@@ -47,7 +47,7 @@ def binomial_cross_entropy(props, lbls):
 #    assert(props.shape==lbls.shape)
     grdts = props.astype('float32') - lbls.astype('float32')
     err = np.sum(  -lbls*np.log(props) - (1-lbls)*np.log(1-props) )
-    return (err, grdts)
+    return (props, err, grdts)
 
 #@jit(nopython=True)
 def softmax(props):
@@ -81,9 +81,11 @@ def multinomial_cross_entropy(props, lbls):
     grdts:  list of gradient volumes
     """
     assert(props.shape==lbls.shape)
+    props = softmax(props)
+    
     grdts = props - lbls
     err = np.sum( -lbls * np.log(props) )
-    return (err, grdts)
+    return (props, err, grdts)
 
 #@jit(nopython=True)
 def softmax_loss(props, lbls):
