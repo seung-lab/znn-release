@@ -19,6 +19,7 @@ public:
     struct max_pooling_tag {};
     struct real_pooling_tag {};
     struct dropout_tag {};
+    struct crop_tag {};
 
 protected:
     options                                options_;
@@ -42,6 +43,9 @@ public:
 
     edges( nodes *, nodes *, options const &, vec3i const &,
            task_manager &, phase phs, dropout_tag );
+
+    edges( nodes *, nodes *, options const &, vec3i const &,
+           task_manager &, crop_tag );
 
     std::string name() const
     {

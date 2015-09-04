@@ -25,6 +25,7 @@ private:
         vec3i in_fsize  = vec3i::zero ;
 
         bool pool = false;
+        bool crop = false;
 
         nnodes * in;
         nnodes * out;
@@ -122,6 +123,11 @@ private:
                     vec3i new_fov   = fov * e->width;
                     vec3i new_fsize = e->width * fsize;
                     fov_pass(e->in, new_fov, new_fsize);
+                }
+                else if ( e->crop )
+                {
+                    // FoV doesn't change
+                    fov_pass(e->in, fov, fsize + e->width - vec3i::one);
                 }
                 else
                 {
@@ -270,28 +276,20 @@ private:
             else if ( type == "dropout" )
             {
                 // [kisuklee]
-                // This version of dropout is not actually disabling individual
+                // This version of dropout isn't actually disabling individual
                 // nodes, but making a random binary dropout masks for each 
                 // node. This is the version that was implemented in v1, and 
                 // the effectiveness is yet to be proven.
-                throw std::logic_error(HERE() + "not implemented: " + type);
-                
+
                 e.second->dedges = std::make_unique<edges>
                     ( in, out, *e.second->opts, e.second->in_fsize, 
                       tm_, phase_, edges::dropout_tag() );
             }
             else if ( type == "crop" )
             {
-                // [kisuklee]
-                // This version of dropout is not actually disabling individual
-                // nodes, but making a random binary dropout masks for each node.
-                // This is the version that was implemented in v1, and the 
-                // effectiveness is yet to be proven.
-                throw std::logic_error(HERE() + "not implemented: " + type);
-
-                // e.second->dedges = std::make_unique<edges>
-                //     ( in, out, *e.second->opts,
-                //       e.second->in_fsize, tm_, edges::crop_tag() );
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *e.second->opts,
+                      e.second->in_fsize, tm_, edges::crop_tag() );
             }
             else if ( type == "dummy" )
             {
@@ -365,6 +363,7 @@ private:
         es->in     = nodes_[in];
         es->out    = nodes_[out];
         es->pool   = false;
+        es->crop   = false;
         es->stride = vec3i::one;
         nodes_[in]->out.push_back(es);
         nodes_[out]->in.push_back(es);
@@ -391,6 +390,9 @@ private:
         }
         else if ( type == "crop" )
         {
+            auto off = op.require_as<ovec3i>("offset");
+            es->width   = off + off + vec3i::one;
+            es->crop    = true;
         }
         else if ( type == "dummy" )
         {

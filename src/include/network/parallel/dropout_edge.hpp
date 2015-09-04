@@ -37,9 +37,9 @@ private:
         {
             // dropout
             if ( mask_->data()[i] )
-                f.data()[i]  = static_cast<real>(0);
-            else
                 f.data()[i] *= scale();
+            else
+                f.data()[i]  = static_cast<real>(0);
         }
     }
     
