@@ -3,29 +3,29 @@
 #include "edges_fwd.hpp"
 #include "nodes.hpp"
 
-
 namespace znn { namespace v4 { namespace parallel_network {
 
 class crop_edge: public edge
 {
 private:
-    real            ratio ;
-    cube_p<bool>    mask  ;
-    vec3i           insize;
+    vec3i   offset;
+    vec3i   insize;
 
 private:
-    // performs inplace dropout and returns dropout mask
-    inline cube_p<bool> dropout(cube_p<real> & f, real p);
+    inline vec3i crop_size() const
+    {
+        return insize - offset - offset;
+    }
 
 public:
     crop_edge( nodes * in,
-                  size_t inn,
-                  nodes * out,
-                  size_t outn,
-                  task_manager & tm,
-                  real p )
+               size_t inn,
+               nodes * out,
+               size_t outn,
+               task_manager & tm,
+               vec3i const & off )
         : edge(in,inn,out,outn,tm)
-        , ratio(p)
+        , offset(off)
     {
         insize = in->fsize();
 
@@ -36,29 +36,22 @@ public:
     void forward( ccube_p<real> const & f ) override
     {
         ZI_ASSERT(size(*f)==insize);
-        
-        cube_p<real> fmap = get_copy(*f);
-        if ( TRAINING )
-        {
-            mask = dropout(*fmap, ratio);
-        }
-
-        out_nodes->forward(out_num,std::move(fmap));
+        out_nodes->forward(out_num, crop(*f,offset,crop_size()));
     }
 
     void backward( ccube_p<real> const & g )
-    {
-        // ZI_ASSERT(mask);
-        // ZI_ASSERT(insize==size(*g));
+    {        
+        ZI_ASSERT(insize==size(*g));
         
-        // if ( in_nodes->is_input() )
-        // {
-        //     in_nodes->backward(in_num, cube_p<real>());
-        // }
-        // else
-        // {
-        //     in_nodes->backward(in_num, pooling_backprop(insize, *g, *indices));
-        // }
+        if ( in_nodes->is_input() )
+        {
+            in_nodes->backward(in_num, cube_p<real>());
+        }
+        else
+        {
+            auto gmap = get_cube<real>(insize);
+            in_nodes->backward(in_num, pad_zeros(*g,offset,"both"));
+        }
     }
 
     void zap(edges* e)
@@ -66,6 +59,5 @@ public:
         e->edge_zapped();
     }
 };
-
 
 }}} // namespace znn::v4::parallel_network

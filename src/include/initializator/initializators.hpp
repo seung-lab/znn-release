@@ -57,7 +57,7 @@ std::shared_ptr<initializator<real>> get_initializator( options const & op, opti
     }
     else if ( fn == "xavier")
     {
-        // Initialization based on the paper [Bengio and Glorot 2010]
+        // Initialization based on the paper [Glorot and Bengio 2010]
         // "Understanding the difficulty of training deep feedforward neuralnetworks"
 
         ZI_ASSERT(info);
