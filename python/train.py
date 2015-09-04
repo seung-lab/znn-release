@@ -80,7 +80,7 @@ def main( conf_file='config.cfg' ):
             rb_weight = cost_fn.rebalance( lbl_out )
             grdt = grdt * rb_weight
         if pars['is_malis'] :
-            malis_weight = cost_fn.malis_weight(prop)
+            malis_weight = cost_fn.malis_weight(prop, lbl_out)
             grdt = grdt * malis_weight
     
         # run backward pass
@@ -88,10 +88,11 @@ def main( conf_file='config.cfg' ):
         
         if i%pars['Num_iter_per_test']==0:
             # test the net
+            net.set_phase(1)
             terr_list, tcls_list = test.znn_test(net, pars, smp_tst,\
                                     insz, outsz, terr_list, tcls_list)
             titr_list.append(i)
-            
+            net.set_phase(0)
     
         if i%pars['Num_iter_per_show']==0:
             # anneal factor

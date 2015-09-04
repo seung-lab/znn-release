@@ -33,7 +33,7 @@ protected:
 
         for ( size_t i = 0; i < n; ++i )
         {
-            v[i] = dis(rng.rng);
+            v[i] = static_cast<T>(dis(rng.rng));
         }
     }
 

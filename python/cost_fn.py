@@ -16,7 +16,7 @@ def square_loss(props, lbls):
     ----------
     props: numpy array, forward pass output
     lbls:  numpy array, ground truth labeling
-    
+
     Return
     ------
     err:   cost energy
@@ -25,7 +25,7 @@ def square_loss(props, lbls):
     assert(props.shape==lbls.shape)
     grdts = props - lbls
     # cost and classification error
-    err = np.sum( grdts * grdts ) 
+    err = np.sum( grdts * grdts )
     grdts = grdts * 2
     return (err, grdts)
 
@@ -93,19 +93,22 @@ def softmax_loss(props, lbls):
 #def hinge_loss(props, lbls):
 # TO-DO
 
-def malis_weight(affs, threshold=0.5):
+#@jit(nopython=True)
+def malis_weight(affs, true_affs, threshold=0.5):
     """
     compute malis tree_size
 
     Parameters:
     -----------
     affs:      4D array of forward pass output affinity graphs, size: C*Z*Y*X
+    true_affs : 4d array of ground truth affinity graph
     threshold: threshold for segmentation
 
     Return:
     ------
     weights : 4D array of weights
     """
+#    seg = segment(true_affs)
     # get affinity graphs
     xaff = affs[2]
     yaff = affs[1]
@@ -143,10 +146,10 @@ def malis_weight(affs, threshold=0.5):
         # find operation with path compression
         r1,seg = emirt.volume_util.find_root(e[1], seg)
         r2,seg = emirt.volume_util.find_root(e[2], seg)
-        
+
         if r1!=r2:
             # not in a same set, this a maximin edge
-            # get the size of two sets/trees 
+            # get the size of two sets/trees
             s1 = tree_size[r1-1]
             s2 = tree_size[r2-1]
             # accumulate weights
@@ -169,7 +172,7 @@ def sparse_cost(outputs, labels, cost_fn):
     outputs: numpy array, forward pass output
     labels:  numpy array, ground truth labeling
     cost_fn: function to make sparse
-    
+
     Return
     ------
     err:   cost energy
@@ -188,4 +191,3 @@ def sparse_cost(outputs, labels, cost_fn):
     full_gradients[labels != 0] = gradients
 
     return (errors, full_gradients)
-
