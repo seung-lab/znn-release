@@ -12,12 +12,12 @@ private:
     real            ratio_; // keeping ratio
     cube_p<bool>    mask_ ; // dropout mask
     vec3i           insize;
-    
+
     phase           phase_; // TRAIN or TEST
 
 private:
     inline real scale() const
-    { 
+    {
         return static_cast<real>(1)/ratio_;
     }
 
@@ -42,7 +42,7 @@ private:
                 f.data()[i]  = static_cast<real>(0);
         }
     }
-    
+
     // performs inplace dropout backward
     inline void dropout_backward(cube<real> & g)
     {
@@ -81,7 +81,7 @@ public:
     void forward( ccube_p<real> const & f ) override
     {
         ZI_ASSERT(size(*f)==insize);
-        
+
         auto fmap = get_copy(*f);
         if ( phase_ == phase::TRAIN )
         {
@@ -100,7 +100,7 @@ public:
         {
             dropout_backward(*gmap);
         }
-        
+
         if ( in_nodes->is_input() )
         {
             in_nodes->backward(in_num, cube_p<real>());
@@ -109,6 +109,11 @@ public:
         {
             in_nodes->backward(in_num, std::move(gmap));
         }
+    }
+
+    void set_phase( phase phs ) override
+    {
+        phase_ = phs;
     }
 
     void zap(edges* e)

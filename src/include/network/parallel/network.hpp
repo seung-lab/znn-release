@@ -92,6 +92,10 @@ private:
     std::map<std::string, nnodes*> input_nodes_;
     std::map<std::string, nnodes*> output_nodes_;
 
+    // [kisuklee]
+    // This is only temporary implementation and will be removed.
+    std::map<std::string, nedges*> phase_dependent_edges_;
+
     task_manager tm_;
 
     phase phase_;
@@ -277,12 +281,12 @@ private:
             {
                 // [kisuklee]
                 // This version of dropout isn't actually disabling individual
-                // nodes, but making a random binary dropout masks for each 
-                // node. This is the version that was implemented in v1, and 
+                // nodes, but making a random binary dropout masks for each
+                // node. This is the version that was implemented in v1, and
                 // the effectiveness is yet to be proven.
 
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts, e.second->in_fsize, 
+                    ( in, out, *e.second->opts, e.second->in_fsize,
                       tm_, phase_, edges::dropout_tag() );
             }
             else if ( type == "crop" )
@@ -387,6 +391,7 @@ private:
         }
         else if ( type == "dropout" )
         {
+            phase_dependent_edges_[name] = es;
         }
         else if ( type == "crop" )
         {
@@ -408,7 +413,7 @@ private:
 public:
     network( std::vector<options> const & ns,
              std::vector<options> const & es,
-             vec3i const & outsz,             
+             vec3i const & outsz,
              size_t n_threads = 1,
              phase phs = phase::TRAIN )
         : tm_(n_threads)
@@ -445,6 +450,15 @@ public:
     vec3i fov() const
     {
         return input_nodes_.begin()->second->fov;
+    }
+
+    // [kisuklee]
+    // This is only temporary implementation and will be removed.
+    void set_phase( phase phs = phase::TRAIN )
+    {
+        zap();
+        for ( auto & e: phase_dependent_edges_ )
+            e.second->dedges->set_phase(phs);
     }
 
     std::map<std::string, std::pair<vec3i,size_t>> inputs() const
