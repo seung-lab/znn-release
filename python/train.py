@@ -76,8 +76,7 @@ def main( conf_file='config.cfg' ):
             malis_weights = cost_fn.malis_weight(props, lbl_outs)
             grdts = utils.loa_mul(grdts, malis_weights)
     
-        # run backward pass
-        net.backward( utils.loa_as_continue(grdts, dtype='float32') )
+        
         
         if i%pars['Num_iter_per_test']==0:
             # test the net
@@ -121,7 +120,8 @@ def main( conf_file='config.cfg' ):
             utils.save_statistics( pars, it_list, err_list, cls_list,\
                                     titr_list, terr_list, tcls_list)
         
-        
+        # run backward pass
+        net.backward( utils.loa_as_continue(grdts, dtype='float32') )
         
 if __name__ == '__main__':
     import sys
