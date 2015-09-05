@@ -28,7 +28,18 @@ def loa_div(arrs1, arrs2):
     for arr1, arr2 in zip( arrs1, arrs2 ):
         ret.append( arr1 / arr2 )
     return ret
-    
+
+def loa_vox_num( arrs ):
+    n = 0.0
+    for arr in arrs:
+        n = n + np.size(arr)
+    return n
+
+def loa_as_continue( arrs, dtype='float32' ):
+    for k, arr in enumerate( arrs ):
+        arrs[k] = np.ascontiguousarray(arr, dtype=dtype)
+    return arrs
+
 def binarize(arrs1, dtype='float32'):
     ret = list()
     for arr in arrs1:
@@ -95,7 +106,7 @@ def preprocess(arrs, pp_types):
         ret.append( _preprocess_vol(vol, pp_type) )
     return ret
 
-def read_files( files):
+def read_files( files, dtype='float32'):
     """
     read a list of tif files of original volume and lable
 
@@ -109,7 +120,7 @@ def read_files( files):
     """
     ret = list()
     for fl in files:
-        vol = emirt.emio.imread(fl).astype('float32')
+        vol = emirt.emio.imread(fl).astype(dtype)
         ret.append( vol )
     return ret
 

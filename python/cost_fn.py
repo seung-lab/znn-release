@@ -4,9 +4,28 @@ __doc__ = """
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
+import utils
 # numba accelaration
 #from numba import jit
 
+def get_cls(props, lbls):
+    """
+    compute classification error.
+    
+    Parameters
+    ----------
+    props : list of array, network propagation output volumes.
+    lbls  : list of array, ground truth 
+    
+    Returns
+    -------
+    c : number of classification error
+    """
+    c = 0.0
+    for prop, lbl in zip(props, lbls):
+        c = c + np.count_nonzero( (prop>0.5)!= lbl )
+    c = c / utils.loa_vox_num(props)
+    return c
 #@jit(nopython=True)
 def square_loss(props, lbls):
     """
@@ -22,7 +41,7 @@ def square_loss(props, lbls):
     err:   cost energy
     grdts: numpy array, gradient volumes
     """
-    assert(props.shape==lbls.shape)
+    assert(len(props)==len(lbls))
     grdts = props - lbls
     # cost and classification error
     err = np.sum( grdts * grdts )
@@ -45,8 +64,10 @@ def binomial_cross_entropy(props, lbls):
     grdts:  list of gradient volumes
     """
 #    assert(props.shape==lbls.shape)
-    grdts = props.astype('float32') - lbls.astype('float32')
-    err = np.sum(  -lbls*np.log(props) - (1-lbls)*np.log(1-props) )
+    grdts = utils.loa_sub(props, lbls)
+    err = 0
+    for prop, lbl in zip(props, lbls):
+        err = err + np.sum(  -lbl*np.log(prop) - (1-lbl)*np.log(1-prop) )
     return (props, err, grdts)
 
 #@jit(nopython=True)
@@ -55,14 +76,17 @@ def softmax(props):
     softmax activation
 
     Parameters:
-    props:  numpy array, net forward output volumes
+    props:  list of numpy array, net forward output volumes
 
     Returns:
-    ret:   numpy array, softmax activation volumes
+    ret:   list of numpy array, softmax activation volumes
     """
-    props_exp = np.exp(props)
-    pesum = np.sum(props_exp, axis=0)
-    ret = props_exp / pesum
+    ret = list()
+    for prop in props:
+        prop = prop.astype('float32')
+        prop_exp = np.exp(prop)
+        pesum = np.sum(prop_exp, axis=0)
+        ret.append( prop_exp / pesum )
     return ret
 
 def multinomial_cross_entropy(props, lbls):
@@ -80,11 +104,12 @@ def multinomial_cross_entropy(props, lbls):
     cls:    classfication error
     grdts:  list of gradient volumes
     """
-    assert(props.shape==lbls.shape)
-    props = softmax(props)
-    
-    grdts = props - lbls
-    err = np.sum( -lbls * np.log(props) )
+    assert(len(props)==len(lbls))
+    grdts = list()
+    err = 0.0
+    for prop, lbl in zip(props, lbls):
+        grdts.append( prop - lbl )
+        err = err + np.sum( -lbl * np.log(prop) )
     return (props, err, grdts)
 
 #@jit(nopython=True)

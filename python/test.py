@@ -3,21 +3,22 @@ __doc__ = """
 
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
-import numpy as np
+import utils
+import cost_fn
 
 def _single_test(net, pars, sample, insz, outsz):
     vol_ins, lbl_outs = sample.get_random_sample( insz, outsz )
    
     # forward pass
-    props = net.forward( np.ascontiguousarray(vol_ins) ).astype('float32')
+    props = net.forward( utils.loa_as_continue(vol_ins, dtype='float32') )
    
     # cost function and accumulate errors
     props, err, grdts = pars['cost_fn']( props, lbl_outs )
-    cls = np.count_nonzero( (props>0.5)!= lbl_outs )
+    cls = cost_fn.get_cls(props, lbl_outs)
     
     # normalize
-    err = err / float( props.shape[0] * outsz[0] * outsz[1] * outsz[2])
-    cls = cls / float( props.shape[0] * outsz[0] * outsz[1] * outsz[2])
+    err = err / utils.loa_vox_num(props)
+    cls = cls / utils.loa_vox_num(props)
     return err, cls
 
 def znn_test(net, pars, samples, insz, outsz, terr_list, tcls_list):
@@ -41,12 +42,15 @@ def znn_test(net, pars, samples, insz, outsz, terr_list, tcls_list):
     """
     err = 0
     cls = 0
+    net.set_phase(1)
     test_num = pars['test_num']
     for i in xrange( test_num ):
         cerr, ccls = _single_test(net, pars, samples, insz, outsz)
         err = err + cerr
         cls = cls + ccls
+    net.set_phase(0)
     
     terr_list.append( err/test_num )
     tcls_list.append( cls/test_num )
+    
     return terr_list, tcls_list

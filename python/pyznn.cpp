@@ -53,6 +53,7 @@ std::shared_ptr< network > CNet_Init(
 		std::string  const net_config_file,
 		np::ndarray  const & outsz_a,
 		std::size_t  const tc,
+		bool const is_optimize = true,
         std::uint8_t const phs = 0) // 0:TRAIN, 1:TEST
 {
     std::vector<options> nodes;
@@ -64,7 +65,8 @@ std::shared_ptr< network > CNet_Init(
 					);
 
     // optimize
-    network::optimize(nodes, edges, out_sz, tc, 10);
+    if(is_optimize)
+    	network::optimize(nodes, edges, out_sz, tc, 10);
 
     // construct the network class
     std::shared_ptr<network> net(
@@ -73,29 +75,29 @@ std::shared_ptr< network > CNet_Init(
     return net;
 }
 
-np::ndarray CNet_forward( bp::object const & self, np::ndarray& inarrays )
+bp::list CNet_forward( bp::object const & self, bp::list& inarrs )
 {
 	// extract the class from self
 	network& net = bp::extract<network&>(self)();
 
 	// setting up input sample
 	std::map<std::string, std::vector<cube_p< real >>> insample;
-	insample["input"] = array2cubelist<real>( inarrays );
+	insample["input"] = arraylist2cubelist<real>( inarrs );
 
     // run forward and get output
     auto prop = net.forward( std::move(insample) );
 
-    return cubelist2array<real>(self, prop["output"]);
+    return cubelist2arraylist<real>(self, prop["output"]);
 }
 
-void CNet_backward( bp::object & self, np::ndarray& grdts )
+void CNet_backward( bp::object & self, bp::list& grdts )
 {
 	// extract the class from self
 	network& net = bp::extract<network&>(self)();
 
 	// setting up output sample
 	std::map<std::string, std::vector<cube_p<real>>> outsample;
-	outsample["output"] = array2cubelist<real>(grdts);
+	outsample["output"] = arraylist2cubelist<real>(grdts);
 
 	// backward
     net.backward( std::move(outsample) );
@@ -186,6 +188,13 @@ std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
 	return net;
 }
 
+void CNet_set_phase(bp::object const & self, std::uint8_t const phs = 0)
+{
+	network& net = bp::extract<network&>(self)();
+	net.set_phase( static_cast<phase>(phs) );
+	return;
+}
+
 BOOST_PYTHON_MODULE(pyznn)
 {
     Py_Initialize();
@@ -198,7 +207,7 @@ BOOST_PYTHON_MODULE(pyznn)
         .def("forward",     		&CNet_forward)
         .def("backward",			&CNet_backward)
         .def("set_eta",    			&network::set_eta)
-        .def("set_phase",              &network::set_phase)
+        .def("set_phase",           &CNet_set_phase)
         .def("set_momentum",		&network::set_momentum)
         .def("set_weight_decay",	&network::set_weight_decay )
         .def("get_input_num", 		&CNet_get_input_num)
