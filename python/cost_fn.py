@@ -85,12 +85,17 @@ def softmax(props):
     Returns:
     ret:   list of numpy array, softmax activation volumes
     """
-    ret = list()
+    
+    pes = list()
+    pesum = np.zeros( props[0].shape, dtype='float32' )
     for prop in props:
-        prop = prop.astype('float32')
-        prop_exp = np.exp(prop)
-        pesum = np.sum(prop_exp, axis=0)
-        ret.append( prop_exp / pesum )
+        prop_exp = np.exp(prop.astype('float32'))
+        pes.append( prop_exp )
+        pesum = pesum + prop_exp
+        
+    ret = list()
+    for pe in pes:
+        ret.append( pe / pesum )
     return ret
 
 def multinomial_cross_entropy(props, lbls):
