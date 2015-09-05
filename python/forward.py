@@ -9,12 +9,10 @@ TODO- Better argument handling
 
 """
 
-from sys import argv
-
 import numpy as np
 
 from emirt import emio
-
+from utils import loa_as_continue
 #import pyznn
 import front_end, netio
 #import train_nt #used for debugging
@@ -158,7 +156,6 @@ def generate_output_volume(input_vol, output_patch_shape, net, verbose=True):
 	assert len( input_bounds ) == len( output_bounds )
 
         fov = np.asarray(net.get_fov())
-        ips = input_patch_shape(output_patch_shape, fov).astype('uint32')
 	num_patches = len(input_bounds)
 
 	for i in xrange( num_patches ):
@@ -185,8 +182,9 @@ def generate_output_volume(input_vol, output_patch_shape, net, verbose=True):
 		# ACTUALLY RUNNING FORWARD PASS
 		#  Debug version to test indexing
 		#output_patch = np.ones( output_patch_shape ) #Debug
-		output_patch = net.forward( np.ascontiguousarray(input_patch, dtype='float32') ).astype('float32')
-
+		output_patch = net.forward( loa_as_continue(input_patch, dtype='float32') )
+          
+          
 		output_vol[ :,
 			output_beginning[0]:output_end[0],
 			output_beginning[1]:output_end[1],
@@ -243,8 +241,8 @@ def main( config_filename ):
 
 if __name__ == '__main__':
 
-    import sys
-    if len(sys.argv)>1:
-        main( sys.argv[1] )
+    from sys import argv
+    if len(argv)>1:
+        main( argv[1] )
     else:
         main('config.cfg')
