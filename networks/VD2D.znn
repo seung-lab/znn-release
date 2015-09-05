@@ -4,7 +4,7 @@ size 1
 
 edges conv1a
 type conv
-init msra
+init uniform
 size 1,3,3
 stride 1,1,1
 input input
@@ -17,7 +17,7 @@ size 24
 
 edges conv1b
 type conv
-init msra
+init uniform
 size 1,3,3
 stride 1,1,1
 input nl1
@@ -30,7 +30,7 @@ size 24
 
 edges conv1c
 type conv
-init msra
+init uniform
 size 1,2,2
 stride 1,1,1
 input nl2
@@ -54,7 +54,7 @@ size 24
 
 edges conv2a
 type conv
-init msra
+init uniform
 size 1,3,3
 stride 1,1,1
 input nl4
@@ -67,7 +67,7 @@ size 36
 
 edges conv2b
 type conv
-init msra
+init uniform
 size 1,3,3
 stride 1,1,1
 input nl5
@@ -91,7 +91,7 @@ size 36
 
 edges conv3a
 type conv
-init msra
+init uniform
 size 1,3,3
 stride 1,1,1
 input nl7
@@ -104,7 +104,7 @@ size 48
 
 edges conv3b
 type conv
-init msra
+init uniform
 size 1,3,3
 stride 1,1,1
 input nl8
@@ -120,19 +120,19 @@ type max_filter
 size 1,2,2
 stride 1,2,2
 input nl9
-output nl10
+output nl20
 
-nodes nl10
+nodes nl20
 type sum
 size 48
 
 edges conv4a
 type conv
-init msra
+init uniform
 size 1,3,3
 stride 1,1,1
-input nl10
-output nl11
+input nl20
+output nl21
 
 nodes nl11
 type transfer
@@ -141,13 +141,13 @@ size 60
 
 edges conv4b
 type conv
-init msra
+init uniform
 size 1,3,3
 stride 1,1,1
-input nl11
-output nl12
+input nl21
+output nl22
 
-nodes nl12
+nodes nl22
 type transfer
 function rectify_linear
 size 60
@@ -156,45 +156,35 @@ edges pool4
 type max_filter
 size 1,2,2
 stride 1,2,2
-input nl12
-output nl13
+input nl22
+output nl23
 
-nodes nl13
+nodes nl23
 type sum
 size 60
 
 edges conv5
 type conv
-init msra
+init uniform
 size 1,3,3
 stride 1,1,1
-input nl13
-output nl14
+input nl23
+output nl24
 
-nodes nl14
+nodes nl24
 type transfer
 function rectify_linear
 size 200
 
-edges dropout
-type dropout
-ratio 0.5
-input nl14
-output nl15
-
-nodes nl15
-type sum
-size 200
-
-edges output
+edges convx
 type conv
-init msra
+init uniform
 size 1,1,1
 stride 1,1,1
-input nl15
-output nl16
+input nl14
+output output
 
-nodes nl16
+nodes output
 type transfer
 function linear
 size 2
