@@ -34,6 +34,9 @@ def main( conf_file='config.cfg' ):
     eta = pars['eta'] / float(outsz[0] * outsz[1] * outsz[2])
     net.set_eta( eta )
     net.set_momentum( pars['momentum'] )
+
+    # number for normalization
+    tn = pars['Num_iter_per_show'] * outsz[0] * outsz[1] * outsz[2]
     
     #%% compute inputsize and get input
     fov = np.asarray(net.get_fov())
@@ -51,7 +54,6 @@ def main( conf_file='config.cfg' ):
     tcls_list = list()
     titr_list = list()
     # the temporal weights
-    rb_weights=[]
     malis_weights=[]
     
     # interactive visualization
@@ -88,22 +90,29 @@ def main( conf_file='config.cfg' ):
             eta = eta * pars['anneal_factor']
             net.set_eta(eta)
             # normalize
-            err = err / float(pars['Num_iter_per_show'] * utils.loa_vox_num(props))
-            cls = cls / float(pars['Num_iter_per_show'] * utils.loa_vox_num(props))
+            
+            err = err / tn
+            cls = cls / tn
     
             err_list.append( err )
             cls_list.append( cls )
             it_list.append( i )
             
+                
             # show results To-do: run in a separate thread
-            start, err, cls = front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
-                                        titr_list, terr_list, tcls_list, \
-                                        eta*float(outsz[0] * outsz[1] * outsz[2]), \
-                                        vol_ins[0], props[0], lbl_outs[0], grdts[0],pars)
+            front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
+                                    titr_list, terr_list, tcls_list, \
+                                    eta*float(outsz[0] * outsz[1] * outsz[2]), \
+                                    vol_ins[0], props[0], lbl_outs[0], grdts[0],pars)
             if pars['is_malis']:
                 plt.subplot(335)
                 plt.imshow(np.log(malis_weights[0][0,:,:]), interpolation='nearest', cmap='gray')
                 plt.xlabel('malis weight (log)')
+            # reset err and cls
+            err = 0
+            cls = 0
+            # reset time
+            start = time.time()
             
         if i%pars['Num_iter_per_save']==0:
             # save network
@@ -111,11 +120,8 @@ def main( conf_file='config.cfg' ):
             netio.save_network(net, pars['train_save_net'], num_iters=i)
             utils.save_statistics( pars, it_list, err_list, cls_list,\
                                     titr_list, terr_list, tcls_list)
-        # reset time
-        start = time.time()
-        # reset err and cls
-        err = 0
-        cls = 0
+        
+        
         
 if __name__ == '__main__':
     import sys

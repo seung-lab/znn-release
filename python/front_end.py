@@ -340,4 +340,3 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     plt.xlabel('iteration'), plt.ylabel( 'classification error' )
 
     plt.pause(1)
-    return start, err, cls

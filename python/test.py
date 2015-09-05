@@ -40,8 +40,8 @@ def znn_test(net, pars, samples, insz, outsz, terr_list, tcls_list):
     terr_list : list of float32, test cost
     tcls_list : list of float32, test classification error
     """
-    err = 0
-    cls = 0
+    err = 0.0
+    cls = 0.0
     net.set_phase(1)
     test_num = pars['test_num']
     for i in xrange( test_num ):

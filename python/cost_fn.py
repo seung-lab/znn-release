@@ -24,7 +24,7 @@ def get_cls(props, lbls):
     c = 0.0
     for prop, lbl in zip(props, lbls):
         c = c + np.count_nonzero( (prop>0.5)!= lbl )
-    c = c / utils.loa_vox_num(props)
+#    c = c / utils.loa_vox_num(props)
     return c
 #@jit(nopython=True)
 def square_loss(props, lbls):
@@ -42,10 +42,14 @@ def square_loss(props, lbls):
     grdts: numpy array, gradient volumes
     """
     assert(len(props)==len(lbls))
-    grdts = props - lbls
-    # cost and classification error
-    err = np.sum( grdts * grdts )
-    grdts = grdts * 2
+    grdts = list()
+    err = 0.0
+    for prop, lbl in zip(props, lbls):
+        grdt = prop - lbl
+        # cost and classification error
+        err = err + np.sum( grdt * grdt )
+        grdt = grdt * 2
+        grdts.append( grdt )
     return (props, err, grdts)
 
 #@jit(nopython=True)
