@@ -316,27 +316,28 @@ class CSamples:
 def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
                 titr_list, terr_list, tcls_list, \
                 eta, vol_in, prop, lbl_out, grdt, pars):
+    time.sleep(0.5)
     # time
     elapsed = time.time() - start
     print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s, learning rate: %.4f"\
             %(i, err, cls, elapsed, eta )
     # real time visualization
-    plt.subplot(331),   plt.imshow(vol_in[0,:,:],       interpolation='nearest', cmap='gray')
+    plt.subplot(241),   plt.imshow(vol_in[0,:,:],       interpolation='nearest', cmap='gray')
     plt.xlabel('input')
-    plt.subplot(332),   plt.imshow(prop[0,:,:],    interpolation='nearest', cmap='gray')
+    plt.subplot(242),   plt.imshow(prop[0,:,:],    interpolation='nearest', cmap='gray')
     plt.xlabel('inference')
-    plt.subplot(333),   plt.imshow(lbl_out[0,:,:], interpolation='nearest', cmap='gray')
+    plt.subplot(243),   plt.imshow(lbl_out[0,:,:], interpolation='nearest', cmap='gray')
     plt.xlabel('lable')
-    plt.subplot(334),   plt.imshow(grdt[0,:,:],     interpolation='nearest', cmap='gray')
+    plt.subplot(244),   plt.imshow(grdt[0,:,:],     interpolation='nearest', cmap='gray')
     plt.xlabel('gradient')
 
 
-    plt.subplot(337)
+    plt.subplot(245)
     plt.plot(it_list,   err_list,   'b', label='train')
     plt.plot(titr_list, terr_list,  'r', label='test')
     plt.xlabel('iteration'), plt.ylabel('cost energy')
-    plt.subplot(338)
+    plt.subplot(246)
     plt.plot(it_list, cls_list, 'b', titr_list, tcls_list, 'r')
     plt.xlabel('iteration'), plt.ylabel( 'classification error' )
 
-    plt.pause(1)
+    plt.pause(2)

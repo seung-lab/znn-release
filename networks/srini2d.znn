@@ -78,4 +78,4 @@ output output
 nodes output
 type transfer
 function logistics
-size 1
+size 3
