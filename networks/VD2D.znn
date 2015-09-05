@@ -134,7 +134,7 @@ stride 1,1,1
 input nl20
 output nl21
 
-nodes nl11
+nodes nl21
 type transfer
 function rectify_linear
 size 60
@@ -181,7 +181,7 @@ type conv
 init uniform
 size 1,1,1
 stride 1,1,1
-input nl14
+input nl24
 output output
 
 nodes output
