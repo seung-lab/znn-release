@@ -39,8 +39,6 @@ import front_end, netio
 from emirt import emio
 from utils import loa_as_continue
 
-import train_nt
-
 #CONSTANTS 
 # (configuration file option names)
 output_prefix_optionname = 'output_prefix'
@@ -290,11 +288,10 @@ def config_forward_pass( config_filename, verbose=True ):
 	output_patch_shape = params[outsz_optionname]
 
 	# load network
-	net = train_nt.initialize_network( params )
-	# net = netio.load_network(params[net_optionname], 
-					# params[specfile_optionname], 
-					# params[outsz_optionname], 
-					# params[threads_optionname])
+	net = netio.load_network(params[net_optionname], 
+					params[specfile_optionname], 
+					params[outsz_optionname], 
+					params[threads_optionname])
 
 	# generating output volumes for each input
 	for input_vol in input_volumes:
