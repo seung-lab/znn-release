@@ -39,6 +39,8 @@ import front_end, netio
 from emirt import emio
 from utils import loa_as_continue
 
+import train_nt
+
 #CONSTANTS 
 # (configuration file option names)
 output_prefix_optionname = 'output_prefix'
@@ -178,6 +180,24 @@ def output_patch_bounds( output_vol_shape, output_patch_shape ):
 				# (tries to index an array with a float)
 				np.ones(output_patch_shape.shape, dtype='uint32'))
 
+def initialize_output_volume( input_vol_shape, net ):
+	'''Returns an initialized np array for storing full forward pass output'''
+	return np.zeros(output_vol_shape(input_vol_shape, net), dtype=np.float32)
+
+def find_all_bounds( input_vol_shape, output_vol_shape, output_patch_shape, net ):
+	'''Derives all input and output patch bounds for the forward pass windows'''
+
+	fov = np.asarray(net.get_fov())
+
+	input_bounds = input_patch_bounds( input_vol_shape, 
+						output_patch_shape,
+						fov )
+	
+	output_bounds = output_patch_bounds( output_vol_shape,
+						output_patch_shape )
+
+	return input_bounds, output_bounds	
+
 def generate_output_volume( input_vol, output_patch_shape, net, verbose=True ):
 	'''
 	Generates a full output volume for a given input volume - the main 
@@ -191,25 +211,17 @@ def generate_output_volume( input_vol, output_patch_shape, net, verbose=True ):
 	if len(input_vol.shape) == 3:
 		input_vol = input_vol.reshape( np.hstack((1,input_vol.shape)) )
 
-	#Initialize output volume
-	output_vol = np.zeros( 
-			output_vol_shape(input_vol.shape, net), 
-			dtype=np.float32)
+	output_vol = initialize_output_volume(input_vol.shape, net)
 
 	#Derive bounds of input and output patches
-	fov = np.asarray(net.get_fov())
-	input_bounds = input_patch_bounds( input_vol.shape, 
-						output_patch_shape,
-						fov )
-	output_bounds = output_patch_bounds( output_vol.shape,
-						output_patch_shape )
+	input_bounds, output_bounds = find_all_bounds( input_vol.shape, output_vol.shape,
+											output_patch_shape, net )
+
+	num_patches = num_output_patches( output_vol.shape, output_patch_shape )
 
 	#Stupidity checks (so far so good!)
-	assert num_output_patches( output_vol.shape, output_patch_shape ) == len(output_bounds)
+	assert num_patches == len(output_bounds)
 	assert len( input_bounds ) == len( output_bounds )
-
-	fov = np.asarray(net.get_fov())
-	num_patches = len(input_bounds)
 
 	for i in xrange( num_patches ):
 
@@ -234,8 +246,7 @@ def generate_output_volume( input_vol, output_patch_shape, net, verbose=True ):
 
 		# ACTUALLY RUNNING FORWARD PASS
 		output_patch = net.forward( loa_as_continue(input_patch, dtype='float32') )
-          
-          
+
 		output_vol[ :,
 			output_beginning[0]:output_end[0],
 			output_beginning[1]:output_end[1],
@@ -279,10 +290,11 @@ def config_forward_pass( config_filename, verbose=True ):
 	output_patch_shape = params[outsz_optionname]
 
 	# load network
-	net = netio.load_network(params[net_optionname], 
-					params[specfile_optionname], 
-					params[outsz_optionname], 
-					params[threads_optionname])
+	net = train_nt.initialize_network( params )
+	# net = netio.load_network(params[net_optionname], 
+					# params[specfile_optionname], 
+					# params[outsz_optionname], 
+					# params[threads_optionname])
 
 	# generating output volumes for each input
 	for input_vol in input_volumes:
