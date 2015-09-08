@@ -369,71 +369,53 @@ std::vector<options> pyopt_to_znnopt( bp::list const & py_opts )
 }
 
 template <typename T>
-std::vector<cube_p< T >> array2cubelist( np::ndarray& vols )
+std::vector<cube_p<T>> arraylist2cubelist( bp::list& alist )
 {
-	// ensure that the input ndarray is 4 dimension
-	assert( vols.get_nd() == 4 );
+	std::vector<cube_p<T>> ret;
+	// number of input arrays
+	std::size_t len = bp::len(alist);
+	ret.resize( len );
 
-	std::vector<cube_p< T >> ret;
-	ret.resize( vols.shape(0) );
-	// input volume size
-	std::size_t sz = vols.shape(1);
-	std::size_t sy = vols.shape(2);
-	std::size_t sx = vols.shape(3);
-
-	for (std::size_t c=0; c<vols.shape(0); c++)
+	for( std::size_t c=0; c<len; c++ )
 	{
+		np::ndarray arr = bp::extract<np::ndarray>( alist[c] );
+		std::size_t sz = arr.shape(0);
+		std::size_t sy = arr.shape(1);
+		std::size_t sx = arr.shape(2);
 		cube_p<T> cp = get_cube<T>(vec3i(sz,sy,sx));
 		for (std::size_t k=0; k< sz*sy*sx; k++)
-			cp->data()[k] = reinterpret_cast<T*>( vols.get_data() )[c*sz*sy*sx + k];
+			cp->data()[k] = reinterpret_cast<T*>( arr.get_data() )[k];
 		ret[c] = cp;
 	}
 	return ret;
 }
 
 template <typename T>
-np::ndarray cubelist2array( bp::object const & self, std::vector<cube_p< T >> clist )
+bp::list cubelist2arraylist( bp::object const & self, std::vector< cube_p<T> > clist)
 {
+	bp::list ret;
+
 	// number of output cubes
 	std::size_t sc = clist.size();
 	std::size_t sz = clist[0]->shape()[0];
 	std::size_t sy = clist[0]->shape()[1];
 	std::size_t sx = clist[0]->shape()[2];
 
-	// temporal 4D qube pointer
-	qube_p<T> tqp = get_qube<T>( vec4i(sc,sz,sy,sx) );
+//	std::cout<< "size: "<< sz <<", "<<sy<<", "<<sx<<std::endl;
+
 	for (std::size_t c=0; c<sc; c++)
 	{
-		for (std::size_t k=0; k<sz*sy*sx; k++)
-			tqp->data()[c*sz*sy*sx+k] = clist[c]->data()[k];
+		np::ndarray arr = np::from_data(
+								clist[c]->data(),
+								np::dtype::get_builtin<T>(),
+								bp::make_tuple(sz,sy,sx),
+								bp::make_tuple(sx*sy*sizeof(T), sx*sizeof(T), sizeof(T)),
+								self
+							);
+		ret.append( arr );
 	}
-	// return ndarray
-	return 	np::from_data(
-				tqp->data(),
-				np::dtype::get_builtin<T>(),
-				bp::make_tuple(sc,sz,sy,sx),
-				bp::make_tuple(sx*sy*sz*sizeof(T), sx*sy*sizeof(T), sx*sizeof(T), sizeof(T)),
-				self
-			);
+	return ret;
 }
-
-//template <typename T>
-//cube_p<T> array2cube( np::ndarray & vol )
-//{
-//	assert( vol.get_nd() == 3 );
-//
-//	cube_p<T> ret;
-//	std::size_t sz = vol.shape(0);
-//	std::size_t sy = vol.shape(1);
-//	std::size_t sx = vol.shape(2);
-//
-//	cube_p<T> cp = get_cube<T>(vec3i(sz,sy,sx));
-//	for (std::size_t k=0; k< sz*sy*sx; k++)
-//	{
-//		cp->data()[k] = reinterpret_cast<T*>( vol.get_data() )[k];
-//	}
-//	return cp;
-//}
 
 //NOT IMPORTANT YET (another version of masked training)
 // may implement layer if I have time

@@ -30,10 +30,13 @@ def main( conf_file='config.cfg' ):
         net = netio.load_network( pars['train_load_net'], pars['fnet_spec'], outsz, pars['num_threads'])
     else:
         print "initializing network..."
-        net = pyznn.CNet(pars['fnet_spec'], outsz, pars['num_threads'])
+        net = pyznn.CNet(pars['fnet_spec'], outsz, pars['num_threads'], pars['is_optimize'], 0)
     eta = pars['eta'] / float(outsz[0] * outsz[1] * outsz[2])
     net.set_eta( eta )
     net.set_momentum( pars['momentum'] )
+
+    # number for normalization
+    tn = pars['Num_iter_per_show'] * outsz[0] * outsz[1] * outsz[2]
     
     #%% compute inputsize and get input
     fov = np.asarray(net.get_fov())
@@ -51,7 +54,6 @@ def main( conf_file='config.cfg' ):
     tcls_list = list()
     titr_list = list()
     # the temporal weights
-    rb_weights=[]
     malis_weights=[]
     
     # interactive visualization
@@ -60,63 +62,67 @@ def main( conf_file='config.cfg' ):
     
     start = time.time()
     for i in xrange(1, pars['Max_iter'] ):
-        vol_in, lbl_out = smp_trn.get_random_sample( insz, outsz )
+        vol_ins, lbl_outs = smp_trn.get_random_sample( insz, outsz )
     
         # forward pass
-        prop = net.forward( np.ascontiguousarray(vol_in, dtype='float32') ).astype('float32')
-    
-        # softmax
-        if pars['cost_fn_str']=='multinomial_cross_entropy':
-            prop = cost_fn.softmax(prop)
+        props = net.forward( utils.loa_as_continue(vol_ins, dtype='float32') )
     
         # cost function and accumulate errors
-        cerr, grdt = pars['cost_fn']( prop.astype('float32'), lbl_out.astype('float32') )
+        props, cerr, grdts = pars['cost_fn']( props, lbl_outs )
         err = err + cerr
-        # classification error
-        cls = cls + np.count_nonzero( (prop>0.5)!= lbl_out )
+        cls = cls + cost_fn.get_cls(props, lbl_outs)
     
-        # rebalance
-        if pars['is_rebalance']:
-            rb_weight = cost_fn.rebalance( lbl_out )
-            grdt = grdt * rb_weight
         if pars['is_malis'] :
-            malis_weight = cost_fn.malis_weight(prop)
-            grdt = grdt * malis_weight
+            malis_weights = cost_fn.malis_weight(props, lbl_outs)
+            grdts = utils.loa_mul(grdts, malis_weights)
     
-        # run backward pass
-        net.backward( np.ascontiguousarray(grdt, dtype='float32') )
+        
         
         if i%pars['Num_iter_per_test']==0:
             # test the net
             terr_list, tcls_list = test.znn_test(net, pars, smp_tst,\
                                     insz, outsz, terr_list, tcls_list)
             titr_list.append(i)
-            
     
         if i%pars['Num_iter_per_show']==0:
             # anneal factor
             eta = eta * pars['anneal_factor']
             net.set_eta(eta)
             # normalize
-            err = err / float(pars['Num_iter_per_show'] * prop.shape[0] * outsz[0] * outsz[1] * outsz[2])
-            cls = cls / float(pars['Num_iter_per_show'] * prop.shape[0] * outsz[0] * outsz[1] * outsz[2])
+            
+            err = err / tn
+            cls = cls / tn
     
             err_list.append( err )
             cls_list.append( cls )
             it_list.append( i )
             
+                
             # show results To-do: run in a separate thread
-            start, err, cls = front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
-                                            titr_list, terr_list, tcls_list, \
-                                            eta*float(outsz[0] * outsz[1] * outsz[2]), \
-                                            vol_in, prop, lbl_out, grdt, pars, \
-                                            rb_weights, malis_weights)
+            front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
+                                    titr_list, terr_list, tcls_list, \
+                                    eta*float(outsz[0] * outsz[1] * outsz[2]), \
+                                    vol_ins[0], props[0], lbl_outs[0], grdts[0],pars)
+            if pars['is_malis']:
+                plt.subplot(335)
+                plt.imshow(np.log(malis_weights[0][0,:,:]), interpolation='nearest', cmap='gray')
+                plt.xlabel('malis weight (log)')
+            # reset err and cls
+            err = 0
+            cls = 0
+            # reset time
+            start = time.time()
+            
         if i%pars['Num_iter_per_save']==0:
             # save network
             print "save network"
             netio.save_network(net, pars['train_save_net'], num_iters=i)
             utils.save_statistics( pars, it_list, err_list, cls_list,\
                                     titr_list, terr_list, tcls_list)
+        
+        # run backward pass
+        net.backward( utils.loa_as_continue(grdts, dtype='float32') )
+        
 if __name__ == '__main__':
     import sys
     if len(sys.argv)>1:

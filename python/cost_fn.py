@@ -4,9 +4,28 @@ __doc__ = """
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
+import utils
 # numba accelaration
 #from numba import jit
 
+def get_cls(props, lbls):
+    """
+    compute classification error.
+    
+    Parameters
+    ----------
+    props : list of array, network propagation output volumes.
+    lbls  : list of array, ground truth 
+    
+    Returns
+    -------
+    c : number of classification error
+    """
+    c = 0.0
+    for prop, lbl in zip(props, lbls):
+        c = c + np.count_nonzero( (prop>0.5)!= lbl )
+#    c = c / utils.loa_vox_num(props)
+    return c
 #@jit(nopython=True)
 def square_loss(props, lbls):
     """
@@ -16,18 +35,22 @@ def square_loss(props, lbls):
     ----------
     props: numpy array, forward pass output
     lbls:  numpy array, ground truth labeling
-    
+
     Return
     ------
     err:   cost energy
     grdts: numpy array, gradient volumes
     """
-    assert(props.shape==lbls.shape)
-    grdts = props - lbls
-    # cost and classification error
-    err = np.sum( grdts * grdts ) 
-    grdts = grdts * 2
-    return (err, grdts)
+    assert(len(props)==len(lbls))
+    grdts = list()
+    err = 0.0
+    for prop, lbl in zip(props, lbls):
+        grdt = prop - lbl
+        # cost and classification error
+        err = err + np.sum( grdt * grdt )
+        grdt = grdt * 2
+        grdts.append( grdt )
+    return (props, err, grdts)
 
 #@jit(nopython=True)
 def binomial_cross_entropy(props, lbls):
@@ -45,9 +68,11 @@ def binomial_cross_entropy(props, lbls):
     grdts:  list of gradient volumes
     """
 #    assert(props.shape==lbls.shape)
-    grdts = props.astype('float32') - lbls.astype('float32')
-    err = np.sum(  -lbls*np.log(props) - (1-lbls)*np.log(1-props) )
-    return (err, grdts)
+    grdts = utils.loa_sub(props, lbls)
+    err = 0
+    for prop, lbl in zip(props, lbls):
+        err = err + np.sum(  -lbl*np.log(prop) - (1-lbl)*np.log(1-prop) )
+    return (props, err, grdts)
 
 #@jit(nopython=True)
 def softmax(props):
@@ -55,14 +80,22 @@ def softmax(props):
     softmax activation
 
     Parameters:
-    props:  numpy array, net forward output volumes
+    props:  list of numpy array, net forward output volumes
 
     Returns:
-    ret:   numpy array, softmax activation volumes
+    ret:   list of numpy array, softmax activation volumes
     """
-    props_exp = np.exp(props)
-    pesum = np.sum(props_exp, axis=0)
-    ret = props_exp / pesum
+    
+    pes = list()
+    pesum = np.zeros( props[0].shape, dtype='float32' )
+    for prop in props:
+        prop_exp = np.exp(prop.astype('float32'))
+        pes.append( prop_exp )
+        pesum = pesum + prop_exp
+        
+    ret = list()
+    for pe in pes:
+        ret.append( pe / pesum )
     return ret
 
 def multinomial_cross_entropy(props, lbls):
@@ -80,10 +113,13 @@ def multinomial_cross_entropy(props, lbls):
     cls:    classfication error
     grdts:  list of gradient volumes
     """
-    assert(props.shape==lbls.shape)
-    grdts = props - lbls
-    err = np.sum( -lbls * np.log(props) )
-    return (err, grdts)
+    assert(len(props)==len(lbls))
+    grdts = list()
+    err = 0.0
+    for prop, lbl in zip(props, lbls):
+        grdts.append( prop - lbl )
+        err = err + np.sum( -lbl * np.log(prop) )
+    return (props, err, grdts)
 
 #@jit(nopython=True)
 def softmax_loss(props, lbls):
@@ -91,21 +127,24 @@ def softmax_loss(props, lbls):
     return multinomial_cross_entropy(props, lbls)
 
 #def hinge_loss(props, lbls):
+# TO-DO
 
 #@jit(nopython=True)
-def malis_weight(affs, threshold=0.5):
+def malis_weight(affs, true_affs, threshold=0.5):
     """
     compute malis tree_size
 
     Parameters:
     -----------
     affs:      4D array of forward pass output affinity graphs, size: C*Z*Y*X
+    true_affs : 4d array of ground truth affinity graph
     threshold: threshold for segmentation
 
     Return:
     ------
     weights : 4D array of weights
     """
+#    seg = segment(true_affs)
     # get affinity graphs
     xaff = affs[2]
     yaff = affs[1]
@@ -143,10 +182,10 @@ def malis_weight(affs, threshold=0.5):
         # find operation with path compression
         r1,seg = emirt.volume_util.find_root(e[1], seg)
         r2,seg = emirt.volume_util.find_root(e[2], seg)
-        
+
         if r1!=r2:
             # not in a same set, this a maximin edge
-            # get the size of two sets/trees 
+            # get the size of two sets/trees
             s1 = tree_size[r1-1]
             s2 = tree_size[r2-1]
             # accumulate weights
@@ -169,7 +208,7 @@ def sparse_cost(outputs, labels, cost_fn):
     outputs: numpy array, forward pass output
     labels:  numpy array, ground truth labeling
     cost_fn: function to make sparse
-    
+
     Return
     ------
     err:   cost energy
@@ -188,4 +227,3 @@ def sparse_cost(outputs, labels, cost_fn):
     full_gradients[labels != 0] = gradients
 
     return (errors, full_gradients)
-

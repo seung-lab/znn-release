@@ -48,6 +48,10 @@ public:
     virtual void backward( ccube_p<complex> const & )
     { UNIMPLEMENTED(); }
 
+    // [kisuklee]
+    // This is only temporary implementation and will be removed.
+    virtual void set_phase( phase ){}
+
     virtual void zap(edges*) = 0;
 };
 

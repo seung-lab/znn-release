@@ -142,7 +142,7 @@ int main(int argc, char** argv)
 
     vec3i out_sz(x,y,z);
 
-    //parallel_network::network::optimize(nodes,edges,out_sz,tc,50);
+    parallel_network::network::optimize(nodes,edges,out_sz,tc,10);
     parallel_network::network net(nodes,edges,out_sz,tc);
     net.set_eta(0.01 / x / y / z);
 
@@ -151,6 +151,9 @@ int main(int argc, char** argv)
 
     ISBI2012::ISBI2012 isbi( "./dataset/ISBI2012/data/batch1",
                              vec3i(30,256,256), in_sz, out_sz );
+
+    zi::wall_timer wt;
+    wt.reset();
 
     real err = 0;
     real cls = 0;
@@ -185,26 +188,27 @@ int main(int argc, char** argv)
             err /= y;
             err /= z;
             cls /= 1000; cls /= ( x * y * z );
-            std::cout << "Iteration: " << i << " done, sqerr: " << err
+            std::cout << "Iteration: " << i << " done, elapsed: "
+                      << wt.elapsed<double>() << ", sqerr: " << err
                       << " clserr: " << cls << std::endl;
             err = 0;
             cls = 0;
+            wt.reset();
 
-            // show prop
-//            cube_p<real> outcube_p = prop["output"][0];
-//            std::cout<<"prop output cube:"<<std::endl;
-//            for(std::size_t i=0; i<outcube_p->num_elements(); i++)
-//            	std::cout<< outcube_p->data()[i]<< ",";
-//            std::cout<<std::endl;
-//
-//            // show gradient
-//            cube_p<real> grad_p = std::get<2>(grad);
-//			std::cout<<"gradient:"<<std::endl;
-//			for(std::size_t i=0; i<grad_p->num_elements(); i++)
-//				std::cout<< grad_p->data()[i]<< ",";
-//			std::cout<<std::endl;
+            // // show prop
+            // cube_p<real> outcube_p = prop["output"][0];
+            // std::cout<<"prop output cube:"<<std::endl;
+            // for(std::size_t i=0; i<outcube_p->num_elements(); i++)
+            // 	std::cout<< outcube_p->data()[i]<< ",";
+            // std::cout<<std::endl;
+
+            // // show gradient
+            // cube_p<real> grad_p = std::get<2>(grad);
+            // std::cout<<"gradient:"<<std::endl;
+            // for(std::size_t i=0; i<grad_p->num_elements(); i++)
+            //     std::cout<< grad_p->data()[i]<< ",";
+            // std::cout<<std::endl;
         }
-
     }
 
 }
