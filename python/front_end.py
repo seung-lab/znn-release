@@ -327,7 +327,7 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     plt.subplot(242),   plt.imshow(prop[0,:,:],    interpolation='nearest', cmap='gray')
     plt.xlabel('inference')
     plt.subplot(243),   plt.imshow(lbl_out[0,:,:], interpolation='nearest', cmap='gray')
-    plt.xlabel('lable')
+    plt.xlabel('label')
     plt.subplot(244),   plt.imshow(grdt[0,:,:],     interpolation='nearest', cmap='gray')
     plt.xlabel('gradient')
 

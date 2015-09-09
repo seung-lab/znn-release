@@ -24,6 +24,7 @@ public:
         , mom_volume_(get_cube<real>(s))
         , eta_(eta), momentum_(mom), weight_decay_(wd)
     {
+	fill(*mom_volume_,0);
     }
 
     real& eta()

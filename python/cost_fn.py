@@ -71,7 +71,7 @@ def binomial_cross_entropy(props, lbls):
     grdts = utils.loa_sub(props, lbls)
     err = 0
     for prop, lbl in zip(props, lbls):
-        err = err + np.sum(  -lbl*np.log(prop) - (1-lbl)*np.log(1-prop) )
+        err = err + np.nansum(  -lbl*np.log(prop) - (1-lbl)*np.log(1-prop) )
     return (props, err, grdts)
 
 #@jit(nopython=True)
@@ -118,7 +118,7 @@ def multinomial_cross_entropy(props, lbls):
     err = 0.0
     for prop, lbl in zip(props, lbls):
         grdts.append( prop - lbl )
-        err = err + np.sum( -lbl * np.log(prop) )
+        err = err + np.nansum( -lbl * np.log(prop) )
     return (props, err, grdts)
 
 #@jit(nopython=True)

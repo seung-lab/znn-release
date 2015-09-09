@@ -28,9 +28,8 @@ Main Outputs:
 
 Nicholas Turner <nturner@cs.princeton.edu>
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
-
-TODO- Better argument handling
 """
+#TODO- Better argument handling
 
 import numpy as np
 
@@ -213,7 +212,7 @@ def generate_output_volume( input_vol, output_patch_shape, net, verbose=True ):
 
 	#Derive bounds of input and output patches
 	input_bounds, output_bounds = find_all_bounds( input_vol.shape, output_vol.shape,
-											output_patch_shape, net )
+							output_patch_shape, net )
 
 	num_patches = num_output_patches( output_vol.shape, output_patch_shape )
 
@@ -260,7 +259,7 @@ def save_output_volumes(output_volumes, prefix):
 
 	for i in range(len(output_volumes)):
 		emio.imsave(output_volumes[i].astype('float32'), 
-							"{}_{}.tif".format(prefix,i))
+					"{}_{}.tif".format(prefix,i))
 
 def test(input_patch, output_patch_shape, net):
 	'''Silently generates an output patch for a single input patch'''
