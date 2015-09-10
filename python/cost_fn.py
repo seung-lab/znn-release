@@ -14,8 +14,8 @@ def get_cls(props, lbls):
     
     Parameters
     ----------
-    props : list of array, network propagation output volumes.
-    lbls  : list of array, ground truth 
+    props : dict of array, network propagation output volumes.
+    lbls  : dict of array, ground truth 
     
     Returns
     -------
@@ -126,6 +126,7 @@ def softmax_loss(props, lbls):
 # TO-DO
 
 #@jit(nopython=True)
+# TO-DO, not fully implemented
 def malis_weight(affs, true_affs, threshold=0.5):
     """
     compute malis tree_size
