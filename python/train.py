@@ -19,6 +19,15 @@ def main( conf_file='config.cfg' ):
     config, pars = front_end.parser( conf_file )
 
     #%% create and initialize the network
+    outsz = pars['train_outsz']
+    print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
+
+    if pars['train_load_net']:
+        print "loading network..."
+        net = netio.load_network( pars['train_load_net'], pars['fnet_spec'], outsz, pars['num_threads'])
+    else:
+        print "initializing network..."
+        net = pyznn.CNet(pars['fnet_spec'], outsz, pars['num_threads'], pars['is_optimize'], 0)
     # number of output voxels
     vn = utils.get_total_num(net.get_outputs())
     eta = pars['eta'] / vn
