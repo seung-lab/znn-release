@@ -26,6 +26,10 @@ private:
     size_t const   bwd_priority_;
 
 protected:
+    // minibatch averaging
+    real           patch_sz_ = 1;
+
+protected:
     nodes( size_t sz,
            vec3i const & fsize,
            options const & op,
@@ -58,6 +62,12 @@ public:
 
     size_t         fwd_priority() const { return fwd_priority_; }
     size_t         bwd_priority() const { return bwd_priority_; }
+
+    void set_patch_size( real s )
+    {
+        ZI_ASSERT(s > 0);
+        patch_sz_ = s;
+    }
 
     std::string name() const
     {

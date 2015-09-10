@@ -23,6 +23,9 @@ protected:
     size_t fwd_priority_;
     size_t bwd_priority_;
 
+    // minibatch averaging
+    real   patch_sz_ = 1;
+
 public:
     edge( nodes * in, size_t inn, nodes * out, size_t outn, task_manager & m )
         : in_nodes(in), in_num(inn), out_nodes(out), out_num(outn), manager(m)
@@ -33,6 +36,12 @@ public:
 
     size_t fwd_priority() const { return fwd_priority_; }
     size_t bwd_priority() const { return bwd_priority_; }
+
+    void set_patch_size( real s )
+    {
+        ZI_ASSERT(s > 0);
+        patch_sz_ = s;
+    }
 
     virtual ~edge() {}
 
