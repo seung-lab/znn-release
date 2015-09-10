@@ -4,9 +4,9 @@ __doc__ = """
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
-import utils
 # numba accelaration
 #from numba import jit
+
 
 def get_cls(props, lbls):
     """
@@ -22,10 +22,11 @@ def get_cls(props, lbls):
     c : number of classification error
     """
     c = 0.0
-    for prop, lbl in zip(props, lbls):
+    for name, prop in props.iteritems():
+        lbl = lbls[name]
         c = c + np.count_nonzero( (prop>0.5)!= lbl )
-#    c = c / utils.loa_vox_num(props)
     return c
+
 #@jit(nopython=True)
 def square_loss(props, lbls):
     """
@@ -41,15 +42,14 @@ def square_loss(props, lbls):
     err:   cost energy
     grdts: numpy array, gradient volumes
     """
-    assert(len(props)==len(lbls))
-    grdts = list()
-    err = 0.0
-    for prop, lbl in zip(props, lbls):
+    grdts = dict()
+    err = 0
+    for name, prop in props.iteritems():
+        lbl = lbls[name]
         grdt = prop - lbl
         # cost and classification error
         err = err + np.sum( grdt * grdt )
-        grdt = grdt * 2
-        grdts.append( grdt )
+        grdts[name] = grdt * 2
     return (props, err, grdts)
 
 #@jit(nopython=True)
@@ -59,18 +59,19 @@ def binomial_cross_entropy(props, lbls):
 
     Parameters
     ----------
-    props:  forward pass output
-    lbls:   ground truth labeling
+    props:  dict of network output arrays
+    lbls:   dict of ground truth arrays
 
     Return
     ------
     err:    cost energy
-    grdts:  list of gradient volumes
+    grdts:  dict of gradient volumes
     """
-#    assert(props.shape==lbls.shape)
-    grdts = utils.loa_sub(props, lbls)
+    grdts = dict()
     err = 0
-    for prop, lbl in zip(props, lbls):
+    for name, prop in props.iteritems():
+        lbl = lbls[name]
+        grdts[name] = prop - lbl
         err = err + np.nansum(  -lbl*np.log(prop) - (1-lbl)*np.log(1-prop) )
     return (props, err, grdts)
 
@@ -80,22 +81,16 @@ def softmax(props):
     softmax activation
 
     Parameters:
-    props:  list of numpy array, net forward output volumes
+    props:  numpy array, net forward output volumes
 
     Returns:
-    ret:   list of numpy array, softmax activation volumes
+    ret:   numpy array, softmax activation volumes
     """
-    
-    pes = list()
-    pesum = np.zeros( props[0].shape, dtype='float32' )
-    for prop in props:
-        prop_exp = np.exp(prop.astype('float32'))
-        pes.append( prop_exp )
-        pesum = pesum + prop_exp
-        
-    ret = list()
-    for pe in pes:
-        ret.append( pe / pesum )
+    ret = dict()
+    for name, prop in props.iteritems():
+        prop_exp = np.exp(prop)
+        pesum = np.sum(prop_exp, axis=0)
+        ret[name] = prop_exp / pesum
     return ret
 
 def multinomial_cross_entropy(props, lbls):
@@ -113,11 +108,12 @@ def multinomial_cross_entropy(props, lbls):
     cls:    classfication error
     grdts:  list of gradient volumes
     """
-    assert(len(props)==len(lbls))
-    grdts = list()
-    err = 0.0
-    for prop, lbl in zip(props, lbls):
-        grdts.append( prop - lbl )
+    grdts = dict()
+    err = 0
+    props = softmax(props)
+    for name, prop in props.iteritems():
+        lbl = lbls[name]
+        grdts[name] = prop - lbl
         err = err + np.nansum( -lbl * np.log(prop) )
     return (props, err, grdts)
 

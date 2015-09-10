@@ -16,7 +16,7 @@
 namespace bp = boost::python;
 namespace np = boost::numpy;
 
-namespace znn { namespace v4 { 
+namespace znn { namespace v4 {
 
 // IO HELPER FUNCTIONS
 
@@ -76,7 +76,7 @@ void print_data_string( real const * data, std::size_t num_items )
 // (bias values, momentum values)
 //Assumes the intended array is one-dimensional (fitting for biases)
 // and that momentum values are stored following the original values
-bp::tuple bias_string_to_np( std::string const & bin, 
+bp::tuple bias_string_to_np( std::string const & bin,
 	std::vector<std::size_t> size,
 	bp::object const & self )
 {
@@ -131,8 +131,8 @@ bp::tuple filter_string_to_np( std::string const & bin,
 					bp::make_tuple(nodes_in, nodes_out, size[0],size[1],size[2]),
 					bp::make_tuple(nodes_out*size[0]*size[1]*size[2]*sizeof(real),
 								   size[0]*size[1]*size[2]*sizeof(real),
-								   size[1]*size[2]*sizeof(real), 
-								   size[2]*sizeof(real), 
+								   size[1]*size[2]*sizeof(real),
+								   size[2]*sizeof(real),
 								   sizeof(real)),
 					self
 					).copy(),//copying seems to prevent overwriting
@@ -142,8 +142,8 @@ bp::tuple filter_string_to_np( std::string const & bin,
 					bp::make_tuple(nodes_in, nodes_out, size[0],size[1],size[2]),
 					bp::make_tuple(nodes_out*size[0]*size[1]*size[2]*sizeof(real),
 								   size[0]*size[1]*size[2]*sizeof(real),
-								   size[1]*size[2]*sizeof(real), 
-								   size[2]*sizeof(real), 
+								   size[1]*size[2]*sizeof(real),
+								   size[2]*sizeof(real),
 								   sizeof(real)),
 					self
 					).copy()//copying seems to prevent overwriting
@@ -169,7 +169,7 @@ std::map<std::string, std::size_t> extract_layer_sizes( std::vector<options> opt
 };
 
 //znn::options -> dict for nodes (no need for input/output node sizes)
-bp::dict node_opt_to_dict( options const opt, 
+bp::dict node_opt_to_dict( options const opt,
 	bp::object const & self )
 {
 	bp::dict res;
@@ -207,7 +207,7 @@ bp::dict node_opt_to_dict( options const opt,
 
 //Edge version, also takes the layer_sizes dict necessary to import filters
 // properly
-bp::dict edge_opt_to_dict( options const opt, 
+bp::dict edge_opt_to_dict( options const opt,
 	std::map<std::string, std::size_t> layer_sizes,
 	bp::object const & self )
 {
@@ -257,9 +257,9 @@ bp::dict edge_opt_to_dict( options const opt,
 			std::size_t nodes_in = layer_sizes[input_layer];
 			std::size_t nodes_out = layer_sizes[output_layer];
 
-			res[p.first] = filter_string_to_np(p.second, size, 
+			res[p.first] = filter_string_to_np(p.second, size,
 											nodes_in,
-											nodes_out, 
+											nodes_out,
 											self);
 		}
 	}
@@ -302,7 +302,7 @@ std::string opt_to_string( bp::dict const & layer_dict, std::string key )
 {
 	if ( key == "size" )
 	{ //either (#,) or (#,#,#)
-		std::size_t tuple_len = bp::extract<std::size_t>( 
+		std::size_t tuple_len = bp::extract<std::size_t>(
 			layer_dict[key].attr("__len__")() );
 
 		if (tuple_len == 1)
@@ -369,53 +369,80 @@ std::vector<options> pyopt_to_znnopt( bp::list const & py_opts )
 }
 
 template <typename T>
-std::vector<cube_p<T>> arraylist2cubelist( bp::list& alist )
+std::vector<cube_p< T >> array2cubelist( np::ndarray& vols )
 {
-	std::vector<cube_p<T>> ret;
-	// number of input arrays
-	std::size_t len = bp::len(alist);
-	ret.resize( len );
+	// ensure that the input ndarray is 4 dimension
+	assert( vols.get_nd() == 4 );
 
-	for( std::size_t c=0; c<len; c++ )
+	std::vector<cube_p< T >> ret;
+	ret.resize( vols.shape(0) );
+	// input volume size
+	std::size_t sc = vols.shape(0);
+	std::size_t sz = vols.shape(1);
+	std::size_t sy = vols.shape(2);
+	std::size_t sx = vols.shape(3);
+
+	for (std::size_t c=0; c<sc; c++)
 	{
-		np::ndarray arr = bp::extract<np::ndarray>( alist[c] );
-		std::size_t sz = arr.shape(0);
-		std::size_t sy = arr.shape(1);
-		std::size_t sx = arr.shape(2);
 		cube_p<T> cp = get_cube<T>(vec3i(sz,sy,sx));
 		for (std::size_t k=0; k< sz*sy*sx; k++)
-			cp->data()[k] = reinterpret_cast<T*>( arr.get_data() )[k];
+			cp->data()[k] = reinterpret_cast<T*>( vols.get_data() )[c*sz*sy*sx + k];
 		ret[c] = cp;
 	}
 	return ret;
 }
 
 template <typename T>
-bp::list cubelist2arraylist( bp::object const & self, std::vector< cube_p<T> > clist)
+std::map<std::string, std::vector<cube_p<T>>> pydict2sample( bp::dict pd)
 {
-	bp::list ret;
+	std::map<std::string, std::vector<cube_p<T>>> ret;
+	bp::list keys = pd.keys();
+	for (int i=0; i<bp::len(keys); i++ )
+	{
+		std::string key = bp::extract<std::string>( keys[i] );
+		np::ndarray value = bp::extract<np::ndarray>( pd[key] );
+		ret[key] = array2cubelist<T>( value );
+	}
+	return ret;
+}
 
+template <typename T>
+np::ndarray cubelist2array( bp::object const & self, std::vector<cube_p< T >> clist )
+{
 	// number of output cubes
 	std::size_t sc = clist.size();
 	std::size_t sz = clist[0]->shape()[0];
 	std::size_t sy = clist[0]->shape()[1];
 	std::size_t sx = clist[0]->shape()[2];
 
-//	std::cout<< "size: "<< sz <<", "<<sy<<", "<<sx<<std::endl;
-
+	// temporal 4D qube pointer
+	qube_p<T> tqp = get_qube<T>( vec4i(sc,sz,sy,sx) );
 	for (std::size_t c=0; c<sc; c++)
 	{
-		np::ndarray arr = np::from_data(
-								clist[c]->data(),
-								np::dtype::get_builtin<T>(),
-								bp::make_tuple(sz,sy,sx),
-								bp::make_tuple(sx*sy*sizeof(T), sx*sizeof(T), sizeof(T)),
-								self
-							);
-		ret.append( arr );
+		for (std::size_t k=0; k<sz*sy*sx; k++)
+			tqp->data()[c*sz*sy*sx+k] = clist[c]->data()[k];
+	}
+	// return ndarray
+	return 	np::from_data(
+				tqp->data(),
+				np::dtype::get_builtin<T>(),
+				bp::make_tuple(sc,sz,sy,sx),
+				bp::make_tuple(sx*sy*sz*sizeof(T), sx*sy*sizeof(T), sx*sizeof(T), sizeof(T)),
+				self
+			);
+}
+
+template <typename T>
+bp::dict sample2pydict( bp::object const & self,  std::map<std::string, std::vector<cube_p<T>>> sample)
+{
+	bp::dict ret;
+	for (auto & am: sample )
+	{
+		ret[am.first] = cubelist2array<T>( self,  am.second);
 	}
 	return ret;
 }
+
 
 //NOT IMPORTANT YET (another version of masked training)
 // may implement layer if I have time
