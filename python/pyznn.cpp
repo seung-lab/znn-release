@@ -23,6 +23,51 @@
 // so the z in python matches the x in znn!!!                   //
 // -------------------------------------------------------------//
 
+/*
+Boost Python Interface for ZNNv4
+
+ This program acts as a translation between the C++ back-end
+ and the Python front-end. This is primarily achieved by defining a
+ python 'CNet' object with a number of key attributes and functions.
+
+Functions:
+
+ CNet.forward() - computes the forward pass given a numpy array,
+ 	and returns a numpy array of the output
+
+ CNet.backward() - computes the backward pass given a numpy array
+ 	of gradient values, implicitly updates the parameters of the
+ 	network
+
+ CNet.get_fov() - returns a tuple which describes the field-of-view
+ 	of the network
+
+ CNet.set_eta() - sets the learning rate
+
+ CNet.set_phase() - currently have no clue what this does
+
+ CNet.momentum() - sets the momentum constant - what proportion of the
+ 	past update defines the next
+
+ CNet.set_weight_decay() - sets the weight decay
+
+ CNet.get_input_num() - returns the number of 3d input volumes to the network
+
+ CNet.get_output_num() - returns the number of 3d output volumes to the network
+
+ CNet.get_opts() - serializes all fields of the network data structure, and returns
+ 	them as a tuple of lists of dictionaries. Each dictionary represents the fields
+ 	of a given layer of the network, the list consolidates all of the layers, and the
+ 	tuple separates node fields from edge fields.
+
+ 	This function is also used for saving networks to disk.
+
+Jingpeng Wu <jingpeng.wu@gmail.com>
+Nicholas Turner <nturner@cs.princeton.edu>, 2015
+*/
+
+//===========================================================================
+// INCLUDE STATEMENTS
 // boost python
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <Python.h>
@@ -49,6 +94,9 @@ namespace np = boost::numpy;
 using namespace znn::v4;
 using namespace znn::v4::parallel_network;
 
+//===========================================================================
+//IO FUNCTIONS
+//First constructor - generates a random network
 std::shared_ptr< network > CNet_Init(
 		std::string  const net_config_file,
 		np::ndarray  const & outsz_a,
@@ -73,50 +121,6 @@ std::shared_ptr< network > CNet_Init(
         new network(nodes,edges,out_sz,tc,static_cast<phase>(phs)));
 
     return net;
-}
-
-bp::dict CNet_forward( bp::object const & self, bp::dict& ins )
-{
-	// extract the class from self
-	network& net = bp::extract<network&>(self)();
-
-    // run forward and get output
-    auto prop = net.forward( std::move( pydict2sample<real>( ins ) ) );
-    return sample2pydict<real>(self, prop);
-}
-
-void CNet_backward( bp::object & self, bp::dict& grdts )
-{
-	// extract the class from self
-	network& net = bp::extract<network&>(self)();
-
-	// setting up output sample
-	std::map<std::string, std::vector<cube_p<real>>> gsample;
-	gsample = pydict2sample<real>( grdts );
-
-	// backward
-    net.backward( std::move(gsample) );
-}
-
-bp::tuple CNet_fov( bp::object const & self )
-{
-    network& net = bp::extract<network&>(self)();
-    vec3i fov_vec =  net.fov();
-    return 	bp::make_tuple(fov_vec[0], fov_vec[1], fov_vec[2]);
-}
-
-std::size_t CNet_get_input_num( bp::object const & self )
-{
-    network& net = bp::extract<network&>(self)();
-    std::map<std::string, std::pair<vec3i, std::size_t>> ins = net.inputs();
-    return ins["input"].second;
-}
-
-std::size_t CNet_get_output_num( bp::object const & self )
-{
-    network& net = bp::extract<network&>(self)();
-    std::map<std::string, std::pair<vec3i,std::size_t>> outs = net.outputs();
-    return outs["output"].second;
 }
 
 //IO FUNCTIONS
@@ -158,7 +162,9 @@ bp::tuple CNet_getopts( bp::object const & self )
 	return bp::make_tuple(node_opts, edge_opts);
 }
 
-//Initializes a CNet instance based on the passed options
+//Second Constructor
+//Initializes a CNet instance based on
+// the passed options struct (tuple(list(dict)), see CNet_getopts)
 std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
 	std::string const net_config_file,
 	np::ndarray const & outsz_a,
@@ -183,11 +189,59 @@ std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
 	return net;
 }
 
-void CNet_set_phase(bp::object const & self, std::uint8_t const phs = 0)
+//===========================================================================
+//PROPOGATION FUNCTIONS
+
+//Computes the forward-pass
+bp::dict CNet_forward( bp::object const & self, bp::dict& ins )
 {
+	// extract the class from self
 	network& net = bp::extract<network&>(self)();
-	net.set_phase( static_cast<phase>(phs) );
-	return;
+
+    // run forward and get output
+    auto prop = net.forward( std::move( pydict2sample<real>( ins ) ) );
+    return sample2pydict<real>(self, prop);
+}
+
+//Computes the backward-pass and updates network parameters
+void CNet_backward( bp::object & self, bp::dict& grdts )
+{
+	// extract the class from self
+	network& net = bp::extract<network&>(self)();
+
+	// setting up output sample
+	std::map<std::string, std::vector<cube_p<real>>> gsample;
+	gsample = pydict2sample<real>( grdts );
+
+	// backward
+    net.backward( std::move(gsample) );
+}
+
+//===========================================================================
+//NETWORK STATISTIC FUNCTIONS
+
+//Returns the field-of-view as a tuple
+bp::tuple CNet_fov( bp::object const & self )
+{
+    network& net = bp::extract<network&>(self)();
+    vec3i fov_vec =  net.fov();
+    return 	bp::make_tuple(fov_vec[0], fov_vec[1], fov_vec[2]);
+}
+
+//Returns the number of 3d input volumes for the network
+std::size_t CNet_get_input_num( bp::object const & self )
+{
+    network& net = bp::extract<network&>(self)();
+    std::map<std::string, std::pair<vec3i, std::size_t>> ins = net.inputs();
+    return ins["input"].second;
+}
+
+//Returns the number of 3d output volumes for the network
+std::size_t CNet_get_output_num( bp::object const & self )
+{
+    network& net = bp::extract<network&>(self)();
+    std::map<std::string, std::pair<vec3i,std::size_t>> outs = net.outputs();
+    return outs["output"].second;
 }
 
 bp::dict CNet_get_inputs( bp::object const & self )
@@ -226,7 +280,19 @@ bp::dict CNet_get_outputs( bp::object const & self )
 	}
 	return ret;
 }
+//===========================================================================
 
+void CNet_set_phase(bp::object const & self, std::uint8_t const phs = 0)
+{
+	network& net = bp::extract<network&>(self)();
+	net.set_phase( static_cast<phase>(phs) );
+	return;
+}
+
+
+
+//===========================================================================
+//BOOST PYTHON INTERFACE DEFINITION
 BOOST_PYTHON_MODULE(pyznn)
 {
     Py_Initialize();
