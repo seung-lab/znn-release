@@ -31,7 +31,7 @@ def main( conf_file='config.cfg' ):
     else:
         print "initializing network..."
         net = pyznn.CNet(pars['fnet_spec'], outsz, pars['num_threads'], pars['is_optimize'], 0)
-    eta = pars['eta'] / float(outsz[0] * outsz[1] * outsz[2])
+    eta = pars['eta']
     net.set_eta( eta )
     net.set_momentum( pars['momentum'] )
 
@@ -101,7 +101,7 @@ def main( conf_file='config.cfg' ):
             # show results To-do: run in a separate thread
             front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
                                     titr_list, terr_list, tcls_list, \
-                                    eta*float(outsz[0] * outsz[1] * outsz[2]), \
+                                    eta, \
                                     vol_ins[0], props[0], lbl_outs[0], grdts[0],pars)
             if pars['is_malis']:
                 plt.subplot(335)
