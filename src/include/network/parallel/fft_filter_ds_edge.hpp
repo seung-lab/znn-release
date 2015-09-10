@@ -52,7 +52,7 @@ private:
         *dEdW /= norm;
 
         //flatten(*dEdW, repeat_);
-        filter_.update(*dEdW);
+        filter_.update(*dEdW, patch_sz_);
         flatten(filter_.W(), repeat_);
 
 #ifndef ZNN_DONT_CACHE_FFTS

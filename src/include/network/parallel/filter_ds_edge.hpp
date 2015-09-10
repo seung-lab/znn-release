@@ -31,7 +31,7 @@ private:
     void do_update( ccube_p<real> const & g )
     {
         auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
-        filter_.update(*dEdW);
+        filter_.update(*dEdW, patch_sz_);
         flatten(filter_.W(), repeat_);
     }
 
