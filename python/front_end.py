@@ -123,6 +123,10 @@ class CImage:
             # increase the subvolume size for affinity
             self.setsz = self.setsz + 1
         
+        # show some information
+        print "image stack size:    ", self.arr.shape
+        print "set size:            ", self.setsz
+        print "center:              ", self.center
         return
     
     def get_div_range(self):
@@ -135,6 +139,7 @@ class CImage:
         high_sz = self.sz/2
         low  = -( low_sz - low_setsz_div )
         high = high_sz - high_setsz_div
+        print "deviation range:     ", low, "--", high
         return low, high
     
     def _get_center(self):
@@ -221,7 +226,6 @@ class CImage:
         subvol  = self.arr[ :,  loc[0]-low_setsz[0]  : loc[0] + high_setsz[0]+1,\
                                 loc[1]-low_setsz[1]  : loc[1] + high_setsz[1]+1,\
                                 loc[2]-low_setsz[2]  : loc[2] + high_setsz[2]+1]
-
         # random transformation
         if self.pars['is_data_aug']:
             subvol = self._data_aug_transform(subvol, rft)
@@ -242,11 +246,11 @@ class CImage:
         """
         # transform every pair of input and label volume
         if rft[0]:
-            data  = data[:, :-1, :,    :]
+            data  = data[:, ::-1, :,    :]
         if rft[1]:
-            data  = data[:, :,   ::-1, :]
+            data  = data[:, :,    ::-1, :]
         if rft[2]:
-            data = data[:,  :,   :,    ::-1]
+            data = data[:,  :,    :,    ::-1]
         if rft[3]:
             data = data.transpose(0,1,3,2)
         return data
@@ -276,6 +280,7 @@ class CInputImage(CImage):
         if 'aff' in self.pars['out_dtype']:
             # shrink the volume
             arr = arr[:,1:,1:,1:]
+        assert( arr.shape[1]>0 )
         return arr
 
 class COutputLabel(CImage):

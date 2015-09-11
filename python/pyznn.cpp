@@ -106,6 +106,7 @@ std::shared_ptr< network > CNet_Init(
 {
     std::vector<options> nodes;
     std::vector<options> edges;
+    std::cout<< "parse_net file: "<<net_config_file<<std::endl;
     parse_net_file(nodes, edges, net_config_file);
     vec3i out_sz(   reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
                     reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
@@ -116,6 +117,7 @@ std::shared_ptr< network > CNet_Init(
     if(is_optimize)
     	network::optimize(nodes, edges, out_sz, tc, 10);
 
+    std::cout<< "out_sz: "<< out_sz <<std::endl;
     // construct the network class
     std::shared_ptr<network> net(
         new network(nodes,edges,out_sz,tc,static_cast<phase>(phs)));
@@ -308,10 +310,10 @@ BOOST_PYTHON_MODULE(pyznn)
         .def("set_phase",           &CNet_set_phase)
         .def("set_momentum",		&network::set_momentum)
         .def("set_weight_decay",	&network::set_weight_decay )
-		.def("get_inputs", 			&CNet_get_inputs)
+        .def("get_inputs", 			&CNet_get_inputs)
         .def("get_input_num", 		&CNet_get_input_num)
-		.def("get_outputs", 		&CNet_get_outputs)
+        .def("get_outputs", 		&CNet_get_outputs)
         .def("get_output_num", 		&CNet_get_output_num)
-		.def("get_opts",			&CNet_getopts)
+        .def("get_opts",			&CNet_getopts)
         ;
 }
