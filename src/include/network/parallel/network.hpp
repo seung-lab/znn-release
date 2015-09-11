@@ -230,9 +230,6 @@ private:
         for ( auto& o: input_nodes_ )
             bwd_priority_pass(o.second);
 
-        // minibatch averaging
-        set_patch_size(outsz);
-
         // for ( auto& o: nodes_ )
         // {
         //     std::cout << "NODE GROUP: " << o.first << "\n    "
@@ -439,6 +436,9 @@ public:
         init(outsz);
         create_nodes();
         create_edges();
+
+        // minibatch averaging
+        set_patch_size(outsz);
     }
 
     void set_eta( real eta )
