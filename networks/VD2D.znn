@@ -186,5 +186,5 @@ output output
 
 nodes output
 type transfer
-function linear
-size 2
+function forward_logistics
+size 3

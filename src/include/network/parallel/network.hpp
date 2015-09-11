@@ -201,6 +201,19 @@ private:
         return n->bwd_priority;
     }
 
+    // [kisuklee]
+    // This should be modified later to deal with multiple output layers
+    // with different size.
+    void set_patch_size( vec3i const& outsz )
+    {
+        real s = outsz[0]*outsz[1]*outsz[2];
+
+        for ( auto& n: nodes_ )
+            n.second->dnodes->set_patch_size(s);
+        for ( auto& e: edges_ )
+            e.second->dedges->set_patch_size(s);
+    }
+
     void init( vec3i const& outsz )
     {
         for ( auto& o: nodes_ )
@@ -216,7 +229,6 @@ private:
             fwd_priority_pass(o.second);
         for ( auto& o: input_nodes_ )
             bwd_priority_pass(o.second);
-
 
         // for ( auto& o: nodes_ )
         // {
@@ -424,6 +436,9 @@ public:
         init(outsz);
         create_nodes();
         create_edges();
+
+        // minibatch averaging
+        set_patch_size(outsz);
     }
 
     void set_eta( real eta )

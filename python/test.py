@@ -6,22 +6,19 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import utils
 import cost_fn
 
-def _single_test(net, pars, sample, insz, outsz):
-    vol_ins, lbl_outs = sample.get_random_sample( insz, outsz )
-   
+def _single_test(net, pars, sample):
+    vol_ins, lbl_outs, msks = sample.get_random_sample()
+       
     # forward pass
-    props = net.forward( utils.loa_as_continue(vol_ins, dtype='float32') )
-   
+    vol_ins = utils.make_continuous(vol_ins, dtype='float32')
+    props = net.forward( vol_ins )
+       
     # cost function and accumulate errors
     props, err, grdts = pars['cost_fn']( props, lbl_outs )
     cls = cost_fn.get_cls(props, lbl_outs)
-    
-    # normalize
-    err = err / utils.loa_vox_num(props)
-    cls = cls / utils.loa_vox_num(props)
-    return err, cls
+    return props, err, cls
 
-def znn_test(net, pars, samples, insz, outsz, terr_list, tcls_list):
+def znn_test(net, pars, samples, vn, terr_list, tcls_list):
     """
     test the net 
     
@@ -30,8 +27,7 @@ def znn_test(net, pars, samples, insz, outsz, terr_list, tcls_list):
     net : network
     pars : dict, parameters
     sample : a input and output sample
-    insz : 1D array, input size
-    outsz : 1D array, output size
+    vn : number of output voxels
     terr_list : list of float32, test cost
     tcls_list : list of float32, test classification error
     
@@ -45,12 +41,15 @@ def znn_test(net, pars, samples, insz, outsz, terr_list, tcls_list):
     net.set_phase(1)
     test_num = pars['test_num']
     for i in xrange( test_num ):
-        cerr, ccls = _single_test(net, pars, samples, insz, outsz)
+        props, cerr, ccls = _single_test(net, pars, samples)
         err = err + cerr
         cls = cls + ccls
     net.set_phase(0)
-    
-    terr_list.append( err/test_num )
-    tcls_list.append( cls/test_num )
-    
+    # normalize
+    err = err / vn / test_num
+    cls = cls / vn / test_num
+    terr_list.append( err )
+    tcls_list.append( cls )
+    print "test iter:   %d,     err: %.3f,  cls: %.3f" \
+                %(len(terr_list), err, cls)
     return terr_list, tcls_list

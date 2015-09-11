@@ -237,7 +237,7 @@ private:
             //     STRONG_ASSERT(0);
             // }
             func_.apply_grad(*g,*fs_[n]);
-            biases_[n]->update(sum(*g));
+            biases_[n]->update(sum(*g),patch_sz_);
             fs_[n].reset();
         }
         bwd_dispatch_.dispatch(n,g,nodes::manager());

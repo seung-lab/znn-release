@@ -5,123 +5,86 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 
 import numpy as np
-import emirt
 
-def loa_add(arrs1, arrs2):
-    ret = list()
-    for arr1, arr2 in zip( arrs1, arrs2 ):
-        ret.append( arr1 + arr2 )
-    return ret
-
-def loa_sub(arrs1, arrs2):
-    ret = list()
-    for arr1, arr2 in zip( arrs1, arrs2 ):
-        ret.append( arr1 - arr2 )
-    return ret
-def loa_mul(arrs1, arrs2):
-    ret = list()
-    for arr1, arr2 in zip( arrs1, arrs2 ):
-        ret.append( arr1 * arr2 )
-    return ret
-def loa_div(arrs1, arrs2):
-    ret = list()
-    for arr1, arr2 in zip( arrs1, arrs2 ):
-        ret.append( arr1 / arr2 )
-    return ret
-
-def loa_vox_num( arrs ):
-    n = 0.0
-    for arr in arrs:
-        n = n + np.size(arr)
-    return n
-
-def loa_as_continue( arrs, dtype='float32' ):
-    for k, arr in enumerate( arrs ):
-        arrs[k] = np.ascontiguousarray(arr, dtype=dtype)
-    return arrs
-
-def binarize(arrs1, dtype='float32'):
-    ret = list()
-    for arr in arrs1:
-        ret.append( (arr>0).astype(dtype) )
-    return ret
-
-
-def _center_crop(self, vol, shape):
+def check_config(config, pars, info_out, smp_trn, smp_tst):
     """
-    crop the volume from the center
+    check all the configuration and parameters
 
     Parameters
     ----------
-    vol : the array to be croped
-    shape : the croped shape
+    config : python parser reading of config file.
+    pars : the parameters.
+    info_out : size information of outputs.
+    smp_trn : training sample.
+    smp_tst : test sample.
+    """
+    assert(len(info_out)==1)
+    name, outsz = info_out.popitem()
+    cf = pars['cost_fn_str']
+    # check the output type
+    if 'boundary' in pars['out_dtype']:
+        assert(outsz[0]==2)
+        assert('softmax' in cf or 'square' in cf)
+        for sample in smp_trn.samples:
+            lbl = sample.outputs[name]
+            for pp_type in lbl.pp_types:
+                assert('binary' in pp_type or 'one' in pp_type)
+        for sample in smp_tst.samples:
+            lbl = sample.outputs[name]
+            for pp_type in lbl.pp_types:
+                assert('binary' in pp_type or 'one' in pp_type)
+    elif 'aff' in pars['out_dtype']:
+        print "network output size: ", outsz
+        assert(outsz[0]==3)
+        assert('binomial' in cf)
+        for sample in smp_trn.samples:
+            lbl = sample.outputs[name]
+            for pp_type in lbl.pp_types:
+                assert('aff' in pp_type)
+        for sample in smp_tst.samples:
+            lbl = sample.outputs[name]
+            for pp_type in lbl.pp_types:
+                assert('aff' in pp_type)
+    else:
+        raise NameError('invalid out_type!')
+
+def make_continuous( d , dtype='float32'):
+    """
+    make the dictionary arrays continuous.
+
+    Parameters
+    ----------
+    d : dict, the input dictionary of 4D array.
 
     Returns
     -------
-    vol : the croped volume
+    d : dict, the inner array are continuous.
     """
-    sz1 = np.asarray( vol.shape )
-    sz2 = np.asarray( shape )
-    # offset of both sides
-    off1 = (sz1 - sz2+1)/2
-    off2 = (sz1 - sz2)/2
-    return vol[ off1[0]:-off2[0],\
-                off1[1]:-off2[1],\
-                off1[2]:-off2[2]]
-def auto_crop(arrs):
+    for name, arr in d.iteritems():
+        d[name] = np.ascontiguousarray(arr, dtype=dtype)
+    return d
+
+def get_vox_num( d ):
+    n = 0
+    for name, arr in d.iteritems():
+        n = n + arr.shape[0]*arr.shape[1]*arr.shape[2]*arr.shape[3]
+    return n
+def get_total_num(outputs):
     """
-    crop the list of volumes to make sure that volume sizes are the same.
-    Note that this function was not tested yet!!
     """
-    if len(arrs) == 1:
-        return arrs
-    
-    # find minimum size
-    splist = list()
-    for arr in arrs:
-        splist.append( arr.shape )
-    sz_min = min( splist )
+    n = 0
+    for name, sz in outputs.iteritems():
+        n = n + np.prod(sz)
+    return n
 
-    # crop every volume
-    ret = list()
-    for k in xrange( len(arrs) ):
-        ret.append( _center_crop( arrs[k], sz_min ) )
-    return ret
-
-def _preprocess_vol( vol, pp_type):
-    if 'standard2D' == pp_type:
-        for z in xrange( vol.shape[0] ):
-            vol[z,:,:] = (vol[z,:,:] - np.mean(vol[z,:,:])) / np.std(vol[z,:,:])
-    elif 'standard3D' == pp_type:
-        vol = (vol - np.mean(vol)) / np.std(vol)
-    elif 'none' == pp_type:
-        return vol
-    else:
-        raise NameError( 'invalid preprocessing type' )
-    return vol
-
-def preprocess(arrs, pp_types):
-    ret = list()
-    for vol, pp_type in zip(arrs, pp_types):
-        ret.append( _preprocess_vol(vol, pp_type) )
-    return ret
-
-def read_files( files, dtype='float32'):
-    """
-    read a list of tif files of original volume and lable
-
-    Parameters
-    ----------
-    files : list of string, file names
-
-    Return
-    ------
-    ret:  list of 3D array
-    """
-    ret = list()
-    for fl in files:
-        vol = emirt.emio.imread(fl).astype(dtype)
-        ret.append( vol )
+def dict_mul(das,dbs):
+    if not dbs:
+        return das
+        
+    ret = dict()
+    for name, a in das.iteritems():
+        b = dbs[name]
+        ret[name] = a * b
     return ret
 
 def save_statistics( pars, it_list, err_list, cls_list,\
@@ -133,10 +96,10 @@ def save_statistics( pars, it_list, err_list, cls_list,\
     fname = root + '_statistics_current.h5'
     if os.path.exists( fname ):
         os.remove( fname )
-    
+
     # save variables
     import h5py
-    f = h5py.File( fname )    
+    f = h5py.File( fname )
     f.create_dataset('train/it',  data=it_list)
     f.create_dataset('train/err', data=err_list)
     f.create_dataset('train/cls', data=cls_list)
@@ -144,8 +107,7 @@ def save_statistics( pars, it_list, err_list, cls_list,\
     f.create_dataset('test/err',  data=terr_list)
     f.create_dataset('test/cls',  data=tcls_list)
     f.close()
-    
+
     # move to new name
     fname2 = root + '_statistics.h5'
     os.rename(fname, fname2)
-    

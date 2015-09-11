@@ -46,7 +46,7 @@ Functions:
 
  CNet.set_phase() - currently have no clue what this does
 
- CNet.momentum() - sets the momentum constant - what proportion of the 
+ CNet.momentum() - sets the momentum constant - what proportion of the
  	past update defines the next
 
  CNet.set_weight_decay() - sets the weight decay
@@ -96,7 +96,6 @@ using namespace znn::v4::parallel_network;
 
 //===========================================================================
 //IO FUNCTIONS
-
 //First constructor - generates a random network
 std::shared_ptr< network > CNet_Init(
 		std::string  const net_config_file,
@@ -107,6 +106,7 @@ std::shared_ptr< network > CNet_Init(
 {
     std::vector<options> nodes;
     std::vector<options> edges;
+    std::cout<< "parse_net file: "<<net_config_file<<std::endl;
     parse_net_file(nodes, edges, net_config_file);
     vec3i out_sz(   reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
                     reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
@@ -117,12 +117,15 @@ std::shared_ptr< network > CNet_Init(
     if(is_optimize)
     	network::optimize(nodes, edges, out_sz, tc, 10);
 
+    std::cout<< "out_sz: "<< out_sz <<std::endl;
     // construct the network class
     std::shared_ptr<network> net(
         new network(nodes,edges,out_sz,tc,static_cast<phase>(phs)));
 
     return net;
 }
+
+//IO FUNCTIONS
 
 //Returns a tuple of list of dictionaries of the following form
 // (node_opts, edge_opts)
@@ -162,7 +165,7 @@ bp::tuple CNet_getopts( bp::object const & self )
 }
 
 //Second Constructor
-//Initializes a CNet instance based on 
+//Initializes a CNet instance based on
 // the passed options struct (tuple(list(dict)), see CNet_getopts)
 std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
 	std::string const net_config_file,
@@ -192,34 +195,30 @@ std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
 //PROPOGATION FUNCTIONS
 
 //Computes the forward-pass
-bp::list CNet_forward( bp::object const & self, bp::list& inarrs )
+bp::dict CNet_forward( bp::object const & self, bp::dict& ins )
 {
 	// extract the class from self
 	network& net = bp::extract<network&>(self)();
 
-	// setting up input sample
-	std::map<std::string, std::vector<cube_p< real >>> insample;
-	insample["input"] = arraylist2cubelist<real>( inarrs );
-
     // run forward and get output
-    auto prop = net.forward( std::move(insample) );
-
-    return cubelist2arraylist<real>(self, prop["output"]);
+    auto prop = net.forward( std::move( pydict2sample<real>( ins ) ) );
+    return sample2pydict<real>(self, prop);
 }
 
 //Computes the backward-pass and updates network parameters
-void CNet_backward( bp::object & self, bp::list& grdts )
+void CNet_backward( bp::object & self, bp::dict& grdts )
 {
 	// extract the class from self
 	network& net = bp::extract<network&>(self)();
 
 	// setting up output sample
-	std::map<std::string, std::vector<cube_p<real>>> outsample;
-	outsample["output"] = arraylist2cubelist<real>(grdts);
+	std::map<std::string, std::vector<cube_p<real>>> gsample;
+	gsample = pydict2sample<real>( grdts );
 
 	// backward
-    net.backward( std::move(outsample) );
+    net.backward( std::move(gsample) );
 }
+
 //===========================================================================
 //NETWORK STATISTIC FUNCTIONS
 
@@ -247,6 +246,41 @@ std::size_t CNet_get_output_num( bp::object const & self )
     return outs["output"].second;
 }
 
+bp::dict CNet_get_inputs( bp::object const & self )
+{
+	network& net = bp::extract<network&>(self)();
+	std::map<std::string, std::pair<vec3i,size_t>> inputs = net.inputs();
+
+	bp::dict ret;
+	for (auto &in: inputs)
+	{
+		np::ndarray arr = np::empty(bp::make_tuple(4), np::dtype::get_builtin<unsigned int>());
+		arr[0] = in.second.second;
+		arr[1] = in.second.first[0];
+		arr[2] = in.second.first[1];
+		arr[3] = in.second.first[2];
+		ret[in.first] = arr;
+	}
+	return ret;
+}
+
+bp::dict CNet_get_outputs( bp::object const & self )
+{
+	network& net = bp::extract<network&>(self)();
+	std::map<std::string, std::pair<vec3i,size_t>> outputs = net.outputs();
+
+	bp::dict ret;
+	for (auto &out: outputs)
+	{
+		np::ndarray arr = np::empty(bp::make_tuple(4), np::dtype::get_builtin<unsigned int>());
+		arr[0] = out.second.second;
+		arr[1] = out.second.first(0);
+		arr[2] = out.second.first(1);
+		arr[3] = out.second.first(2);
+		ret[out.first] = arr;
+	}
+	return ret;
+}
 //===========================================================================
 
 void CNet_set_phase(bp::object const & self, std::uint8_t const phs = 0)
@@ -255,6 +289,8 @@ void CNet_set_phase(bp::object const & self, std::uint8_t const phs = 0)
 	net.set_phase( static_cast<phase>(phs) );
 	return;
 }
+
+
 
 //===========================================================================
 //BOOST PYTHON INTERFACE DEFINITION
@@ -273,8 +309,10 @@ BOOST_PYTHON_MODULE(pyznn)
         .def("set_phase",           &CNet_set_phase)
         .def("set_momentum",		&network::set_momentum)
         .def("set_weight_decay",	&network::set_weight_decay )
+        .def("get_inputs", 			&CNet_get_inputs)
         .def("get_input_num", 		&CNet_get_input_num)
+        .def("get_outputs", 		&CNet_get_outputs)
         .def("get_output_num", 		&CNet_get_output_num)
-		.def("get_opts",			&CNet_getopts)
+        .def("get_opts",			&CNet_getopts)
         ;
 }

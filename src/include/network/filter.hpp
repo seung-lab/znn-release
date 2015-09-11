@@ -52,9 +52,9 @@ public:
         return weight_decay_;
     }
 
-    void update(const cube<real>& dEdW, real patch_size = 0 ) noexcept
+    void update(const cube<real>& dEdW, real patch_size = 1 ) noexcept
     {
-        real delta = ( patch_size != 0 ) ? -eta_/patch_size : -eta_;
+        real delta = -eta_/patch_size;
 
         if ( momentum_ == 0 )
         {
