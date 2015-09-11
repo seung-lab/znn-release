@@ -253,10 +253,13 @@ class CSample:
         lbl = lbl[0]
         
         affs = list()
+        #x-affinity
         aff = (lbl[1:,1:,1:] == lbl[:-1, 1:  ,1: ]) & (lbl[1:,1:,1:]>0)
         affs.append( aff.astype(dtype) )
+        #y-affinity
         aff = (lbl[1:,1:,1:] == lbl[1: , :-1 ,1: ]) & (lbl[1:,1:,1:]>0)
         affs.append( aff.astype(dtype) )
+        #z-affinity
         aff = (lbl[1:,1:,1:] == lbl[1: , 1:  ,:-1]) & (lbl[1:,1:,1:]>0)
         affs.append( aff.astype(dtype) )
         # shrink the input volumes
@@ -264,17 +267,36 @@ class CSample:
             vins[k] = vin[1:,1:,1:]
         return vins, affs
 
+    def _binary_class_outputs( self, output_volumes ):
+        new_output_volumes = []
+
+        for vol in output_volumes:
+            new_output_volumes.append(vol)
+            new_output_volumes.append(1-vol)
+
+        return new_output_volumes
+
     def get_random_sample(self, insz, outsz):
         out_dtype = self.pars['out_dtype']
+
         if 'vol' in out_dtype or 'boundary' in out_dtype:
             vins, vouts = self._get_random_subvol( insz, outsz )
             if self.pars['is_data_aug']:
                 vins, vouts = self._data_aug( vins, vouts )
+
+        elif 'binary_class' in out_dtype:
+            vins, vouts = self._get_random_subvol( insz, outsz )
+            if self.pars['is_data_aug']:
+                vins, vouts = self._data_aug( vins, vouts )
+
+            vouts = self._binary_class_outputs( vouts )
+
         elif 'aff' in out_dtype:
             vins, vouts = self._get_random_subvol( insz+1, outsz+1 )
             if self.pars['is_data_aug']:
                 vins, vouts = self._data_aug( vins, vouts )
             vins, vouts = self._transfer2aff( vins, vouts )
+
         return ( vins, vouts )
 
 class CSamples:
