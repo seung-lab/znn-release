@@ -31,7 +31,7 @@ def main( conf_file='config.cfg' ):
     # number of output voxels
     print 'setting up the network...'
     vn = utils.get_total_num(net.get_outputs())
-    eta = pars['eta'] / vn
+    eta = pars['eta']
     net.set_eta( eta )
     net.set_momentum( pars['momentum'] )
 
