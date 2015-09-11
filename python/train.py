@@ -45,6 +45,7 @@ def main( conf_file='config.cfg' ):
     smp_tst = front_end.CSamples(config, pars, pars['test_range'],  info_in, info_out)
 
     # check all the settings
+    print "check configurations..."
     utils.check_config(config, pars, info_out, smp_trn, smp_tst)
 
     # initialization
@@ -66,7 +67,7 @@ def main( conf_file='config.cfg' ):
 
     start = time.time()
     for i in xrange(1, pars['Max_iter'] ):
-        vol_ins, lbl_outs = smp_trn.get_random_sample()
+        vol_ins, lbl_outs, msks = smp_trn.get_random_sample()
 
         # forward pass
         vol_ins = utils.make_continuous(vol_ins, dtype='float32')
@@ -76,6 +77,9 @@ def main( conf_file='config.cfg' ):
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs )
         err = err + cerr
         cls = cls + cost_fn.get_cls(props, lbl_outs)
+        
+        # mask process the gradient
+        grdts = utils.dict_mul(grdts, msks)
 
         # run backward pass
         grdts = utils.make_continuous(grdts, dtype='float32')
@@ -102,6 +106,11 @@ def main( conf_file='config.cfg' ):
             err_list.append( err )
             cls_list.append( cls )
             it_list.append( i )
+            
+            # time
+            elapsed = time.time() - start
+            print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s, learning rate: %.4f"\
+                    %(i, err, cls, elapsed, eta )
 
             if pars['is_visual']:
                 # show results To-do: run in a separate thread

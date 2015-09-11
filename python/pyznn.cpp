@@ -261,7 +261,6 @@ bp::dict CNet_get_inputs( bp::object const & self )
 		arr[3] = in.second.first[2];
 		ret[in.first] = arr;
 	}
-	std::cout<< "end of get inputs."<<std::endl;
 	return ret;
 }
 

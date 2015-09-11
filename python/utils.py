@@ -26,24 +26,24 @@ def check_config(config, pars, info_out, smp_trn, smp_tst):
         assert(outsz[0]==2)
         assert('softmax' in cf or 'square' in cf)
         for sample in smp_trn.samples:
-            im = sample.outputs[name]
-            for pp_type in im.pp_types:
+            lbl = sample.outputs[name]
+            for pp_type in lbl.pp_types:
                 assert('binary' in pp_type or 'one' in pp_type)
         for sample in smp_tst.samples:
-            im = sample.outputs[name]
-            for pp_type in im.pp_types:
+            lbl = sample.outputs[name]
+            for pp_type in lbl.pp_types:
                 assert('binary' in pp_type or 'one' in pp_type)
     elif 'aff' in pars['out_dtype']:
         print "network output size: ", outsz
         assert(outsz[0]==3)
         assert('binomial' in cf)
         for sample in smp_trn.samples:
-            im = sample.outputs[name]
-            for pp_type in im.pp_types:
+            lbl = sample.outputs[name]
+            for pp_type in lbl.pp_types:
                 assert('aff' in pp_type)
         for sample in smp_tst.samples:
-            im = sample.outputs[name]
-            for pp_type in im.pp_types:
+            lbl = sample.outputs[name]
+            for pp_type in lbl.pp_types:
                 assert('aff' in pp_type)
     else:
         raise NameError('invalid out_type!')
@@ -76,6 +76,16 @@ def get_total_num(outputs):
     for name, sz in outputs.iteritems():
         n = n + np.prod(sz)
     return n
+
+def dict_mul(das,dbs):
+    if not dbs:
+        return das
+        
+    ret = dict()
+    for name, a in das.iteritems():
+        b = dbs[name]
+        ret[name] = a * b
+    return ret
 
 def save_statistics( pars, it_list, err_list, cls_list,\
                         titr_list, terr_list, tcls_list):

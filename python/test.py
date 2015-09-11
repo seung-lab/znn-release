@@ -7,7 +7,7 @@ import utils
 import cost_fn
 
 def _single_test(net, pars, sample):
-    vol_ins, lbl_outs = sample.get_random_sample()
+    vol_ins, lbl_outs, msks = sample.get_random_sample()
        
     # forward pass
     vol_ins = utils.make_continuous(vol_ins, dtype='float32')

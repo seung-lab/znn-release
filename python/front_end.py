@@ -110,11 +110,12 @@ class CImage:
         fnames = config.get(sec_name, 'fnames').split(',\n')
         arrlist = self._read_files( fnames );
         # auto crop
-        if config.get(sec_name, 'is_auto_crop'):
+        self._is_auto_crop = config.getboolean(sec_name, 'is_auto_crop')
+        if self._is_auto_crop:
             arrlist = self._auto_crop( arrlist )
         self.arr = np.asarray( arrlist, dtype='float32')
         self.sz = np.asarray( self.arr.shape[1:4] )
-
+        
         # compute center coordinate
         self.center = self._get_center()
         
@@ -122,7 +123,8 @@ class CImage:
         if 'aff' in pars['out_dtype']:
             # increase the subvolume size for affinity
             self.setsz = self.setsz + 1
-        
+        self.low_setsz  = (self.setsz-1)/2
+        self.high_setsz = self.setsz / 2
         # show some information
         print "image stack size:    ", self.arr.shape
         print "set size:            ", self.setsz
@@ -206,7 +208,7 @@ class CImage:
             ret.append( vol )
         return ret
     
-    def get_sub_volume(self, div, rft):
+    def get_sub_volume(self, arr, div, rft=[]):
         """
         get sub volume.
 
@@ -220,12 +222,11 @@ class CImage:
         """
         # the center location
         loc = self.center + div
-        low_setsz  = (self.setsz-1)/2
-        high_setsz = self.setsz / 2
+        
         # extract volume
-        subvol  = self.arr[ :,  loc[0]-low_setsz[0]  : loc[0] + high_setsz[0]+1,\
-                                loc[1]-low_setsz[1]  : loc[1] + high_setsz[1]+1,\
-                                loc[2]-low_setsz[2]  : loc[2] + high_setsz[2]+1]
+        subvol  = arr[ :,   loc[0]-self.low_setsz[0]  : loc[0] + self.high_setsz[0]+1,\
+                            loc[1]-self.low_setsz[1]  : loc[1] + self.high_setsz[1]+1,\
+                            loc[2]-self.low_setsz[2]  : loc[2] + self.high_setsz[2]+1]
         # random transformation
         if self.pars['is_data_aug']:
             subvol = self._data_aug_transform(subvol, rft)
@@ -244,6 +245,8 @@ class CImage:
         -------
         data : the transformed array
         """
+        if np.size(rft)==0:
+            return data
         # transform every pair of input and label volume
         if rft[0]:
             data  = data[:, ::-1, :,    :]
@@ -276,25 +279,34 @@ class CInputImage(CImage):
             raise NameError( 'invalid preprocessing type' )
         return vol
     def get_subvol(self, div, rft):
-        arr = self.get_sub_volume(div, rft)
+        arr = self.get_sub_volume(self.arr, div, rft)
         if 'aff' in self.pars['out_dtype']:
             # shrink the volume
             arr = arr[:,1:,1:,1:]
-        assert( arr.shape[1]>0 )
         return arr
 
 class COutputLabel(CImage):
     def __init__(self, config, pars, sec_name, setsz):
         CImage.__init__(self, config, pars, sec_name, setsz)
 
+        # deal with mask
+        self.msk = []
+        if config.has_option(sec_name, 'fmasks'):
+            fmasks = config.get(sec_name, 'fnames').split(',\n')
+            msklist = self._read_files( fmasks )
+            if self._is_auto_crop:
+                msklist = self._auto_crop( msklist )
+            self.msk = np.asarray( msklist )
+            self.msk = (self.msk>0).astype('float32')
+            assert(self.arr.shape == self.msk.shape)   
+            
         # preprocessing
-        self.pp_types = config.get(sec_name, 'pp_types').split(',')
-        self._preprocess(self.pp_types)
+        self._preprocess(config, sec_name)
         
         if pars['is_rebalance']:
-            self.mask = self.mask * self._rebalance()
+            self._rebalance()
 
-    def _preprocess( self, pp_types):
+    def _preprocess( self, config, sec_name):
         """
         preprocess the 4D image stack.
         
@@ -302,21 +314,19 @@ class COutputLabel(CImage):
         ----------
         arr : 3D array,
         """
-        
-        
-        for c, pp_type in enumerate(pp_types):
+        self.pp_types = config.get(sec_name, 'pp_types').split(',')
+        assert(len(self.pp_types)==1)
+        for c, pp_type in enumerate(self.pp_types):
             if 'none' == pp_type or 'None'==pp_type:
                 return
             elif 'binary_class' == pp_type:
-                assert(len(pp_types)==1)
                 self.arr = self._binary_class(self.arr)
+                self.msk = np.tile(self.msk, (2,1,1,1))
                 return 
             elif 'one_class' == pp_type:
-                assert(len(pp_types)==1)
                 self.arr = (self.arr>0).astype('float32')
                 return
             elif 'aff' in pp_type:
-                assert(len(pp_types)==1)
                 return
             else:
                 raise NameError( 'invalid preprocessing type' )
@@ -353,12 +363,16 @@ class COutputLabel(CImage):
         ------
         arr : 4D array, could be affinity of binary class 
         """
-        arr = self.get_sub_volume(div, rft)
-        
+        sublbl = self.get_sub_volume(self.arr, div, rft)
+        submsk = self.get_sub_volume(self.msk, div, rft)
         if 'aff' in self.pp_types[0]:
             # transform the output volumes to affinity array
-            arr = self._lbl2aff( arr )
-        return arr
+            sublbl = self._lbl2aff( sublbl )
+            # shrink and replicate mask
+            submsk = submsk[:,1:,1:,1:]
+            submsk = np.tile(submsk, (3,1,1,1))
+            
+        return sublbl, submsk
     
     def _lbl2aff( self, lbl ):
         """
@@ -387,24 +401,24 @@ class COutputLabel(CImage):
         get rebalance tree_size of gradient.
         make the nonboundary and boundary region have same contribution of training.
         """
-        weights = np.empty( self.arr.shape, dtype='float32' )
-        for c in xrange(self.arr.shape[0]):
-            lbl = self.arr[c,:,:,:]
-            # number of nonzero elements
-            num_nz = float( np.count_nonzero(lbl) )
-            # total number of elements
-            num = float( np.size(lbl) )
+        # number of nonzero elements
+        num_nz = float( np.count_nonzero(self.arr) )
+        # total number of elements
+        num = float( np.size(self.arr) )
 
-            # weight of non-boundary and boundary
-            wnb = 0.5 * num / num_nz
-            wb  = 0.5 * num / (num - num_nz)
+        # weight of non-boundary and boundary
+        wnb = 0.5 * num / num_nz
+        wb  = 0.5 * num / (num - num_nz)
 
-            # give value
-            weight = np.empty( lbl.shape, dtype='float32' )
-            weight[lbl>0]  = wnb
-            weight[lbl==0] = wb
-            weights.append( weight )
-        return weights
+        # give value
+        weight = np.empty( self.arr.shape, dtype='float32' )
+        weight[self.arr>0]  = wnb
+        weight[self.arr==0] = wb
+    
+        if not self.msk:
+            self.msk = weight
+        else:
+            self.msk = self.msk * weight            
 
 class CSample:
     """class of sample, similar with Dataset module of pylearn2"""
@@ -444,13 +458,14 @@ class CSample:
         div[2] = np.random.randint(self.div_low[2], self.div_high[2])
         # get input and output 4D sub arrays
         inputs = dict()
-        for name, sample in self.inputs.iteritems():
-            inputs[name] = sample.get_subvol(div, rft)
+        for name, img in self.inputs.iteritems():
+            inputs[name] = img.get_subvol(div, rft)
 
         outputs = dict()
-        for name, sample in self.outputs.iteritems():
-            outputs[name] = sample.get_subvol(div, rft)
-        return ( inputs, outputs )
+        msks = dict()
+        for name, lbl in self.outputs.iteritems():
+            outputs[name], msks[name] = lbl.get_subvol(div, rft)
+        return ( inputs, outputs, msks )
 
 class CSamples:
     def __init__(self, config, pars, ids, info_in, info_out):
@@ -496,10 +511,7 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     name_l,  lbl  = lbl_outs.popitem()
     name_g,  grdt = grdts.popitem()
     
-    # time
-    elapsed = time.time() - start
-    print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s, learning rate: %.4f"\
-            %(i, err, cls, elapsed, eta )
+    
     # real time visualization
     plt.subplot(241),   plt.imshow(vol[0,0,:,:],    interpolation='nearest', cmap='gray')
     plt.xlabel('input')
@@ -519,11 +531,5 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     plt.plot(it_list, cls_list, 'b', titr_list, tcls_list, 'r')
     plt.xlabel('iteration'), plt.ylabel( 'classification error' )
 
-    # reset time
-    start = time.time()
-    # reset err and cls
-    err = 0
-    cls = 0
-
     plt.pause(1.5)
-    return start, err, cls
+    return
