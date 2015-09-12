@@ -1,3 +1,9 @@
+
+/*
+*/
+
+//===========================================================================
+// INCLUDE STATEMENTS
 // boost python
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <Python.h>
@@ -16,9 +22,8 @@
 namespace bp = boost::python;
 namespace np = boost::numpy;
 
-namespace znn { namespace v4 {
-
-// IO HELPER FUNCTIONS
+namespace znn { namespace v4 { 
+//===========================================================================
 
 //Converts std::vector<std::size_t> vector to tuple of std::size_t
 // used to format size and stride options before passing to python
