@@ -415,7 +415,7 @@ class COutputLabel(CImage):
         weight[self.arr>0]  = wnb
         weight[self.arr==0] = wb
     
-        if not self.msk:
+        if np.size(self.msk)==0:
             self.msk = weight
         else:
             self.msk = self.msk * weight            
