@@ -705,7 +705,6 @@ class CSample:
 
         # Parameter object (dict)
         self.pars = pars
-<<<<<<< HEAD
 
         #Extracting layer info from the network
         info_in  = net.get_inputs()
@@ -716,11 +715,6 @@ class CSample:
 
         # init deviation range
         # we need to consolidate this over all input and output volumes
-=======
-        sec_name = "sample%d" % (sample_id,)
-
-        # deviation range
->>>>>>> 5f61660afcc37b71a5c85b489525c7631796c8f3
         self.div_high = np.array([sys.maxsize, sys.maxsize, sys.maxsize])
         self.div_low  = np.array([-sys.maxint-1, -sys.maxint-1, -sys.maxint-1])
 
