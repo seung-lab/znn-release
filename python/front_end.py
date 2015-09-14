@@ -1,27 +1,46 @@
 #!/usr/bin/env python
 __doc__ = """
 
-Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
+Front-End Interface for ZNNv4
+
+Jingpeng Wu <jingpeng.wu@gmail.com>,
+Nicholas Turner <nturner@cs.princeton.edu>, 2015
 """
 import numpy as np
 import time
 import ConfigParser
 import cost_fn
 import matplotlib.pylab as plt
+import pyznn
 import sys
 import emirt
 
 def parseIntSet(nputstr=""):
-    "http://thoughtsbyclayg.blogspot.com/2008/10/parsing-list-of-numbers-in-python.html"
+    """
+    Allows users to specify a comma-delimited list of number ranges as sample selections.
+    Specifically, parses a string which should contain a comma-delimited list of 
+    either numerical values (e.g. 3), or a dash-separated range (e.g. 4-5).
+
+    If the ranges are redundant (e.g. 3, 3-5), only one copy of the selection will
+    be added to the result.
+
+    IGNORES ranges which don't fit the desired format (e.g. 3&5)
+
+    http://thoughtsbyclayg.blogspot.com/2008/10/parsing-list-of-numbers-in-python.html
+    """
+
     selection = set()
     invalid = set()
+
     # tokens are comma seperated values
     tokens = [x.strip() for x in nputstr.split(',')]
+
     for i in tokens:
        try:
-          # typically tokens are plain old integers
+          # typically, tokens are plain old integers
           selection.add(int(i))
        except:
+
           # if not, then it might be a range
           try:
              token = [int(k.strip()) for k in i.split('-')]
@@ -36,53 +55,91 @@ def parseIntSet(nputstr=""):
           except:
              # not an int and not a range...
              invalid.add(i)
+
     return selection
 
 def parser( conf_fname ):
+    '''
+    Parses a configuration file into a dictionary of options using
+    the ConfigParser module
+    '''
+
     config = ConfigParser.ConfigParser()
     config.read( conf_fname )
 
-    # general, train and forward
     pars = dict()
 
+    #GENERAL OPTIONS
+    #Network specification filename
     pars['fnet_spec']   = config.get('parameters', 'fnet_spec')
+    #Number of threads to use
     pars['num_threads'] = int( config.get('parameters', 'num_threads') )
+    #Output layer data type (e.g. 'boundary','affinity')
     pars['out_dtype']     = config.get('parameters', 'out_dtype')
 
+    #IO OPTIONS
+    #Filename under which we save the network
     pars['train_save_net'] = config.get('parameters', 'train_save_net')
+    #Network filename to load
     pars['train_load_net'] = config.get('parameters', 'train_load_net')
+
+    #TRAINING OPTIONS
+    #Samples to use for training
     pars['train_range'] = parseIntSet( config.get('parameters',   'train_range') )
+    #Samples to use for cross-validation
     pars['test_range']  = parseIntSet( config.get('parameters',   'test_range') )
+    #Learning Rate
     pars['eta']         = config.getfloat('parameters', 'eta')
+    #Learning Rate Annealing Factor
     pars['anneal_factor']=config.getfloat('parameters', 'anneal_factor')
+    #Momentum Constant
     pars['momentum']    = config.getfloat('parameters', 'momentum')
+    #Weight Decay
     pars['weight_decay']= config.getfloat('parameters', 'weight_decay')
+    #Training Output Patch Shape
     pars['train_outsz'] = np.asarray( [x for x in config.get('parameters', \
                                     'train_outsz').split(',') ], dtype=np.int64 )
-    
+    #Whether to optimize the convolution computation by layer
+    # (FFT vs Direct Convolution)
     pars['is_optimize'] = config.getboolean('parameters', 'is_optimize')
+    #Whether to use data augmentation
     pars['is_data_aug'] = config.getboolean('parameters', 'is_data_aug')
+    #Whether to use boundary mirroring
     pars['is_bd_mirror']= config.getboolean('parameters', 'is_bd_mirror')
+    #Whether to use rebalanced training
     pars['is_rebalance']= config.getboolean('parameters', 'is_rebalance')
+    #Whether to use malis cost
     pars['is_malis']    = config.getboolean('parameters', 'is_malis')
+    #Whether to display progress plots
     pars['is_visual']   = config.getboolean('parameters', 'is_visual')    
     
+    #Which Cost Function to Use (as a string)
     pars['cost_fn_str'] = config.get('parameters', 'cost_fn')
 
+    #DISPLAY OPTIONS
+    #How often to show progress to the screen
     pars['Num_iter_per_show'] = config.getint('parameters', 'Num_iter_per_show')
+    #How often to check cross-validation error
     pars['Num_iter_per_test'] = config.getint('parameters', 'Num_iter_per_test')
+    #How many output patches should derive cross-validation error
     pars['test_num']    = config.getint( 'parameters', 'test_num' )
+    #How often to save the network
     pars['Num_iter_per_save'] = config.getint('parameters', 'Num_iter_per_save')
+    #Maximum training updates
     pars['Max_iter']    = config.getint('parameters', 'Max_iter')
 
-    # forward parameters
+    #FULL FORWARD PASS PARAMETERS
+    #Which samples to use
     pars['forward_range'] = parseIntSet( config.get('parameters', 'forward_range') )
+    #Which network file to load
     pars['forward_net']   = config.get('parameters', 'forward_net')
+    #Output Patch Size
     pars['forward_outsz'] = np.asarray( [x for x in config.get('parameters', 'forward_outsz')\
                                         .split(',') ], dtype=np.int64 )
+    #Prefix of the output files
     pars['output_prefix'] = config.get('parameters', 'output_prefix')
 
-    # cost function
+    #PROCESSING COST FUNCTION STRING
     if pars['cost_fn_str'] == "square_loss":
         pars['cost_fn'] = cost_fn.square_loss
     elif pars['cost_fn_str'] == "binomial_cross_entropy":
@@ -100,32 +157,103 @@ def parser( conf_fname ):
             raise NameError( 'malis weight should be used with affinity label type!' )
     return config, pars
 
+def init_network( params=None, train=True, output_patch_shape=None,
+            network_specfile=None, num_threads=None, optimize=None ):
+    '''
+    Initializes a random network using the Boost Python interface and configuration
+    file options. The function will define this network by a parameter object
+    (as generated by the parse function), or by the specified options.
+
+    If both a parameter object and any optional arguments are specified,
+    the parameter object will form the default options, and those will be 
+    overwritten by the other optional arguments
+    '''
+    #Need to specify either a params object, or all of the other optional args
+    params_defined = params is not None
+
+    #"ALL" optional args excludes train
+    all_optional_args_defined = all([
+        arg is not None for arg in 
+        (output_patch_shape, network_specfile, num_threads, optimize)
+        ])
+
+    assert (params_defined or all_optional_args_defined)
+
+    #Defining phase argument by train argument
+    phase = int(not train)
+
+    #If a params object exists, then those options are the default
+    if params is not None:
+
+        if train:
+            _output_patch_shape = params['train_outsz']
+        else:
+            _output_patch_shape = params['forward_outsz']
+
+        _network_specfile = params['fnet_spec']
+        _num_threads = params['num_threads']
+        _optimize = params['is_optimize']
+
+    #Overwriting defaults with any other optional args
+    if output_patch_shape is not None:
+        _output_patch_shape = output_patch_shape
+    if network_specfile is not None:
+        _network_specfile = network_specfile
+    if num_threads is not None:
+        _num_threads = num_threads
+    if optimize is not None:
+        _optimize = optimize
+
+    return pyznn.CNet(_network_specfile, _output_patch_shape, 
+                    _num_threads, _optimize, phase)
+
 class CImage:
     """
-    the image stacks.
+    A class which represents a stack of images (up to 4 dimensions)
+
+    In the 4-dimensional case, it can constrain the constituent 3d volumes
+    to be the same size.
+
+    The design of the class is focused around returning subvolumes of a
+    particular size (setsz). It can accomplish this by specifying a deviation
+    (in voxels) from the center. The class also internally performs
+    rotations and flips for data augmentation.
     """
+
     def __init__(self, config, pars, sec_name, setsz):
-        self.setsz = setsz
+
+        #Parameter object (see parser above)
         self.pars = pars
+        #Desired size of subvolumes returned by this instance
+        self.setsz = setsz
+
+        #Reading in data
         fnames = config.get(sec_name, 'fnames').split(',\n')
         arrlist = self._read_files( fnames );
-        # auto crop
+        
+        #Auto crop - constraining 3d vols to be the same size
         self._is_auto_crop = config.getboolean(sec_name, 'is_auto_crop')
         if self._is_auto_crop:
             arrlist = self._auto_crop( arrlist )
+
+        #4d array of all data
         self.arr = np.asarray( arrlist, dtype='float32')
+        #3d shape of a constituent volume
         self.sz = np.asarray( self.arr.shape[1:4] )
         
-        # compute center coordinate
+        #Computes center coordinate, picks lower-index priority center
         self.center = self._get_center()
-        
-        # deal with affinity
-        if 'aff' in pars['out_dtype']:
-            # increase the subvolume size for affinity
-            self.setsz = self.setsz + 1
+
+        #Number of voxels with index lower than the center
+        # within a subvolume (used within get_div_range, and
+        # get_sub_volume)
         self.low_setsz  = (self.setsz-1)/2
+        #Number of voxels with index higher than the center
+        # within a subvolume (used within get_div_range, and
+        # get_sub_volume)
         self.high_setsz = self.setsz / 2
-        # show some information
+
+        #Display some instance information
         print "image stack size:    ", self.arr.shape
         print "set size:            ", self.setsz
         print "center:              ", self.center
@@ -133,25 +261,38 @@ class CImage:
     
     def get_div_range(self):
         """
-        get the range of diviation
+        Subvolumes are specified in terms of 'deviation' from the center voxel
+
+        This function specifies the valid range of those deviations in terms of
+        xyz coordinates
         """
-        low_setsz_div  = (self.setsz-1)  /2
-        high_setsz_div = (self.setsz)    /2
+
+        #Number of voxels within index lower than the center
         low_sz  = (self.sz - 1) /2
+        #Number of voxels within index higher than the center
         high_sz = self.sz/2
-        low  = -( low_sz - low_setsz_div )
-        high = high_sz - high_setsz_div
+
+        low  = -( low_sz - self.low_setsz )
+        high = high_sz - self.high_setsz
+
         print "deviation range:     ", low, "--", high
+
         return low, high
     
     def _get_center(self):
-        sz = np.asarray( self.arr.shape[1:4] );
-        center = (sz-1)/2
+        '''
+        Finds the index of the 3d center of the array
+        
+        Picks the lower-index voxel if there's no true "center"
+        '''
+
+        #-1 accounts for python indexing
+        center = (self.sz-1)/2
         return center
 
     def _center_crop(self, vol, shape):
         """
-        crop the volume from the center
+        Crops the passed volume from the center
 
         Parameters
         ----------
@@ -162,14 +303,17 @@ class CImage:
         -------
         vol : the croped volume
         """
+
         sz1 = np.asarray( vol.shape )
         sz2 = np.asarray( shape )
         # offset of both sides
         off1 = (sz1 - sz2+1)/2
         off2 = (sz1 - sz2)/2
+
         return vol[ off1[0]:-off2[0],\
                     off1[1]:-off2[1],\
                     off1[2]:-off2[2]]
+
     def _auto_crop(self, arrs):
         """
         crop the list of volumes to make sure that volume sizes are the same.
@@ -192,7 +336,7 @@ class CImage:
 
     def _read_files(self, files):
         """
-        read a list of tif files of original volume and lable
+        read a list of tif files
 
         Parameters
         ----------
@@ -210,16 +354,19 @@ class CImage:
     
     def get_sub_volume(self, arr, div, rft=[]):
         """
-        get sub volume.
+        Returns a 4d subvolume of the original, specified
+        by deviation from the center voxel. Performs data
+        augmentation if specified by the rft argument
 
         Parameters
         ----------
-        div : the diviation from the center
+        div : the deviation from the center
         rft : the random transformation rule.
         Return:
         -------
         subvol : the transformed sub volume.
         """
+
         # the center location
         loc = self.center + div
         
@@ -239,26 +386,45 @@ class CImage:
         Parameters
         ----------
         data : 3D numpy array need to be transformed
-        rft : transform rule
+        rft : transform rule, specified as an array of bool
+            [z-reflection,
+            y-reflection,
+            x-reflection,
+            xy transpose]
 
         Returns
         -------
         data : the transformed array
         """
+
         if np.size(rft)==0:
             return data
         # transform every pair of input and label volume
+
+        #z-reflection
         if rft[0]:
             data  = data[:, ::-1, :,    :]
+        #y-reflection
         if rft[1]:
             data  = data[:, :,    ::-1, :]
+        #x-reflection
         if rft[2]:
             data = data[:,  :,    :,    ::-1]
+        #transpose
         if rft[3]:
             data = data.transpose(0,1,3,2)
+
         return data
 
 class CInputImage(CImage):
+    '''
+    Subclass of CImage which represents the type of input data seen
+    by ZNN neural networks 
+
+    Internally preprocesses the data, and modifies the legal 
+    deviation range for affinity data output.
+    '''
+
     def __init__(self, config, pars, sec_name, setsz ):
         CImage.__init__(self, config, pars, sec_name, setsz )
 
@@ -278,26 +444,56 @@ class CInputImage(CImage):
         else:
             raise NameError( 'invalid preprocessing type' )
         return vol
+
     def get_subvol(self, div, rft):
-        arr = self.get_sub_volume(self.arr, div, rft)
+        return self.get_sub_volume(self.arr, div, rft)
+
+    def get_div_range(self):
+        '''Override of the CImage implementation to account
+        for affinity preprocessing'''
+
+        low, high = super(CInputImage, self).get_div_range()
+
         if 'aff' in self.pars['out_dtype']:
-            # shrink the volume
-            arr = arr[:,1:,1:,1:]
-        return arr
+            #Given affinity preprocessing (see _lbl2aff), valid affinity
+            # values only exist for the later voxels, which can create
+            # boundary issues
+            low += 1
+
+        return low, high
 
 class COutputLabel(CImage):
+    '''
+    Subclass of CImage which represents output labels for
+    ZNN neural networks 
+
+    Internally handles preprocessing of the data, and can 
+    contain masks for sparsely-labelled training
+    '''
+
     def __init__(self, config, pars, sec_name, setsz):
         CImage.__init__(self, config, pars, sec_name, setsz)
+
+        # Affinity preprocessing decreases the output
+        # size by one voxel in each dimension, this counteracts
+        # that effect
+        if 'aff' in pars['out_dtype']:
+            # increase the subvolume size for affinity
+            self.setsz = self.setsz + 1
 
         # deal with mask
         self.msk = []
         if config.has_option(sec_name, 'fmasks'):
             fmasks = config.get(sec_name, 'fnames').split(',\n')
             msklist = self._read_files( fmasks )
+
             if self._is_auto_crop:
                 msklist = self._auto_crop( msklist )
+
             self.msk = np.asarray( msklist )
+            # mask 'preprocessing'
             self.msk = (self.msk>0).astype('float32')
+
             assert(self.arr.shape == self.msk.shape)   
             
         # preprocessing
@@ -306,7 +502,7 @@ class COutputLabel(CImage):
         if pars['is_rebalance']:
             self._rebalance()
 
-    def _preprocess( self, config, sec_name):
+    def _preprocess( self, config, sec_name ):
         """
         preprocess the 4D image stack.
         
@@ -314,8 +510,12 @@ class COutputLabel(CImage):
         ----------
         arr : 3D array,
         """
+
         self.pp_types = config.get(sec_name, 'pp_types').split(',')
+
         assert(len(self.pp_types)==1)
+
+        # loop through volumes
         for c, pp_type in enumerate(self.pp_types):
             if 'none' == pp_type or 'None'==pp_type:
                 return
@@ -327,14 +527,17 @@ class COutputLabel(CImage):
                 self.arr = (self.arr>0).astype('float32')
                 return
             elif 'aff' in pp_type:
+                # affinity preprocessing handled later
+                # when fetching subvolumes (get_subvol)
                 return
             else:
                 raise NameError( 'invalid preprocessing type' )
+
         return
     
     def _binary_class(self, lbl):
         """
-        transform label to binary class
+        Binary-Class Label Transformation
         
         Parameters
         ----------
@@ -345,9 +548,12 @@ class COutputLabel(CImage):
         ret : 4D array, two volume with opposite value
         """
         assert(lbl.shape[0] == 1)
+
         ret = np.empty((2,)+ lbl.shape[1:4], dtype='float32')
+
         ret[0, :,:,:] = (lbl[0,:,:,:]>0).astype('float32')
         ret[1:,  :,:,:] = 1 - ret[0, :,:,:]
+
         return ret
     
     def get_subvol(self, div, rft):
@@ -388,12 +594,19 @@ class COutputLabel(CImage):
         """
         # the 3D volume number should be one
         assert( lbl.shape[0] == 1 )
+
         aff_size = np.asarray(lbl.shape)-1
         aff_size[0] = 3
+
         aff = np.zeros( tuple(aff_size) , dtype='float32')
+
+        #x-affinity
         aff[0,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,:-1, 1:  ,1: ]) & (lbl[0,1:,1:,1:]>0)
+        #y-affinity
         aff[1,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , :-1 ,1: ]) & (lbl[0,1:,1:,1:]>0)
+        #z-affinity
         aff[2,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , 1:  ,:-1]) & (lbl[0,1:,1:,1:]>0)
+
         return aff
 
     def _rebalance( self ):
@@ -421,41 +634,74 @@ class COutputLabel(CImage):
             self.msk = self.msk * weight            
 
 class CSample:
-    """class of sample, similar with Dataset module of pylearn2"""
-    def __init__(self, config, pars, sample_id, info_in, info_out):
+    """
+    Sample Class, which represents a pair of input and output volume structures
+    (as CInputImage and COutputImage respectively) 
+
+    Allows simple interface for procuring matched random samples from all volume
+    structures at once
+
+    Designed to be similar with Dataset module of pylearn2
+    """
+    def __init__(self, config, pars, sample_id, net):
+
+        # Parameter object (dict)
         self.pars = pars
-        sec_name = "sample%d" % (sample_id,)
-        
-        # deviation range
+
+        #Extracting layer info from the network
+        info_in  = net.get_inputs()
+        info_out = net.get_outputs()
+
+        # Name of the sample within the configuration file
+        sec_name = "sample%d" % sample_id
+
+        # init deviation range
+        # we need to consolidate this over all input and output volumes
         self.div_high = np.array([sys.maxsize, sys.maxsize, sys.maxsize])
         self.div_low  = np.array([-sys.maxint-1, -sys.maxint-1, -sys.maxint-1])
-        # input
+
+        # Loading input images
         self.inputs = dict()
         for name,setsz in info_in.iteritems():
+
+            #Finding the section of the config file
             imid = config.getint(sec_name, name)
             imsec_name = "image%d" % (imid,)
+            
             self.inputs[name] = CInputImage(  config, pars, imsec_name, setsz[1:4] )
             low, high = self.inputs[name].get_div_range()
+
+            # Deviation bookkeeping
             self.div_high = np.minimum( self.div_high, high )
             self.div_low  = np.maximum( self.div_low , low  )
-        # output
+
+        # define output images
         self.outputs = dict()
         for name, setsz in info_out.iteritems():
+
+            #Finding the section of the config file
             imid = config.getint(sec_name, name)
             imsec_name = "label%d" % (imid,)
+
             self.outputs[name] = COutputLabel( config, pars, imsec_name, setsz[1:4])
             low, high = self.outputs[name].get_div_range()
+
+            # Deviation bookkeeping
             self.div_high = np.minimum( self.div_high, high )
             self.div_low  = np.maximum( self.div_low , low  )
         
     def get_random_sample(self):
-        # random transformation rull
+        '''Fetches a matching random sample from all input and output volumes'''
+
+        # random transformation roll
         rft = (np.random.rand(4)>0.5)
+
         # random deviation from the volume center
         div = np.empty(3)
         div[0] = np.random.randint(self.div_low[0], self.div_high[0])
         div[1] = np.random.randint(self.div_low[1], self.div_high[1])
         div[2] = np.random.randint(self.div_low[2], self.div_high[2])
+
         # get input and output 4D sub arrays
         inputs = dict()
         for name, img in self.inputs.iteritems():
@@ -465,47 +711,52 @@ class CSample:
         msks = dict()
         for name, lbl in self.outputs.iteritems():
             outputs[name], msks[name] = lbl.get_subvol(div, rft)
+
         return ( inputs, outputs, msks )
 
 class CSamples:
-    def __init__(self, config, pars, ids, info_in, info_out):
+    def __init__(self, config, pars, ids, net):
         """
+        Samples Class - which represents a collection of data samples
+
+        This can be useful when one needs to use multiple collections
+        of data for training/testing, or as a generalized interface
+        for single collections
+
         Parameters
         ----------
         config : python parser object, read the config file
         pars : parameters
-        ids : vector of sample ids
-        info_in  : dict, mapping of input  layer name and size
-        info_out : dict, mapping of output layer name and size
+        ids : set of sample ids
+        net: network for which this samples object should be tailored
         """
-        self.samples = list()
+
+        #Parameter object
         self.pars = pars
+
+        #Information about the input and output layers
+        info_in  = net.get_inputs()
+        info_out = net.get_outputs()
+        
+        self.samples = list()
         for sid in ids:
-            sample = CSample(config, pars, sid, info_in, info_out)
+            sample = CSample(config, pars, sid, net)
             self.samples.append( sample )
 
     def get_random_sample(self):
+        '''Fetches a random sample from a random CSample object'''
         i = np.random.randint( len(self.samples) )
         return self.samples[i].get_random_sample()
 
     def get_inputs(self, sid):
         return self.samples[sid].get_input()
 
-    def volume_dump(self):
-        '''Returns ALL contained volumes
-
-        Used within forward pass'''
-
-        vols = []
-        for i in range(len(self.samples)):
-            vols.extend(self.samples[i].vols)
-
-        return vols
-
-
 def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
                 titr_list, terr_list, tcls_list, \
                 eta, vol_ins, props, lbl_outs, grdts, pars):
+    '''
+    Plots a display of training information to the screen
+    '''
     name_in, vol  = vol_ins.popitem()
     name_p,  prop = props.popitem()
     name_l,  lbl  = lbl_outs.popitem()
