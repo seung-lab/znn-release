@@ -7,13 +7,13 @@ Jingpeng Wu <jingpeng.wu@gmail.com>,
 Nicholas Turner <nturner@cs.princeton.edu>, 2015
 """
 import numpy as np
-import time
 import ConfigParser
 import cost_fn
 import matplotlib.pylab as plt
 import pyznn
 import sys
 import emirt
+from numba import autojit
 
 def parseIntSet(nputstr=""):
     """
@@ -258,7 +258,7 @@ class CImage:
         print "set size:            ", self.setsz
         print "center:              ", self.center
         return
-    
+
     def get_div_range(self):
         """
         Subvolumes are specified in terms of 'deviation' from the center voxel
@@ -278,7 +278,7 @@ class CImage:
         print "deviation range:     ", low, "--", high
 
         return low, high
-    
+
     def _get_center(self):
         '''
         Finds the index of the 3d center of the array
@@ -351,7 +351,7 @@ class CImage:
             vol = emirt.emio.imread(fl).astype('float32')
             ret.append( vol )
         return ret
-    
+
     def get_sub_volume(self, arr, div, rft=[]):
         """
         Returns a 4d subvolume of the original, specified
@@ -369,7 +369,7 @@ class CImage:
 
         # the center location
         loc = self.center + div
-        
+
         # extract volume
         subvol  = arr[ :,   loc[0]-self.low_setsz[0]  : loc[0] + self.high_setsz[0]+1,\
                             loc[1]-self.low_setsz[1]  : loc[1] + self.high_setsz[1]+1,\
@@ -482,7 +482,7 @@ class COutputLabel(CImage):
             self.setsz = self.setsz + 1
 
         # deal with mask
-        self.msk = []
+        self.msk = np.array([])
         if config.has_option(sec_name, 'fmasks'):
             fmasks = config.get(sec_name, 'fnames').split(',\n')
             msklist = self._read_files( fmasks )
@@ -496,23 +496,29 @@ class COutputLabel(CImage):
 
             assert(self.arr.shape == self.msk.shape)   
             
-        # preprocessing
-        self._preprocess(config, sec_name)
         
         if pars['is_rebalance']:
             self._rebalance()
+            
+        # preprocessing
+        self.pp_types = config.get(sec_name, 'pp_types').split(',')        
+        self._preprocess()       
 
-    def _preprocess( self, config, sec_name ):
+    def _preprocess( self ):
         """
         preprocess the 4D image stack.
-        
+
         Parameters
         ----------
         arr : 3D array,
         """
+<<<<<<< HEAD
 
         self.pp_types = config.get(sec_name, 'pp_types').split(',')
 
+=======
+        
+>>>>>>> 5f61660afcc37b71a5c85b489525c7631796c8f3
         assert(len(self.pp_types)==1)
 
         # loop through volumes
@@ -522,7 +528,7 @@ class COutputLabel(CImage):
             elif 'binary_class' == pp_type:
                 self.arr = self._binary_class(self.arr)
                 self.msk = np.tile(self.msk, (2,1,1,1))
-                return 
+                return
             elif 'one_class' == pp_type:
                 self.arr = (self.arr>0).astype('float32')
                 return
@@ -534,7 +540,7 @@ class COutputLabel(CImage):
                 raise NameError( 'invalid preprocessing type' )
 
         return
-    
+
     def _binary_class(self, lbl):
         """
         Binary-Class Label Transformation
@@ -542,7 +548,7 @@ class COutputLabel(CImage):
         Parameters
         ----------
         lbl : 4D array, label volume.
-        
+
         Return
         ------
         ret : 4D array, two volume with opposite value
@@ -555,42 +561,87 @@ class COutputLabel(CImage):
         ret[1:,  :,:,:] = 1 - ret[0, :,:,:]
 
         return ret
-    
+
     def get_subvol(self, div, rft):
         """
         get sub volume for training.
-        
+
         Parameter
         ---------
         div : coordinate array, deviation from volume center.
         rft : binary vector, transformation rule
-        
+
         Return
         ------
-        arr : 4D array, could be affinity of binary class 
+        arr : 4D array, could be affinity of binary class
         """
         sublbl = self.get_sub_volume(self.arr, div, rft)
         submsk = self.get_sub_volume(self.msk, div, rft)
         if 'aff' in self.pp_types[0]:
             # transform the output volumes to affinity array
             sublbl = self._lbl2aff( sublbl )
-            # shrink and replicate mask
-            submsk = submsk[:,1:,1:,1:]
-            submsk = np.tile(submsk, (3,1,1,1))
-            
+            # get the affinity mask
+            submsk = self._msk2affmsk( submsk )
+            if self.pars['is_rebalance']:
+                # apply the rebalance
+                submsk = self._rebalance_aff(sublbl, submsk)
         return sublbl, submsk
     
-    def _lbl2aff( self, lbl ):
+    def _rebalance_aff(self, lbl, msk):
+        wts = np.zeros(lbl.shape, dtype='float32')
+        wts[0,:,:,:][lbl[0,:,:,:] >0] = self.zwp
+        wts[1,:,:,:][lbl[1,:,:,:] >0] = self.ywp
+        wts[2,:,:,:][lbl[2,:,:,:] >0] = self.xwp
+        
+        wts[0,:,:,:][lbl[0,:,:,:]==0] = self.zwz  
+        wts[1,:,:,:][lbl[1,:,:,:]==0] = self.ywz
+        wts[2,:,:,:][lbl[2,:,:,:]==0] = self.xwz
+        if np.size(msk)==0:
+            return wts
+        else:
+            return msk*wts
+    
+    @autojit
+    def _msk2affmsk( self, msk ):
         """
-        transform labels to affinity.
+        transform binary mask to affinity mask
         
         Parameters
         ----------
-        lbl : 4D float32 array, label volume.
+        msk : 4D array, one channel, binary mask for boundary map
         
         Returns
         -------
-        aff : 4D float32 array, affinity graph. 
+        ret : 4D array, 3 channel for z,y,x direction
+        """
+        if np.size(msk)==0:
+            return msk
+        C,Z,Y,X = msk.shape
+        ret = np.zeros((3, Z-1, Y-1, X-1), dtype='float32')
+        
+        for z in xrange(Z-1):
+            for y in xrange(Y-1):
+                for x in xrange(X-1):
+                    if msk[0,z,y,x]>0:
+                        if msk[0,z+1,y,x]>0:
+                            ret[0,z,y,x] = 1
+                        if msk[0,z,y+1,x]>0:
+                            ret[1,z,y,x] = 1
+                        if msk[0,z,y,x+1]>0:
+                            ret[2,z,y,x] = 1
+        return ret
+        
+    def _lbl2aff( self, lbl ):
+        """
+        transform labels to affinity.
+
+        Parameters
+        ----------
+        lbl : 4D float32 array, label volume.
+
+        Returns
+        -------
+        aff : 4D float32 array, affinity graph.
         """
         # the 3D volume number should be one
         assert( lbl.shape[0] == 1 )
@@ -609,29 +660,40 @@ class COutputLabel(CImage):
 
         return aff
 
+    def _get_balance_weight( self, arr ):
+        # number of nonzero elements
+        num_nz = float( np.count_nonzero(arr) )
+        # total number of elements
+        num = float( np.size(arr) )
+
+        # weight of positive and zero
+        wp = 0.5 * num / num_nz
+        wz = 0.5 * num / (num - num_nz)
+        return wp, wz
     def _rebalance( self ):
         """
         get rebalance tree_size of gradient.
         make the nonboundary and boundary region have same contribution of training.
         """
-        # number of nonzero elements
-        num_nz = float( np.count_nonzero(self.arr) )
-        # total number of elements
-        num = float( np.size(self.arr) )
-
-        # weight of non-boundary and boundary
-        wnb = 0.5 * num / num_nz
-        wb  = 0.5 * num / (num - num_nz)
-
-        # give value
-        weight = np.empty( self.arr.shape, dtype='float32' )
-        weight[self.arr>0]  = wnb
-        weight[self.arr==0] = wb
-    
-        if not self.msk:
-            self.msk = weight
+        if 'aff' in self.pp_types[0]:
+            zlbl = (self.arr[0,1:,1:,1:] != self.arr[0, :-1, 1:,  1:])
+            ylbl = (self.arr[0,1:,1:,1:] != self.arr[0, 1:,  :-1, 1:])
+            xlbl = (self.arr[0,1:,1:,1:] != self.arr[0, 1:,  1:,  :-1])
+            self.zwp, self.zwz = self._get_balance_weight(zlbl)
+            self.ywp, self.ywz = self._get_balance_weight(ylbl)
+            self.xwp, self.xwz = self._get_balance_weight(xlbl)
         else:
-            self.msk = self.msk * weight            
+            # positive is non-boundary, zero is boundary
+            wnb, wb = self._get_balance_weight(self.arr)
+            # give value
+            weight = np.empty( self.arr.shape, dtype='float32' )
+            weight[self.arr>0]  = wnb
+            weight[self.arr==0] = wb
+    
+            if np.size(self.msk)==0:
+                self.msk = weight
+            else:
+                self.msk = self.msk * weight
 
 class CSample:
     """
@@ -647,6 +709,7 @@ class CSample:
 
         # Parameter object (dict)
         self.pars = pars
+<<<<<<< HEAD
 
         #Extracting layer info from the network
         info_in  = net.get_inputs()
@@ -657,6 +720,11 @@ class CSample:
 
         # init deviation range
         # we need to consolidate this over all input and output volumes
+=======
+        sec_name = "sample%d" % (sample_id,)
+
+        # deviation range
+>>>>>>> 5f61660afcc37b71a5c85b489525c7631796c8f3
         self.div_high = np.array([sys.maxsize, sys.maxsize, sys.maxsize])
         self.div_low  = np.array([-sys.maxint-1, -sys.maxint-1, -sys.maxint-1])
 
@@ -689,7 +757,9 @@ class CSample:
             # Deviation bookkeeping
             self.div_high = np.minimum( self.div_high, high )
             self.div_low  = np.maximum( self.div_low , low  )
+        # find the candidate central locations of sample
         
+
     def get_random_sample(self):
         '''Fetches a matching random sample from all input and output volumes'''
 
@@ -761,8 +831,8 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     name_p,  prop = props.popitem()
     name_l,  lbl  = lbl_outs.popitem()
     name_g,  grdt = grdts.popitem()
-    
-    
+
+
     # real time visualization
     plt.subplot(241),   plt.imshow(vol[0,0,:,:],    interpolation='nearest', cmap='gray')
     plt.xlabel('input')
