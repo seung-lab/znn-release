@@ -512,9 +512,13 @@ class COutputLabel(CImage):
         ----------
         arr : 3D array,
         """
+<<<<<<< HEAD
 
         self.pp_types = config.get(sec_name, 'pp_types').split(',')
 
+=======
+        
+>>>>>>> 5f61660afcc37b71a5c85b489525c7631796c8f3
         assert(len(self.pp_types)==1)
 
         # loop through volumes
