@@ -208,21 +208,18 @@ class CImage:
             ret.append( vol )
         return ret
 
-    def get_sub_volume(self, arr, div, rft=[]):
+    def get_sub_volume(self, arr, loc, rft=[]):
         """
         get sub volume.
 
         Parameters
         ----------
-        div : the diviation from the center
+        loc : the random location of the center of subvolume
         rft : the random transformation rule.
         Return:
         -------
         subvol : the transformed sub volume.
         """
-        # the center location
-        loc = self.center + div
-
         # extract volume
         subvol  = arr[ :,   loc[0]-self.low_setsz[0]  : loc[0] + self.high_setsz[0]+1,\
                             loc[1]-self.low_setsz[1]  : loc[1] + self.high_setsz[1]+1,\
@@ -278,8 +275,8 @@ class CInputImage(CImage):
         else:
             raise NameError( 'invalid preprocessing type' )
         return vol
-    def get_subvol(self, div, rft):
-        arr = self.get_sub_volume(self.arr, div, rft)
+    def get_subvol(self, loc, rft):
+        arr = self.get_sub_volume(self.arr, loc, rft)
         if 'aff' in self.pars['out_dtype']:
             # shrink the volume
             arr = arr[:,1:,1:,1:]
@@ -353,7 +350,7 @@ class COutputLabel(CImage):
         ret[1:,  :,:,:] = 1 - ret[0, :,:,:]
         return ret
 
-    def get_subvol(self, div, rft):
+    def get_subvol(self, loc, rft):
         """
         get sub volume for training.
 
@@ -366,8 +363,8 @@ class COutputLabel(CImage):
         ------
         arr : 4D array, could be affinity of binary class
         """
-        sublbl = self.get_sub_volume(self.arr, div, rft)
-        submsk = self.get_sub_volume(self.msk, div, rft)
+        sublbl = self.get_sub_volume(self.arr, loc, rft)
+        submsk = self.get_sub_volume(self.msk, loc, rft)
         if 'aff' in self.pp_types[0]:
             # transform the output volumes to affinity array
             sublbl = self._lbl2aff( sublbl )
@@ -478,7 +475,39 @@ class COutputLabel(CImage):
                 self.msk = weight
             else:
                 self.msk = self.msk * weight
-
+    def get_candidate_loc( self, low, high ):
+        """
+        find the candidate location of subvolume
+        
+        Parameters
+        ----------
+        low  : vector with length of 3, low value of deviation range
+        high : vector with length of 3, high value of deviation range
+        
+        Returns:
+        --------
+        ret : a tuple, the coordinate of nonzero elements,
+              format is the same with return of numpy.nonzero.
+        """
+        if np.size(self.msk) == 0:
+            mask = np.ones(self.arr.shape[1:4], dtype='float32')
+        else:
+            mask = np.copy(self.msk[0,:,:,:])
+        # erase outside region of deviation range.
+        ct = self.center
+        mask[:ct[0]+low[0], :, : ] = 0
+        mask[:, :ct[1]+low[1], : ] = 0
+        mask[:, :, :ct[2]+low[2] ] = 0
+        
+        mask[ct[0]+high[0]+1:, :, :] = 0
+        mask[:, ct[1]+high[1]+1:, :] = 0
+        mask[:, :, ct[2]+high[2]+1:] = 0
+        
+        locs = np.nonzero(mask)
+        if np.size(locs[0])==0:
+            raise NameError('no candidate location!')
+        return locs
+        
 class CSample:
     """class of sample, similar with Dataset module of pylearn2"""
     def __init__(self, config, pars, sample_id, info_in, info_out):
@@ -486,8 +515,8 @@ class CSample:
         sec_name = "sample%d" % (sample_id,)
 
         # deviation range
-        self.div_high = np.array([sys.maxsize, sys.maxsize, sys.maxsize])
-        self.div_low  = np.array([-sys.maxint-1, -sys.maxint-1, -sys.maxint-1])
+        div_high = np.array([sys.maxsize, sys.maxsize, sys.maxsize])
+        div_low  = np.array([-sys.maxint-1, -sys.maxint-1, -sys.maxint-1])
         # input
         self.inputs = dict()
         for name,setsz in info_in.iteritems():
@@ -495,8 +524,8 @@ class CSample:
             imsec_name = "image%d" % (imid,)
             self.inputs[name] = CInputImage(  config, pars, imsec_name, setsz[1:4] )
             low, high = self.inputs[name].get_div_range()
-            self.div_high = np.minimum( self.div_high, high )
-            self.div_low  = np.maximum( self.div_low , low  )
+            div_high = np.minimum( div_high, high )
+            div_low  = np.maximum( div_low , low  )
         # output
         self.outputs = dict()
         for name, setsz in info_out.iteritems():
@@ -504,28 +533,33 @@ class CSample:
             imsec_name = "label%d" % (imid,)
             self.outputs[name] = COutputLabel( config, pars, imsec_name, setsz[1:4])
             low, high = self.outputs[name].get_div_range()
-            self.div_high = np.minimum( self.div_high, high )
-            self.div_low  = np.maximum( self.div_low , low  )
+            div_high = np.minimum( div_high, high )
+            div_low  = np.maximum( div_low , low  )
+            
         # find the candidate central locations of sample
+        lbl = self.outputs.values()[0]
+        self.locs = lbl.get_candidate_loc( div_low, div_high )
         
 
     def get_random_sample(self):
         # random transformation rull
         rft = (np.random.rand(4)>0.5)
-        # random deviation from the volume center
-        div = np.empty(3)
-        div[0] = np.random.randint(self.div_low[0], self.div_high[0])
-        div[1] = np.random.randint(self.div_low[1], self.div_high[1])
-        div[2] = np.random.randint(self.div_low[2], self.div_high[2])
+        # random location
+        ind = np.random.randint( np.size(self.locs[0]) )
+        loc = np.empty( 3, dtype=np.uint32 )
+        loc[0] = self.locs[0][ind]
+        loc[1] = self.locs[1][ind]
+        loc[2] = self.locs[2][ind]
+        
         # get input and output 4D sub arrays
         inputs = dict()
         for name, img in self.inputs.iteritems():
-            inputs[name] = img.get_subvol(div, rft)
+            inputs[name] = img.get_subvol(loc, rft)
 
         outputs = dict()
         msks = dict()
         for name, lbl in self.outputs.iteritems():
-            outputs[name], msks[name] = lbl.get_subvol(div, rft)
+            outputs[name], msks[name] = lbl.get_subvol(loc, rft)
         return ( inputs, outputs, msks )
 
 class CSamples:
@@ -548,9 +582,6 @@ class CSamples:
     def get_random_sample(self):
         i = np.random.randint( len(self.samples) )
         return self.samples[i].get_random_sample()
-
-    def get_inputs(self, sid):
-        return self.samples[sid].get_input()
 
     def volume_dump(self):
         '''Returns ALL contained volumes
@@ -582,7 +613,6 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     plt.xlabel('label')
     plt.subplot(244),   plt.imshow(grdt[0,0,:,:],   interpolation='nearest', cmap='gray')
     plt.xlabel('gradient')
-
 
     plt.subplot(245)
     plt.plot(it_list,   err_list,   'b', label='train')
