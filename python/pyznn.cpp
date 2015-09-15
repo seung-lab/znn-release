@@ -127,6 +127,39 @@ std::shared_ptr< network > CNet_Init(
 
 //IO FUNCTIONS
 
+//Second Constructor
+//Initializes a CNet instance based on
+// the passed options struct (tuple(list(dict)), see CNet_getopts)
+std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
+	std::string const net_config_file,
+	np::ndarray const & outsz_a,
+	std::size_t const tc,
+	bool const optimize = true,
+	std::uint8_t const phs = 0 )
+{
+
+	bp::list node_opts_list = bp::extract<bp::list>( opts[0] );
+	bp::list edge_opts_list = bp::extract<bp::list>( opts[1] );
+
+	//See pyznn_utils.hpp
+	std::vector<options> node_opts = pyopt_to_znnopt(node_opts_list);
+	std::vector<options> edge_opts = pyopt_to_znnopt(edge_opts_list);
+
+	vec3i out_sz(	reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
+					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
+					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
+					);
+
+	// optimize
+    if( optimize )
+    	network::optimize( node_opts, edge_opts, out_sz, tc, 10 );
+
+	std::shared_ptr<network> net(
+		new network( node_opts,edge_opts,out_sz,tc,static_cast<phase>(phs) ));
+
+	return net;
+}
+
 //Returns a tuple of list of dictionaries of the following form
 // (node_opts, edge_opts)
 // node_opts = [node_group_option_dict, ...]
@@ -162,33 +195,6 @@ bp::tuple CNet_getopts( bp::object const & self )
 	}
 
 	return bp::make_tuple(node_opts, edge_opts);
-}
-
-//Second Constructor
-//Initializes a CNet instance based on
-// the passed options struct (tuple(list(dict)), see CNet_getopts)
-std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
-	std::string const net_config_file,
-	np::ndarray const & outsz_a,
-	std::size_t const tc )
-{
-
-	bp::list node_opts_list = bp::extract<bp::list>( opts[0] );
-	bp::list edge_opts_list = bp::extract<bp::list>( opts[1] );
-
-	//See pyznn_utils.hpp
-	std::vector<options> node_opts = pyopt_to_znnopt(node_opts_list);
-	std::vector<options> edge_opts = pyopt_to_znnopt(edge_opts_list);
-
-	vec3i out_sz(	reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
-					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
-					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
-					);
-
-	std::shared_ptr<network> net(
-		new network(node_opts,edge_opts,out_sz,tc));
-
-	return net;
 }
 
 //===========================================================================

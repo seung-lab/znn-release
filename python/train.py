@@ -24,10 +24,10 @@ def main( conf_file='config.cfg' ):
 
     if pars['train_load_net']:
         print "loading network..."
-        net = netio.load_network( pars['train_load_net'], pars['fnet_spec'], outsz, pars['num_threads'])
+        net = netio.load_network( pars )
     else:
         print "initializing network..."
-        net = pyznn.CNet(pars['fnet_spec'], outsz, pars['num_threads'], pars['is_optimize'], 0)
+        net = netio.init_network( pars )
     # number of output voxels
     print 'setting up the network...'
     vn = utils.get_total_num(net.get_outputs())
@@ -41,8 +41,8 @@ def main( conf_file='config.cfg' ):
 
     # initialize samples
     print "create input output samples..."
-    smp_trn = front_end.CSamples(config, pars, pars['train_range'], info_in, info_out)
-    smp_tst = front_end.CSamples(config, pars, pars['test_range'],  info_in, info_out)
+    smp_trn = front_end.CSamples(config, pars, pars['train_range'], net)
+    smp_tst = front_end.CSamples(config, pars, pars['test_range'],  net)
 
     # check all the settings
     print "check configurations..."
