@@ -50,6 +50,6 @@ def znn_test(net, pars, samples, vn, terr_list, tcls_list):
     cls = cls / vn / test_num
     terr_list.append( err )
     tcls_list.append( cls )
-    print "test iter:   %d,     err: %.3f,  cls: %.3f" \
+    print "test iter: %d,     err: %.3f,  cls: %.3f" \
                 %(len(terr_list), err, cls)
     return terr_list, tcls_list

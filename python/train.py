@@ -35,10 +35,6 @@ def main( conf_file='config.cfg' ):
     net.set_eta( eta )
     net.set_momentum( pars['momentum'] )
 
-    # get input and output information
-    info_in  = net.get_inputs()
-    info_out = net.get_outputs()
-
     # initialize samples
     print "create input output samples..."
     smp_trn = front_end.CSamples(config, pars, pars['train_range'], net)
@@ -46,7 +42,7 @@ def main( conf_file='config.cfg' ):
 
     # check all the settings
     print "check configurations..."
-    utils.check_config(config, pars, info_out, smp_trn, smp_tst)
+    utils.check_config(config, pars, net, smp_trn, smp_tst)
 
     # initialization
     err = 0;
@@ -65,6 +61,7 @@ def main( conf_file='config.cfg' ):
     plt.ion()
     plt.show()
 
+    print "starting training..."
     start = time.time()
     for i in xrange(1, pars['Max_iter'] ):
         vol_ins, lbl_outs, msks = smp_trn.get_random_sample()

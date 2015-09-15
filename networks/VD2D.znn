@@ -187,4 +187,4 @@ output output
 nodes output
 type transfer
 function forward_logistics
-size 3
+size 2

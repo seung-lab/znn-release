@@ -6,7 +6,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 
 import numpy as np
 
-def check_config(config, pars, info_out, smp_trn, smp_tst):
+def check_config(config, pars, net, smp_trn, smp_tst):
     """
     check all the configuration and parameters
 
@@ -18,6 +18,8 @@ def check_config(config, pars, info_out, smp_trn, smp_tst):
     smp_trn : training sample.
     smp_tst : test sample.
     """
+    # get input and output information
+    info_out = net.get_outputs()
     assert(len(info_out)==1)
     name, outsz = info_out.popitem()
     cf = pars['cost_fn_str']
