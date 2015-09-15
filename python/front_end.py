@@ -18,7 +18,7 @@ from Samples import *
 def parseIntSet(nputstr=""):
     """
     Allows users to specify a comma-delimited list of number ranges as sample selections.
-    Specifically, parses a string which should contain a comma-delimited list of 
+    Specifically, parses a string which should contain a comma-delimited list of
     either numerical values (e.g. 3), or a dash-separated range (e.g. 4-5).
 
     If the ranges are redundant (e.g. 3, 3-5), only one copy of the selection will
@@ -111,8 +111,8 @@ def parser( conf_fname ):
     #Whether to use malis cost
     pars['is_malis']    = config.getboolean('parameters', 'is_malis')
     #Whether to display progress plots
-    pars['is_visual']   = config.getboolean('parameters', 'is_visual')    
-    
+    pars['is_visual']   = config.getboolean('parameters', 'is_visual')
+
     #Which Cost Function to Use (as a string)
     pars['cost_fn_str'] = config.get('parameters', 'cost_fn')
 
@@ -178,7 +178,6 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     plt.xlabel('label')
     plt.subplot(244),   plt.imshow(grdt[0,0,:,:],   interpolation='nearest', cmap='gray')
     plt.xlabel('gradient')
-
 
     plt.subplot(245)
     plt.plot(it_list,   err_list,   'b', label='train')

@@ -77,7 +77,7 @@ def main( conf_file='config.cfg' ):
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs )
         err = err + cerr
         cls = cls + cost_fn.get_cls(props, lbl_outs)
-        
+
         # mask process the gradient
         grdts = utils.dict_mul(grdts, msks)
 
@@ -106,7 +106,7 @@ def main( conf_file='config.cfg' ):
             err_list.append( err )
             cls_list.append( cls )
             it_list.append( i )
-            
+
             # time
             elapsed = time.time() - start
             print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s, learning rate: %.4f"\
