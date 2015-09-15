@@ -161,7 +161,7 @@ class CImage(object):
             ret.append( vol )
         return ret
 
-    def get_sub_volume(self, arr, dev, rft=[]):
+    def get_sub_volume(self, arr, loc, rft=[]):
         """
         Returns a 4d subvolume of the original, specified
         by deviation from the center voxel. Performs data
@@ -169,15 +169,12 @@ class CImage(object):
 
         Parameters
         ----------
-        dev : the deviation from the center
+        loc : the random location of the desired subvolume center
         rft : the random transformation rule.
         Return:
         -------
         subvol : the transformed sub volume.
         """
-
-        # the center location
-        loc = self.center + dev
 
         # extract volume
         subvol  = arr[ :,   loc[0]-self.low_setsz[0]  : loc[0] + self.high_setsz[0]+1,\
@@ -254,8 +251,8 @@ class CInputImage(CImage):
             raise NameError( 'invalid preprocessing type' )
         return vol
 
-    def get_subvol(self, dev, rft):
-        return self.get_sub_volume(self.arr, dev, rft)
+    def get_subvol(self, loc, rft):
+        return self.get_sub_volume(self.arr, loc, rft)
 
     def get_dev_range(self):
         '''Override of the CImage implementation to account
@@ -307,13 +304,12 @@ class COutputLabel(CImage):
 
             assert(self.arr.shape == self.msk.shape)   
             
-        
-        if pars['is_rebalance']:
-            self._rebalance()
-            
         # preprocessing
         self.pp_types = config.get(sec_name, 'pp_types').split(',')        
         self._preprocess()       
+        
+        if pars['is_rebalance']:
+            self._rebalance()
 
     def _preprocess( self ):
         """
@@ -367,21 +363,21 @@ class COutputLabel(CImage):
 
         return ret
 
-    def get_subvol(self, dev, rft):
+    def get_subvol(self, loc, rft):
         """
         get sub volume for training.
 
         Parameter
         ---------
-        dev : coordinate array, deviation from volume center.
+        loc : the random location of the desired subvolume center
         rft : binary vector, transformation rule
 
         Return
         ------
         arr : 4D array, could be affinity of binary class
         """
-        sublbl = self.get_sub_volume(self.arr, dev, rft)
-        submsk = self.get_sub_volume(self.msk, dev, rft)
+        sublbl = self.get_sub_volume(self.arr, loc, rft)
+        submsk = self.get_sub_volume(self.msk, loc, rft)
         if 'aff' in self.pp_types[0]:
             # transform the output volumes to affinity array
             sublbl = self._lbl2aff( sublbl )
@@ -475,6 +471,7 @@ class COutputLabel(CImage):
         wp = 0.5 * num / num_nz
         wz = 0.5 * num / (num - num_nz)
         return wp, wz
+
     def _rebalance( self ):
         """
         get rebalance tree_size of gradient.
@@ -500,6 +497,39 @@ class COutputLabel(CImage):
             else:
                 self.msk = self.msk * weight
 
+    def get_candidate_loc( self, low, high ):
+        """
+        find the candidate location of subvolume
+        
+        Parameters
+        ----------
+        low  : vector with length of 3, low value of deviation range
+        high : vector with length of 3, high value of deviation range
+        
+        Returns:
+        --------
+        ret : a tuple, the coordinate of nonzero elements,
+              format is the same with return of numpy.nonzero.
+        """
+        if np.size(self.msk) == 0:
+            mask = np.ones(self.arr.shape[1:4], dtype='float32')
+        else:
+            mask = np.copy(self.msk[0,:,:,:])
+        # erase outside region of deviation range.
+        ct = self.center
+        mask[:ct[0]+low[0], :, : ] = 0
+        mask[:, :ct[1]+low[1], : ] = 0
+        mask[:, :, :ct[2]+low[2] ] = 0
+        
+        mask[ct[0]+high[0]+1:, :, :] = 0
+        mask[:, ct[1]+high[1]+1:, :] = 0
+        mask[:, :, ct[2]+high[2]+1:] = 0
+        
+        locs = np.nonzero(mask)
+        if np.size(locs[0])==0:
+            raise NameError('no candidate location!')
+        return locs
+
 class CSample:
     """
     Sample Class, which represents a pair of input and output volume structures
@@ -524,8 +554,8 @@ class CSample:
 
         # init deviation range
         # we need to consolidate this over all input and output volumes
-        self.dev_high = np.array([sys.maxsize, sys.maxsize, sys.maxsize])
-        self.dev_low  = np.array([-sys.maxint-1, -sys.maxint-1, -sys.maxint-1])
+        dev_high = np.array([sys.maxsize, sys.maxsize, sys.maxsize])
+        dev_low  = np.array([-sys.maxint-1, -sys.maxint-1, -sys.maxint-1])
 
         # Loading input images
         self.inputs = dict()
@@ -539,8 +569,8 @@ class CSample:
             low, high = self.inputs[name].get_dev_range()
 
             # Deviation bookkeeping
-            self.dev_high = np.minimum( self.dev_high, high )
-            self.dev_low  = np.maximum( self.dev_low , low  )
+            dev_high = np.minimum( dev_high, high )
+            dev_low  = np.maximum( dev_low , low  )
 
         # define output images
         self.outputs = dict()
@@ -554,9 +584,12 @@ class CSample:
             low, high = self.outputs[name].get_dev_range()
 
             # Deviation bookkeeping
-            self.dev_high = np.minimum( self.dev_high, high )
-            self.dev_low  = np.maximum( self.dev_low , low  )
+            dev_high = np.minimum( dev_high, high )
+            dev_low  = np.maximum( dev_low , low  )
+
         # find the candidate central locations of sample
+        lbl = self.outputs.values()[0]
+        self.locs = lbl.get_candidate_loc( dev_low, dev_high )
         
 
     def get_random_sample(self):
@@ -565,21 +598,22 @@ class CSample:
         # random transformation roll
         rft = (np.random.rand(4)>0.5)
 
-        # random deviation from the volume center
-        dev = np.empty(3)
-        dev[0] = np.random.randint(self.dev_low[0], self.dev_high[0])
-        dev[1] = np.random.randint(self.dev_low[1], self.dev_high[1])
-        dev[2] = np.random.randint(self.dev_low[2], self.dev_high[2])
+        # random location
+        ind = np.random.randint( np.size(self.locs[0]) )
+        loc = np.empty( 3, dtype=np.uint32 )
+        loc[0] = self.locs[0][ind]
+        loc[1] = self.locs[1][ind]
+        loc[2] = self.locs[2][ind]
 
         # get input and output 4D sub arrays
         inputs = dict()
         for name, img in self.inputs.iteritems():
-            inputs[name] = img.get_subvol(dev, rft)
+            inputs[name] = img.get_subvol(loc, rft)
 
         outputs = dict()
         msks = dict()
         for name, lbl in self.outputs.iteritems():
-            outputs[name], msks[name] = lbl.get_subvol(dev, rft)
+            outputs[name], msks[name] = lbl.get_subvol(loc, rft)
 
         return ( inputs, outputs, msks )
 
@@ -616,6 +650,3 @@ class CSamples:
         '''Fetches a random sample from a random CSample object'''
         i = np.random.randint( len(self.samples) )
         return self.samples[i].get_random_sample()
-
-    def get_inputs(self, sid):
-        return self.samples[sid].get_input()
