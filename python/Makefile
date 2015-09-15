@@ -2,8 +2,8 @@ ODIR		=	.
 SFL		=	pyznn.cpp
 CPP	 	=	g++
 CPP_FLAGS	= 	-g
-INC_FLAGS	=	-I../src/include -I../zi -I. -I.. -I/libs/boost/include -I/usr/include/python2.7 -I/opt/anaconda3/include/python3.4m -I./Boost.NumPy
-LIB_FLAGS	=	
+INC_FLAGS	=	-I../src/include -I../zi -I. -I.. -I/libs/boost/include -I/usr/include/python2.7 -I./Boost.NumPy -I/usr/local/include -I/mnt/bucket/labs/seung/libs/anaconda/include/python2.7
+LIB_FLAGS	=	-L/usr/local/lib -L./Boost.NumPy/bin/lib -L/mnt/bucket/labs/seung/libs/anaconda/lib/ -L/usr/local/boost/1.55.0/lib64/
 MKL_FLAGS	=	-static-intel -mkl=sequential
 OPT_FLAGS	=	-O3 -std=c++1y -DZNN_USE_FLOATS -DZNN_CUBE_POOL_LOCKFREE -DNDEBUG
 OTH_FLAGS	=	-Wall -shared -fPIC -Wno-unused-result -Wno-unused-local-typedefs -DBOOST_DISABLE_ASSERTS
