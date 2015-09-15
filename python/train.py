@@ -54,8 +54,6 @@ def main( conf_file='config.cfg' ):
     terr_list = list()
     tcls_list = list()
     titr_list = list()
-    # the temporal weights
-    malis_weights=[]
 
     # interactive visualization
     plt.ion()
@@ -84,7 +82,7 @@ def main( conf_file='config.cfg' ):
 
         if pars['is_malis'] :
             malis_weights = cost_fn.malis_weight(props, lbl_outs)
-            grdts = utils.loa_mul(grdts, malis_weights)
+            grdts = utils.dict_mul(grdts, malis_weights)
 
         if i%pars['Num_iter_per_test']==0:
             # test the net
