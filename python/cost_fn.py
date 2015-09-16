@@ -128,7 +128,6 @@ def multinomial_cross_entropy(props, lbls):
     """
     grdts = dict()
     err = 0
-    props = softmax(props)
     for name, prop in props.iteritems():
         lbl = lbls[name]
         grdts[name] = prop - lbl
