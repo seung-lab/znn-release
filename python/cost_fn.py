@@ -23,8 +23,9 @@ def get_cls(props, lbls):
     """
     c = 0.0
     for name, prop in props.iteritems():
-        lbl = lbls[name]
+        lbl = lbls[name]            
         c = c + np.count_nonzero( (prop>0.5)!= lbl )
+        
     return c
 
 #@jit(nopython=True)
@@ -88,9 +89,17 @@ def softmax(props):
     """
     ret = dict()
     for name, prop in props.iteritems():
+#        print "prop before exp: ", prop
+#        print "min and max of prop: ", np.min(prop), ", ", np.max(prop)
+#        import time
+#        time.sleep(0.1)
         prop_exp = np.exp(prop)
+#        print "prop after exp: ", prop
+                
         pesum = np.sum(prop_exp, axis=0)
         ret[name] = prop_exp / pesum
+
+#        assert(not np.any( np.isnan(prop) ))
     return ret
 
 def multinomial_cross_entropy(props, lbls):
@@ -119,7 +128,13 @@ def multinomial_cross_entropy(props, lbls):
 
 #@jit(nopython=True)
 def softmax_loss(props, lbls):
+#    for name, prop in props.iteritems():
+#        print "prop before softmax: ", prop
     props = softmax(props)
+    
+#    for name, prop in props.iteritems():
+#        print "prop after softmax: ", prop
+        
     return multinomial_cross_entropy(props, lbls)
 
 #def hinge_loss(props, lbls):

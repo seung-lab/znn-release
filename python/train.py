@@ -4,7 +4,6 @@ __doc__ = """
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
-import pyznn
 import time
 import matplotlib.pylab as plt
 import front_end
@@ -59,15 +58,22 @@ def main( conf_file='config.cfg' ):
     plt.ion()
     plt.show()
 
-    print "starting training..."
+    print "start training..."
     start = time.time()
     for i in xrange(1, pars['Max_iter'] ):
         vol_ins, lbl_outs, msks = smp_trn.get_random_sample()
 
         # forward pass
         vol_ins = utils.make_continuous(vol_ins, dtype='float32')
+        
+#        for name, vol in vol_ins.iteritems():
+#            print "input before forward: ", vol
+        
         props = net.forward( vol_ins )
-
+        
+#        for name, prop in props.iteritems():
+#            print "prop after forward: ", prop
+                
         # cost function and accumulate errors
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs )
         err = err + cerr
@@ -104,7 +110,7 @@ def main( conf_file='config.cfg' ):
 
             # time
             elapsed = time.time() - start
-            print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s, learning rate: %.4f"\
+            print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s, learning rate: %.6f"\
                     %(i, err, cls, elapsed, eta )
 
             if pars['is_visual']:
