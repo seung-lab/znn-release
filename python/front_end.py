@@ -140,13 +140,13 @@ def parser( conf_fname ):
     pars['output_prefix'] = config.get('parameters', 'output_prefix')
 
     #PROCESSING COST FUNCTION STRING
-    if pars['cost_fn_str'] == "square_loss":
+    if "square" in pars['cost_fn_str']:
         pars['cost_fn'] = cost_fn.square_loss
-    elif pars['cost_fn_str'] == "binomial_cross_entropy":
+    elif  "binomial" in pars['cost_fn_str']:
         pars['cost_fn'] = cost_fn.binomial_cross_entropy
-    elif pars['cost_fn_str'] == "multinomial_cross_entropy":
+    elif "multinomial_cross_entropy" in pars['cost_fn_str']:
         pars['cost_fn'] = cost_fn.multinomial_cross_entropy
-    elif pars['cost_fn_str'] == "softmax_loss":
+    elif "softmax" in pars['cost_fn_str']:
         pars['cost_fn'] = cost_fn.softmax_loss
     else:
         raise NameError('unknown type of cost function')

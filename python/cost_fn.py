@@ -89,17 +89,26 @@ def softmax(props):
     """
     ret = dict()
     for name, prop in props.iteritems():
-#        print "prop before exp: ", prop
-#        print "min and max of prop: ", np.min(prop), ", ", np.max(prop)
-#        import time
-#        time.sleep(0.1)
-        prop_exp = np.exp(prop)
-#        print "prop after exp: ", prop
-                
-        pesum = np.sum(prop_exp, axis=0)
-        ret[name] = prop_exp / pesum
+        # make sure that it is the output of binary class
+        assert(prop.shape[0]==2)
 
-#        assert(not np.any( np.isnan(prop) ))
+        # rebase the prop for numerical stabiligy
+        # mathimatically, this do not affect the softmax result!
+        # http://ufldl.stanford.edu/tutorial/supervised/SoftmaxRegression/
+        prop = prop - np.max(prop)
+        
+#        log_softmax = np.empty(prop.shape, dtype='float32')
+#        log_softmax[0,:,:,:] = prop[0,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
+#        log_softmax[1,:,:,:] = prop[1,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
+#        
+#        ret[name] = np.exp( log_softmax )
+        
+        prop = np.exp(prop)
+        pesum = np.sum(prop, axis=0)
+        ret[name] = np.empty(prop.shape, dtype='float32')
+        for c in xrange(prop.shape[0]):
+            ret[name][c,:,:,:] = prop[c,:,:,:] / pesum
+        
     return ret
 
 def multinomial_cross_entropy(props, lbls):
@@ -126,15 +135,8 @@ def multinomial_cross_entropy(props, lbls):
         err = err + np.nansum( -lbl * np.log(prop) )
     return (props, err, grdts)
 
-#@jit(nopython=True)
 def softmax_loss(props, lbls):
-#    for name, prop in props.iteritems():
-#        print "prop before softmax: ", prop
     props = softmax(props)
-    
-#    for name, prop in props.iteritems():
-#        print "prop after softmax: ", prop
-        
     return multinomial_cross_entropy(props, lbls)
 
 #def hinge_loss(props, lbls):

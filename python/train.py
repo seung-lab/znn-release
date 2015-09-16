@@ -30,7 +30,7 @@ def main( conf_file='config.cfg' ):
     # number of output voxels
     print 'setting up the network...'
     vn = utils.get_total_num(net.get_outputs())
-    eta = pars['eta']
+    eta = pars['eta'] #/ vn
     net.set_eta( eta )
     net.set_momentum( pars['momentum'] )
 
@@ -66,14 +66,8 @@ def main( conf_file='config.cfg' ):
         # forward pass
         vol_ins = utils.make_continuous(vol_ins, dtype='float32')
         
-#        for name, vol in vol_ins.iteritems():
-#            print "input before forward: ", vol
-        
         props = net.forward( vol_ins )
         
-#        for name, prop in props.iteritems():
-#            print "prop after forward: ", prop
-                
         # cost function and accumulate errors
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs )
         err = err + cerr
