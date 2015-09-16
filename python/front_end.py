@@ -212,3 +212,4 @@ def show_net_statistics( fname ):
     plt.plot(tn_it, tn_cls, 'b', label='train')
     plt.plot(tt_it, tt_cls, 'r', label='test')
     plt.xlabel('iteration'), plt.ylabel( 'classification error' )
+    plt.legend()
