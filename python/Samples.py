@@ -292,17 +292,15 @@ class COutputLabel(CImage):
         # deal with mask
         self.msk = np.array([])
         if config.has_option(sec_name, 'fmasks'):
-            fmasks = config.get(sec_name, 'fnames').split(',\n')
-            msklist = self._read_files( fmasks )
-
-            if self._is_auto_crop:
-                msklist = self._auto_crop( msklist )
-
-            self.msk = np.asarray( msklist )
-            # mask 'preprocessing'
-            self.msk = (self.msk>0).astype('float32')
-
-            assert(self.arr.shape == self.msk.shape)   
+            fmasks = config.get(sec_name, 'fmasks').split(',\n')
+            if fmasks[0]:
+                msklist = self._read_files( fmasks )
+                if self._is_auto_crop:
+                    msklist = self._auto_crop( msklist )
+                self.msk = np.asarray( msklist )
+                # mask 'preprocessing'
+                self.msk = (self.msk>0).astype('float32')
+                assert(self.arr.shape == self.msk.shape)   
             
         # preprocessing
         self.pp_types = config.get(sec_name, 'pp_types').split(',')        
@@ -463,13 +461,16 @@ class COutputLabel(CImage):
 
     def _get_balance_weight( self, arr ):
         # number of nonzero elements
-        num_nz = float( np.count_nonzero(arr) )
+        pn = float( np.count_nonzero(arr) )
         # total number of elements
         num = float( np.size(arr) )
+        zn = num - pn
 
         # weight of positive and zero
-        wp = 0.5 * num / num_nz
-        wz = 0.5 * num / (num - num_nz)
+        wp = 0.5 * num / pn
+        wz = 0.5 * num / zn
+        print "rebalance positive weight: ", wp
+        print "rebalance zero     weight: ", wz
         return wp, wz
 
     def _rebalance( self ):
@@ -478,20 +479,21 @@ class COutputLabel(CImage):
         make the nonboundary and boundary region have same contribution of training.
         """
         if 'aff' in self.pp_types[0]:
-            zlbl = (self.arr[0,1:,1:,1:] != self.arr[0, :-1, 1:,  1:])
-            ylbl = (self.arr[0,1:,1:,1:] != self.arr[0, 1:,  :-1, 1:])
-            xlbl = (self.arr[0,1:,1:,1:] != self.arr[0, 1:,  1:,  :-1])
+            zlbl = (self.arr[0,1:,1:,1:] == self.arr[0, :-1, 1:,  1:])
+            ylbl = (self.arr[0,1:,1:,1:] == self.arr[0, 1:,  :-1, 1:])
+            xlbl = (self.arr[0,1:,1:,1:] == self.arr[0, 1:,  1:,  :-1])
             self.zwp, self.zwz = self._get_balance_weight(zlbl)
             self.ywp, self.ywz = self._get_balance_weight(ylbl)
             self.xwp, self.xwz = self._get_balance_weight(xlbl)
         else:
-            # positive is non-boundary, zero is boundary
-            wnb, wb = self._get_balance_weight(self.arr)
-            # give value
             weight = np.empty( self.arr.shape, dtype='float32' )
-            weight[self.arr>0]  = wnb
-            weight[self.arr==0] = wb
-    
+            for c in xrange( self.arr.shape[0] ):
+                # positive is non-boundary, zero is boundary
+                wp, wz = self._get_balance_weight(self.arr[c,:,:,:])
+                # give value
+                weight[c,:,:,:][self.arr[c,:,:,:]> 0] = wp
+                weight[c,:,:,:][self.arr[c,:,:,:]==0] = wz
+
             if np.size(self.msk)==0:
                 self.msk = weight
             else:
@@ -637,10 +639,6 @@ class CSamples:
         #Parameter object
         self.pars = pars
 
-        #Information about the input and output layers
-        info_in  = net.get_inputs()
-        info_out = net.get_outputs()
-        
         self.samples = list()
         for sid in ids:
             sample = CSample(config, pars, sid, net)

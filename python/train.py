@@ -75,7 +75,7 @@ def main( conf_file='config.cfg' ):
 
         # mask process the gradient
         grdts = utils.dict_mul(grdts, msks)
-
+        
         # run backward pass
         grdts = utils.make_continuous(grdts, dtype='float32')
         net.backward( grdts )
@@ -112,6 +112,10 @@ def main( conf_file='config.cfg' ):
                 front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
                                         titr_list, terr_list, tcls_list, \
                                         eta, vol_ins, props, lbl_outs, grdts, pars)
+            if pars['is_rebalance']:
+                plt.subplot(247)
+                plt.imshow(msks.values()[0][0,0,:,:], interpolation='nearest', cmap='gray')
+                plt.xlabel('rebalance weight')
             if pars['is_malis']:
                 plt.subplot(248)
                 plt.imshow(np.log(malis_weights[0][0,:,:]), interpolation='nearest', cmap='gray')
@@ -128,7 +132,7 @@ def main( conf_file='config.cfg' ):
             netio.save_network(net, pars['train_save_net'], num_iters=i)
             utils.save_statistics( pars, it_list, err_list, cls_list,\
                                     titr_list, terr_list, tcls_list)
-
+        
 
 
 if __name__ == '__main__':
