@@ -112,11 +112,11 @@ def main( conf_file='config.cfg' ):
                 front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
                                         titr_list, terr_list, tcls_list, \
                                         eta, vol_ins, props, lbl_outs, grdts, pars)
-            if pars['is_rebalance']:
+            if pars['is_visual'] and pars['is_rebalance']:
                 plt.subplot(247)
                 plt.imshow(msks.values()[0][0,0,:,:], interpolation='nearest', cmap='gray')
                 plt.xlabel('rebalance weight')
-            if pars['is_malis']:
+            if pars['is_visual'] and pars['is_malis']:
                 plt.subplot(248)
                 plt.imshow(np.log(malis_weights[0][0,:,:]), interpolation='nearest', cmap='gray')
                 plt.xlabel('malis weight (log)')
