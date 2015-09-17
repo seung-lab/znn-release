@@ -105,7 +105,7 @@ def softmax(props):
         
         prop = np.exp(prop)
         pesum = np.sum(prop, axis=0)
-        ret[name] = np.empty(prop.shape, dtype='float32')
+        ret[name] = np.empty(prop.shape, dtype=prop.dtype)
         for c in xrange(prop.shape[0]):
             ret[name][c,:,:,:] = prop[c,:,:,:] / pesum
         
@@ -157,7 +157,7 @@ def softmax_loss_2(props, lbls):
         # http://ufldl.stanford.edu/tutorial/supervised/SoftmaxRegression/
 #        prop = prop - np.max(prop)
         
-        tmp = np.empty(prop.shape, dtype='float32')
+        tmp = np.empty(prop.shape, dtype=prop.dtype)
         tmp[0,:,:,:] = prop[0,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
         tmp[1,:,:,:] = prop[1,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
         log_softmaxs[name] = tmp    
@@ -223,7 +223,7 @@ def malis_weight(affs, true_affs, threshold=0.5):
 
     # find the maximum-spanning tree based on union-find algorithm
     import emirt
-    weights = np.zeros( np.hstack((affs.shape[0], xaff.size)), dtype='float32' )
+    weights = np.zeros( np.hstack((affs.shape[0], xaff.size)), dtype=affs.dtype )
     for e in edges:
         # find operation with path compression
         r1,seg = emirt.volume_util.find_root(e[1], seg)

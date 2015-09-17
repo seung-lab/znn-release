@@ -44,7 +44,7 @@ class CImage(object):
             arrlist = self._auto_crop( arrlist )
 
         #4d array of all data
-        self.arr = np.asarray( arrlist, dtype='float32')
+        self.arr = np.asarray( arrlist, dtype=pars['dtype'])
         #3d shape of a constituent volume
         self.sz = np.asarray( self.arr.shape[1:4] )
         
@@ -157,7 +157,7 @@ class CImage(object):
         """
         ret = list()
         for fl in files:
-            vol = emirt.emio.imread(fl).astype('float32')
+            vol = emirt.emio.imread(fl).astype(self.pars['dtype'])
             ret.append( vol )
         return ret
 
@@ -299,7 +299,7 @@ class COutputLabel(CImage):
                     msklist = self._auto_crop( msklist )
                 self.msk = np.asarray( msklist )
                 # mask 'preprocessing'
-                self.msk = (self.msk>0).astype('float32')
+                self.msk = (self.msk>0).astype(self.arr.dtype)
                 assert(self.arr.shape == self.msk.shape)   
             
         # preprocessing
@@ -329,7 +329,7 @@ class COutputLabel(CImage):
                 self.msk = np.tile(self.msk, (2,1,1,1))
                 return
             elif 'one_class' == pp_type:
-                self.arr = (self.arr>0).astype('float32')
+                self.arr = (self.arr>0).astype(self.pars['dtype'])
                 return
             elif 'aff' in pp_type:
                 # affinity preprocessing handled later
@@ -354,9 +354,9 @@ class COutputLabel(CImage):
         """
         assert(lbl.shape[0] == 1)
 
-        ret = np.empty((2,)+ lbl.shape[1:4], dtype='float32')
+        ret = np.empty((2,)+ lbl.shape[1:4], dtype= self.pars['dtype'])
 
-        ret[0, :,:,:] = (lbl[0,:,:,:]>0).astype('float32')
+        ret[0, :,:,:] = (lbl[0,:,:,:]>0).astype(self.pars['dtype'])
         ret[1:,  :,:,:] = 1 - ret[0, :,:,:]
 
         return ret
@@ -391,7 +391,7 @@ class COutputLabel(CImage):
         return sublbl, submsk
     
     def _rebalance_aff(self, lbl, msk):
-        wts = np.zeros(lbl.shape, dtype='float32')
+        wts = np.zeros(lbl.shape, dtype=self.pars['dtype'])
         wts[0,:,:,:][lbl[0,:,:,:] >0] = self.zwp
         wts[1,:,:,:][lbl[1,:,:,:] >0] = self.ywp
         wts[2,:,:,:][lbl[2,:,:,:] >0] = self.xwp
@@ -420,7 +420,7 @@ class COutputLabel(CImage):
         if np.size(msk)==0:
             return msk
         C,Z,Y,X = msk.shape
-        ret = np.zeros((3, Z-1, Y-1, X-1), dtype='float32')
+        ret = np.zeros((3, Z-1, Y-1, X-1), dtype=self.pars['dtype'])
         
         for z in xrange(Z-1):
             for y in xrange(Y-1):
@@ -440,11 +440,11 @@ class COutputLabel(CImage):
 
         Parameters
         ----------
-        lbl : 4D float32 array, label volume.
+        lbl : 4D float array, label volume.
 
         Returns
         -------
-        aff : 4D float32 array, affinity graph.
+        aff : 4D float array, affinity graph.
         """
         # the 3D volume number should be one
         assert( lbl.shape[0] == 1 )
@@ -452,7 +452,7 @@ class COutputLabel(CImage):
         aff_size = np.asarray(lbl.shape)-1
         aff_size[0] = 3
 
-        aff = np.zeros( tuple(aff_size) , dtype='float32')
+        aff = np.zeros( tuple(aff_size) , dtype=self.pars['dtype'])
 
         #x-affinity
         aff[0,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,:-1, 1:  ,1: ]) & (lbl[0,1:,1:,1:]>0)
@@ -490,7 +490,7 @@ class COutputLabel(CImage):
             self.ywp, self.ywz = self._get_balance_weight(ylbl)
             self.xwp, self.xwz = self._get_balance_weight(xlbl)
         else:
-            weight = np.empty( self.arr.shape, dtype='float32' )
+            weight = np.empty( self.arr.shape, dtype=self.arr.dtype )
             for c in xrange( self.arr.shape[0] ):
                 # positive is non-boundary, zero is boundary
                 wp, wz = self._get_balance_weight(self.arr[c,:,:,:])
@@ -518,7 +518,7 @@ class COutputLabel(CImage):
               format is the same with return of numpy.nonzero.
         """
         if np.size(self.msk) == 0:
-            mask = np.ones(self.arr.shape[1:4], dtype='float32')
+            mask = np.ones(self.arr.shape[1:4], dtype=self.arr.dtype)
         else:
             mask = np.copy(self.msk[0,:,:,:])
         # erase outside region of deviation range.

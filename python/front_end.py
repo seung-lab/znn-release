@@ -74,8 +74,10 @@ def parser( conf_fname ):
     pars['fnet_spec']   = config.get('parameters', 'fnet_spec')
     #Number of threads to use
     pars['num_threads'] = int( config.get('parameters', 'num_threads') )
+    # data type
+    pars['dtype']       = config.get('parameters', 'dtype')
     #Output layer data type (e.g. 'boundary','affinity')
-    pars['out_dtype']     = config.get('parameters', 'out_dtype')
+    pars['out_dtype']   = config.get('parameters', 'out_dtype')
 
     #IO OPTIONS
     #Filename under which we save the network

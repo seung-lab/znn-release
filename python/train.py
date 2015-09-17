@@ -64,7 +64,7 @@ def main( conf_file='config.cfg' ):
         vol_ins, lbl_outs, msks = smp_trn.get_random_sample()
 
         # forward pass
-        vol_ins = utils.make_continuous(vol_ins, dtype='float32')
+        vol_ins = utils.make_continuous(vol_ins, dtype=pars['dtype'])
         
         props = net.forward( vol_ins )
         
@@ -77,7 +77,7 @@ def main( conf_file='config.cfg' ):
         grdts = utils.dict_mul(grdts, msks)
         
         # run backward pass
-        grdts = utils.make_continuous(grdts, dtype='float32')
+        grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
         net.backward( grdts )
 
         if pars['is_malis'] :
