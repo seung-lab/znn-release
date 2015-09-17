@@ -375,15 +375,19 @@ class COutputLabel(CImage):
         arr : 4D array, could be affinity of binary class
         """
         sublbl = self.get_sub_volume(self.arr, loc, rft)
-        submsk = self.get_sub_volume(self.msk, loc, rft)
+        if np.size(self.msk)>0:
+            submsk = self.get_sub_volume(self.msk, loc, rft)
+        else:
+            submsk = np.array([])
         if 'aff' in self.pp_types[0]:
             # transform the output volumes to affinity array
             sublbl = self._lbl2aff( sublbl )
             # get the affinity mask
-            submsk = self._msk2affmsk( submsk )
-            if self.pars['is_rebalance']:
-                # apply the rebalance
-                submsk = self._rebalance_aff(sublbl, submsk)
+            if np.size(self.msk)>0:
+                submsk = self._msk2affmsk( submsk )
+                if self.pars['is_rebalance']:
+                    # apply the rebalance
+                    submsk = self._rebalance_aff(sublbl, submsk)
         return sublbl, submsk
     
     def _rebalance_aff(self, lbl, msk):

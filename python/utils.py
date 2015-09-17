@@ -80,13 +80,13 @@ def get_total_num(outputs):
     return n
 
 def dict_mul(das,dbs):
-    if not dbs:
-        return das
-        
     ret = dict()
     for name, a in das.iteritems():
         b = dbs[name]
-        ret[name] = a * b
+        if np.size(b)==np.size(a):
+            ret[name] = a * b
+        elif np.size(b)==0:
+            ret[name] = a
     return ret
 
 def save_statistics( pars, it_list, err_list, cls_list,\

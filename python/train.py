@@ -112,7 +112,7 @@ def main( conf_file='config.cfg' ):
                 front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
                                         titr_list, terr_list, tcls_list, \
                                         eta, vol_ins, props, lbl_outs, grdts, pars)
-            if pars['is_visual'] and pars['is_rebalance']:
+            if pars['is_visual'] and pars['is_rebalance'] and 'aff' not in pars['out_dtype']:
                 plt.subplot(247)
                 plt.imshow(msks.values()[0][0,0,:,:], interpolation='nearest', cmap='gray')
                 plt.xlabel('rebalance weight')
