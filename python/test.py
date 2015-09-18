@@ -28,7 +28,7 @@ def znn_test(net, pars, samples, vn, terr_list, tcls_list):
     pars : dict, parameters
     sample : a input and output sample
     vn : number of output voxels
-    terr_list : list of float32, test cost
+    terr_list : list of float, test cost
     tcls_list : list of float, test classification error
     
     Returns

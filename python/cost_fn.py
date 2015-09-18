@@ -51,6 +51,9 @@ def square_loss(props, lbls):
         # cost and classification error
         err = err + np.sum( grdt * grdt )
         grdts[name] = grdt * 2
+        
+        print "gradient: ", grdts[name]        
+        
     return (props, err, grdts)
 
 #@jit(nopython=True)
@@ -95,7 +98,10 @@ def softmax(props):
         # rebase the prop for numerical stabiligy
         # mathimatically, this do not affect the softmax result!
         # http://ufldl.stanford.edu/tutorial/supervised/SoftmaxRegression/
-        prop = prop - np.max(prop)
+#        prop = prop - np.max(prop)
+        propmax = np.max(prop, axis=0)
+        prop[0,:,:,:] -= propmax
+        prop[1,:,:,:] -= propmax  
         
 #        log_softmax = np.empty(prop.shape, dtype='float32')
 #        log_softmax[0,:,:,:] = prop[0,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
@@ -132,43 +138,51 @@ def multinomial_cross_entropy(props, lbls):
         lbl = lbls[name]
         grdts[name] = prop - lbl
         err = err + np.sum( -lbl * np.log(prop) )
+        
+#        print "gradient: ", grdts[name]
     return (props, err, grdts)
 
 def softmax_loss(props, lbls):
-    for name, prop in props.iteritems():
-        print "prop before softmax: ", prop
-        assert(not np.any(np.isnan(prop)))
+#    for name, prop in props.iteritems():
+#        print "prop before softmax: ", prop
+#        assert(not np.any(np.isnan(prop)))
         
     props = softmax(props)
     
-    for name, prop in props.iteritems():
-        print "prop after softmax: ", prop
-        assert(not np.any(np.isnan(prop)))
+#    for name, prop in props.iteritems():
+#        print "prop after softmax: ", prop
+#        assert(not np.any(np.isnan(prop)))
     return multinomial_cross_entropy(props, lbls)
     
-def softmax_loss_2(props, lbls):
-    log_softmaxs = dict()
+def softmax_loss2(props, lbls):
+    grdts = dict()
+    err = 0
+    
     for name, prop in props.iteritems():
         # make sure that it is the output of binary class
         assert(prop.shape[0]==2)
-
+        
+        print "original prop: ", prop        
+        
         # rebase the prop for numerical stabiligy
         # mathimatically, this do not affect the softmax result!
         # http://ufldl.stanford.edu/tutorial/supervised/SoftmaxRegression/
 #        prop = prop - np.max(prop)
+        propmax = np.max(prop, axis=0)
+        prop[0,:,:,:] -= propmax
+        prop[1,:,:,:] -= propmax        
         
-        tmp = np.empty(prop.shape, dtype=prop.dtype)
-        tmp[0,:,:,:] = prop[0,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
-        tmp[1,:,:,:] = prop[1,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
-        log_softmaxs[name] = tmp    
-        props[name] = np.exp(tmp)
-        
-    grdts = dict()
-    err = 0
-    for name, log_softmax in log_softmaxs.iteritems():
+        log_softmax = np.empty(prop.shape, dtype=prop.dtype)
+        log_softmax[0,:,:,:] = prop[0,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
+        log_softmax[1,:,:,:] = prop[1,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
+        prop = np.exp(log_softmax)
+        props[name] = prop
+
         lbl = lbls[name]
-        grdts[name] = props[name] - lbl
+        grdts[name] = prop - lbl
         err = err + np.sum( -lbl * log_softmax )
+        print "gradient: ", grdts[name]
+        assert(not np.any(np.isnan(grdts[name])))
     return (props, err, grdts)
 
 #def hinge_loss(props, lbls):
