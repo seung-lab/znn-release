@@ -36,8 +36,8 @@ def main( conf_file='config.cfg' ):
 
     # initialize samples
     print "create input output samples..."
-    smp_trn = front_end.CSamples(config, pars, pars['train_range'], net)
-    smp_tst = front_end.CSamples(config, pars, pars['test_range'],  net)
+    smp_trn = front_end.CSamples(config, pars, pars['train_range'], net, outsz)
+    smp_tst = front_end.CSamples(config, pars, pars['test_range'],  net, outsz)
 
     # check all the settings
     print "check configurations..."

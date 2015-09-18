@@ -13,6 +13,7 @@ import numpy as np
 from numba import autojit
 
 import emirt
+import utils
 
 class CImage(object):
     """
@@ -27,12 +28,14 @@ class CImage(object):
     rotations and flips for data augmentation.
     """
 
-    def __init__(self, config, pars, sec_name, setsz):
+    def __init__(self, config, pars, sec_name, setsz, outsz):
 
         #Parameter object (see parser above)
         self.pars = pars
         #Desired size of subvolumes returned by this instance
         self.setsz = setsz
+        # field of view for boundary mirroring
+        self.fov = setsz - outsz + 1
 
         #Reading in data
         fnames = config.get(sec_name, 'fnames').split(',\n')
@@ -45,20 +48,12 @@ class CImage(object):
 
         #4d array of all data
         self.arr = np.asarray( arrlist, dtype=pars['dtype'])
+        
         #3d shape of a constituent volume
         self.sz = np.asarray( self.arr.shape[1:4] )
         
         #Computes center coordinate, picks lower-index priority center
-        self.center = self._get_center()
-
-        #Number of voxels with index lower than the center
-        # within a subvolume (used within get_dev_range, and
-        # get_sub_volume)
-        self.low_setsz  = (self.setsz-1)/2
-        #Number of voxels with index higher than the center
-        # within a subvolume (used within get_dev_range, and
-        # get_sub_volume)
-        self.high_setsz = self.setsz / 2
+        self._get_sizes()
 
         #Display some instance information
         print "image stack size:    ", self.arr.shape
@@ -86,16 +81,26 @@ class CImage(object):
 
         return low, high
 
-    def _get_center(self):
+    def _get_sizes(self):
         '''
+        get various sizes parameters
         Finds the index of the 3d center of the array
         
         Picks the lower-index voxel if there's no true "center"
         '''
-
+        #3d shape of a constituent volume
+        self.sz = np.asarray( self.arr.shape[1:4] )
         #-1 accounts for python indexing
-        center = (self.sz-1)/2
-        return center
+        self.center = (self.sz-1)/2
+        #Number of voxels with index lower than the center
+        # within a subvolume (used within get_dev_range, and
+        # get_sub_volume)
+        self.low_setsz  = (self.setsz-1)/2
+        #Number of voxels with index higher than the center
+        # within a subvolume (used within get_dev_range, and
+        # get_sub_volume)
+        self.high_setsz = self.setsz / 2
+        return
 
     def _center_crop(self, vol, shape):
         """
@@ -182,45 +187,10 @@ class CImage(object):
                             loc[2]-self.low_setsz[2]  : loc[2] + self.high_setsz[2]+1]
         # random transformation
         if self.pars['is_data_aug']:
-            subvol = self._data_aug_transform(subvol, rft)
+            subvol = utils.data_aug_transform(subvol, rft)
         return subvol
 
-    def _data_aug_transform(self, data, rft):
-        """
-        transform data according to a rule
-
-        Parameters
-        ----------
-        data : 3D numpy array need to be transformed
-        rft : transform rule, specified as an array of bool
-            [z-reflection,
-            y-reflection,
-            x-reflection,
-            xy transpose]
-
-        Returns
-        -------
-        data : the transformed array
-        """
-
-        if np.size(rft)==0:
-            return data
-        # transform every pair of input and label volume
-
-        #z-reflection
-        if rft[0]:
-            data  = data[:, ::-1, :,    :]
-        #y-reflection
-        if rft[1]:
-            data  = data[:, :,    ::-1, :]
-        #x-reflection
-        if rft[2]:
-            data = data[:,  :,    :,    ::-1]
-        #transpose
-        if rft[3]:
-            data = data.transpose(0,1,3,2)
-
-        return data
+    
 
 class CInputImage(CImage):
     '''
@@ -231,8 +201,17 @@ class CInputImage(CImage):
     deviation range for affinity data output.
     '''
 
-    def __init__(self, config, pars, sec_name, setsz ):
-        CImage.__init__(self, config, pars, sec_name, setsz )
+    def __init__(self, config, pars, sec_name, setsz, outsz ):
+        CImage.__init__(self, config, pars, sec_name, setsz, outsz )
+        
+        if pars['is_bd_mirror']:
+            self.arr = utils.boundary_mirror(self.arr, self.fov)
+            
+            
+            #Computes center coordinate, picks lower-index priority center
+            self._get_sizes()
+    
+            
 
         # preprocessing
         pp_types = config.get(sec_name, 'pp_types').split(',')
@@ -277,8 +256,8 @@ class COutputLabel(CImage):
     contain masks for sparsely-labelled training
     '''
 
-    def __init__(self, config, pars, sec_name, setsz):
-        CImage.__init__(self, config, pars, sec_name, setsz)
+    def __init__(self, config, pars, sec_name, setsz, outsz):
+        CImage.__init__(self, config, pars, sec_name, setsz, outsz)
 
         # Affinity preprocessing decreases the output
         # size by one voxel in each dimension, this counteracts
@@ -546,7 +525,7 @@ class CSample:
 
     Designed to be similar with Dataset module of pylearn2
     """
-    def __init__(self, config, pars, sample_id, net):
+    def __init__(self, config, pars, sample_id, net, outsz):
 
         # Parameter object (dict)
         self.pars = pars
@@ -571,7 +550,7 @@ class CSample:
             imid = config.getint(sec_name, name)
             imsec_name = "image%d" % (imid,)
             
-            self.inputs[name] = CInputImage(  config, pars, imsec_name, setsz[1:4] )
+            self.inputs[name] = CInputImage(  config, pars, imsec_name, setsz[1:4], outsz )
             low, high = self.inputs[name].get_dev_range()
 
             # Deviation bookkeeping
@@ -586,7 +565,7 @@ class CSample:
             imid = config.getint(sec_name, name)
             imsec_name = "label%d" % (imid,)
 
-            self.outputs[name] = COutputLabel( config, pars, imsec_name, setsz[1:4])
+            self.outputs[name] = COutputLabel( config, pars, imsec_name, setsz[1:4], outsz)
             low, high = self.outputs[name].get_dev_range()
 
             # Deviation bookkeeping
@@ -624,7 +603,7 @@ class CSample:
         return ( inputs, outputs, msks )
 
 class CSamples:
-    def __init__(self, config, pars, ids, net):
+    def __init__(self, config, pars, ids, net, outsz):
         """
         Samples Class - which represents a collection of data samples
 
@@ -645,7 +624,7 @@ class CSamples:
 
         self.samples = list()
         for sid in ids:
-            sample = CSample(config, pars, sid, net)
+            sample = CSample(config, pars, sid, net, outsz)
             self.samples.append( sample )
 
     def get_random_sample(self):
