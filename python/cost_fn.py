@@ -23,8 +23,9 @@ def get_cls(props, lbls):
     """
     c = 0.0
     for name, prop in props.iteritems():
-        lbl = lbls[name]
+        lbl = lbls[name]            
         c = c + np.count_nonzero( (prop>0.5)!= lbl )
+        
     return c
 
 #@jit(nopython=True)
@@ -50,6 +51,9 @@ def square_loss(props, lbls):
         # cost and classification error
         err = err + np.sum( grdt * grdt )
         grdts[name] = grdt * 2
+        
+        print "gradient: ", grdts[name]        
+        
     return (props, err, grdts)
 
 #@jit(nopython=True)
@@ -88,9 +92,29 @@ def softmax(props):
     """
     ret = dict()
     for name, prop in props.iteritems():
-        prop_exp = np.exp(prop)
-        pesum = np.sum(prop_exp, axis=0)
-        ret[name] = prop_exp / pesum
+        # make sure that it is the output of binary class
+        assert(prop.shape[0]==2)
+
+        # rebase the prop for numerical stabiligy
+        # mathimatically, this do not affect the softmax result!
+        # http://ufldl.stanford.edu/tutorial/supervised/SoftmaxRegression/
+#        prop = prop - np.max(prop)
+        propmax = np.max(prop, axis=0)
+        prop[0,:,:,:] -= propmax
+        prop[1,:,:,:] -= propmax  
+        
+#        log_softmax = np.empty(prop.shape, dtype='float32')
+#        log_softmax[0,:,:,:] = prop[0,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
+#        log_softmax[1,:,:,:] = prop[1,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
+#        
+#        ret[name] = np.exp( log_softmax )
+        
+        prop = np.exp(prop)
+        pesum = np.sum(prop, axis=0)
+        ret[name] = np.empty(prop.shape, dtype=prop.dtype)
+        for c in xrange(prop.shape[0]):
+            ret[name][c,:,:,:] = prop[c,:,:,:] / pesum
+        
     return ret
 
 def multinomial_cross_entropy(props, lbls):
@@ -110,17 +134,56 @@ def multinomial_cross_entropy(props, lbls):
     """
     grdts = dict()
     err = 0
-    props = softmax(props)
     for name, prop in props.iteritems():
         lbl = lbls[name]
         grdts[name] = prop - lbl
-        err = err + np.nansum( -lbl * np.log(prop) )
+        err = err + np.sum( -lbl * np.log(prop) )
+        
+#        print "gradient: ", grdts[name]
     return (props, err, grdts)
 
-#@jit(nopython=True)
 def softmax_loss(props, lbls):
+#    for name, prop in props.iteritems():
+#        print "prop before softmax: ", prop
+#        assert(not np.any(np.isnan(prop)))
+        
     props = softmax(props)
+    
+#    for name, prop in props.iteritems():
+#        print "prop after softmax: ", prop
+#        assert(not np.any(np.isnan(prop)))
     return multinomial_cross_entropy(props, lbls)
+    
+def softmax_loss2(props, lbls):
+    grdts = dict()
+    err = 0
+    
+    for name, prop in props.iteritems():
+        # make sure that it is the output of binary class
+        assert(prop.shape[0]==2)
+        
+        print "original prop: ", prop        
+        
+        # rebase the prop for numerical stabiligy
+        # mathimatically, this do not affect the softmax result!
+        # http://ufldl.stanford.edu/tutorial/supervised/SoftmaxRegression/
+#        prop = prop - np.max(prop)
+        propmax = np.max(prop, axis=0)
+        prop[0,:,:,:] -= propmax
+        prop[1,:,:,:] -= propmax        
+        
+        log_softmax = np.empty(prop.shape, dtype=prop.dtype)
+        log_softmax[0,:,:,:] = prop[0,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
+        log_softmax[1,:,:,:] = prop[1,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
+        prop = np.exp(log_softmax)
+        props[name] = prop
+
+        lbl = lbls[name]
+        grdts[name] = prop - lbl
+        err = err + np.sum( -lbl * log_softmax )
+        print "gradient: ", grdts[name]
+        assert(not np.any(np.isnan(grdts[name])))
+    return (props, err, grdts)
 
 #def hinge_loss(props, lbls):
 # TO-DO
@@ -174,7 +237,7 @@ def malis_weight(affs, true_affs, threshold=0.5):
 
     # find the maximum-spanning tree based on union-find algorithm
     import emirt
-    weights = np.zeros( np.hstack((affs.shape[0], xaff.size)), dtype='float32' )
+    weights = np.zeros( np.hstack((affs.shape[0], xaff.size)), dtype=affs.dtype )
     for e in edges:
         # find operation with path compression
         r1,seg = emirt.volume_util.find_root(e[1], seg)

@@ -12,7 +12,7 @@ import ConfigParser
 import numpy as np
 import matplotlib.pylab as plt
 
-import pyznn, cost_fn
+import cost_fn
 from Samples import *
 
 def parseIntSet(nputstr=""):
@@ -74,8 +74,10 @@ def parser( conf_fname ):
     pars['fnet_spec']   = config.get('parameters', 'fnet_spec')
     #Number of threads to use
     pars['num_threads'] = int( config.get('parameters', 'num_threads') )
+    # data type
+    pars['dtype']       = config.get('parameters', 'dtype')
     #Output layer data type (e.g. 'boundary','affinity')
-    pars['out_dtype']     = config.get('parameters', 'out_dtype')
+    pars['out_dtype']   = config.get('parameters', 'out_dtype')
 
     #IO OPTIONS
     #Filename under which we save the network
@@ -140,13 +142,13 @@ def parser( conf_fname ):
     pars['output_prefix'] = config.get('parameters', 'output_prefix')
 
     #PROCESSING COST FUNCTION STRING
-    if pars['cost_fn_str'] == "square_loss":
+    if "square" in pars['cost_fn_str']:
         pars['cost_fn'] = cost_fn.square_loss
-    elif pars['cost_fn_str'] == "binomial_cross_entropy":
+    elif  "binomial" in pars['cost_fn_str']:
         pars['cost_fn'] = cost_fn.binomial_cross_entropy
-    elif pars['cost_fn_str'] == "multinomial_cross_entropy":
+    elif "multinomial_cross_entropy" in pars['cost_fn_str']:
         pars['cost_fn'] = cost_fn.multinomial_cross_entropy
-    elif pars['cost_fn_str'] == "softmax_loss":
+    elif "softmax" in pars['cost_fn_str']:
         pars['cost_fn'] = cost_fn.softmax_loss
     else:
         raise NameError('unknown type of cost function')
@@ -183,9 +185,10 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     plt.plot(it_list,   err_list,   'b', label='train')
     plt.plot(titr_list, terr_list,  'r', label='test')
     plt.xlabel('iteration'), plt.ylabel('cost energy')
-    plt.subplot(247)
+    plt.subplot(246)
     plt.plot(it_list, cls_list, 'b', titr_list, tcls_list, 'r')
     plt.xlabel('iteration'), plt.ylabel( 'classification error' )
 
     plt.pause(1.5)
     return
+

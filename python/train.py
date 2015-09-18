@@ -4,7 +4,6 @@ __doc__ = """
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
-import pyznn
 import time
 import matplotlib.pylab as plt
 import front_end
@@ -31,14 +30,14 @@ def main( conf_file='config.cfg' ):
     # number of output voxels
     print 'setting up the network...'
     vn = utils.get_total_num(net.get_outputs())
-    eta = pars['eta']
+    eta = pars['eta'] #/ vn
     net.set_eta( eta )
     net.set_momentum( pars['momentum'] )
 
     # initialize samples
     print "create input output samples..."
-    smp_trn = front_end.CSamples(config, pars, pars['train_range'], net)
-    smp_tst = front_end.CSamples(config, pars, pars['test_range'],  net)
+    smp_trn = front_end.CSamples(config, pars, pars['train_range'], net, outsz)
+    smp_tst = front_end.CSamples(config, pars, pars['test_range'],  net, outsz)
 
     # check all the settings
     print "check configurations..."
@@ -59,15 +58,16 @@ def main( conf_file='config.cfg' ):
     plt.ion()
     plt.show()
 
-    print "starting training..."
+    print "start training..."
     start = time.time()
     for i in xrange(1, pars['Max_iter'] ):
         vol_ins, lbl_outs, msks = smp_trn.get_random_sample()
 
         # forward pass
-        vol_ins = utils.make_continuous(vol_ins, dtype='float32')
+        vol_ins = utils.make_continuous(vol_ins, dtype=pars['dtype'])
+        
         props = net.forward( vol_ins )
-
+        
         # cost function and accumulate errors
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs )
         err = err + cerr
@@ -75,9 +75,9 @@ def main( conf_file='config.cfg' ):
 
         # mask process the gradient
         grdts = utils.dict_mul(grdts, msks)
-
+        
         # run backward pass
-        grdts = utils.make_continuous(grdts, dtype='float32')
+        grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
         net.backward( grdts )
 
         if pars['is_malis'] :
@@ -104,7 +104,7 @@ def main( conf_file='config.cfg' ):
 
             # time
             elapsed = time.time() - start
-            print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s, learning rate: %.4f"\
+            print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s, learning rate: %.6f"\
                     %(i, err, cls, elapsed, eta )
 
             if pars['is_visual']:
@@ -112,7 +112,11 @@ def main( conf_file='config.cfg' ):
                 front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
                                         titr_list, terr_list, tcls_list, \
                                         eta, vol_ins, props, lbl_outs, grdts, pars)
-            if pars['is_malis']:
+            if pars['is_visual'] and pars['is_rebalance'] and 'aff' not in pars['out_dtype']:
+                plt.subplot(247)
+                plt.imshow(msks.values()[0][0,0,:,:], interpolation='nearest', cmap='gray')
+                plt.xlabel('rebalance weight')
+            if pars['is_visual'] and pars['is_malis']:
                 plt.subplot(248)
                 plt.imshow(np.log(malis_weights[0][0,:,:]), interpolation='nearest', cmap='gray')
                 plt.xlabel('malis weight (log)')
@@ -128,7 +132,7 @@ def main( conf_file='config.cfg' ):
             netio.save_network(net, pars['train_save_net'], num_iters=i)
             utils.save_statistics( pars, it_list, err_list, cls_list,\
                                     titr_list, terr_list, tcls_list)
-
+        
 
 
 if __name__ == '__main__':

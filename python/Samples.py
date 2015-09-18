@@ -13,6 +13,7 @@ import numpy as np
 from numba import autojit
 
 import emirt
+import utils
 
 class CImage(object):
     """
@@ -27,12 +28,14 @@ class CImage(object):
     rotations and flips for data augmentation.
     """
 
-    def __init__(self, config, pars, sec_name, setsz):
+    def __init__(self, config, pars, sec_name, setsz, outsz):
 
         #Parameter object (see parser above)
         self.pars = pars
         #Desired size of subvolumes returned by this instance
         self.setsz = setsz
+        # field of view for boundary mirroring
+        self.fov = setsz - outsz + 1
 
         #Reading in data
         fnames = config.get(sec_name, 'fnames').split(',\n')
@@ -44,21 +47,13 @@ class CImage(object):
             arrlist = self._auto_crop( arrlist )
 
         #4d array of all data
-        self.arr = np.asarray( arrlist, dtype='float32')
+        self.arr = np.asarray( arrlist, dtype=pars['dtype'])
+        
         #3d shape of a constituent volume
         self.sz = np.asarray( self.arr.shape[1:4] )
         
         #Computes center coordinate, picks lower-index priority center
-        self.center = self._get_center()
-
-        #Number of voxels with index lower than the center
-        # within a subvolume (used within get_dev_range, and
-        # get_sub_volume)
-        self.low_setsz  = (self.setsz-1)/2
-        #Number of voxels with index higher than the center
-        # within a subvolume (used within get_dev_range, and
-        # get_sub_volume)
-        self.high_setsz = self.setsz / 2
+        self._get_sizes()
 
         #Display some instance information
         print "image stack size:    ", self.arr.shape
@@ -86,16 +81,26 @@ class CImage(object):
 
         return low, high
 
-    def _get_center(self):
+    def _get_sizes(self):
         '''
+        get various sizes parameters
         Finds the index of the 3d center of the array
         
         Picks the lower-index voxel if there's no true "center"
         '''
-
+        #3d shape of a constituent volume
+        self.sz = np.asarray( self.arr.shape[1:4] )
         #-1 accounts for python indexing
-        center = (self.sz-1)/2
-        return center
+        self.center = (self.sz-1)/2
+        #Number of voxels with index lower than the center
+        # within a subvolume (used within get_dev_range, and
+        # get_sub_volume)
+        self.low_setsz  = (self.setsz-1)/2
+        #Number of voxels with index higher than the center
+        # within a subvolume (used within get_dev_range, and
+        # get_sub_volume)
+        self.high_setsz = self.setsz / 2
+        return
 
     def _center_crop(self, vol, shape):
         """
@@ -157,7 +162,7 @@ class CImage(object):
         """
         ret = list()
         for fl in files:
-            vol = emirt.emio.imread(fl).astype('float32')
+            vol = emirt.emio.imread(fl).astype(self.pars['dtype'])
             ret.append( vol )
         return ret
 
@@ -182,45 +187,10 @@ class CImage(object):
                             loc[2]-self.low_setsz[2]  : loc[2] + self.high_setsz[2]+1]
         # random transformation
         if self.pars['is_data_aug']:
-            subvol = self._data_aug_transform(subvol, rft)
+            subvol = utils.data_aug_transform(subvol, rft)
         return subvol
 
-    def _data_aug_transform(self, data, rft):
-        """
-        transform data according to a rule
-
-        Parameters
-        ----------
-        data : 3D numpy array need to be transformed
-        rft : transform rule, specified as an array of bool
-            [z-reflection,
-            y-reflection,
-            x-reflection,
-            xy transpose]
-
-        Returns
-        -------
-        data : the transformed array
-        """
-
-        if np.size(rft)==0:
-            return data
-        # transform every pair of input and label volume
-
-        #z-reflection
-        if rft[0]:
-            data  = data[:, ::-1, :,    :]
-        #y-reflection
-        if rft[1]:
-            data  = data[:, :,    ::-1, :]
-        #x-reflection
-        if rft[2]:
-            data = data[:,  :,    :,    ::-1]
-        #transpose
-        if rft[3]:
-            data = data.transpose(0,1,3,2)
-
-        return data
+    
 
 class CInputImage(CImage):
     '''
@@ -231,8 +201,17 @@ class CInputImage(CImage):
     deviation range for affinity data output.
     '''
 
-    def __init__(self, config, pars, sec_name, setsz ):
-        CImage.__init__(self, config, pars, sec_name, setsz )
+    def __init__(self, config, pars, sec_name, setsz, outsz ):
+        CImage.__init__(self, config, pars, sec_name, setsz, outsz )
+        
+        if pars['is_bd_mirror']:
+            self.arr = utils.boundary_mirror(self.arr, self.fov)
+            
+            
+            #Computes center coordinate, picks lower-index priority center
+            self._get_sizes()
+    
+            
 
         # preprocessing
         pp_types = config.get(sec_name, 'pp_types').split(',')
@@ -277,8 +256,8 @@ class COutputLabel(CImage):
     contain masks for sparsely-labelled training
     '''
 
-    def __init__(self, config, pars, sec_name, setsz):
-        CImage.__init__(self, config, pars, sec_name, setsz)
+    def __init__(self, config, pars, sec_name, setsz, outsz):
+        CImage.__init__(self, config, pars, sec_name, setsz, outsz)
 
         # Affinity preprocessing decreases the output
         # size by one voxel in each dimension, this counteracts
@@ -292,17 +271,15 @@ class COutputLabel(CImage):
         # deal with mask
         self.msk = np.array([])
         if config.has_option(sec_name, 'fmasks'):
-            fmasks = config.get(sec_name, 'fnames').split(',\n')
-            msklist = self._read_files( fmasks )
-
-            if self._is_auto_crop:
-                msklist = self._auto_crop( msklist )
-
-            self.msk = np.asarray( msklist )
-            # mask 'preprocessing'
-            self.msk = (self.msk>0).astype('float32')
-
-            assert(self.arr.shape == self.msk.shape)   
+            fmasks = config.get(sec_name, 'fmasks').split(',\n')
+            if fmasks[0]:
+                msklist = self._read_files( fmasks )
+                if self._is_auto_crop:
+                    msklist = self._auto_crop( msklist )
+                self.msk = np.asarray( msklist )
+                # mask 'preprocessing'
+                self.msk = (self.msk>0).astype(self.arr.dtype)
+                assert(self.arr.shape == self.msk.shape)   
             
         # preprocessing
         self.pp_types = config.get(sec_name, 'pp_types').split(',')        
@@ -331,7 +308,7 @@ class COutputLabel(CImage):
                 self.msk = np.tile(self.msk, (2,1,1,1))
                 return
             elif 'one_class' == pp_type:
-                self.arr = (self.arr>0).astype('float32')
+                self.arr = (self.arr>0).astype(self.pars['dtype'])
                 return
             elif 'aff' in pp_type:
                 # affinity preprocessing handled later
@@ -356,9 +333,9 @@ class COutputLabel(CImage):
         """
         assert(lbl.shape[0] == 1)
 
-        ret = np.empty((2,)+ lbl.shape[1:4], dtype='float32')
+        ret = np.empty((2,)+ lbl.shape[1:4], dtype= self.pars['dtype'])
 
-        ret[0, :,:,:] = (lbl[0,:,:,:]>0).astype('float32')
+        ret[0, :,:,:] = (lbl[0,:,:,:]>0).astype(self.pars['dtype'])
         ret[1:,  :,:,:] = 1 - ret[0, :,:,:]
 
         return ret
@@ -377,19 +354,23 @@ class COutputLabel(CImage):
         arr : 4D array, could be affinity of binary class
         """
         sublbl = self.get_sub_volume(self.arr, loc, rft)
-        submsk = self.get_sub_volume(self.msk, loc, rft)
+        if np.size(self.msk)>0:
+            submsk = self.get_sub_volume(self.msk, loc, rft)
+        else:
+            submsk = np.array([])
         if 'aff' in self.pp_types[0]:
             # transform the output volumes to affinity array
             sublbl = self._lbl2aff( sublbl )
             # get the affinity mask
-            submsk = self._msk2affmsk( submsk )
-            if self.pars['is_rebalance']:
-                # apply the rebalance
-                submsk = self._rebalance_aff(sublbl, submsk)
+            if np.size(self.msk)>0:
+                submsk = self._msk2affmsk( submsk )
+                if self.pars['is_rebalance']:
+                    # apply the rebalance
+                    submsk = self._rebalance_aff(sublbl, submsk)
         return sublbl, submsk
     
     def _rebalance_aff(self, lbl, msk):
-        wts = np.zeros(lbl.shape, dtype='float32')
+        wts = np.zeros(lbl.shape, dtype=self.pars['dtype'])
         wts[0,:,:,:][lbl[0,:,:,:] >0] = self.zwp
         wts[1,:,:,:][lbl[1,:,:,:] >0] = self.ywp
         wts[2,:,:,:][lbl[2,:,:,:] >0] = self.xwp
@@ -418,7 +399,7 @@ class COutputLabel(CImage):
         if np.size(msk)==0:
             return msk
         C,Z,Y,X = msk.shape
-        ret = np.zeros((3, Z-1, Y-1, X-1), dtype='float32')
+        ret = np.zeros((3, Z-1, Y-1, X-1), dtype=self.pars['dtype'])
         
         for z in xrange(Z-1):
             for y in xrange(Y-1):
@@ -438,11 +419,11 @@ class COutputLabel(CImage):
 
         Parameters
         ----------
-        lbl : 4D float32 array, label volume.
+        lbl : 4D float array, label volume.
 
         Returns
         -------
-        aff : 4D float32 array, affinity graph.
+        aff : 4D float array, affinity graph.
         """
         # the 3D volume number should be one
         assert( lbl.shape[0] == 1 )
@@ -450,7 +431,7 @@ class COutputLabel(CImage):
         aff_size = np.asarray(lbl.shape)-1
         aff_size[0] = 3
 
-        aff = np.zeros( tuple(aff_size) , dtype='float32')
+        aff = np.zeros( tuple(aff_size) , dtype=self.pars['dtype'])
 
         #x-affinity
         aff[0,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,:-1, 1:  ,1: ]) & (lbl[0,1:,1:,1:]>0)
@@ -463,13 +444,16 @@ class COutputLabel(CImage):
 
     def _get_balance_weight( self, arr ):
         # number of nonzero elements
-        num_nz = float( np.count_nonzero(arr) )
+        pn = float( np.count_nonzero(arr) )
         # total number of elements
         num = float( np.size(arr) )
+        zn = num - pn
 
         # weight of positive and zero
-        wp = 0.5 * num / num_nz
-        wz = 0.5 * num / (num - num_nz)
+        wp = 0.5 * num / pn
+        wz = 0.5 * num / zn
+        print "rebalance positive weight: ", wp
+        print "rebalance zero     weight: ", wz
         return wp, wz
 
     def _rebalance( self ):
@@ -478,20 +462,21 @@ class COutputLabel(CImage):
         make the nonboundary and boundary region have same contribution of training.
         """
         if 'aff' in self.pp_types[0]:
-            zlbl = (self.arr[0,1:,1:,1:] != self.arr[0, :-1, 1:,  1:])
-            ylbl = (self.arr[0,1:,1:,1:] != self.arr[0, 1:,  :-1, 1:])
-            xlbl = (self.arr[0,1:,1:,1:] != self.arr[0, 1:,  1:,  :-1])
+            zlbl = (self.arr[0,1:,1:,1:] == self.arr[0, :-1, 1:,  1:])
+            ylbl = (self.arr[0,1:,1:,1:] == self.arr[0, 1:,  :-1, 1:])
+            xlbl = (self.arr[0,1:,1:,1:] == self.arr[0, 1:,  1:,  :-1])
             self.zwp, self.zwz = self._get_balance_weight(zlbl)
             self.ywp, self.ywz = self._get_balance_weight(ylbl)
             self.xwp, self.xwz = self._get_balance_weight(xlbl)
         else:
-            # positive is non-boundary, zero is boundary
-            wnb, wb = self._get_balance_weight(self.arr)
-            # give value
-            weight = np.empty( self.arr.shape, dtype='float32' )
-            weight[self.arr>0]  = wnb
-            weight[self.arr==0] = wb
-    
+            weight = np.empty( self.arr.shape, dtype=self.arr.dtype )
+            for c in xrange( self.arr.shape[0] ):
+                # positive is non-boundary, zero is boundary
+                wp, wz = self._get_balance_weight(self.arr[c,:,:,:])
+                # give value
+                weight[c,:,:,:][self.arr[c,:,:,:]> 0] = wp
+                weight[c,:,:,:][self.arr[c,:,:,:]==0] = wz
+
             if np.size(self.msk)==0:
                 self.msk = weight
             else:
@@ -512,7 +497,7 @@ class COutputLabel(CImage):
               format is the same with return of numpy.nonzero.
         """
         if np.size(self.msk) == 0:
-            mask = np.ones(self.arr.shape[1:4], dtype='float32')
+            mask = np.ones(self.arr.shape[1:4], dtype=self.arr.dtype)
         else:
             mask = np.copy(self.msk[0,:,:,:])
         # erase outside region of deviation range.
@@ -540,7 +525,7 @@ class CSample:
 
     Designed to be similar with Dataset module of pylearn2
     """
-    def __init__(self, config, pars, sample_id, net):
+    def __init__(self, config, pars, sample_id, net, outsz):
 
         # Parameter object (dict)
         self.pars = pars
@@ -565,7 +550,7 @@ class CSample:
             imid = config.getint(sec_name, name)
             imsec_name = "image%d" % (imid,)
             
-            self.inputs[name] = CInputImage(  config, pars, imsec_name, setsz[1:4] )
+            self.inputs[name] = CInputImage(  config, pars, imsec_name, setsz[1:4], outsz )
             low, high = self.inputs[name].get_dev_range()
 
             # Deviation bookkeeping
@@ -580,7 +565,7 @@ class CSample:
             imid = config.getint(sec_name, name)
             imsec_name = "label%d" % (imid,)
 
-            self.outputs[name] = COutputLabel( config, pars, imsec_name, setsz[1:4])
+            self.outputs[name] = COutputLabel( config, pars, imsec_name, setsz[1:4], outsz)
             low, high = self.outputs[name].get_dev_range()
 
             # Deviation bookkeeping
@@ -618,7 +603,7 @@ class CSample:
         return ( inputs, outputs, msks )
 
 class CSamples:
-    def __init__(self, config, pars, ids, net):
+    def __init__(self, config, pars, ids, net, outsz):
         """
         Samples Class - which represents a collection of data samples
 
@@ -637,13 +622,9 @@ class CSamples:
         #Parameter object
         self.pars = pars
 
-        #Information about the input and output layers
-        info_in  = net.get_inputs()
-        info_out = net.get_outputs()
-        
         self.samples = list()
         for sid in ids:
-            sample = CSample(config, pars, sid, net)
+            sample = CSample(config, pars, sid, net, outsz)
             self.samples.append( sample )
 
     def get_random_sample(self):

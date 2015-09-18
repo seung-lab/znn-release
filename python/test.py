@@ -10,7 +10,7 @@ def _single_test(net, pars, sample):
     vol_ins, lbl_outs, msks = sample.get_random_sample()
        
     # forward pass
-    vol_ins = utils.make_continuous(vol_ins, dtype='float32')
+    vol_ins = utils.make_continuous(vol_ins, dtype=pars['dtype'])
     props = net.forward( vol_ins )
        
     # cost function and accumulate errors
@@ -28,13 +28,13 @@ def znn_test(net, pars, samples, vn, terr_list, tcls_list):
     pars : dict, parameters
     sample : a input and output sample
     vn : number of output voxels
-    terr_list : list of float32, test cost
-    tcls_list : list of float32, test classification error
+    terr_list : list of float, test cost
+    tcls_list : list of float, test classification error
     
     Returns
     -------
-    terr_list : list of float32, test cost
-    tcls_list : list of float32, test classification error
+    terr_list : list of float, test cost
+    tcls_list : list of float, test classification error
     """
     err = 0.0
     cls = 0.0
