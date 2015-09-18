@@ -90,7 +90,7 @@ def num_output_patches( output_vol_shape, output_patch_shape ):
 	'''
 	One way to derive the number of output patches in the resulting volume.
 	
-	Mostly used for unit testing at this point
+	Mostly used for testing at this point
 
 	Restricts calculation to 3d shape
 	'''
