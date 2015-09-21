@@ -180,7 +180,6 @@ class CImage(object):
         -------
         subvol : the transformed sub volume.
         """
-
         # extract volume
         subvol  = arr[ :,   loc[0]-self.low_setsz[0]  : loc[0] + self.high_setsz[0]+1,\
                             loc[1]-self.low_setsz[1]  : loc[1] + self.high_setsz[1]+1,\
@@ -206,12 +205,8 @@ class CInputImage(CImage):
         
         if pars['is_bd_mirror']:
             self.arr = utils.boundary_mirror(self.arr, self.fov)
-            
-            
             #Computes center coordinate, picks lower-index priority center
             self._get_sizes()
-    
-            
 
         # preprocessing
         pp_types = config.get(sec_name, 'pp_types').split(',')

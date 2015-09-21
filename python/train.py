@@ -35,8 +35,9 @@ def main( conf_file='config.cfg' ):
     net.set_momentum( pars['momentum'] )
 
     # initialize samples
-    print "create input output samples..."
+    print "create input samples..."
     smp_trn = front_end.CSamples(config, pars, pars['train_range'], net, outsz)
+    print "create output samples..."
     smp_tst = front_end.CSamples(config, pars, pars['test_range'],  net, outsz)
 
     # check all the settings
