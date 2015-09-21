@@ -40,9 +40,7 @@ def main( conf_file='config.cfg' ):
     print "\n\ncreate test samples..."
     smp_tst = front_end.CSamples(config, pars, pars['test_range'],  net, outsz)
 
-    # check all the settings
-    print "check configurations..."
-    utils.check_config(config, pars, net, smp_trn, smp_tst)
+    
 
     # initialization
     err = 0;
@@ -113,7 +111,7 @@ def main( conf_file='config.cfg' ):
                 front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
                                         titr_list, terr_list, tcls_list, \
                                         eta, vol_ins, props, lbl_outs, grdts, pars)
-            if pars['is_visual'] and pars['is_rebalance'] and 'aff' not in pars['out_dtype']:
+            if pars['is_visual'] and pars['is_rebalance'] and 'aff' not in pars['out_type']:
                 plt.subplot(247)
                 plt.imshow(msks.values()[0][0,0,:,:], interpolation='nearest', cmap='gray')
                 plt.xlabel('rebalance weight')

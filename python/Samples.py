@@ -236,7 +236,7 @@ class CInputImage(CImage):
 
         low, high = super(CInputImage, self).get_dev_range()
 
-        if 'aff' in self.pars['out_dtype']:
+        if 'aff' in self.pars['out_type']:
             #Given affinity preprocessing (see _lbl2aff), valid affinity
             # values only exist for the later voxels, which can create
             # boundary issues
@@ -264,7 +264,7 @@ class COutputLabel(CImage):
         # Affinity preprocessing decreases the output
         # size by one voxel in each dimension, this counteracts
         # that effect
-        if 'aff' in pars['out_dtype']:
+        if 'aff' in pars['out_type']:
             # increase the subvolume size for affinity
             self.setsz += 1
             self.low_setsz  = (self.setsz-1)/2

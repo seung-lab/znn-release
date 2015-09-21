@@ -100,7 +100,7 @@ using namespace znn::v4::parallel_network;
 std::shared_ptr< network > CNet_Init(
 		std::string  const net_config_file,
 		np::ndarray  const & outsz_a,
-		std::size_t  const tc,
+		std::size_t  const tc  = 0,	// thread number
 		bool const is_optimize = true,
         std::uint8_t const phs = 0) // 0:TRAIN, 1:TEST
 {
@@ -112,6 +112,8 @@ std::shared_ptr< network > CNet_Init(
                     reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
                     reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
 					);
+    if (0==tc)
+    	tc = std::thread::hardware_concurrency();
 
     // optimize
     if(is_optimize)

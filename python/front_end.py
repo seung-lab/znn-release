@@ -77,7 +77,7 @@ def parser( conf_fname ):
     # data type
     pars['dtype']       = config.get('parameters', 'dtype')
     #Output layer data type (e.g. 'boundary','affinity')
-    pars['out_dtype']   = config.get('parameters', 'out_dtype')
+    pars['out_type']   = config.get('parameters', 'out_type')
 
     #IO OPTIONS
     #Filename under which we save the network
@@ -141,22 +141,77 @@ def parser( conf_fname ):
     #Prefix of the output files
     pars['output_prefix'] = config.get('parameters', 'output_prefix')
 
+
+    # checking and automatically correcting parameters
+    config, pars = check_config(config, pars)
+
+    return config, pars
+
+def check_config(config, pars):
+    """
+    check and correct the configuration and parameters
+
+    Parameters
+    ----------
+    config : python parser reading of config file.
+    pars : the parameters.
+    """
     #PROCESSING COST FUNCTION STRING
-    if "square" in pars['cost_fn_str']:
+    if 'auto' in pars['cost_fn_str']:
+        # automatic choosing of cost function
+        if 'boundary' in pars['out_type']:
+            pars['cost_fn_str'] = 'softmax_loss'
+            pars['cost_fn'] = cost_fn.softmax_loss
+        elif 'affin' in pars['out_type']:
+            pars['cost_fn_str'] = 'binomial_cross_entropy'
+            pars['cost_fn'] = cost_fn.binomial_cross_entropy
+    elif "square" in pars['cost_fn_str']:
+        assert('boundary' in pars['out_type'])
         pars['cost_fn'] = cost_fn.square_loss
     elif  "binomial" in pars['cost_fn_str']:
+        assert('affin' in pars['out_type'])
         pars['cost_fn'] = cost_fn.binomial_cross_entropy
     elif "multinomial_cross_entropy" in pars['cost_fn_str']:
+        assert('boundary' in pars['out_type'])
         pars['cost_fn'] = cost_fn.multinomial_cross_entropy
     elif "softmax" in pars['cost_fn_str']:
+        assert('boundary' in pars['out_type'])
         pars['cost_fn'] = cost_fn.softmax_loss
     else:
         raise NameError('unknown type of cost function')
 
+    # check the single parameters
+    assert(pars['num_threads']>=0)
+    assert('float32'==pars['dtype'] or 'float64'==pars['dtype'])
+    assert('boundary' in pars['out_type'] or 'affin' in pars['out_type'])
+    assert( np.size(pars['train_outsz'])==3 )
+    assert(pars['eta']<=1           and pars['eta']>=0)
+    assert(pars['anneal_factor']>=0 and pars['anneal_factor']<=1)
+    assert(pars['momentum']>=0      and pars['momentum']<=1)
+    assert(pars['weight_decay']>=0  and pars['weight_decay']<=1)
+    
+    assert(pars['Num_iter_per_show']>0)
+    assert(pars['Num_iter_per_test']>0)
+    assert(pars['test_num']>0)
+    assert(pars['Num_iter_per_save']>0)
+    assert(pars['Max_iter']>0)
+    assert(pars['Max_iter']>pars['Num_iter_per_save'])
+
     #%% check the consistency of some options
     if pars['is_malis']:
-        if 'aff' not in pars['out_dtype']:
+        if 'aff' not in pars['out_type']:
             raise NameError( 'malis weight should be used with affinity label type!' )
+        
+    # check and correct the image and labels
+    for sec in config.sections():
+        if 'label' in sec:
+            pp_types = config.get(sec, 'pp_types')
+            if 'boundary' in pars['out_type']:
+                pp_types = pp_types.replace("auto", "binary_class")
+            elif 'affin' in pars['out_type']:
+                pp_types = pp_types.replace("auto", "affinity")
+            config.set(sec, 'pp_types', value=pp_types) 
+
     return config, pars
 
 def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
@@ -191,4 +246,3 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
 
     plt.pause(1.5)
     return
-

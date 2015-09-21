@@ -5,51 +5,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 
 import numpy as np
-
-def check_config(config, pars, net, smp_trn, smp_tst):
-    """
-    check all the configuration and parameters
-
-    Parameters
-    ----------
-    config : python parser reading of config file.
-    pars : the parameters.
-    net : shared ptr of network
-    smp_trn : training sample.
-    smp_tst : test sample.
-    """
-    # get input and output information
-    setsz_outs = net.get_outputs_setsz()
-    assert(len(setsz_outs)==1)
-    name, outsz = setsz_outs.popitem()
-    cf = pars['cost_fn_str']
-    # check the output type
-    if 'boundary' in pars['out_dtype']:
-        assert(outsz[0]==2)
-        assert('softmax' in cf or 'square' in cf)
-        for sample in smp_trn.samples:
-            lbl = sample.outputs[name]
-            for pp_type in lbl.pp_types:
-                assert('binary' in pp_type or 'one' in pp_type)
-        for sample in smp_tst.samples:
-            lbl = sample.outputs[name]
-            for pp_type in lbl.pp_types:
-                assert('binary' in pp_type or 'one' in pp_type)
-    elif 'aff' in pars['out_dtype']:
-        print "network output size: ", outsz
-        assert(outsz[0]==3)
-        assert('binomial' in cf)
-        for sample in smp_trn.samples:
-            lbl = sample.outputs[name]
-            for pp_type in lbl.pp_types:
-                assert('aff' in pp_type)
-        for sample in smp_tst.samples:
-            lbl = sample.outputs[name]
-            for pp_type in lbl.pp_types:
-                assert('aff' in pp_type)
-    else:
-        raise NameError('invalid out_type!')
-
+  
 def data_aug_transform(data, rft):
         """
         transform data according to a rule
