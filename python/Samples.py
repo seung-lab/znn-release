@@ -167,6 +167,7 @@ class CImage(object):
         for fl in files:
             vol = emirt.emio.imread(fl).astype(self.pars['dtype'])
             if vol.dtype=='uint8' and vol.shape[3]==3:
+                # read the VAST output RGB images
                 vol = vol.astpye('uint32')
                 vol = vol[:,:,:,0]*256*256 + vol[:,:,:,1]*256 + vol[:,:,:,2]
             ret.append( vol )
@@ -339,9 +340,11 @@ class COutputLabel(CImage):
         ret : 4D array, two volume with opposite value
         """
         assert(lbl.shape[0] == 1)
-
+        
+        # fill the contacting segments with boundaries
+        lbl[0,:,:,:] = utils.fill_boundary( lbl[0,:,:,:] ) 
+        
         ret = np.empty((2,)+ lbl.shape[1:4], dtype= self.pars['dtype'])
-
         ret[0, :,:,:] = (lbl[0,:,:,:]>0).astype(self.pars['dtype'])
         ret[1:,  :,:,:] = 1 - ret[0, :,:,:]
 

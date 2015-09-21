@@ -5,7 +5,8 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 
 import numpy as np
-  
+from numba import autojit
+
 def data_aug_transform(data, rft):
         """
         transform data according to a rule
@@ -121,7 +122,25 @@ def boundary_mirror( arr, fov ):
         for z in xrange(b[0],bfsz[1]):
             bf[c,z,:,:] = _mirror2d(bf[c, z, l[1]:b[1], l[2]:b[2]], bf[c,z,:,:], fov[1:])
     return bf
-       
+
+@autojit
+def fill_boundary( lbl ):
+    """
+    separate the contacting segments with boundaries.
+    """
+    assert(len(lbl.shape)==3)
+    for z in xrange( lbl.shape[0] ):
+        for y in xrange( lbl.shape[1]-1 ):
+            for x in xrange( lbl.shape[2]-1 ):
+                if lbl[z,y,x]>0:
+                    if lbl[z,y,x]!=lbl[z,y+1,x] and lbl[z,y+1,x]>0:
+                        lbl[z,y,x] = 0
+                        lbl[z,y+1] = 0
+                    if lbl[z,y,x]!=lbl[z,y,x+1] and lbl[z,y,x+1]>0:
+                        lbl[z,y,x] = 0
+                        lbl[z,y,x+1] = 0
+    return lbl
+
 def make_continuous( d , dtype='float32'):
     """
     make the dictionary arrays continuous.
