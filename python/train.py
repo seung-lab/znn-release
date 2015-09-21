@@ -29,15 +29,15 @@ def main( conf_file='config.cfg' ):
         net = netio.init_network( pars )
     # number of output voxels
     print 'setting up the network...'
-    vn = utils.get_total_num(net.get_outputs())
+    vn = utils.get_total_num(net.get_outputs_setsz())
     eta = pars['eta'] #/ vn
     net.set_eta( eta )
     net.set_momentum( pars['momentum'] )
 
     # initialize samples
-    print "create input samples..."
+    print "\n\ncreate train samples..."
     smp_trn = front_end.CSamples(config, pars, pars['train_range'], net, outsz)
-    print "create output samples..."
+    print "\n\ncreate test samples..."
     smp_tst = front_end.CSamples(config, pars, pars['test_range'],  net, outsz)
 
     # check all the settings

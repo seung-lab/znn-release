@@ -14,14 +14,14 @@ def check_config(config, pars, net, smp_trn, smp_tst):
     ----------
     config : python parser reading of config file.
     pars : the parameters.
-    info_out : size information of outputs.
+    net : shared ptr of network
     smp_trn : training sample.
     smp_tst : test sample.
     """
     # get input and output information
-    info_out = net.get_outputs()
-    assert(len(info_out)==1)
-    name, outsz = info_out.popitem()
+    setsz_outs = net.get_outputs_setsz()
+    assert(len(setsz_outs)==1)
+    name, outsz = setsz_outs.popitem()
     cf = pars['cost_fn_str']
     # check the output type
     if 'boundary' in pars['out_dtype']:
@@ -136,7 +136,10 @@ def boundary_mirror( arr, fov ):
     ret : expanded 4D array with mirrored boundary
     """
     assert(np.size(fov)==3)
+    print "boundary mirror..."
     fov = fov.astype('int32')
+    if np.all(fov==1):
+        return arr
     # buffer size
     bfsz = np.asarray(arr.shape, dtype='int32')
     bfsz[1:] += fov-1

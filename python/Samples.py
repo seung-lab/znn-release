@@ -32,10 +32,6 @@ class CImage(object):
 
         #Parameter object (see parser above)
         self.pars = pars
-        #Desired size of subvolumes returned by this instance
-        self.setsz = setsz
-        # field of view for boundary mirroring
-        self.fov = setsz - outsz + 1
 
         #Reading in data
         fnames = config.get(sec_name, 'fnames').split(',\n')
@@ -49,16 +45,9 @@ class CImage(object):
         #4d array of all data
         self.arr = np.asarray( arrlist, dtype=pars['dtype'])
         
-        #3d shape of a constituent volume
-        self.sz = np.asarray( self.arr.shape[1:4] )
-        
         #Computes center coordinate, picks lower-index priority center
-        self._get_sizes()
+        self._get_sizes(setsz, outsz)
 
-        #Display some instance information
-        print "image stack size:    ", self.arr.shape
-        print "set size:            ", self.setsz
-        print "center:              ", self.center
         return
 
     def get_dev_range(self):
@@ -81,13 +70,22 @@ class CImage(object):
 
         return low, high
 
-    def _get_sizes(self):
+    def _get_sizes(self, setsz, outsz):
         '''
         get various sizes parameters
         Finds the index of the 3d center of the array
         
         Picks the lower-index voxel if there's no true "center"
+        
+        Parameters
+        ----------
+        setsz : vector with 4 int value, set size.
+        outsz : vector with 3 int value, output size
         '''
+        #Desired size of subvolumes returned by this instance
+        self.setsz = setsz[1:4]
+        # field of view
+        self.fov = setsz[1:4] - outsz + 1
         #3d shape of a constituent volume
         self.sz = np.asarray( self.arr.shape[1:4] )
         #-1 accounts for python indexing
@@ -100,6 +98,11 @@ class CImage(object):
         # within a subvolume (used within get_dev_range, and
         # get_sub_volume)
         self.high_setsz = self.setsz / 2
+        
+        #Display some instance information
+        print "image stack size:    ", self.arr.shape
+        print "set size:            ", self.setsz
+        print "center:              ", self.center
         return
 
     def _center_crop(self, vol, shape):
@@ -166,7 +169,7 @@ class CImage(object):
             ret.append( vol )
         return ret
 
-    def get_sub_volume(self, arr, loc, rft=[]):
+    def get_sub_volume(self, arr, dev, rft=[]):
         """
         Returns a 4d subvolume of the original, specified
         by deviation from the center voxel. Performs data
@@ -174,12 +177,13 @@ class CImage(object):
 
         Parameters
         ----------
-        loc : the random location of the desired subvolume center
+        dev : the deviation from the whole volume center
         rft : the random transformation rule.
         Return:
         -------
         subvol : the transformed sub volume.
         """
+        loc = self.center + dev
         # extract volume
         subvol  = arr[ :,   loc[0]-self.low_setsz[0]  : loc[0] + self.high_setsz[0]+1,\
                             loc[1]-self.low_setsz[1]  : loc[1] + self.high_setsz[1]+1,\
@@ -188,8 +192,6 @@ class CImage(object):
         if self.pars['is_data_aug']:
             subvol = utils.data_aug_transform(subvol, rft)
         return subvol
-
-    
 
 class CInputImage(CImage):
     '''
@@ -206,7 +208,7 @@ class CInputImage(CImage):
         if pars['is_bd_mirror']:
             self.arr = utils.boundary_mirror(self.arr, self.fov)
             #Computes center coordinate, picks lower-index priority center
-            self._get_sizes()
+            self._get_sizes(setsz, outsz)
 
         # preprocessing
         pp_types = config.get(sec_name, 'pp_types').split(',')
@@ -225,8 +227,8 @@ class CInputImage(CImage):
             raise NameError( 'invalid preprocessing type' )
         return vol
 
-    def get_subvol(self, loc, rft):
-        return self.get_sub_volume(self.arr, loc, rft)
+    def get_subvol(self, dev, rft):
+        return self.get_sub_volume(self.arr, dev, rft)
 
     def get_dev_range(self):
         '''Override of the CImage implementation to account
@@ -253,6 +255,11 @@ class COutputLabel(CImage):
 
     def __init__(self, config, pars, sec_name, setsz, outsz):
         CImage.__init__(self, config, pars, sec_name, setsz, outsz)
+        
+        if pars['is_bd_mirror']:
+            self.arr = utils.boundary_mirror(self.arr, self.fov)
+            #Computes center coordinate, picks lower-index priority center
+            self._get_sizes(setsz, outsz)
 
         # Affinity preprocessing decreases the output
         # size by one voxel in each dimension, this counteracts
@@ -274,8 +281,10 @@ class COutputLabel(CImage):
                 self.msk = np.asarray( msklist )
                 # mask 'preprocessing'
                 self.msk = (self.msk>0).astype(self.arr.dtype)
+                if pars['is_bd_mirror']:
+                    self.msk = utils.boundary_mirror(self.msk, self.fov)
                 assert(self.arr.shape == self.msk.shape)   
-            
+                
         # preprocessing
         self.pp_types = config.get(sec_name, 'pp_types').split(',')        
         self._preprocess()       
@@ -335,22 +344,22 @@ class COutputLabel(CImage):
 
         return ret
 
-    def get_subvol(self, loc, rft):
+    def get_subvol(self, dev, rft):
         """
         get sub volume for training.
 
         Parameter
         ---------
-        loc : the random location of the desired subvolume center
+        dev : deviation from the desired subvolume center
         rft : binary vector, transformation rule
 
         Return
         ------
         arr : 4D array, could be affinity of binary class
         """
-        sublbl = self.get_sub_volume(self.arr, loc, rft)
+        sublbl = self.get_sub_volume(self.arr, dev, rft)
         if np.size(self.msk)>0:
-            submsk = self.get_sub_volume(self.msk, loc, rft)
+            submsk = self.get_sub_volume(self.msk, dev, rft)
         else:
             submsk = np.array([])
         if 'aff' in self.pp_types[0]:
@@ -477,19 +486,14 @@ class COutputLabel(CImage):
             else:
                 self.msk = self.msk * weight
 
-    def get_candidate_loc( self, low, high ):
+    def create_candidates_mask( self, low, high ):
         """
-        find the candidate location of subvolume
+        create the candidate cube center mask
         
         Parameters
         ----------
         low  : vector with length of 3, low value of deviation range
         high : vector with length of 3, high value of deviation range
-        
-        Returns:
-        --------
-        ret : a tuple, the coordinate of nonzero elements,
-              format is the same with return of numpy.nonzero.
         """
         if np.size(self.msk) == 0:
             mask = np.ones(self.arr.shape[1:4], dtype=self.arr.dtype)
@@ -505,10 +509,22 @@ class COutputLabel(CImage):
         mask[:, ct[1]+high[1]+1:, :] = 0
         mask[:, :, ct[2]+high[2]+1:] = 0
         
-        locs = np.nonzero(mask)
-        if np.size(locs[0])==0:
-            raise NameError('no candidate location!')
-        return locs
+        self.candidate_center_mask = mask
+        return
+    def get_random_dev(self):
+        """
+        get a random deviation from the center
+        """
+        # a random location from the mask
+        locs = np.nonzero(self.candidate_center_mask)
+        ind = np.random.randint( np.size(locs[0]) )
+        loc = np.empty( 3, dtype=np.uint32 )
+        loc[0] = locs[0][ind]
+        loc[1] = locs[1][ind]
+        loc[2] = locs[2][ind]
+        
+        dev = loc - self.center
+        return dev
 
 class CSample:
     """
@@ -526,8 +542,8 @@ class CSample:
         self.pars = pars
 
         #Extracting layer info from the network
-        info_in  = net.get_inputs()
-        info_out = net.get_outputs()
+        setsz_ins  = net.get_inputs_setsz()
+        setsz_outs = net.get_outputs_setsz()
 
         # Name of the sample within the configuration file
         sec_name = "sample%d" % sample_id
@@ -538,14 +554,15 @@ class CSample:
         dev_low  = np.array([-sys.maxint-1, -sys.maxint-1, -sys.maxint-1])
 
         # Loading input images
+        print "\n create input image class..."
         self.inputs = dict()
-        for name,setsz in info_in.iteritems():
+        for name,setsz in setsz_ins.iteritems():
 
             #Finding the section of the config file
             imid = config.getint(sec_name, name)
             imsec_name = "image%d" % (imid,)
             
-            self.inputs[name] = CInputImage(  config, pars, imsec_name, setsz[1:4], outsz )
+            self.inputs[name] = CInputImage(  config, pars, imsec_name, setsz, outsz )
             low, high = self.inputs[name].get_dev_range()
 
             # Deviation bookkeeping
@@ -553,14 +570,15 @@ class CSample:
             dev_low  = np.maximum( dev_low , low  )
 
         # define output images
+        print "\n create label image class..."
         self.outputs = dict()
-        for name, setsz in info_out.iteritems():
+        for name, setsz in setsz_outs.iteritems():
 
             #Finding the section of the config file
             imid = config.getint(sec_name, name)
             imsec_name = "label%d" % (imid,)
 
-            self.outputs[name] = COutputLabel( config, pars, imsec_name, setsz[1:4], outsz)
+            self.outputs[name] = COutputLabel( config, pars, imsec_name, setsz, outsz)
             low, high = self.outputs[name].get_dev_range()
 
             # Deviation bookkeeping
@@ -569,7 +587,7 @@ class CSample:
 
         # find the candidate central locations of sample
         lbl = self.outputs.values()[0]
-        self.locs = lbl.get_candidate_loc( dev_low, dev_high )
+        lbl.create_candidates_mask( dev_low, dev_high )
         
 
     def get_random_sample(self):
@@ -578,22 +596,19 @@ class CSample:
         # random transformation roll
         rft = (np.random.rand(4)>0.5)
 
-        # random location
-        ind = np.random.randint( np.size(self.locs[0]) )
-        loc = np.empty( 3, dtype=np.uint32 )
-        loc[0] = self.locs[0][ind]
-        loc[1] = self.locs[1][ind]
-        loc[2] = self.locs[2][ind]
-
+        # random deviation
+        lbl = self.outputs.values()[0]
+        dev = lbl.get_random_dev()
+        
         # get input and output 4D sub arrays
         inputs = dict()
         for name, img in self.inputs.iteritems():
-            inputs[name] = img.get_subvol(loc, rft)
+            inputs[name] = img.get_subvol(dev, rft)
 
         outputs = dict()
         msks = dict()
         for name, lbl in self.outputs.iteritems():
-            outputs[name], msks[name] = lbl.get_subvol(loc, rft)
+            outputs[name], msks[name] = lbl.get_subvol(dev, rft)
 
         return ( inputs, outputs, msks )
 

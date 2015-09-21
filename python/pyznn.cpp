@@ -252,7 +252,7 @@ std::size_t CNet_get_output_num( bp::object const & self )
     return outs["output"].second;
 }
 
-bp::dict CNet_get_inputs( bp::object const & self )
+bp::dict CNet_get_inputs_setsz( bp::object const & self )
 {
 	network& net = bp::extract<network&>(self)();
 	std::map<std::string, std::pair<vec3i,size_t>> inputs = net.inputs();
@@ -270,7 +270,7 @@ bp::dict CNet_get_inputs( bp::object const & self )
 	return ret;
 }
 
-bp::dict CNet_get_outputs( bp::object const & self )
+bp::dict CNet_get_outputs_setsz( bp::object const & self )
 {
 	network& net = bp::extract<network&>(self)();
 	std::map<std::string, std::pair<vec3i,size_t>> outputs = net.outputs();
@@ -296,8 +296,6 @@ void CNet_set_phase(bp::object const & self, std::uint8_t const phs = 0)
 	return;
 }
 
-
-
 //===========================================================================
 //BOOST PYTHON INTERFACE DEFINITION
 BOOST_PYTHON_MODULE(pyznn)
@@ -315,9 +313,9 @@ BOOST_PYTHON_MODULE(pyznn)
         .def("set_phase",            &CNet_set_phase)
         .def("set_momentum",		&network::set_momentum)
         .def("set_weight_decay",	&network::set_weight_decay )
-        .def("get_inputs", 		&CNet_get_inputs)
+        .def("get_inputs_setsz", 	&CNet_get_inputs_setsz)
         .def("get_input_num", 		&CNet_get_input_num)
-        .def("get_outputs", 		&CNet_get_outputs)
+        .def("get_outputs_setsz", 	&CNet_get_outputs_setsz)
         .def("get_output_num", 		&CNet_get_output_num)
         .def("get_opts",			&CNet_getopts)
         ;
