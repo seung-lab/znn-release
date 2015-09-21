@@ -121,8 +121,7 @@ def boundary_mirror( arr, fov ):
         for z in xrange(b[0],bfsz[1]):
             bf[c,z,:,:] = _mirror2d(bf[c, z, l[1]:b[1], l[2]:b[2]], bf[c,z,:,:], fov[1:])
     return bf
-    
-    
+       
 def make_continuous( d , dtype='float32'):
     """
     make the dictionary arrays continuous.

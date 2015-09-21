@@ -166,6 +166,9 @@ class CImage(object):
         ret = list()
         for fl in files:
             vol = emirt.emio.imread(fl).astype(self.pars['dtype'])
+            if vol.dtype=='uint8' and vol.shape[3]==3:
+                vol = vol.astpye('uint32')
+                vol = vol[:,:,:,0]*256*256 + vol[:,:,:,1]*256 + vol[:,:,:,2]
             ret.append( vol )
         return ret
 
