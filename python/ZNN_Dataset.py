@@ -682,14 +682,19 @@ class ConfigOutputLabel(ConfigImage):
             else:
                 self.msk = self.msk * weight
 
-    def create_candidates_mask( self, low, high ):
+    def get_candidate_loc( self, low, high ):
         """
-        create the candidate cube center mask
+        find the candidate location of subvolume
         
         Parameters
         ----------
         low  : vector with length of 3, low value of deviation range
         high : vector with length of 3, high value of deviation range
+        
+        Returns:
+        --------
+        ret : a tuple, the coordinate of nonzero elements,
+              format is the same with return of numpy.nonzero.
         """
         if np.size(self.msk) == 0:
             mask = np.ones(self.data.shape[1:4], dtype=self.data.dtype)
@@ -704,24 +709,13 @@ class ConfigOutputLabel(ConfigImage):
         mask[ct[0]+high[0]+1:, :, :] = 0
         mask[:, ct[1]+high[1]+1:, :] = 0
         mask[:, :, ct[2]+high[2]+1:] = 0
-        
-        self.candidate_center_mask = mask
-        return
 
-    def get_random_dev(self):
-        """
-        get a random deviation from the center
-        """
-        # a random location from the mask
-        locs = np.nonzero(self.candidate_center_mask)
-        ind = np.random.randint( np.size(locs[0]) )
-        loc = np.empty( 3, dtype=np.uint32 )
-        loc[0] = locs[0][ind]
-        loc[1] = locs[1][ind]
-        loc[2] = locs[2][ind]
-        
-        dev = loc - self.center
-        return dev
+        locs = np.nonzero(mask)
+
+        if np.size(locs[0])==0:
+            raise NameError('no candidate location!')
+
+        return locs
 
 class ConfigSample(object):
     """
@@ -784,7 +778,7 @@ class ConfigSample(object):
 
         # find the candidate central locations of sample
         lbl = self.outputs.values()[0]
-        lbl.create_candidates_mask( dev_low, dev_high )
+        self.locs = lbl.get_candidate_loc( dev_low, dev_high )
         
 
     def get_random_sample(self):
@@ -794,8 +788,12 @@ class ConfigSample(object):
         rft = (np.random.rand(4)>0.5)
 
         # random deviation
-        lbl = self.outputs.values()[0]
-        dev = lbl.get_random_dev()
+        ind = np.random.randint( np.size(self.locs[0]) )
+        loc = np.empty( 3, dtype=np.uint32 )
+        loc[0] = self.locs[0][ind]
+        loc[1] = self.locs[1][ind]
+        loc[2] = self.locs[2][ind]
+        dev = self.outputs.values()[0].center - loc
         
         # get input and output 4D sub arrays
         inputs = dict()
