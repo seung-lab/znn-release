@@ -196,7 +196,7 @@ def load_network( params=None, train=True, hdf5_filename=None,
     if params is not None:
 
         if train:
-            _hdf5_filename = params['train_load_network']
+            _hdf5_filename = params['train_load_net']
             _output_patch_shape = params['train_outsz']
         else:
             _hdf5_filename = params['forward_net']

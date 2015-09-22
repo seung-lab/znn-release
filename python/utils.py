@@ -123,7 +123,7 @@ def boundary_mirror( arr, fov ):
             bf[c,z,:,:] = _mirror2d(bf[c, z, l[1]:b[1], l[2]:b[2]], bf[c,z,:,:], fov[1:])
     return bf
 
-@autojit
+@autojit(nopython=True)
 def fill_boundary( lbl ):
     """
     separate the contacting segments with boundaries.

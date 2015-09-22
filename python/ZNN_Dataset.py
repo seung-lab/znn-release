@@ -85,7 +85,8 @@ class ZNN_Dataset(object):
         ----------
         dev : the deviation from the whole volume center
         rft : the random transformation rule.
-        Return:
+        
+        Return
         -------
         subvol : the transformed sub volume.
         """
@@ -103,7 +104,7 @@ class ZNN_Dataset(object):
 
         if rft is not None:
             subvol = utils.data_aug_transform(subvol, rft)
-
+            
         return subvol
 
     def _check_patch_bounds(self):
@@ -306,7 +307,7 @@ class ConfigImage(ZNN_Dataset):
         arr = np.asarray( arrlist, dtype=pars['dtype'])
         ZNN_Dataset.__init__(self, arr, setsz, outsz)
 
-    def _recalculate_sizes(self, patch_shape, net_output_patch_shape):
+    def _recalculate_sizes(self, net_output_patch_shape):
         '''
         Adjusts the shape attributes to account for a change in the
         shape of the data array
@@ -317,6 +318,7 @@ class ConfigImage(ZNN_Dataset):
         self.volume_shape = np.asarray(self.data.shape[-3:])
 
         self.center = (self.volume_shape-1) / 2
+        self.fov = self.patch_shape[-3:] - net_output_patch_shape + 1        
 
         #Number of voxels with index lower than the center
         # within a subvolume (used within get_dev_range, and
@@ -429,7 +431,7 @@ class ConfigInputImage(ConfigImage):
         if pars['is_bd_mirror']:
             self.data = utils.boundary_mirror(self.data, self.fov)
             #Modifying the deviation boundaries for the modified dataset
-            self._recalculate_sizes(setsz, outsz)
+            self._recalculate_sizes( outsz )
 
         # preprocessing
         pp_types = config.get(sec_name, 'pp_types').split(',')
@@ -479,19 +481,18 @@ class ConfigOutputLabel(ConfigImage):
     def __init__(self, config, pars, sec_name, setsz, outsz):
         ConfigImage.__init__(self, config, pars, sec_name, setsz, outsz)
         
-        if pars['is_bd_mirror']:
-            self.data = utils.boundary_mirror(self.data, self.fov)
-            #Modifying the deviation boundaries for the modified dataset
-            self._recalculate_sizes(setsz, outsz)
-
         # Affinity preprocessing decreases the output
         # size by one voxel in each dimension, this counteracts
         # that effect
         if 'aff' in pars['out_type']:
             # increase the subvolume size for affinity
             self.patch_shape += 1
-            self.patch_margin_low  = (self.patch_shape-1)/2
-            self.patch_margin_high = self.patch_shape / 2
+            self._recalculate_sizes( outsz )        
+        
+        if pars['is_bd_mirror']:
+            self.data = utils.boundary_mirror(self.data, self.fov)
+            #Modifying the deviation boundaries for the modified dataset
+            self._recalculate_sizes( outsz)
 
         # deal with mask
         self.msk = np.array([])
@@ -529,7 +530,7 @@ class ConfigOutputLabel(ConfigImage):
         # loop through volumes
         for c, pp_type in enumerate(self.pp_types):
             if 'none' == pp_type or 'None'==pp_type:
-		pass
+                pass
 
             elif 'binary_class' == pp_type:
                 self.data = self._binary_class(self.data)
@@ -541,7 +542,7 @@ class ConfigOutputLabel(ConfigImage):
             elif 'aff' in pp_type:
                 # affinity preprocessing handled later
                 # when fetching subvolumes (get_subvolume)
-		pass
+                pass
 
             else:
                 raise NameError( 'invalid preprocessing type' )
@@ -582,7 +583,8 @@ class ConfigOutputLabel(ConfigImage):
 
         Return
         ------
-        arr : 4D array, could be affinity of binary class
+        sublbl : 4D array, could be affinity or binary class
+        submsk : 4D array, mask could contain rebalance weight
         """
         
         sublbl = super(ConfigOutputLabel, self).get_subvolume(dev, rft)
@@ -621,7 +623,7 @@ class ConfigOutputLabel(ConfigImage):
         else:
             return msk*wts
     
-    @autojit
+    @autojit(nopython=True)
     def _msk2affmsk( self, msk ):
         """
         transform binary mask to affinity mask
