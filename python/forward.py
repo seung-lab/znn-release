@@ -153,7 +153,7 @@ def save_sample_outputs(sample_outputs, prefix):
 			num_volumes = dataset.data.shape[0]
 
 			#Consolidated 4d volume
-			emio_imsave(dataset.data,
+			emio.imsave(dataset.data,
 				"{}_sample{}_{}.tif".format(prefix, sample_num,
 								dataset_name))
 
