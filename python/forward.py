@@ -155,13 +155,13 @@ def save_sample_outputs(sample_outputs, prefix):
 			#Consolidated 4d volume
 			emio_imsave(dataset.data,
 				"{}_sample{}_{}.tif".format(prefix, sample_num,
-											dataset_name))
+								dataset_name))
 
 			#Constitutent 3d volumes
 			for i in range( num_volumes ):
 				emio.imsave(dataset.data[i,:,:,:],
 					"{}_sample{}_{}_{}.tif".format(prefix, sample_num, 
-											dataset_name, i))
+									dataset_name, i))
 	
 def main( config_filename ):
 	'''
