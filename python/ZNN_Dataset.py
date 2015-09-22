@@ -237,6 +237,44 @@ class ZNN_Dataset(object):
     def reset(self):
         self.patch_id = 0
 
+    def output_volume_shape(self):
+        '''
+        Determines the full output volume shape for the network given
+        the entire input volume
+        '''
+        return self.volume_shape - self.fov + 1
+
+class ConfigSampleOutput(object):
+
+    def __init__(self, net, output_volume_shape3d, dtype):
+
+        output_patch_shapes = net.get_outputs_setsz()
+
+        self.output_volumes = {}
+        for name, shape in output_patch_shapes.iteritems():
+
+            num_volumes = shape[0]
+
+            volume_shape = np.hstack((num_volumes,output_volume_shape3d)).astype('uint32')
+
+            empty_bin = np.zeros(volume_shape, dtype=dtype)
+
+            self.output_volumes[name] = ZNN_Dataset(empty_bin, shape[-3:], shape[-3:])
+
+    def set_next_patch(self, output):
+
+        for name, data in output.iteritems():
+            self.output_volumes[name].set_next_patch(data)
+        
+    def num_patches(self):
+
+        patch_counts = {}
+
+        for name, dataset in self.output_volumes.iteritems():
+            patch_counts[name] = dataset.num_patches()
+
+        return patch_counts
+
 class ConfigImage(ZNN_Dataset):
     """
     A class which represents a stack of images (up to 4 dimensions)
@@ -780,7 +818,6 @@ class ConfigSample(object):
         lbl = self.outputs.values()[0]
         self.locs = lbl.get_candidate_loc( dev_low, dev_high )
         
-
     def get_random_sample(self):
         '''Fetches a matching random sample from all input and output volumes'''
 
@@ -807,7 +844,37 @@ class ConfigSample(object):
 
         return ( inputs, outputs, msks )
 
-class CSamples:
+    def get_next_patch(self):
+
+        inputs, outputs = {}, {}
+
+        for name, img in self.inputs.iteritems():
+            inputs[name] = img.get_next_patch()
+        for name, img in self.outputs.iteritems():
+            outputs[name] = img.get_next_patch()
+
+        return ( inputs, outputs )
+
+    def output_volume_shape(self):
+
+        shapes = {}
+
+        for name, img in self.inputs.iteritems():
+            shapes[name] = img.output_volume_shape()
+
+        return shapes
+
+    def num_patches(self):
+
+        patch_counts = {}
+
+        for name, img in self.inputs.iteritems():
+            patch_counts[name] = img.num_patches()
+
+        return patch_counts
+
+class CSamples(object):
+
     def __init__(self, config, pars, ids, net, outsz):
         """
         Samples Class - which represents a collection of data samples

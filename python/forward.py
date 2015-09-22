@@ -11,9 +11,9 @@ ZNN Full Forward-Pass Computation
 
  The resulting arrays are then saved to disk by the output_prefix option. 
 
- For example, the output_prefix 'out' would lead to files saved under
- out_1.tif, out_2.tif, etc. for each sample specified within the
- configuration file.
+ For example, the output_prefix 'out' and one data sample would lead to files saved under
+ out_sample1_output_0.tif, out_sample1_output_1.tif, etc. for each sample specified within the
+ configuration file, and each constituent 3d volume of the .
 
  The module also features functions for generating the full output volume
  for a given input np array.
@@ -33,275 +33,136 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 
 import numpy as np
 
-import front_end, netio
+import front_end, netio, utils
 
 from emirt import emio
-from utils import loa_as_continue
 
 #CONSTANTS 
 # (configuration file option names)
 output_prefix_optionname = 'output_prefix'
 range_optionname = 'forward_range'
 outsz_optionname = 'forward_outsz'
-net_optionname = 'forward_net'
-specfile_optionname = 'fnet_spec'
-threads_optionname = 'num_threads'
 
-def correct_output_patch_shape( output_patch_config_shape, net ):
-	'''
-	Returns a 4d version of the output shape array. Always replaces
-	the 4th dimension with the num_output_vols specified
-
-	I doubt this is necessary anymore, but might be useful soon
-	'''
-
-	num_output_vols = net.get_output_num()
-
-	if output_patch_config_shape.size == 4:
-
-		return np.hstack( (num_output_vols, output_patch_config_shape[1:]) )
-
-	elif output_patch_config_shape.size == 3:
-
-		return np.hstack( (num_output_vols, output_patch_config_shape) )
-
-def input_patch_shape( output_patch_shape, fov ):
-	'''Determines the size of the input patch to feed into the network'''
-	if output_patch_shape.size == 3:
-
-		return output_patch_shape + fov - 1
-
-	else: #len == 4
-
-		return np.hstack( (output_patch_shape[0],
-					output_patch_shape[-3:] + fov - 1) )
-
-def output_vol_shape( input_vol_shape, net ):
-	'''
-	Derives the resulting shape of the full volume returned by the 
-	full forward pass
-	'''
-	fov = np.asarray(net.get_fov())
-	num_output_vols = net.get_output_num()
-
-	return np.hstack( (num_output_vols, input_vol_shape[-3:] - fov + 1 ) )
-
-def num_output_patches( output_vol_shape, output_patch_shape ):
-	'''
-	One way to derive the number of output patches in the resulting volume.
-	
-	Mostly used for testing at this point
-
-	Restricts calculation to 3d shape
-	'''
-
-	#3d Shape restriction
-	output_vol_shape = output_vol_shape[-3:]
-	output_patch_shape = output_patch_shape[-3:]
-
-	# # per axis  = dim length / patch length (rounded up)
-	num_per_axis = np.ceil(output_vol_shape / output_patch_shape.astype(np.float64))
-	return int(np.prod(num_per_axis))
-
-def patch_bounds( input_vol_width, output_patch_width, fov_width ):
-	'''
-	Returns the bounds of one axis for a given input volume width and 
-	output patch width
-	'''
-
-	bounds = []
-
-	beginning = 0
-	ending = output_patch_width + fov_width - 1
-
-	while ending < input_vol_width:
-
-		bounds.append(
-			( beginning, ending )
-			)
-
-		beginning += output_patch_width
-		ending += output_patch_width
-
-	#last bound
-	bounds.append(
-		( input_vol_width - (output_patch_width + fov_width - 1), input_vol_width)
-		)
-
-	return bounds
-
-def input_patch_bounds( input_vol_shape, output_patch_shape, fov ):
-	'''
-	Finds the bounds for each input patch given the input volume shape,
-	the network fov, and the output patch shape
-
-	Restricts calculation to 3d shape
-	'''
-
-	#3d Shape restriction
-	input_vol_shape = input_vol_shape[-3:]
-	output_patch_shape = output_patch_shape[-3:]
-
-	#Decomposing into a similar problem for each axis
-	z_bounds = patch_bounds(input_vol_shape[0], output_patch_shape[0], fov[0])
-	y_bounds = patch_bounds(input_vol_shape[1], output_patch_shape[1], fov[1])
-	x_bounds = patch_bounds(input_vol_shape[2], output_patch_shape[2], fov[2])
-
-	#And then recombining the subproblems
-	bounds = []
-	for z in z_bounds:
-		for y in y_bounds:
-			for x in x_bounds:
-				bounds.append(
-						(
-						#beginning for each axis
-						(z[0],y[0],x[0]),
-						#ending for each axis
-						(z[1],y[1],x[1])
-						)
-					)
-
-	return bounds
-	
-def output_patch_bounds( output_vol_shape, output_patch_shape ):
-	'''
-	Finds the bounds for each output patch given the output volume shape
-	and the output patch shape
-	'''
-	#Exact same problem as the input bounds, where the 'fov' is equal to 1
-	# in all dimensions
-	return input_patch_bounds(output_vol_shape, 
-				output_patch_shape, 
-				# default type for ones is float, which converts indices
-				# to floats down the line and causes problems within patch_bounds
-				# (tries to index an array with a float)
-				np.ones(output_patch_shape.shape, dtype='uint32'))
-
-def initialize_output_volume( input_vol_shape, net ):
-	'''Returns an initialized np array for storing full forward pass output'''
-	return np.zeros(output_vol_shape(input_vol_shape, net), dtype=np.float32)
-
-def find_all_bounds( input_vol_shape, output_vol_shape, output_patch_shape, net ):
-	'''Derives all input and output patch bounds for the forward pass windows'''
-
-	fov = np.asarray(net.get_fov())
-
-	input_bounds = input_patch_bounds( input_vol_shape, 
-						output_patch_shape,
-						fov )
-	
-	output_bounds = output_patch_bounds( output_vol_shape,
-						output_patch_shape )
-
-	return input_bounds, output_bounds	
-
-def generate_output_volume( input_vol, output_patch_shape, net, verbose=True ):
-	'''
-	Generates a full output volume for a given input volume - the main 
-	functionality of the module
-
-	The shape of the output patch may be specified in 3d or 4d, but we'll
-	overwrite any 4d specification with the output size of the net anyway
-	'''
-
-	#Making the input volume 4d
-	if len(input_vol.shape) == 3:
-		input_vol = input_vol.reshape( np.hstack((1,input_vol.shape)) )
-
-	output_vol = initialize_output_volume(input_vol.shape, net)
-
-	#Derive bounds of input and output patches
-	input_bounds, output_bounds = find_all_bounds( input_vol.shape, output_vol.shape,
-							output_patch_shape, net )
-
-	num_patches = num_output_patches( output_vol.shape, output_patch_shape )
-
-	#Stupidity checks (so far so good!)
-	assert num_patches == len(output_bounds)
-	assert len( input_bounds ) == len( output_bounds )
-
-	for i in xrange( num_patches ):
-
-		if verbose:
-			print "Output patch #{} out of {}:".format(i+1, num_patches) # i is just an index
-
-		input_beginning = 	input_bounds[i][0]
-		input_end = 		input_bounds[i][1]
-		if verbose:
-			print "Input Volume [{}] to [{}]".format(input_beginning, input_end)
-		
-		input_patch = 		input_vol[ :,
-						input_beginning[0]:input_end[0],
-						input_beginning[1]:input_end[1],
-						input_beginning[2]:input_end[2]]
-
-		output_beginning = 	output_bounds[i][0]
-		output_end = 		output_bounds[i][1]
-		if verbose:
-			print "Output Volume [{}] to [{}]".format(output_beginning, output_end)
-			print ""
-
-		# ACTUALLY RUNNING FORWARD PASS
-		output_patch = net.forward( loa_as_continue(input_patch, dtype='float32') )
-
-		output_vol[ :,
-			output_beginning[0]:output_end[0],
-			output_beginning[1]:output_end[1],
-			output_beginning[2]:output_end[2]] = output_patch
-
-	return output_vol
-
-def save_output_volumes(output_volumes, prefix):
-	'''
-	Writes the resulting output volumes to disk according to the 
-	output_prefix
-	'''
-
-	for i in range(len(output_volumes)):
-		emio.imsave(output_volumes[i].astype('float32'), 
-					"{}_{}.tif".format(prefix,i))
-
-def test(input_patch, output_patch_shape, net):
-	'''Silently generates an output patch for a single input patch'''
-
-	return generate_output_volume(input_patch, output_patch_shape,
-				net, verbose=False)
 
 def config_forward_pass( config_filename, verbose=True ):
 	'''
-	Derives full forward pass for all samples specified within 
-	a config file
+	Performs a full forward pass for all samples specified within 
+	a configuration file
 	'''
 
 	# parameters
 	config, params = front_end.parser( config_filename )
 
-	# read image stacks
-	# Note: preprocessing included within CSamples
-	# See CONSTANTS section above for optionname values
-	sampler = front_end.CSamples( params[range_optionname], config, params ) 
-	input_volumes = sampler.volume_dump()
-
-	output_volumes = []
+	# load network
+	#Debug
+	# net = netio.init_network( params, train=False )
+	net = netio.load_network( params, train=False )
 
 	output_patch_shape = params[outsz_optionname]
 
-	# load network
-	net = netio.load_network(params[net_optionname], 
-					params[specfile_optionname], 
-					params[outsz_optionname], 
-					params[threads_optionname])
+	sample_outputs = {}
+	#Loop over sample range
+	for sample in params[range_optionname]:
 
-	# generating output volumes for each input
-	for input_vol in input_volumes:
+		print "Sample: %d" % sample
 
-		output_volumes.append(
-			generate_output_volume(input_vol, output_patch_shape, net,
-				verbose=verbose)
-			)
+		# read image stacks
+		# Note: preprocessing included within CSamples
+		# See CONSTANTS section above for optionname values
+		Dataset = front_end.ConfigSample(config, params, 
+					sample, net, output_patch_shape )
 
-	return output_volumes
+		sample_outputs[sample] = generate_full_output(Dataset, net, 
+						params['dtype'], verbose=True)
 
+	return sample_outputs
+
+def generate_full_output( Dataset, network, dtype='float32', verbose=True ):
+	'''
+	Performs a full forward pass for a given ConfigSample object (Dataset) and 
+	a given network object.
+	'''
+
+	# Making sure loaded images expect same size output volume
+	output_vol_shapes = Dataset.output_volume_shape()
+	assert output_volume_shape_consistent(output_vol_shapes)
+	output_vol_shape = output_vol_shapes.values()[0]
+
+	Output = front_end.ConfigSampleOutput( network, output_vol_shape, dtype )
+
+	input_num_patches = Dataset.num_patches()
+	output_num_patches = Output.num_patches()
+
+	assert num_patches_consistent(input_num_patches, output_num_patches)
+
+	num_patches = output_num_patches.values()[0]
+
+	for i in xrange( num_patches ):
+
+		if verbose:
+			print "Output patch #{} out of {}".format(i+1, num_patches) # i is just an index
+
+		input_patches, junk = Dataset.get_next_patch()
+
+		vol_ins = utils.make_continuous(input_patches, dtype=dtype)
+
+		output = network.forward( vol_ins )
+
+		Output.set_next_patch( output )
+
+	return Output
+
+def output_volume_shape_consistent( output_vol_shapes ):
+	'''
+	Returns whether the dictionary of output shapes passed to the function
+	contains the same array for each entry
+
+	Here, this encodes whether all of the input volumes agree on the
+	size of the output volume (disagreement is a bad sign...)
+	'''
+	#output_vol_shapes should be a dict
+	shapes = output_vol_shapes.values()
+	assert len(shapes) > 0
+
+	return all( [np.all(shape == shapes[0]) for shape in shapes])
+
+def num_patches_consistent( input_patch_count, output_patch_count ):
+	'''
+	Returns whether the dictionaries of patch counts all agree throughout
+	each entry.
+	'''
+
+	#These should be dicts as well
+	input_counts = input_patch_count.values()
+	output_counts = output_patch_count.values()
+
+	assert len(input_counts) > 0 and len(output_counts) > 0
+
+	return all( [count == input_counts[0] for count in input_counts + output_counts])
+
+def save_sample_outputs(sample_outputs, prefix):
+	'''
+	Writes the resulting output volumes to disk according to the 
+	output_prefix
+	'''
+
+	for sample_num, output in sample_outputs.iteritems():
+
+		for dataset_name, dataset in output.output_volumes.iteritems():
+
+			num_volumes = dataset.data.shape[0]
+
+			#Consolidated 4d volume
+			emio_imsave(dataset.data,
+				"{}_sample{}_{}.tif".format(prefix, sample_num,
+											dataset_name))
+
+			#Constitutent 3d volumes
+			for i in range( num_volumes ):
+				emio.imsave(dataset.data[i,:,:,:],
+					"{}_sample{}_{}_{}.tif".format(prefix, sample_num, 
+											dataset_name, i))
+	
 def main( config_filename ):
 	'''
 	Script functionality - runs config_forward_pass and saves the
@@ -312,7 +173,7 @@ def main( config_filename ):
 
 	print "Saving Output Volumes..."
 	config, params = front_end.parser( config_filename )
-	save_output_volumes( output_volumes, params[output_prefix_optionname] )
+	save_sample_outputs( output_volumes, params[output_prefix_optionname] )
 
 if __name__ == '__main__':
 
