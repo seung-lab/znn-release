@@ -7,7 +7,6 @@ import numpy as np
 # numba accelaration
 #from numba import jit
 
-
 def get_cls(props, lbls):
     """
     compute classification error.
@@ -138,8 +137,6 @@ def multinomial_cross_entropy(props, lbls):
         lbl = lbls[name]
         grdts[name] = prop - lbl
         err = err + np.sum( -lbl * np.log(prop) )
-        
-#        print "gradient: ", grdts[name]
     return (props, err, grdts)
 
 def softmax_loss(props, lbls):
@@ -204,7 +201,8 @@ def malis_weight(affs, true_affs, threshold=0.5):
     ------
     weights : 4D array of weights
     """
-#    seg = segment(true_affs)
+    import emirt
+    seg = emirt.volume_util.seg_aff(true_affs)
     # get affinity graphs
     xaff = affs[2]
     yaff = affs[1]

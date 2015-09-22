@@ -225,7 +225,6 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     name_l,  lbl  = lbl_outs.popitem()
     name_g,  grdt = grdts.popitem()
 
-
     # real time visualization
     plt.subplot(241),   plt.imshow(vol[0,0,:,:],    interpolation='nearest', cmap='gray')
     plt.xlabel('input')
