@@ -633,8 +633,6 @@ class ConfigOutputLabel(ConfigImage):
         aff_size = np.asarray(lbl.shape)-1
         aff_size[0] = 3
 
-        if np.any( aff_size<0 ):
-            print "oh, affinity size is less than 0!"
         aff = np.zeros( tuple(aff_size) , dtype=self.pars['dtype'])
 
         #x-affinity
