@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pylab as plt
 
 import cost_fn
-from ZNN_Dataset import CSamples, ConfigSample, ZNN_Dataset
+from ZNN_Dataset import CSamples, ConfigSample, ZNN_Dataset, ConfigSampleOutput
 
 def parseIntSet(nputstr=""):
     """
