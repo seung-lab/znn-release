@@ -202,7 +202,11 @@ def malis_weight(affs, true_affs, threshold=0.5):
     weights : 4D array of weights
     """
     import emirt
-    seg = emirt.volume_util.seg_aff(true_affs)
+#    seg = emirt.volume_util.seg_aff(true_affs)
+    if isinstance(affs, dict):
+        assert( len(affs.keys())==1 )
+        key = affs.keys()[0]
+        affs = affs.values()[0]
     # get affinity graphs
     xaff = affs[2]
     yaff = affs[1]
@@ -234,7 +238,6 @@ def malis_weight(affs, true_affs, threshold=0.5):
     edges.sort(reverse=True)
 
     # find the maximum-spanning tree based on union-find algorithm
-    import emirt
     weights = np.zeros( np.hstack((affs.shape[0], xaff.size)), dtype=affs.dtype )
     for e in edges:
         # find operation with path compression
@@ -255,7 +258,10 @@ def malis_weight(affs, true_affs, threshold=0.5):
     N = float(N)
     weights = weights * (3*N) / ( N*(N-1)/2 )
     weights = weights.reshape( affs.shape )
-    return weights
+    # transform to dictionary
+    ret = dict()
+    ret[key] = weights
+    return ret
 
 def sparse_cost(outputs, labels, cost_fn):
     """

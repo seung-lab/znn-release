@@ -40,8 +40,6 @@ def main( conf_file='config.cfg' ):
     print "\n\ncreate test samples..."
     smp_tst = front_end.CSamples(config, pars, pars['test_range'],  net, outsz)
 
-    
-
     # initialization
     err = 0;
     cls = 0;
@@ -117,7 +115,7 @@ def main( conf_file='config.cfg' ):
                 plt.xlabel('rebalance weight')
             if pars['is_visual'] and pars['is_malis']:
                 plt.subplot(248)
-                plt.imshow(np.log(malis_weights[0][0,:,:]), interpolation='nearest', cmap='gray')
+                plt.imshow(np.log(malis_weights.values()[0][0,0,:,:]), interpolation='nearest', cmap='gray')
                 plt.xlabel('malis weight (log)')
             # reset err and cls
             err = 0
