@@ -176,7 +176,26 @@ def softmax_loss2(props, lbls):
 #def hinge_loss(props, lbls):
 # TO-DO
 
-#@jit(nopython=True)
+def uion_id_sets(id_sets, r1, r2):
+    if id_sets.has_key(r1):
+        set1 = id_sets[r1]
+    else:
+        set1 = {r1}
+    if id_sets.has_key(r2):
+        set2 = id_sets[r2]
+    else:
+        set2 = {r2}
+
+    if set1.size() > set2.size():
+        # merge the small set to big set
+        id_sets[r1] = set1.add( set2 )
+        # remove the small set in dict
+        id_sets.pop(r2)
+    else:
+        id_sets[r2] = set2.add( set1 )
+        id_sets.pop(r1)
+    return id_sets
+
 # TO-DO, not fully implemented
 def malis_weight(affs, true_affs, threshold=0.5):
     """
@@ -193,6 +212,10 @@ def malis_weight(affs, true_affs, threshold=0.5):
     weights : 4D array of weights
     """
     import emirt
+    # segment the true affinity graph
+    tseg = emirt.volume_util.seg_affs(true_affs)
+    tid_sets, tsegf = emirt.volume_util.map_set( seg )
+
     if isinstance(affs, dict):
         assert( len(affs.keys())==1 )
         key = affs.keys()[0]
@@ -230,20 +253,23 @@ def malis_weight(affs, true_affs, threshold=0.5):
 
     # find the maximum-spanning tree based on union-find algorithm
     weights = np.zeros( np.hstack((affs.shape[0], xaff.size)), dtype=affs.dtype )
+    # the dict set containing all the sets
+    id_sets = dict()
     for e in edges:
         # find operation with path compression
         r1,seg = emirt.volume_util.find_root(e[1], seg)
         r2,seg = emirt.volume_util.find_root(e[2], seg)
 
-        if r1!=r2:
+        if r1!=r2 and e[0]>threshold:
             # not in a same set, this a maximin edge
-            # get the size of two sets/trees
-            s1 = tree_size[r1-1]
-            s2 = tree_size[r2-1]
             # accumulate weightsg
             weights[e[3], r1-1] = weights[e[3],r1-1] + s1*s2
             # merge the two sets/trees
-            seg, tree_size = emirt.volume_util.union_tree(r1, r2, seg, tree_size)
+
+        elif r1==r2 and e[0]<threshold:
+            # in a same set, but the affinity is low
+
+
     # normalize the weights
     N = float(N)
     weights = weights * (3*N) / ( N*(N-1)/2 )
