@@ -10,21 +10,21 @@ import numpy as np
 def get_cls(props, lbls):
     """
     compute classification error.
-    
+
     Parameters
     ----------
     props : dict of array, network propagation output volumes.
-    lbls  : dict of array, ground truth 
-    
+    lbls  : dict of array, ground truth
+
     Returns
     -------
     c : number of classification error
     """
     c = 0.0
     for name, prop in props.iteritems():
-        lbl = lbls[name]            
+        lbl = lbls[name]
         c = c + np.count_nonzero( (prop>0.5)!= lbl )
-        
+
     return c
 
 #@jit(nopython=True)
@@ -50,9 +50,9 @@ def square_loss(props, lbls):
         # cost and classification error
         err = err + np.sum( grdt * grdt )
         grdts[name] = grdt * 2
-        
-        print "gradient: ", grdts[name]        
-        
+
+        print "gradient: ", grdts[name]
+
     return (props, err, grdts)
 
 #@jit(nopython=True)
@@ -100,20 +100,19 @@ def softmax(props):
 #        prop = prop - np.max(prop)
         propmax = np.max(prop, axis=0)
         prop[0,:,:,:] -= propmax
-        prop[1,:,:,:] -= propmax  
-        
+        prop[1,:,:,:] -= propmax
+
 #        log_softmax = np.empty(prop.shape, dtype='float32')
 #        log_softmax[0,:,:,:] = prop[0,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
 #        log_softmax[1,:,:,:] = prop[1,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
-#        
+#
 #        ret[name] = np.exp( log_softmax )
-        
+
         prop = np.exp(prop)
         pesum = np.sum(prop, axis=0)
         ret[name] = np.empty(prop.shape, dtype=prop.dtype)
         for c in xrange(prop.shape[0]):
             ret[name][c,:,:,:] = prop[c,:,:,:] / pesum
-        
     return ret
 
 def multinomial_cross_entropy(props, lbls):
@@ -140,35 +139,27 @@ def multinomial_cross_entropy(props, lbls):
     return (props, err, grdts)
 
 def softmax_loss(props, lbls):
-#    for name, prop in props.iteritems():
-#        print "prop before softmax: ", prop
-#        assert(not np.any(np.isnan(prop)))
-        
     props = softmax(props)
-    
-#    for name, prop in props.iteritems():
-#        print "prop after softmax: ", prop
-#        assert(not np.any(np.isnan(prop)))
     return multinomial_cross_entropy(props, lbls)
-    
+
 def softmax_loss2(props, lbls):
     grdts = dict()
     err = 0
-    
+
     for name, prop in props.iteritems():
         # make sure that it is the output of binary class
         assert(prop.shape[0]==2)
-        
-        print "original prop: ", prop        
-        
+
+        print "original prop: ", prop
+
         # rebase the prop for numerical stabiligy
         # mathimatically, this do not affect the softmax result!
         # http://ufldl.stanford.edu/tutorial/supervised/SoftmaxRegression/
 #        prop = prop - np.max(prop)
         propmax = np.max(prop, axis=0)
         prop[0,:,:,:] -= propmax
-        prop[1,:,:,:] -= propmax        
-        
+        prop[1,:,:,:] -= propmax
+
         log_softmax = np.empty(prop.shape, dtype=prop.dtype)
         log_softmax[0,:,:,:] = prop[0,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
         log_softmax[1,:,:,:] = prop[1,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
@@ -202,7 +193,9 @@ def malis_weight(affs, true_affs, threshold=0.5):
     weights : 4D array of weights
     """
     import emirt
-#    seg = emirt.volume_util.seg_aff(true_affs)
+    # segment the true affinity graph
+    seg = emirt.volume_util.seg_aff(true_affs)
+
     if isinstance(affs, dict):
         assert( len(affs.keys())==1 )
         key = affs.keys()[0]
@@ -251,7 +244,6 @@ def malis_weight(affs, true_affs, threshold=0.5):
             s2 = tree_size[r2-1]
             # accumulate weights
             weights[e[3], r1-1] = weights[e[3],r1-1] + s1*s2
-#            print "s1: %d, s2: %d"%(s1,s2)
             # merge the two sets/trees
             seg, tree_size = emirt.volume_util.union_tree(r1, r2, seg, tree_size)
     # normalize the weights

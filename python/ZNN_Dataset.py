@@ -392,7 +392,7 @@ class ConfigImage(ZNN_Dataset):
             vol = emirt.emio.imread(fl).astype(self.pars['dtype'])
             if vol.dtype=='uint8' and vol.shape[3]==3:
                 # read the VAST output RGB images
-                vol = vol.astpye('uint32')
+                vol = vol.astype('uint32')
                 vol = vol[:,:,:,0]*256*256 + vol[:,:,:,1]*256 + vol[:,:,:,2]
             ret.append( vol )
         return ret
