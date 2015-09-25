@@ -193,9 +193,6 @@ def malis_weight(affs, true_affs, threshold=0.5):
     weights : 4D array of weights
     """
     import emirt
-    # segment the true affinity graph
-    seg = emirt.volume_util.seg_aff(true_affs)
-
     if isinstance(affs, dict):
         assert( len(affs.keys())==1 )
         key = affs.keys()[0]
@@ -207,8 +204,9 @@ def malis_weight(affs, true_affs, threshold=0.5):
     shape = xaff.shape
 
     # initialize segmentation with individual label of each voxel
-    N = xaff.size
-    ids = np.arange(1, N+1).reshape( xaff.shape )
+    seg_shp = np.asarray(xaff.shape)+1
+    N = np.prod( seg_shp )
+    ids = np.arange(1, N+1).reshape( seg_shp )
     seg = np.copy( ids ).flatten()
     tree_size = np.ones( seg.shape ).flatten()
 
@@ -242,7 +240,7 @@ def malis_weight(affs, true_affs, threshold=0.5):
             # get the size of two sets/trees
             s1 = tree_size[r1-1]
             s2 = tree_size[r2-1]
-            # accumulate weights
+            # accumulate weightsg
             weights[e[3], r1-1] = weights[e[3],r1-1] + s1*s2
             # merge the two sets/trees
             seg, tree_size = emirt.volume_util.union_tree(r1, r2, seg, tree_size)
