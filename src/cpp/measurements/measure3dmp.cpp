@@ -34,7 +34,7 @@ int main(int argc, char** argv)
         else
         {
             edges[i].push("name", i).push("type", "conv").push("init", "uniform")
-                .push("size", "5,5,5").push("stride", "1,1,1")
+                .push("size", "3,3,3").push("stride", "1,1,1")
                 .push("input", i-1).push("output",i);
             nodes[i+1].push("name",i).push("type","transfer")
                 .push("function","rectify_linear").push("size",W);
@@ -44,7 +44,7 @@ int main(int argc, char** argv)
     edges[0].push("input","input");
     edges[D-1].push("output","output");
     nodes[D].push("name","output");
-    nodes[D].push("size","3");
+    nodes[D].push("size","1");
 
     int64_t x = 9;
     int64_t y = 9;
