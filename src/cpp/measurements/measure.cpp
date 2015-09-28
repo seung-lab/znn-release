@@ -40,21 +40,34 @@ int main(int argc, char** argv)
         nrnds = atoi(argv[6]);
     }
 
+    size_t min_threads = 1;
+
+    if ( argc >= 8 )
+    {
+        min_threads = atoi(argv[7]);
+    }
+
     size_t max_threads = 240;
 
-    std::vector<double> speeds(max_threads+1);
+    if ( argc >= 9 )
+    {
+        max_threads = atoi(argv[8]);
+    }
 
-    for ( int i = 18; i <= max_threads; ++i )
+
+    double speed = 1e32;
+
+    for ( int i = min_threads; i <= max_threads; ++i )
     {
         auto res = parallel_network::network::speed_test
             (nodes, edges, {z,y,x}, i, nrnds, warmup);
 
-        speeds[i] = res.first;
+        speed = std::min(speed, res.first);
 
         std::cout << i << ", "
                   << res.first << ", " << res.second
                   << " ( " << ( res.second * 100  / res.first ) << "% )"
                   << ";" << std::endl
-                  << "____SPEEDUP: " << ( speeds[1] / speeds[i] ) << std::endl;
+                  << "____BEST: " << speed << std::endl;
     }
 }
