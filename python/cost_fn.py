@@ -51,8 +51,6 @@ def square_loss(props, lbls):
         err = err + np.sum( grdt * grdt )
         grdts[name] = grdt * 2
 
-        print "gradient: ", grdts[name]
-
     return (props, err, grdts)
 
 #@jit(nopython=True)
@@ -176,7 +174,30 @@ def softmax_loss2(props, lbls):
 #def hinge_loss(props, lbls):
 # TO-DO
 
-def uion_id_sets(id_sets, r1, r2):
+
+def malis_find(sid, seg):
+    """
+    find the root/segment id
+    """
+    return seg[sid-1]
+
+def malis_uion(r1, r2, seg, id_sets):
+    """
+    union the two sets, keep the "tree" update.
+
+    parameters
+    ----------
+    r1, r2 : segment id of two sets
+    seg : 1d array, record the segment id of all the segments
+    id_sets : dict, key is the root/segment id
+                    value is a set of voxel ids.
+
+    returns
+    -------
+    seg :
+    id_sets
+    """
+
     if id_sets.has_key(r1):
         set1 = id_sets[r1]
     else:
@@ -186,15 +207,18 @@ def uion_id_sets(id_sets, r1, r2):
     else:
         set2 = {r2}
 
-    if set1.size() > set2.size():
+    if set1.size() < set2.size():
         # merge the small set to big set
-        id_sets[r1] = set1.add( set2 )
-        # remove the small set in dict
-        id_sets.pop(r2)
-    else:
-        id_sets[r2] = set2.add( set1 )
-        id_sets.pop(r1)
-    return id_sets
+        # exchange the two sets
+        r1, r2 = r2, r1
+        set1, set2 = set2, set1
+    id_sets[r1] = set1.add( set2 )
+    # update the tree
+    for vid in set2:
+        seg[vid-1] = r1
+    # remove the small set in dict
+    id_sets.pop(r2)
+    return seg, id_sets
 
 # TO-DO, not fully implemented
 def malis_weight(affs, true_affs, threshold=0.5):
@@ -231,11 +255,9 @@ def malis_weight(affs, true_affs, threshold=0.5):
     N = np.prod( seg_shp )
     ids = np.arange(1, N+1).reshape( seg_shp )
     seg = np.copy( ids ).flatten()
-    tree_size = np.ones( seg.shape ).flatten()
 
     # initialize edges: aff, id1, id2, z/y/x, true_aff
     edges = list()
-
     for z in xrange(shape[0]):
         for y in xrange(shape[1]):
             for x in xrange(1,shape[2]):
@@ -252,31 +274,43 @@ def malis_weight(affs, true_affs, threshold=0.5):
     edges.sort(reverse=True)
 
     # find the maximum-spanning tree based on union-find algorithm
-    weights = np.zeros( np.hstack((affs.shape[0], xaff.size)), dtype=affs.dtype )
+    weights = np.zeros( affs.shape, dtype=affs.dtype )
     # the dict set containing all the sets
     id_sets = dict()
-    for e in edges:
-        # find operation with path compression
-        r1,seg = emirt.volume_util.find_root(e[1], seg)
-        r2,seg = emirt.volume_util.find_root(e[2], seg)
+    # initialize the id sets
+    for i in xrange(1,N+1):
+        id_sets[i] = i
 
-        if r1!=r2 and e[0]>threshold:
-            # not in a same set, this a maximin edge
-            # accumulate weightsg
+    # accumulate the malis weights
+    amw = 0
+
+    # union find the sets
+    for e in edges:
+        # find the segment/root id
+        r1 = malis_find(e[1], seg)
+        r2 = malis_find(e[2], seg)
+
+        if r1==r2:
+            # this is not a maximin edge
+            continue
+
+        if e[0]>threshold:
+            # merge two sets, the voxel pairs not in a segments are errors
             weights[e[3], r1-1] = weights[e[3],r1-1] + s1*s2
             # merge the two sets/trees
 
-        elif r1==r2 and e[0]<threshold:
-            # in a same set, but the affinity is low
+        else:
+        # do not merge, the voxel pairs in a same segments are errors
+            print "dp "
 
 
     # normalize the weights
-    N = float(N)
-    weights = weights * (3*N) / ( N*(N-1)/2 )
-    weights = weights.reshape( affs.shape )
+    #N = float(N)
+    #weights = weights * (3*N) / ( N*(N-1)/2 )
+    #weights = weights.reshape( affs.shape )
     # transform to dictionary
     ret = dict()
-    ret[key] = weights
+    #ret[key] = weights
     return ret
 
 def sparse_cost(outputs, labels, cost_fn):
