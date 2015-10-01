@@ -74,7 +74,15 @@ def config_forward_pass( config_filename, verbose=True ):
 
 		sample_outputs[sample] = generate_full_output(Dataset, net, 
 						params['dtype'], verbose=True)
-
+		
+		# softmax if using softmax_loss
+		if 'softmax' in params['cost_fn_str']:
+			from cost_fn import softmax
+			for dname, dataset in sample_outputs[sample].output_volumes.iteritems():
+				props = {'dataset':dataset.data}
+				props = softmax(props)
+				dataset.data = props.values()[0]
+				sample_outputs[sample].output_volumes[dname] = dataset
 	return sample_outputs
 
 def generate_full_output( Dataset, network, dtype='float32', verbose=True ):
