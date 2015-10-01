@@ -62,9 +62,9 @@ def main( conf_file='config.cfg' ):
 
         # forward pass
         vol_ins = utils.make_continuous(vol_ins, dtype=pars['dtype'])
-        
+
         props = net.forward( vol_ins )
-        
+
         # cost function and accumulate errors
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs )
         err = err + cerr
@@ -72,7 +72,7 @@ def main( conf_file='config.cfg' ):
 
         # mask process the gradient
         grdts = utils.dict_mul(grdts, msks)
-        
+
         # run backward pass
         grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
         net.backward( grdts )
@@ -129,7 +129,7 @@ def main( conf_file='config.cfg' ):
             netio.save_network(net, pars['train_save_net'], num_iters=i)
             utils.save_statistics( pars, it_list, err_list, cls_list,\
                                     titr_list, terr_list, tcls_list)
-        
+
 
 
 if __name__ == '__main__':
