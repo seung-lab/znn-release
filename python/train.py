@@ -27,6 +27,9 @@ def main( conf_file='config.cfg' ):
     else:
         print "initializing network..."
         net = netio.init_network( pars )
+    # show field of view
+    print "field of view: ", net.get_fov()
+
     # number of output voxels
     print 'setting up the network...'
     vn = utils.get_total_num(net.get_outputs_setsz())
