@@ -41,8 +41,9 @@ def main( conf_file='config.cfg' ):
     smp_tst = front_end.CSamples(config, pars, pars['test_range'],  net, outsz)
 
     # initialization
-    err = 0;
-    cls = 0;
+    elapsed = 0
+    err = 0
+    cls = 0
     err_list = list()
     cls_list = list()
     it_list = list()
@@ -101,7 +102,8 @@ def main( conf_file='config.cfg' ):
 
             # time
             elapsed = time.time() - start
-            print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s, learning rate: %.6f"\
+            elapsed = elapsed / pars['Num_iter_per_show']
+            print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s/iter, learning rate: %.6f"\
                     %(i, err, cls, elapsed, eta )
 
             if pars['is_visual']:
@@ -128,7 +130,7 @@ def main( conf_file='config.cfg' ):
             print "save network"
             netio.save_network(net, pars['train_save_net'], num_iters=i)
             utils.save_statistics( pars, it_list, err_list, cls_list,\
-                                    titr_list, terr_list, tcls_list)
+                                    titr_list, terr_list, tcls_list, elapsed)
 
 
 

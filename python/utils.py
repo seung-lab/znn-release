@@ -47,13 +47,13 @@ def data_aug_transform(data, rft):
 def _mirror2d( im, bf, fov ):
     """
     mirror image in 2D
-    
+
     Parameters
     ----------
     im : 2D array
     bf : buffer for mirrored image
     fov : 2D vector
-    
+
     Returns
     -------
     bf : mirrored buffer
@@ -64,30 +64,30 @@ def _mirror2d( im, bf, fov ):
     l = (fov-1)/2
     b = bsz - (fov/2)
     i = isz - (fov/2)
-    
+
     # 4 edges
     bf[:l[0], l[1]:b[1]] = im[:l[0], :][::-1, :]
     bf[l[0]:b[0], :l[1]] = im[:, :l[1]][:, ::-1]
-    
+
     bf[b[0]:, l[1]:b[1]] = im[i[0]:, :][::-1, :]
     bf[l[0]:b[0], b[1]:] = im[:, i[1]:][:, ::-1]
-    
+
     # 4 corners
     bf[:l[0], :l[1]] = im[:l[0], :l[1]][::-1,::-1]
     bf[b[0]:, b[1]:] = im[i[0]:, i[1]:][::-1,::-1]
     bf[:l[0], b[1]:] = im[:l[0], i[1]:][::-1,::-1]
     bf[b[0]:, :l[1]] = im[i[0]:, :l[1]][::-1,::-1]
     return bf
-    
+
 def boundary_mirror( arr, fov ):
     """
     mirror the boundary for each 3d array
-    
+
     Parameters
     ----------
     arr : 4D array.
     fov : vector with 3 int number, field of view.
-    
+
     Return
     ------
     ret : expanded 4D array with mirrored boundary
@@ -102,7 +102,7 @@ def boundary_mirror( arr, fov ):
     bfsz[1:] += fov-1
     # initialize the buffer
     bf = np.zeros(tuple(bfsz), dtype=arr.dtype)
-    
+
     # low and high of fov
     l = (fov-1)/2
     b = bfsz[1:] - fov/2
@@ -115,7 +115,7 @@ def boundary_mirror( arr, fov ):
             bf[c,:,y+l[1],:] = _mirror2d(arr[c, :, y, :], bf[c,:,y+l[1],:], fov[0:3:2])
         for x in xrange(arr.shape[3]):
             bf[c,:,:,x+l[2]] = _mirror2d(arr[c, :, :, x], bf[c,:,:,x+l[2]], fov[:2])
-            
+
         # repeat mirroring z sections for filling 8 corners
         for z in xrange(l[0]):
             bf[c,z,:,:] = _mirror2d(bf[c, z, l[1]:b[1], l[2]:b[2]], bf[c,z,:,:], fov[1:])
@@ -181,7 +181,7 @@ def dict_mul(das,dbs):
     return ret
 
 def save_statistics( pars, it_list, err_list, cls_list,\
-                        titr_list, terr_list, tcls_list):
+                        titr_list, terr_list, tcls_list, elapsed):
     # get filename
     fname = pars['train_save_net']
     import os
@@ -199,6 +199,7 @@ def save_statistics( pars, it_list, err_list, cls_list,\
     f.create_dataset('test/it',   data=titr_list)
     f.create_dataset('test/err',  data=terr_list)
     f.create_dataset('test/cls',  data=tcls_list)
+    f.create_dataset('elapsed',   data=elapsed)
     f.close()
 
     # move to new name
