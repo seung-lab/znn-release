@@ -39,5 +39,5 @@ fnames = ../dataset/ISBI2012/test-volume.tif
 pp_types = standard2D
 is_auto_crop = yes
 
-[ sample2 ]
+[sample2]
 input = 2

@@ -8,10 +8,9 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 """
 
 import ConfigParser
-
 import numpy as np
 import matplotlib.pylab as plt
-
+import os
 import cost_fn
 from ZNN_Dataset import CSamples, ConfigSample, ZNN_Dataset, ConfigSampleOutput
 
@@ -147,6 +146,7 @@ def parser( conf_fname ):
 
 
     if 'fdata_spec' in pars.keys():
+        assert( os.path.exists( pars['fdata_spec'] ) )
         config.read( pars['fdata_spec'] )
     # checking and automatically correcting parameters
     config, pars = check_config(config, pars)
