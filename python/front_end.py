@@ -72,6 +72,9 @@ def parser( conf_fname ):
     #GENERAL OPTIONS
     #Network specification filename
     pars['fnet_spec']   = config.get('parameters', 'fnet_spec')
+    if config.has_option('parameters', 'fdata_spec'):
+        pars['fdata_spec'] = config.get('parameters', 'fdata_spec')
+
     #Number of threads to use
     pars['num_threads'] = int( config.get('parameters', 'num_threads') )
     # data type
@@ -142,6 +145,8 @@ def parser( conf_fname ):
     pars['output_prefix'] = config.get('parameters', 'output_prefix')
 
 
+    if 'fdata_spec' in pars.keys:
+        config.read( pars['fdata_spec'] )
     # checking and automatically correcting parameters
     config, pars = check_config(config, pars)
 
