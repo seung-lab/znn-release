@@ -146,7 +146,7 @@ def parser( conf_fname ):
     pars['output_prefix'] = config.get('parameters', 'output_prefix')
 
 
-    if 'fdata_spec' in pars.keys:
+    if 'fdata_spec' in pars.keys():
         config.read( pars['fdata_spec'] )
     # checking and automatically correcting parameters
     config, pars = check_config(config, pars)
@@ -233,7 +233,6 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     '''
     name_in, vol  = vol_ins.popitem()
     name_p,  prop = props.popitem()
-fatal: Pathspec 'emirt/LICENSE' is in submodule''    name_l,  lbl  = lbl_outs.popitem()
     name_g,  grdt = grdts.popitem()
 
     # real time visualization

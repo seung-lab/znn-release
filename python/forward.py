@@ -45,49 +45,43 @@ outsz_optionname = 'forward_outsz'
 
 
 def config_forward_pass( config_filename, verbose=True, sample_ids=None ):
-	'''
-	Performs a full forward pass for all samples specified within
-	a configuration file
-	'''
-
-	# parameters
-	config, params = front_end.parser( config_filename )
-
+    '''
+    Performs a full forward pass for all samples specified within
+    a configuration file
+    '''
+    # parameters
+    config, params = front_end.parser( config_filename )
     # set command line sample ids
     if sample_ids is not None:
         params[range_optionname] = sample_ids
 
-	# load network
-	#Debug
-	# net = netio.init_network( params, train=False )
-	net = netio.load_network( params, train=False )
+    # load network
+    #Debug
+    # net = netio.init_network( params, train=False )
+    net = netio.load_network( params, train=False )
+    output_patch_shape = params[outsz_optionname]
+    sample_outputs = {}
+    #Loop over sample range
+    for sample in params[range_optionname]:
+        print "Sample: %d" % sample
 
-	output_patch_shape = params[outsz_optionname]
+        # read image stacks
+        # Note: preprocessing included within CSamples
+        # See CONSTANTS section above for optionname values
+        Dataset = front_end.ConfigSample(config, params,
+                                         sample, net, output_patch_shape )
 
-	sample_outputs = {}
-	#Loop over sample range
-	for sample in params[range_optionname]:
-
-		print "Sample: %d" % sample
-
-		# read image stacks
-		# Note: preprocessing included within CSamples
-		# See CONSTANTS section above for optionname values
-		Dataset = front_end.ConfigSample(config, params,
-					sample, net, output_patch_shape )
-
-		sample_outputs[sample] = generate_full_output(Dataset, net,
+        sample_outputs[sample] = generate_full_output(Dataset, net,
 						params['dtype'], verbose=True)
-
-		# softmax if using softmax_loss
-		if 'softmax' in params['cost_fn_str']:
-			from cost_fn import softmax
-			for dname, dataset in sample_outputs[sample].output_volumes.iteritems():
-				props = {'dataset':dataset.data}
-				props = softmax(props)
-				dataset.data = props.values()[0]
-				sample_outputs[sample].output_volumes[dname] = dataset
-	return sample_outputs
+        # softmax if using softmax_loss
+        if 'softmax' in params['cost_fn_str']:
+            from cost_fn import softmax
+            for dname, dataset in sample_outputs[sample].output_volumes.iteritems():
+                props = {'dataset':dataset.data}
+                props = softmax(props)
+                dataset.data = props.values()[0]
+                sample_outputs[sample].output_volumes[dname] = dataset
+    return sample_outputs
 
 def generate_full_output( Dataset, network, dtype='float32', verbose=True ):
 	'''
@@ -175,19 +169,19 @@ def save_sample_outputs(sample_outputs, prefix):
 					"{}_sample{}_{}_{}.tif".format(prefix, sample_num,
 									dataset_name, i))
 
-def main( config_filename,sample_ids=None ):
-	'''
-	Script functionality - runs config_forward_pass and saves the
-	output volumes
-	'''
+def main( config_filename, sample_ids=None ):
+    '''
+    Script functionality - runs config_forward_pass and saves the
+    output volumes
+    '''
     if sample_ids is None:
         output_volumes = config_forward_pass( config_filename, verbose=True )
     else:
-        output_volumes = config_forward_pass( config_filename, verbose=True, sample_ids)
+        output_volumes = config_forward_pass( config_filename, verbose=True, sample_ids=sample_ids)
 
-	print "Saving Output Volumes..."
-	config, params = front_end.parser( config_filename )
-	save_sample_outputs( output_volumes, params[output_prefix_optionname] )
+    print "Saving Output Volumes..."
+    config, params = front_end.parser( config_filename )
+    save_sample_outputs( output_volumes, params[output_prefix_optionname] )
 
 if __name__ == '__main__':
     """
@@ -201,6 +195,6 @@ if __name__ == '__main__':
         main( argv[1] )
     elif len(argv)>=2:
         sample_ids = front_end.parseIntSet(argv[2])
-        main( argv[1], argv[2] )
+        main( argv[1], sample_ids )
     else:
         main('config.cfg')
