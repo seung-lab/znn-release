@@ -110,7 +110,7 @@ class ZNN_Dataset(object):
     def _check_patch_bounds(self):
 
         if self.patch_bounds is None:
-            print "Calculating patch bounds"
+            print "Calculating patch bounds..."
             self._calculate_patch_bounds()
             print "Done"
 
@@ -793,7 +793,7 @@ class ConfigSample(object):
             imid = config.getint(sec_name, name)
             imsec_name = "image%d" % (imid,)
             
-            self.inputs[name] = ConfigInputImage(  config, pars, imsec_name, setsz, outsz )
+            self.inputs[name] = ConfigInputImage( config, pars, imsec_name, setsz, outsz )
             low, high = self.inputs[name].get_dev_range()
 
             # Deviation bookkeeping
@@ -804,6 +804,10 @@ class ConfigSample(object):
         print "\ncreate label image class..."
         self.outputs = dict()
         for name, setsz in setsz_outs.iteritems():
+
+            #Allowing for users to abstain from specifying labels
+            if not config.has_option(sec_name, name):
+                continue
 
             #Finding the section of the config file
             imid = config.getint(sec_name, name)
@@ -817,8 +821,12 @@ class ConfigSample(object):
             dev_low  = np.maximum( dev_low , low  )
 
         # find the candidate central locations of sample
-        lbl = self.outputs.values()[0]
-        self.locs = lbl.get_candidate_loc( dev_low, dev_high )
+        if len(self.outputs) > 0:
+            lbl = self.outputs.values()[0] # this seems like a hack, don't quite understand
+            self.locs = lbl.get_candidate_loc( dev_low, dev_high )
+        else:
+            print "\nWARNING: No output volumes defined!\n"
+            self.locs = None
         
     def get_random_sample(self):
         '''Fetches a matching random sample from all input and output volumes'''
