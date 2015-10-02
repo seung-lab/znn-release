@@ -11,6 +11,8 @@ import netio
 import cost_fn
 import test
 import utils
+import zstatistics
+import os
 
 def main( conf_file='config.cfg' ):
     #%% parameters
@@ -21,12 +23,17 @@ def main( conf_file='config.cfg' ):
     outsz = pars['train_outsz']
     print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
 
-    if pars['train_load_net']:
+    if pars['train_load_net'] and os.path.exists(pars['train_load_net']):
         print "loading network..."
         net = netio.load_network( pars )
+        # load existing learning curve
+        lc = zstatistics.CLearnCurve( pars['train_load_net'] )
     else:
         print "initializing network..."
         net = netio.init_network( pars )
+        # initalize a learning curve
+        lc = zstatistics.CLearnCurve()
+
     # show field of view
     print "field of view: ", net.get_fov()
 
@@ -47,13 +54,6 @@ def main( conf_file='config.cfg' ):
     elapsed = 0
     err = 0
     cls = 0
-    err_list = list()
-    cls_list = list()
-    it_list = list()
-
-    terr_list = list()
-    tcls_list = list()
-    titr_list = list()
 
     # interactive visualization
     plt.ion()
@@ -61,7 +61,9 @@ def main( conf_file='config.cfg' ):
 
     print "start training..."
     start = time.time()
-    for i in xrange(1, pars['Max_iter'] ):
+    iter_start = lc.get_last_it()
+    print "start from ", iter_start
+    for i in xrange(lc.get_last_it(), pars['Max_iter'] ):
         vol_ins, lbl_outs, msks = smp_trn.get_random_sample()
 
         # forward pass
@@ -87,9 +89,7 @@ def main( conf_file='config.cfg' ):
 
         if i%pars['Num_iter_per_test']==0:
             # test the net
-            terr_list, tcls_list = test.znn_test(net, pars, smp_tst,\
-                                            vn, terr_list, tcls_list)
-            titr_list.append(i)
+            lc = test.znn_test(net, pars, smp_tst, vn, i, lc)
 
         if i%pars['Num_iter_per_show']==0:
             # anneal factor
@@ -98,10 +98,7 @@ def main( conf_file='config.cfg' ):
             # normalize
             err = err / vn / pars['Num_iter_per_show']
             cls = cls / vn / pars['Num_iter_per_show']
-
-            err_list.append( err )
-            cls_list.append( cls )
-            it_list.append( i )
+            lc.append_train(i, err, cls)
 
             # time
             elapsed = time.time() - start
@@ -111,9 +108,7 @@ def main( conf_file='config.cfg' ):
 
             if pars['is_visual']:
                 # show results To-do: run in a separate thread
-                front_end.inter_show(start, i, err, cls, it_list, err_list, cls_list, \
-                                        titr_list, terr_list, tcls_list, \
-                                        eta, vol_ins, props, lbl_outs, grdts, pars)
+                front_end.inter_show(start, lc, eta, vol_ins, props, lbl_outs, grdts, pars)
             if pars['is_visual'] and pars['is_rebalance'] and 'aff' not in pars['out_type']:
                 plt.subplot(247)
                 plt.imshow(msks.values()[0][0,0,:,:], interpolation='nearest', cmap='gray')
@@ -132,12 +127,14 @@ def main( conf_file='config.cfg' ):
             # save network
             print "save network"
             netio.save_network(net, pars['train_save_net'], num_iters=i)
-            utils.save_statistics( pars, it_list, err_list, cls_list,\
-                                    titr_list, terr_list, tcls_list, elapsed)
-
-
+            lc.save( pars, elapsed )
 
 if __name__ == '__main__':
+    """
+    usage:
+    ------
+    python train.py path/to/config.cfg
+    """
     import sys
     if len(sys.argv)>1:
         main( sys.argv[1] )

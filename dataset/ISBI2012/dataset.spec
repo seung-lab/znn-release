@@ -33,3 +33,11 @@ fmasks =
 [sample1]
 input = 1
 output = 1
+
+[image2]
+fnames = ../dataset/ISBI2012/test-volume.tif
+pp_types = standard2D
+is_auto_crop = yes
+
+[ sample2 ]
+input = 2
