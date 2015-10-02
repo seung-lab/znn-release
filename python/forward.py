@@ -3,13 +3,13 @@ __doc__ = """
 
 ZNN Full Forward-Pass Computation
 
- This module computes the propogation of activation through a 
+ This module computes the propogation of activation through a
  ZNN neural network. Its command-line/script functionality produces the
- network output for the entirety of sample volumes specified within a 
- configuration file (under the option 'forward_range'), opposed to 
- processing single output patches. 
+ network output for the entirety of sample volumes specified within a
+ configuration file (under the option 'forward_range'), opposed to
+ processing single output patches.
 
- The resulting arrays are then saved to disk by the output_prefix option. 
+ The resulting arrays are then saved to disk by the output_prefix option.
 
  For example, the output_prefix 'out' and one data sample would lead to files saved under
  out_sample1_output_0.tif, out_sample1_output_1.tif, etc. for each sample specified within the
@@ -21,7 +21,7 @@ ZNN Full Forward-Pass Computation
 Inputs:
 
 	-Configuration File Name
-	
+
 Main Outputs:
 
 	-Saved .tif files for each sample within the configuration file
@@ -37,21 +37,25 @@ import front_end, netio, utils
 
 from emirt import emio
 
-#CONSTANTS 
+#CONSTANTS
 # (configuration file option names)
 output_prefix_optionname = 'output_prefix'
 range_optionname = 'forward_range'
 outsz_optionname = 'forward_outsz'
 
 
-def config_forward_pass( config_filename, verbose=True ):
+def config_forward_pass( config_filename, verbose=True, sample_ids=None ):
 	'''
-	Performs a full forward pass for all samples specified within 
+	Performs a full forward pass for all samples specified within
 	a configuration file
 	'''
 
 	# parameters
 	config, params = front_end.parser( config_filename )
+
+    # set command line sample ids
+    if sample_ids is not None:
+        params[range_optionname] = sample_ids
 
 	# load network
 	#Debug
@@ -69,12 +73,12 @@ def config_forward_pass( config_filename, verbose=True ):
 		# read image stacks
 		# Note: preprocessing included within CSamples
 		# See CONSTANTS section above for optionname values
-		Dataset = front_end.ConfigSample(config, params, 
+		Dataset = front_end.ConfigSample(config, params,
 					sample, net, output_patch_shape )
 
-		sample_outputs[sample] = generate_full_output(Dataset, net, 
+		sample_outputs[sample] = generate_full_output(Dataset, net,
 						params['dtype'], verbose=True)
-		
+
 		# softmax if using softmax_loss
 		if 'softmax' in params['cost_fn_str']:
 			from cost_fn import softmax
@@ -87,7 +91,7 @@ def config_forward_pass( config_filename, verbose=True ):
 
 def generate_full_output( Dataset, network, dtype='float32', verbose=True ):
 	'''
-	Performs a full forward pass for a given ConfigSample object (Dataset) and 
+	Performs a full forward pass for a given ConfigSample object (Dataset) and
 	a given network object.
 	'''
 
@@ -150,7 +154,7 @@ def num_patches_consistent( input_patch_count, output_patch_count ):
 
 def save_sample_outputs(sample_outputs, prefix):
 	'''
-	Writes the resulting output volumes to disk according to the 
+	Writes the resulting output volumes to disk according to the
 	output_prefix
 	'''
 
@@ -168,25 +172,35 @@ def save_sample_outputs(sample_outputs, prefix):
 			#Constitutent 3d volumes
 			for i in range( num_volumes ):
 				emio.imsave(dataset.data[i,:,:,:],
-					"{}_sample{}_{}_{}.tif".format(prefix, sample_num, 
+					"{}_sample{}_{}_{}.tif".format(prefix, sample_num,
 									dataset_name, i))
-	
-def main( config_filename ):
+
+def main( config_filename,sample_ids=None ):
 	'''
 	Script functionality - runs config_forward_pass and saves the
 	output volumes
 	'''
-
-	output_volumes = config_forward_pass( config_filename, verbose=True )
+    if sample_ids is None:
+        output_volumes = config_forward_pass( config_filename, verbose=True )
+    else:
+        output_volumes = config_forward_pass( config_filename, verbose=True, sample_ids)
 
 	print "Saving Output Volumes..."
 	config, params = front_end.parser( config_filename )
 	save_sample_outputs( output_volumes, params[output_prefix_optionname] )
 
 if __name__ == '__main__':
-
+    """
+    usage
+    ----
+    python forward.py path/of/config.cfg forward_range
+    forward_range: the sample ids, such as 1-3,5
+    """
     from sys import argv
-    if len(argv)>1:
+    if len(argv)==1:
         main( argv[1] )
+    elif len(argv)>=2:
+        sample_ids = front_end.parseIntSet(argv[2])
+        main( argv[1], argv[2] )
     else:
         main('config.cfg')
