@@ -189,7 +189,7 @@ def check_config(config, pars):
     assert(pars['anneal_factor']>=0 and pars['anneal_factor']<=1)
     assert(pars['momentum']>=0      and pars['momentum']<=1)
     assert(pars['weight_decay']>=0  and pars['weight_decay']<=1)
-    
+
     assert(pars['Num_iter_per_show']>0)
     assert(pars['Num_iter_per_test']>0)
     assert(pars['test_num']>0)
@@ -197,11 +197,16 @@ def check_config(config, pars):
     assert(pars['Max_iter']>0)
     assert(pars['Max_iter']>pars['Num_iter_per_save'])
 
+    # check the existance of loading network
+    if pars['train_load_net']:
+        import os
+        assert( os.path.exists(pars['train_load_net']))
+
     #%% check the consistency of some options
     if pars['is_malis']:
         if 'aff' not in pars['out_type']:
             raise NameError( 'malis weight should be used with affinity label type!' )
-        
+
     # check and correct the image and labels
     for sec in config.sections():
         if 'label' in sec:
@@ -210,7 +215,7 @@ def check_config(config, pars):
                 pp_types = pp_types.replace("auto", "binary_class")
             elif 'affin' in pars['out_type']:
                 pp_types = pp_types.replace("auto", "affinity")
-            config.set(sec, 'pp_types', value=pp_types) 
+            config.set(sec, 'pp_types', value=pp_types)
 
     return config, pars
 
@@ -222,7 +227,7 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     '''
     name_in, vol  = vol_ins.popitem()
     name_p,  prop = props.popitem()
-    name_l,  lbl  = lbl_outs.popitem()
+fatal: Pathspec 'emirt/LICENSE' is in submodule''    name_l,  lbl  = lbl_outs.popitem()
     name_g,  grdt = grdts.popitem()
 
     # real time visualization
