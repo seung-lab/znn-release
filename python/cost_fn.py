@@ -95,16 +95,9 @@ def softmax(props):
         # rebase the prop for numerical stabiligy
         # mathimatically, this do not affect the softmax result!
         # http://ufldl.stanford.edu/tutorial/supervised/SoftmaxRegression/
-#        prop = prop - np.max(prop)
         propmax = np.max(prop, axis=0)
-        prop[0,:,:,:] -= propmax
-        prop[1,:,:,:] -= propmax
-
-#        log_softmax = np.empty(prop.shape, dtype='float32')
-#        log_softmax[0,:,:,:] = prop[0,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
-#        log_softmax[1,:,:,:] = prop[1,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
-#
-#        ret[name] = np.exp( log_softmax )
+        for c in xrange( prop.shape[0] ):
+            prop[c,:,:,:] -= propmax
 
         prop = np.exp(prop)
         pesum = np.sum(prop, axis=0)
