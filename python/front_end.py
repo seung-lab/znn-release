@@ -106,7 +106,8 @@ def parser( conf_fname ):
                                     'train_outsz').split(',') ], dtype=np.int64 )
     #Whether to optimize the convolution computation by layer
     # (FFT vs Direct Convolution)
-    pars['is_optimize'] = config.getboolean('parameters', 'is_optimize')
+    pars['is_train_optimize'] = config.getboolean('parameters', 'is_train_optimize')
+    pars['is_forward_optimize'] = config.getboolean('parameters', 'is_forward_optimize')
     #Whether to use data augmentation
     pars['is_data_aug'] = config.getboolean('parameters', 'is_data_aug')
     #Whether to use boundary mirroring
