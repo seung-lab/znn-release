@@ -48,6 +48,8 @@ def config_forward_pass( config_filename, verbose=True, sample_ids=None ):
     '''
     Performs a full forward pass for all samples specified within
     a configuration file
+
+    sample_ids should be a list of ints describing the samples to run(?)
     '''
     # parameters
     config, params = front_end.parser( config_filename )
@@ -56,8 +58,6 @@ def config_forward_pass( config_filename, verbose=True, sample_ids=None ):
         params[range_optionname] = sample_ids
 
     # load network
-    #Debug
-    # net = netio.init_network( params, train=False )
     net = netio.load_network( params, train=False )
     output_patch_shape = params[outsz_optionname]
     sample_outputs = {}
@@ -73,15 +73,27 @@ def config_forward_pass( config_filename, verbose=True, sample_ids=None ):
 
         sample_outputs[sample] = generate_full_output(Dataset, net,
 						params['dtype'], verbose=True)
+
         # softmax if using softmax_loss
         if 'softmax' in params['cost_fn_str']:
             from cost_fn import softmax
-            for dname, dataset in sample_outputs[sample].output_volumes.iteritems():
-                props = {'dataset':dataset.data}
-                props = softmax(props)
-                dataset.data = props.values()[0]
-                sample_outputs[sample].output_volumes[dname] = dataset
+            sample_output[sample] = run_softmax(sample_outputs[sample])
+
     return sample_outputs
+
+def run_softmax( sample_output ):
+	'''
+	Performs a softmax calculation over the output volumes for a 
+	given sample output
+	'''
+	for dname, dataset in sample_output.output_volumes.iteritems():
+
+		props = {'dataset':dataset.data}
+		props = softmax(props)
+		dataset.data = props.values()[0]
+		sample_output.output_volumes[dname] = dataset
+
+	return sample_output
 
 def generate_full_output( Dataset, network, dtype='float32', verbose=True ):
 	'''
@@ -191,9 +203,9 @@ if __name__ == '__main__':
     forward_range: the sample ids, such as 1-3,5
     """
     from sys import argv
-    if len(argv)==1:
+    if len(argv)==2:
         main( argv[1] )
-    elif len(argv)>=2:
+    elif len(argv) > 2:
         sample_ids = front_end.parseIntSet(argv[2])
         main( argv[1], sample_ids )
     else:
