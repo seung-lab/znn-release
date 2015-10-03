@@ -34,14 +34,14 @@ Compiler flags
 
 Usage
 -----
-# Train
+### Train
 `python train.py ../experiments/config.cfg`
 if you use `python train.py`, the default is `config.cfg` in current folder.
 
-# Forward pass
+### Forward pass
 `python forward.py ../experiments/config.cfg`
 
-# Visualize learning curve
+### Visualize learning curve
 `python zstatistics.py ../experiments/net_statistics.py`
 
 Contact
