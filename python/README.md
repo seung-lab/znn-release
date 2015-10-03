@@ -36,6 +36,7 @@ Usage
 -----
 ### Train
 `python train.py ../experiments/config.cfg`
+
 if you use `python train.py`, the default is `config.cfg` in current folder.
 
 ### Forward pass
