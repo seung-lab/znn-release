@@ -76,24 +76,24 @@ def config_forward_pass( config_filename, verbose=True, sample_ids=None ):
 
         # softmax if using softmax_loss
         if 'softmax' in params['cost_fn_str']:
-            from cost_fn import softmax
-            sample_output[sample] = run_softmax(sample_outputs[sample])
+            sample_outputs[sample] = run_softmax(sample_outputs[sample])
 
     return sample_outputs
 
 def run_softmax( sample_output ):
-	'''
-	Performs a softmax calculation over the output volumes for a 
-	given sample output
-	'''
-	for dname, dataset in sample_output.output_volumes.iteritems():
+    '''
+    Performs a softmax calculation over the output volumes for a
+    given sample output
+    '''
+    from cost_fn import softmax
+    for dname, dataset in sample_output.output_volumes.iteritems():
 
 		props = {'dataset':dataset.data}
 		props = softmax(props)
 		dataset.data = props.values()[0]
 		sample_output.output_volumes[dname] = dataset
 
-	return sample_output
+    return sample_output
 
 def generate_full_output( Dataset, network, dtype='float32', verbose=True ):
 	'''
