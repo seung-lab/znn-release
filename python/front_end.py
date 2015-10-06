@@ -233,6 +233,7 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     '''
     name_in, vol  = vol_ins.popitem()
     name_p,  prop = props.popitem()
+    name_l,  lbl  = lbl_outs.popitem()
     name_g,  grdt = grdts.popitem()
 
     # real time visualization

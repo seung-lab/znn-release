@@ -92,9 +92,8 @@ def softmax(props):
         # make sure that it is the output of binary class
         assert(prop.shape[0]==2)
 
-        # rebase the prop for numerical stabiligy
-        # mathimatically, this do not affect the softmax result!
-        # http://ufldl.stanford.edu/tutorial/supervised/SoftmaxRegression/
+        # rebase the prop for numerical stability
+        # mathematically, this does not affect the softmax result!
         propmax = np.max(prop, axis=0)
         for c in xrange( prop.shape[0] ):
             prop[c,:,:,:] -= propmax
