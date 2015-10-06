@@ -15,12 +15,11 @@ node_name = 'VD2D'
 # your bidding of spot instance
 spot_bid = 0.71
 
-
 # command
-cmds = {'W5': 'cd /home/znn-release/python/; python train.py ../experiments/W5/config.cfg &>> train_W5.log',\
-        'N4': 'cd /home/znn-release/python/; python train.py ../experiments/N4/config.cfg &>> train_N4.log',\
-        'VD2D': 'cd /home/znn-release/python/; python train.py ../experiments/VD2D/config.cfg &>> train_VD2D.log',\
-        'W10':'cd /home/znn-release/python/; python train.py ../experiments/W10/config.cfg &>> train_W10.log'}
+cmds = {'W5': 'cd /home/znn-release/python/; python train.py ../experiments/W5/config.cfg',\
+        'N4': 'cd /home/znn-release/python/; python train.py ../experiments/N4/config.cfg',\
+        'VD2D': 'cd /home/znn-release/python/; python train.py ../experiments/VD2D/config.cfg',\
+        'W10':'cd /home/znn-release/python/; python train.py ../experiments/W10/config.cfg'}
 
 # instance type
 instance_type = 'c4.8xlarge'
