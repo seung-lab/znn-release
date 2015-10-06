@@ -16,13 +16,13 @@ node_name = 'VD2D'
 spot_bid = 0.71
 
 # command
-cmds = {'W5': 'cd /home/znn-release/python/; python train.py ../experiments/W5/config.cfg',\
-        'N4': 'cd /home/znn-release/python/; python train.py ../experiments/N4/config.cfg',\
-        'VD2D': 'cd /home/znn-release/python/; python train.py ../experiments/VD2D/config.cfg',\
-        'W10':'cd /home/znn-release/python/; python train.py ../experiments/W10/config.cfg'}
+cmds = {'W5':   'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/W5/config.cfg',\
+        'N4':   'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/N4/config.cfg',\
+        'VD2D': 'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/VD2D/config.cfg',\
+        'W10':  'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/W10/config.cfg'}
 
 # instance type
-instance_type = 'c4.8xlarge'
+instance_type = 'c3.8xlarge'
 
 # if there are several cluster template in config file, you have to set the cluster id to a specific cluster template
 cluster_id = 0
