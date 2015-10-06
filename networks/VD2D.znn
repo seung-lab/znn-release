@@ -4,7 +4,7 @@ size 1
 
 edges conv1a
 type conv
-init uniform
+init msra
 size 1,3,3
 stride 1,1,1
 input input
@@ -17,7 +17,7 @@ size 24
 
 edges conv1b
 type conv
-init uniform
+init msra
 size 1,3,3
 stride 1,1,1
 input nl1
@@ -30,7 +30,7 @@ size 24
 
 edges conv1c
 type conv
-init uniform
+init msra
 size 1,2,2
 stride 1,1,1
 input nl2
@@ -54,7 +54,7 @@ size 24
 
 edges conv2a
 type conv
-init uniform
+init msra
 size 1,3,3
 stride 1,1,1
 input nl4
@@ -67,7 +67,7 @@ size 36
 
 edges conv2b
 type conv
-init uniform
+init msra
 size 1,3,3
 stride 1,1,1
 input nl5
@@ -91,7 +91,7 @@ size 36
 
 edges conv3a
 type conv
-init uniform
+init msra
 size 1,3,3
 stride 1,1,1
 input nl7
@@ -104,7 +104,7 @@ size 48
 
 edges conv3b
 type conv
-init uniform
+init msra
 size 1,3,3
 stride 1,1,1
 input nl8
@@ -128,7 +128,7 @@ size 48
 
 edges conv4a
 type conv
-init uniform
+init msra
 size 1,3,3
 stride 1,1,1
 input nl20
@@ -141,7 +141,7 @@ size 60
 
 edges conv4b
 type conv
-init uniform
+init msra
 size 1,3,3
 stride 1,1,1
 input nl21
@@ -165,7 +165,7 @@ size 60
 
 edges conv5
 type conv
-init uniform
+init msra
 size 1,3,3
 stride 1,1,1
 input nl23
@@ -178,7 +178,7 @@ size 200
 
 edges convx
 type conv
-init uniform
+init msra
 size 1,1,1
 stride 1,1,1
 input nl24
@@ -186,5 +186,5 @@ output output
 
 nodes output
 type transfer
-function forward_logistics
-size 3
+function linear
+size 2
