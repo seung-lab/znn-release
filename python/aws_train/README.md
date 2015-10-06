@@ -9,6 +9,7 @@ this script can create a cluster including an on-demand master node and several 
   * ``git clone https://github.com/jtriley/StarCluster.git``
   * put this line `export PYTHONPATH=$PYTHONPATH:"/path/to/StarCluster"` to the end of `~/.bashrc` file.
   * run `source ~/.bashrc`
+  * you may need to create a new terminal (make the .bashrc file be effective)
 * edit and move `config` file to `~/.starcluster/`.
   * setup the keys in `config`.
   * set the AMI and volume id.
@@ -22,5 +23,6 @@ this script can create a cluster including an on-demand master node and several 
 
 ##Tutorial
 now, you are almost ready.
-* set the `node_name` in script to choose the command you want to run. 
-* run the main script: `python persistent_spot_cluster.py`
+* set the `node_name` in script to choose the command you want to run. (normally, we use network name as node name)
+* modify the command dict to execute training commands after the node was launched. the `node_name` is the key of command dict.
+* run the main script: `python aws_train.py`
