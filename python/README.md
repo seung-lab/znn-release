@@ -11,7 +11,12 @@ Supports Linux and MacOS.
 |[boost](http://www.boost.org/)|libboost-all-dev|
 |[BoostNumpy](http://github.com/ndarray/Boost.NumPy)|NA|
 |[jemalloc](http://www.canonware.com/jemalloc/)|libjemalloc-dev|
-|[Emirt](https://github.com/seung-lab/emirt.git)|NA|
+
+
+Compile
+---------------------
+* gcc : `make`
+* icc with mkl : `make mkl`
 
 Compiler flags
 --------------
@@ -27,11 +32,18 @@ Compiler flags
 |ZNN_USE_MKL_NATIVE_FFT|Use MKL native convolution overrides the previous flag|
 |ZNN_XEON_PHI|64 byte memory alignment|
 
+Usage
+-----
+### Train
+`python train.py ../experiments/config.cfg`
 
-Compile
----------------------
-* gcc : `make`
-* icc with mkl : `make mkl`
+if you use `python train.py`, the default is `config.cfg` in current folder.
+
+### Forward pass
+`python forward.py ../experiments/config.cfg`
+
+### Visualize learning curve
+`python zstatistics.py ../experiments/net_statistics.py`
 
 Contact
 -------

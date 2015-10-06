@@ -8,10 +8,9 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 """
 
 import ConfigParser
-
 import numpy as np
 import matplotlib.pylab as plt
-
+import os
 import cost_fn
 from ZNN_Dataset import CSamples, ConfigSample, ZNN_Dataset, ConfigSampleOutput
 
@@ -147,6 +146,7 @@ def parser( conf_fname ):
 
 
     if 'fdata_spec' in pars.keys():
+        assert( os.path.exists( pars['fdata_spec'] ) )
         config.read( pars['fdata_spec'] )
     # checking and automatically correcting parameters
     config, pars = check_config(config, pars)
@@ -203,11 +203,6 @@ def check_config(config, pars):
     assert(pars['Max_iter']>0)
     assert(pars['Max_iter']>pars['Num_iter_per_save'])
 
-    # check the existance of loading network
-    if pars['train_load_net']:
-        import os
-        assert( os.path.exists(pars['train_load_net']))
-
     #%% check the consistency of some options
     if pars['is_malis']:
         if 'aff' not in pars['out_type']:
@@ -225,9 +220,7 @@ def check_config(config, pars):
 
     return config, pars
 
-def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
-                titr_list, terr_list, tcls_list, \
-                eta, vol_ins, props, lbl_outs, grdts, pars):
+def inter_show(start, lc, eta, vol_ins, props, lbl_outs, grdts, pars):
     '''
     Plots a display of training information to the screen
     '''
@@ -247,11 +240,11 @@ def inter_show(start, i, err, cls, it_list, err_list, cls_list, \
     plt.xlabel('gradient')
 
     plt.subplot(245)
-    plt.plot(it_list,   err_list,   'b', label='train')
-    plt.plot(titr_list, terr_list,  'r', label='test')
+    plt.plot(lc.tn_it, lc.tn_err, 'b', label='train')
+    plt.plot(lc.tt_it, lc.tt_err, 'r', label='test')
     plt.xlabel('iteration'), plt.ylabel('cost energy')
     plt.subplot(246)
-    plt.plot(it_list, cls_list, 'b', titr_list, tcls_list, 'r')
+    plt.plot( lc.tn_it, lc.tn_cls, 'b', cl.tt_it, lc.tt_cls, 'r')
     plt.xlabel('iteration'), plt.ylabel( 'classification error' )
 
     plt.pause(1.5)

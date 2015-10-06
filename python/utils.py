@@ -179,29 +179,3 @@ def dict_mul(das,dbs):
         elif np.size(b)==0:
             ret[name] = a
     return ret
-
-def save_statistics( pars, it_list, err_list, cls_list,\
-                        titr_list, terr_list, tcls_list, elapsed):
-    # get filename
-    fname = pars['train_save_net']
-    import os
-    root, ext = os.path.splitext(fname)
-    fname = root + '_statistics_current.h5'
-    if os.path.exists( fname ):
-        os.remove( fname )
-
-    # save variables
-    import h5py
-    f = h5py.File( fname )
-    f.create_dataset('train/it',  data=it_list)
-    f.create_dataset('train/err', data=err_list)
-    f.create_dataset('train/cls', data=cls_list)
-    f.create_dataset('test/it',   data=titr_list)
-    f.create_dataset('test/err',  data=terr_list)
-    f.create_dataset('test/cls',  data=tcls_list)
-    f.create_dataset('elapsed',   data=elapsed)
-    f.close()
-
-    # move to new name
-    fname2 = root + '_statistics.h5'
-    os.rename(fname, fname2)

@@ -8,33 +8,32 @@ import cost_fn
 
 def _single_test(net, pars, sample):
     vol_ins, lbl_outs, msks = sample.get_random_sample()
-       
+
     # forward pass
     vol_ins = utils.make_continuous(vol_ins, dtype=pars['dtype'])
     props = net.forward( vol_ins )
-       
+
     # cost function and accumulate errors
     props, err, grdts = pars['cost_fn']( props, lbl_outs )
     cls = cost_fn.get_cls(props, lbl_outs)
     return props, err, cls
 
-def znn_test(net, pars, samples, vn, terr_list, tcls_list):
+def znn_test(net, pars, samples, vn, it, lc):
     """
-    test the net 
-    
+    test the net
+
     Parameters
     ----------
     net : network
     pars : dict, parameters
     sample : a input and output sample
     vn : number of output voxels
-    terr_list : list of float, test cost
-    tcls_list : list of float, test classification error
-    
+    it : current iteration number
+    lc : learning curve
+
     Returns
     -------
-    terr_list : list of float, test cost
-    tcls_list : list of float, test classification error
+    lc : updated learning curve
     """
     err = 0.0
     cls = 0.0
@@ -48,8 +47,8 @@ def znn_test(net, pars, samples, vn, terr_list, tcls_list):
     # normalize
     err = err / vn / test_num
     cls = cls / vn / test_num
-    terr_list.append( err )
-    tcls_list.append( cls )
+    # update the learning curve
+    lc.append_test( it, err, cls )
     print "test iter: %d,     err: %.3f,  cls: %.3f" \
-                %(len(terr_list), err, cls)
-    return terr_list, tcls_list
+                %(it, err, cls)
+    return lc

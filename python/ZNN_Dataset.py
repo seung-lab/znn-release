@@ -25,7 +25,7 @@ class ZNN_Dataset(object):
 
         self.volume_shape = np.asarray(self.data.shape[-3:])
         # network field of view (wrt THIS dataset)
-        self.fov = data_patch_shape[-3:] - net_output_patch_shape + 1        
+        self.fov = data_patch_shape[-3:] - net_output_patch_shape + 1
         # center coordinate
         #-1 accounts for python indexing
         self.center = (self.volume_shape-1) / 2
@@ -85,26 +85,26 @@ class ZNN_Dataset(object):
         ----------
         dev : the deviation from the whole volume center
         rft : the random transformation rule.
-        
+
         Return
         -------
         subvol : the transformed sub volume.
         """
 
         if data is None:
-            data = self.data 
+            data = self.data
 
         loc = self.center + dev
 
         # extract volume
-        subvol  = data[ :,   
+        subvol  = data[ :,
             loc[0]-self.patch_margin_low[0]  : loc[0] + self.patch_margin_high[0]+1,\
             loc[1]-self.patch_margin_low[1]  : loc[1] + self.patch_margin_high[1]+1,\
             loc[2]-self.patch_margin_low[2]  : loc[2] + self.patch_margin_high[2]+1]
 
         if rft is not None:
             subvol = utils.data_aug_transform(subvol, rft)
-            
+
         return subvol
 
     def _check_patch_bounds(self):
@@ -129,11 +129,11 @@ class ZNN_Dataset(object):
         output_patch_shape = output_patch_shape[-3:]
 
         #Decomposing into a similar problem for each axis
-        z_bounds = self._patch_bounds_1d(self.volume_shape[0], 
+        z_bounds = self._patch_bounds_1d(self.volume_shape[0],
                         output_patch_shape[0], self.fov[0])
-        y_bounds = self._patch_bounds_1d(self.volume_shape[1], 
+        y_bounds = self._patch_bounds_1d(self.volume_shape[1],
                         output_patch_shape[1], self.fov[1])
-        x_bounds = self._patch_bounds_1d(self.volume_shape[2], 
+        x_bounds = self._patch_bounds_1d(self.volume_shape[2],
                         output_patch_shape[2], self.fov[2])
 
         #And then recombining the subproblems
@@ -193,7 +193,7 @@ class ZNN_Dataset(object):
                     patch_beginnings[2]:patch_ends[2]]
 
     def get_next_patch(self):
-        
+
         #Checking whether patch bounds are defined
         self._check_patch_bounds()
 
@@ -203,7 +203,7 @@ class ZNN_Dataset(object):
         return patch
 
     def set_patch(self, data, patch_id):
-        
+
         #Checking whether patch bounds are defined
         self._check_patch_bounds()
 
@@ -266,7 +266,7 @@ class ConfigSampleOutput(object):
 
         for name, data in output.iteritems():
             self.output_volumes[name].set_next_patch(data)
-        
+
     def num_patches(self):
 
         patch_counts = {}
@@ -297,7 +297,7 @@ class ConfigImage(ZNN_Dataset):
         #Reading in data
         fnames = config.get(sec_name, 'fnames').split(',\n')
         arrlist = self._read_files( fnames );
-        
+
         #Auto crop - constraining 3d vols to be the same size
         self._is_auto_crop = config.getboolean(sec_name, 'is_auto_crop')
         if self._is_auto_crop:
@@ -318,7 +318,7 @@ class ConfigImage(ZNN_Dataset):
         self.volume_shape = np.asarray(self.data.shape[-3:])
 
         self.center = (self.volume_shape-1) / 2
-        self.fov = self.patch_shape[-3:] - net_output_patch_shape + 1        
+        self.fov = self.patch_shape[-3:] - net_output_patch_shape + 1
 
         #Number of voxels with index lower than the center
         # within a subvolume (used within get_dev_range, and
@@ -389,11 +389,14 @@ class ConfigImage(ZNN_Dataset):
         """
         ret = list()
         for fl in files:
-            vol = emirt.emio.imread(fl).astype(self.pars['dtype'])
-            if vol.dtype=='uint8' and vol.shape[3]==3:
+            vol = emirt.emio.imread(fl)
+            if vol.dtype=='uint8' and vol.ndim==4:
                 # read the VAST output RGB images
+                print "reading RGB label image: ", fl
+                assert( vol.shape[3]==3 )
                 vol = vol.astype('uint32')
                 vol = vol[:,:,:,0]*256*256 + vol[:,:,:,1]*256 + vol[:,:,:,2]
+            vol = vol.astype(self.pars['dtype'])
             ret.append( vol )
         return ret
 
@@ -419,15 +422,15 @@ class ConfigImage(ZNN_Dataset):
 class ConfigInputImage(ConfigImage):
     '''
     Subclass of ConfigImage which represents the type of input data seen
-    by ZNN neural networks 
+    by ZNN neural networks
 
-    Internally preprocesses the data, and modifies the legal 
+    Internally preprocesses the data, and modifies the legal
     deviation range for affinity data output.
     '''
 
     def __init__(self, config, pars, sec_name, setsz, outsz ):
         ConfigImage.__init__(self, config, pars, sec_name, setsz, outsz )
-        
+
         if pars['is_bd_mirror']:
             self.data = utils.boundary_mirror(self.data, self.fov)
             #Modifying the deviation boundaries for the modified dataset
@@ -472,23 +475,23 @@ class ConfigInputImage(ConfigImage):
 class ConfigOutputLabel(ConfigImage):
     '''
     Subclass of CImage which represents output labels for
-    ZNN neural networks 
+    ZNN neural networks
 
-    Internally handles preprocessing of the data, and can 
+    Internally handles preprocessing of the data, and can
     contain masks for sparsely-labelled training
     '''
 
     def __init__(self, config, pars, sec_name, setsz, outsz):
         ConfigImage.__init__(self, config, pars, sec_name, setsz, outsz)
-        
+
         # Affinity preprocessing decreases the output
         # size by one voxel in each dimension, this counteracts
         # that effect
         if 'aff' in pars['out_type']:
             # increase the subvolume size for affinity
             self.patch_shape += 1
-            self._recalculate_sizes( outsz )        
-        
+            self._recalculate_sizes( outsz )
+
         if pars['is_bd_mirror']:
             self.data = utils.boundary_mirror(self.data, self.fov)
             #Modifying the deviation boundaries for the modified dataset
@@ -507,12 +510,12 @@ class ConfigOutputLabel(ConfigImage):
                 self.msk = (self.msk>0).astype(self.data.dtype)
                 if pars['is_bd_mirror']:
                     self.msk = utils.boundary_mirror(self.msk, self.fov)
-                assert(self.data.shape == self.msk.shape)   
-                
+                assert(self.data.shape == self.msk.shape)
+
         # preprocessing
-        self.pp_types = config.get(sec_name, 'pp_types').split(',')        
-        self._preprocess()       
-        
+        self.pp_types = config.get(sec_name, 'pp_types').split(',')
+        self._preprocess()
+
         if pars['is_rebalance']:
             self._rebalance()
 
@@ -552,7 +555,7 @@ class ConfigOutputLabel(ConfigImage):
     def _binary_class(self, lbl):
         """
         Binary-Class Label Transformation
-        
+
         Parameters
         ----------
         lbl : 4D array, label volume.
@@ -562,10 +565,10 @@ class ConfigOutputLabel(ConfigImage):
         ret : 4D array, two volume with opposite value
         """
         assert(lbl.shape[0] == 1)
-        
+
         # fill the contacting segments with boundaries
-        lbl[0,:,:,:] = utils.fill_boundary( lbl[0,:,:,:] ) 
-        
+        lbl[0,:,:,:] = utils.fill_boundary( lbl[0,:,:,:] )
+
         ret = np.empty((2,)+ lbl.shape[1:4], dtype= self.pars['dtype'])
         ret[0, :,:,:] = (lbl[0,:,:,:]>0).astype(self.pars['dtype'])
         ret[1:,  :,:,:] = 1 - ret[0, :,:,:]
@@ -586,7 +589,7 @@ class ConfigOutputLabel(ConfigImage):
         sublbl : 4D array, could be affinity or binary class
         submsk : 4D array, mask could contain rebalance weight
         """
-        
+
         sublbl = super(ConfigOutputLabel, self).get_subvolume(dev, rft)
 
         if np.size(self.msk)>0:
@@ -606,32 +609,32 @@ class ConfigOutputLabel(ConfigImage):
                 if self.pars['is_rebalance']:
                     # apply the rebalancing
                     submsk = self._rebalance_aff(sublbl, submsk)
-                    
+
         return sublbl, submsk
-    
+
     def _rebalance_aff(self, lbl, msk):
         wts = np.zeros(lbl.shape, dtype=self.pars['dtype'])
         wts[0,:,:,:][lbl[0,:,:,:] >0] = self.zwp
         wts[1,:,:,:][lbl[1,:,:,:] >0] = self.ywp
         wts[2,:,:,:][lbl[2,:,:,:] >0] = self.xwp
-        
-        wts[0,:,:,:][lbl[0,:,:,:]==0] = self.zwz  
+
+        wts[0,:,:,:][lbl[0,:,:,:]==0] = self.zwz
         wts[1,:,:,:][lbl[1,:,:,:]==0] = self.ywz
         wts[2,:,:,:][lbl[2,:,:,:]==0] = self.xwz
         if np.size(msk)==0:
             return wts
         else:
             return msk*wts
-    
+
     @autojit(nopython=True)
     def _msk2affmsk( self, msk ):
         """
         transform binary mask to affinity mask
-        
+
         Parameters
         ----------
         msk : 4D array, one channel, binary mask for boundary map
-        
+
         Returns
         -------
         ret : 4D array, 3 channel for z,y,x direction
@@ -640,7 +643,7 @@ class ConfigOutputLabel(ConfigImage):
             return msk
         C,Z,Y,X = msk.shape
         ret = np.zeros((3, Z-1, Y-1, X-1), dtype=self.pars['dtype'])
-        
+
         for z in xrange(Z-1):
             for y in xrange(Y-1):
                 for x in xrange(X-1):
@@ -652,7 +655,7 @@ class ConfigOutputLabel(ConfigImage):
                         if msk[0,z,y,x+1]>0:
                             ret[2,z,y,x] = 1
         return ret
-        
+
     def _lbl2aff( self, lbl ):
         """
         transform labels to affinity.
@@ -725,12 +728,12 @@ class ConfigOutputLabel(ConfigImage):
     def get_candidate_loc( self, low, high ):
         """
         find the candidate location of subvolume
-        
+
         Parameters
         ----------
         low  : vector with length of 3, low value of deviation range
         high : vector with length of 3, high value of deviation range
-        
+
         Returns:
         --------
         ret : a tuple, the coordinate of nonzero elements,
@@ -745,7 +748,7 @@ class ConfigOutputLabel(ConfigImage):
         mask[:ct[0]+low[0], :, : ] = 0
         mask[:, :ct[1]+low[1], : ] = 0
         mask[:, :, :ct[2]+low[2] ] = 0
-        
+
         mask[ct[0]+high[0]+1:, :, :] = 0
         mask[:, ct[1]+high[1]+1:, :] = 0
         mask[:, :, ct[2]+high[2]+1:] = 0
@@ -760,7 +763,7 @@ class ConfigOutputLabel(ConfigImage):
 class ConfigSample(object):
     """
     Sample Class, which represents a pair of input and output volume structures
-    (as CInputImage and COutputImage respectively) 
+    (as CInputImage and COutputImage respectively)
 
     Allows simple interface for procuring matched random samples from all volume
     structures at once
@@ -792,7 +795,7 @@ class ConfigSample(object):
             #Finding the section of the config file
             imid = config.getint(sec_name, name)
             imsec_name = "image%d" % (imid,)
-            
+
             self.inputs[name] = ConfigInputImage( config, pars, imsec_name, setsz, outsz )
             low, high = self.inputs[name].get_dev_range()
 
@@ -827,7 +830,7 @@ class ConfigSample(object):
         else:
             print "\nWARNING: No output volumes defined!\n"
             self.locs = None
-        
+
     def get_random_sample(self):
         '''Fetches a matching random sample from all input and output volumes'''
 
@@ -841,7 +844,7 @@ class ConfigSample(object):
         loc[1] = self.locs[1][ind]
         loc[2] = self.locs[2][ind]
         dev = self.outputs.values()[0].center - loc
-        
+
         # get input and output 4D sub arrays
         inputs = dict()
         for name, img in self.inputs.iteritems():
@@ -913,4 +916,3 @@ class CSamples(object):
         '''Fetches a random sample from a random CSample object'''
         i = np.random.randint( len(self.samples) )
         return self.samples[i].get_random_sample()
-
