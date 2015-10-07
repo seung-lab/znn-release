@@ -843,7 +843,7 @@ class ConfigSample(object):
         loc[0] = self.locs[0][ind]
         loc[1] = self.locs[1][ind]
         loc[2] = self.locs[2][ind]
-        dev = self.outputs.values()[0].center - loc
+        dev = loc - self.outputs.values()[0].center
 
         # get input and output 4D sub arrays
         inputs = dict()
