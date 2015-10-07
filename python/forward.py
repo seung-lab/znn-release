@@ -118,7 +118,7 @@ def generate_full_output( Dataset, network, dtype='float32', verbose=True ):
 	for i in xrange( num_patches ):
 
 		if verbose:
-			print "Output patch #{} out of {}".format(i+1, num_patches) # i is just an index
+			print "Output patch #{} of {}".format(i+1, num_patches) # i is just an index
 
 		input_patches, junk = Dataset.get_next_patch()
 

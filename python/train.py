@@ -18,6 +18,8 @@ def main( conf_file='config.cfg' ):
     #%% parameters
     print "reading config parameters..."
     config, pars = front_end.parser( conf_file )
+    print "recording configuration file..."
+    front_end.record_config_file( pars )
 
     #%% create and initialize the network
     outsz = pars['train_outsz']

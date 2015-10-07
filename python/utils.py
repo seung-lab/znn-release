@@ -7,6 +7,40 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 from numba import autojit
 
+def timestamp():
+    import datetime
+
+    current_time = str(datetime.datetime.now())
+
+    whitespace_removed = current_time.replace(' ','_')
+    condensed_date = whitespace_removed.replace('-','')
+    truncated_time = condensed_date.split('.')[0].replace(':','')
+
+    return truncated_time
+
+def assert_arglist(single_arg_option, multi_arg_option):
+    '''
+    Several functions can be called using a composite (parameters/params) data structure or
+    by specifying the information from that structure individually. This
+    function asserts that one of these two options are properly defined
+
+    single_arg_option represents the value of the composite data structure argument
+    multi_arg_option should be a list of optional arguments
+    '''
+    multi_arg_is_list = isinstance(multi_arg_option, list)
+    assert(multi_arg_is_list)
+    multi_arg_contains_something = len(multi_arg_option) > 0
+    assert(multi_arg_contains_something)
+
+    params_defined = single_arg_option is not None
+
+    all_optional_args_defined = all([
+        arg is not None for arg in
+        multi_arg_option
+        ])
+
+    assert(params_defined or all_optional_args_defined)
+
 def data_aug_transform(data, rft):
         """
         transform data according to a rule
