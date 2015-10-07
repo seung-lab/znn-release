@@ -390,10 +390,10 @@ class ConfigImage(ZNN_Dataset):
         ret = list()
         for fl in files:
             vol = emirt.emio.imread(fl)
-            if vol.dtype=='uint8' and vol.ndim==4:
+            if vol.ndim==4:
                 # read the VAST output RGB images
                 print "reading RGB label image: ", fl
-                assert( vol.shape[3]==3 )
+                assert( vol.dtype=='uint8' and vol.shape[3]==3 )
                 vol = vol.astype('uint32')
                 vol = vol[:,:,:,0]*256*256 + vol[:,:,:,1]*256 + vol[:,:,:,2]
             vol = vol.astype(self.pars['dtype'])
