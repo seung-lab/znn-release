@@ -431,15 +431,15 @@ class ConfigInputImage(ConfigImage):
     def __init__(self, config, pars, sec_name, setsz, outsz ):
         ConfigImage.__init__(self, config, pars, sec_name, setsz, outsz )
 
-        if pars['is_bd_mirror']:
-            self.data = utils.boundary_mirror(self.data, self.fov)
-            #Modifying the deviation boundaries for the modified dataset
-            self._recalculate_sizes( outsz )
-
         # preprocessing
         pp_types = config.get(sec_name, 'pp_types').split(',')
         for c in xrange( self.data.shape[0] ):
             self.data[c,:,:,:] = self._preprocess(self.data[c,:,:,:], pp_types[c])
+
+        if pars['is_bd_mirror']:
+            self.data = utils.boundary_mirror(self.data, self.fov)
+            #Modifying the deviation boundaries for the modified dataset
+            self._recalculate_sizes( outsz )
 
     def _preprocess( self, vol3d , pp_type ):
 
