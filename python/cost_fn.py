@@ -125,7 +125,7 @@ def multinomial_cross_entropy(props, lbls):
     for name, prop in props.iteritems():
         lbl = lbls[name]
         grdts[name] = prop - lbl
-        err = err + np.sum( -lbl * np.log(prop) )
+        err = err + np.nansum( -lbl * np.log(prop) )
     return (props, err, grdts)
 
 def softmax_loss(props, lbls):
