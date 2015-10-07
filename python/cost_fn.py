@@ -229,7 +229,7 @@ def malis_weight(affs, true_affs, threshold=0.5):
     """
     import emirt
     # segment the true affinity graph
-    tseg = emirt.volume_util.affs2seg(true_affs)
+    tseg = emirt.volume_util.aff2seg(true_affs)
     tid_sets, tsegf = emirt.volume_util.map_set( seg )
 
     if isinstance(affs, dict):
