@@ -492,11 +492,6 @@ class ConfigOutputLabel(ConfigImage):
             self.patch_shape += 1
             self._recalculate_sizes( outsz )
 
-        if pars['is_bd_mirror']:
-            self.data = utils.boundary_mirror(self.data, self.fov)
-            #Modifying the deviation boundaries for the modified dataset
-            self._recalculate_sizes( outsz)
-
         # deal with mask
         self.msk = np.array([])
         if config.has_option(sec_name, 'fmasks'):
@@ -508,8 +503,6 @@ class ConfigOutputLabel(ConfigImage):
                 self.msk = np.asarray( msklist )
                 # mask 'preprocessing'
                 self.msk = (self.msk>0).astype(self.data.dtype)
-                if pars['is_bd_mirror']:
-                    self.msk = utils.boundary_mirror(self.msk, self.fov)
                 assert(self.data.shape == self.msk.shape)
 
         # preprocessing
