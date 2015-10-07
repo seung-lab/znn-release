@@ -3149,4 +3149,18 @@ wait for cluster...
 wait for cluster...
 wait for cluster...
 wait for cluster...
-wait for c
+wait for ctry to start a cluster with id: 0
+wait for cluster...
+try to start a cluster with id: 0
+try to start a cluster with id: 0
+try to start a cluster with id: 0
+try to start a cluster with id: 0
+try to start a cluster with id: 0
+try to start a cluster with id: 0
+try to start a cluster with id: 0
+wait for cluster...
+try to start a cluster with id: 0
+try to start a cluster with id: 0
+try to start a cluster with id: 0
+try to start a cluster with id: 0
+try to start a cluster with id: 0
