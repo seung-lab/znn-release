@@ -4,6 +4,7 @@ size 1
 
 edges conv1a
 type conv
+fft 0
 init msra
 size 1,3,3
 stride 1,1,1
@@ -17,6 +18,7 @@ size 24
 
 edges conv1b
 type conv
+fft 0
 init msra
 size 1,3,3
 stride 1,1,1
@@ -30,6 +32,7 @@ size 24
 
 edges conv1c
 type conv
+fft 0
 init msra
 size 1,2,2
 stride 1,1,1
@@ -54,6 +57,7 @@ size 24
 
 edges conv2a
 type conv
+fft 0
 init msra
 size 1,3,3
 stride 1,1,1
@@ -67,6 +71,7 @@ size 36
 
 edges conv2b
 type conv
+fft 0
 init msra
 size 1,3,3
 stride 1,1,1
@@ -91,6 +96,7 @@ size 36
 
 edges conv3a
 type conv
+fft 0
 init msra
 size 1,3,3
 stride 1,1,1
@@ -104,6 +110,7 @@ size 48
 
 edges conv3b
 type conv
+fft 0
 init msra
 size 1,3,3
 stride 1,1,1
@@ -128,6 +135,7 @@ size 48
 
 edges conv4a
 type conv
+fft 0
 init msra
 size 1,3,3
 stride 1,1,1
@@ -141,6 +149,7 @@ size 60
 
 edges conv4b
 type conv
+fft 0
 init msra
 size 1,3,3
 stride 1,1,1
@@ -165,6 +174,7 @@ size 60
 
 edges conv5
 type conv
+fft 0
 init msra
 size 1,3,3
 stride 1,1,1
@@ -178,6 +188,7 @@ size 200
 
 edges convx
 type conv
+fft 0
 init msra
 size 1,1,1
 stride 1,1,1
