@@ -465,7 +465,7 @@ class ConfigInputImage(ConfigImage):
         low, high = super(ConfigInputImage, self).get_dev_range()
 
         if 'aff' in self.pars['out_type']:
-            #Given affinity preprocessing (see _lbl2aff), valid affinity
+            #Given affinity preprocessing (see emirt/volume_util.seg2aff), valid affinity
             # values only exist for the later voxels, which can create
             # boundary issues
             low += 1
@@ -592,7 +592,7 @@ class ConfigOutputLabel(ConfigImage):
 
         if 'aff' in self.pp_types[0]:
             # transform the output volumes to affinity array
-            sublbl = self._lbl2aff( sublbl )
+            sublbl = emirt.volume_util.seg2aff( sublbl )
 
             # get the affinity mask
             if np.size(self.msk)>0:
@@ -648,35 +648,6 @@ class ConfigOutputLabel(ConfigImage):
                         if msk[0,z,y,x+1]>0:
                             ret[2,z,y,x] = 1
         return ret
-
-    def _lbl2aff( self, lbl ):
-        """
-        transform labels to affinity.
-
-        Parameters
-        ----------
-        lbl : 4D float array, label volume.
-
-        Returns
-        -------
-        aff : 4D float array, affinity graph.
-        """
-        # the 3D volume number should be one
-        assert( lbl.shape[0] == 1 )
-
-        aff_size = np.asarray(lbl.shape)-1
-        aff_size[0] = 3
-
-        aff = np.zeros( tuple(aff_size) , dtype=self.pars['dtype'])
-
-        #x-affinity
-        aff[0,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,:-1, 1:  ,1: ]) & (lbl[0,1:,1:,1:]>0)
-        #y-affinity
-        aff[1,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , :-1 ,1: ]) & (lbl[0,1:,1:,1:]>0)
-        #z-affinity
-        aff[2,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , 1:  ,:-1]) & (lbl[0,1:,1:,1:]>0)
-
-        return aff
 
     def _get_balance_weight( self, arr ):
         # number of nonzero elements
