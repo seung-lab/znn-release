@@ -73,7 +73,7 @@ def binomial_cross_entropy(props, lbls):
     for name, prop in props.iteritems():
         lbl = lbls[name]
         grdts[name] = prop - lbl
-        err = err + np.nansum(  -lbl*np.log(prop) - (1-lbl)*np.log(1-prop) )
+        err = err + np.sum(  -lbl*np.log(prop) - (1-lbl)*np.log(1-prop) )
     return (props, err, grdts)
 
 #@jit(nopython=True)
@@ -125,7 +125,7 @@ def multinomial_cross_entropy(props, lbls):
     for name, prop in props.iteritems():
         lbl = lbls[name]
         grdts[name] = prop - lbl
-        err = err + np.nansum( -lbl * np.log(prop) )
+        err = err + np.sum( -lbl * np.log(prop) )
     return (props, err, grdts)
 
 def softmax_loss(props, lbls):
