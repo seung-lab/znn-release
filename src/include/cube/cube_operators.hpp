@@ -427,28 +427,30 @@ inline cube_p<real> pad_zeros( const cube<real>& v, vec3i const & s )
     return r;
 }
 
-inline cube_p<real> 
-pad_zeros( const cube<real>& v, vec3i const & pad, std::string const & dir )
+enum class pad_style : std::uint8_t {BOTH = 0, PRE = 1, POST = 2};
+
+inline cube_p<real>
+pad_zeros( const cube<real>& v, vec3i const & pad, pad_style style )
 {
     vec3i off = vec3i::zero;
     vec3i s = size(v) + pad;
 
-    if ( dir == "both" )
+    if ( style == pad_style::BOTH )
     {
         off = pad;
         s  += pad;
     }
-    else if ( dir == "pre" )
+    else if ( style == pad_style::PRE )
     {
         off = pad;
     }
-    else if ( dir == "post" )
+    else if ( style == pad_style::POST )
     {
         // keep initial setting
     }
     else
     {
-        throw std::logic_error(HERE() + "unknown nodes pad type: " + dir);
+        throw std::logic_error(HERE() + "unknown pad style");
     }
 
     cube_p<real> r = get_cube<real>(s);
