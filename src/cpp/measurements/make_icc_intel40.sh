@@ -1,5 +1,5 @@
 #!/bin/bash
-scl enable devtoolset-2 bash
+#scl enable devtoolset-2 bash
 module add boost
 module add intel
 module add intel-mkl

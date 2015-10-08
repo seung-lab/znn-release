@@ -872,6 +872,8 @@ private:
         vec3i stride    = vec3i::zero;
         vec3i fsize     = vec3i::zero;
 
+        options const * opts;
+
         std::unique_ptr<nodes> dnodes;
         std::vector<nedges *> in, out;
     };
@@ -936,7 +938,15 @@ private:
         }
         else
         {
-            n->stride = stride;
+            vec3i real_stride = stride;
+
+            if ( n->opts->optional_as<int>("dense",0) )
+            {
+                real_stride = vec3i::one;
+            }
+
+            n->stride = real_stride;
+
             for ( auto& e: n->out )
             {
                 if ( e->pool && (e->stride!=vec3i::one) )
@@ -944,8 +954,8 @@ private:
                     UNIMPLEMENTED();
                 }
 
-                e->in_stride = stride;
-                stride_pass(e->out, stride * e->stride );
+                e->in_stride = real_stride;
+                stride_pass(e->out, real_stride * e->stride );
             }
         }
     }
@@ -987,6 +997,7 @@ private:
         ZI_ASSERT(sz>0);
         ZI_ASSERT(nodes_.count(name)==0);
         nnodes* ns   = new nnodes;
+        ns->opts = &op;
         nodes_[name] = ns;
 
         if ( type == "input" )

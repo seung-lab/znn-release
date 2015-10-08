@@ -60,17 +60,30 @@ int main(int argc, char** argv)
         nrnds = atoi(argv[8]);
     }
 
-    for ( int i = 1; i <= 240; ++i )
+    size_t max_threads = 240;
+
+    if ( argc >= 10 )
+    {
+        max_threads = atoi(argv[0]);
+    }
+
+    std::vector<double> speeds(max_threads+1);
+
+    for ( int i = 1; i <= max_threads; ++i )
     {
         auto res = parallel_network::network::speed_test
             (nodes, edges, {z,y,x}, i, nrnds, warmup);
 
+        speeds[i] = res.first;
+
         ofs << W << ", " << D << ", " << i << ", "
-            << res.first << ", " << res.second << ";" << std::endl;
+            << res.first << ", " << res.second << ", "
+            << (speeds[1] / speeds[i] ) << ";" << std::endl;
 
         std::cout << W << ", " << D << ", " << i << ", "
                   << res.first << ", " << res.second
                   << " ( " << ( res.second * 100  / res.first ) << "% )"
-                  << ";" << std::endl;
+                  << ";" << std::endl
+                  << "____SPEEDUP: " << ( speeds[1] / speeds[i] ) << std::endl;
     }
 }
