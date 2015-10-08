@@ -20,7 +20,7 @@ pyznn: $(SFL)
 .PHONY: mkl clean
 
 mkl: $(SFL)
-	/opt/bin/intell/icc -o $(ODIR)/pyznn.so $(SFL) $(MKL_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(OTH_FLAGS) $(LIBS)
+	/opt/intel/bin/icc -o $(ODIR)/pyznn.so $(SFL) $(MKL_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(OTH_FLAGS) $(LIBS)
 
 clean:
 	rm -f $(ODIR)/*
