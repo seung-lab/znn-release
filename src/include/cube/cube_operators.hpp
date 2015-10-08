@@ -5,6 +5,7 @@
 #include "../meta.hpp"
 
 #include <iostream>
+#include <cmath>
 #include <algorithm>
 #include <type_traits>
 
@@ -146,6 +147,14 @@ inline void mul_with(T * a, T const * v, std::size_t s) noexcept
 }
 
 template<typename T>
+inline void div_with(T * a, T const * v, std::size_t s) noexcept
+{
+    for ( std::size_t i = 0; i < s; ++i )
+        a[i] /= v[i];
+}
+
+
+template<typename T>
 inline T sum(T const * a, std::size_t s) noexcept
 {
     T r = T();
@@ -215,6 +224,15 @@ operator*=( cube<T> & v, cube<T> const & c ) noexcept
 {
     ZI_ASSERT(v.num_elements()==c.num_elements());
     detail::mul_with(v.data(), c.data(), v.num_elements());
+    return v;
+}
+
+template<typename T>
+inline cube<T> &
+operator/=( cube<T> & v, cube<T> const & c ) noexcept
+{
+    ZI_ASSERT(v.num_elements()==c.num_elements());
+    detail::div_with(v.data(), c.data(), v.num_elements());
     return v;
 }
 
@@ -312,6 +330,20 @@ inline T sum(cube<T> const & v) noexcept
     return detail::sum(v.data(), v.num_elements());
 }
 
+template<typename T>
+inline cube_p<T> exp( cube<T> const & c )
+{
+    auto r = get_cube<T>(size(c));
+    T* dest = r->data();
+    const T* src = c.data();
+
+    for ( size_t i = 0; i < c.num_elements(); ++i )
+    {
+        dest[i] = std::exp(src[i]);
+    }
+
+    return r;
+}
 
 template<typename T>
 inline cube_p<T> sparse_explode( cube<T> const & v,

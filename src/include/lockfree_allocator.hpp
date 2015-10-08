@@ -2,6 +2,7 @@
 
 #include <zi/utility/singleton.hpp>
 #include <boost/lockfree/stack.hpp>
+#include <boost/lockfree/queue.hpp>
 #include <boost/utility/addressof.hpp>
 #include <array>
 
@@ -36,7 +37,7 @@ class memory_bucket
 {
 public:
     std::size_t                   mem_size_;
-    boost::lockfree::stack<void*> stack_   ;
+    boost::lockfree::queue<void*> stack_   ;
 
 public:
     memory_bucket(size_t ms = 0)
@@ -90,13 +91,13 @@ public:
 public:
     void* get( std::size_t s )
     {
-        size_t bucket = 64 - __builtin_clzl( s );
+        size_t bucket = 64 - __builtin_clzl( s - 1 );
         return this->buckets_[bucket].get();
     }
 
     void ret( void* p, std::size_t s )
     {
-        size_t bucket = 64 - __builtin_clzl( s );
+        size_t bucket = 64 - __builtin_clzl( s - 1 );
         return this->buckets_[bucket].ret(p);
     }
 

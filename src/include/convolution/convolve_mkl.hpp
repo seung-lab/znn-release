@@ -204,8 +204,9 @@ template< typename T >
 inline cube_p<T> convolve_flipped( cube<T> const & a,
                                    cube<T> const & b)
 {
-    flip(const_cast<cube<T>&>(b));
-    return convolve(a,b);
+    auto tmp = get_copy(b);
+    flip(*tmp);
+    return convolve(a,*tmp);
 }
 
 template< typename T >

@@ -1,0 +1,80 @@
+nodes input
+type input
+size 1
+
+nodes nl1
+type transfer
+function rectify_linear
+size 10
+
+nodes nl2
+type transfer
+function rectify_linear
+size 10
+
+nodes nl3
+type transfer
+function rectify_linear
+size 10
+
+nodes nl4
+type transfer
+function rectify_linear
+size 10
+
+nodes nl5
+type transfer
+function rectify_linear
+size 10
+
+nodes output
+type transfer
+function logistics
+size 1
+
+edges conv1
+type conv
+init uniform
+size 1,3,3
+stride 1,1,1
+input input
+output nl1
+
+edges conv2
+type max_filter
+size 1,2,2
+stride 1,2,2
+input nl1
+output nl2
+
+edges conv3
+type conv
+init uniform
+size 1,3,3
+stride 1,1,1
+input nl2
+output nl3
+
+edges conv4
+type conv
+init uniform
+size 1,4,4
+stride 1,1,1
+input nl3
+output nl4
+
+edges conv5
+type conv
+init uniform
+size 1,4,4
+stride 1,1,1
+input nl4
+output nl5
+
+edges conv6
+type conv
+init uniform
+size 3,3,1
+stride 1,1,1
+input nl5
+output output

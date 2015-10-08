@@ -3,6 +3,7 @@
 #include "../initializator/initializators.hpp"
 
 #include <map>
+#include <iostream>
 
 namespace znn { namespace v4 {
 
@@ -16,6 +17,28 @@ inline std::pair<inout_t,inout_t> generate_inout( size_t n, Net const & net )
 
     uniform_init init(1);
     std::pair<inout_t, inout_t> ret;
+
+    std::cout << "Generating inputs/outputs\n";
+
+    for ( auto & ip: ins )
+    {
+        for ( size_t i = 0; i < ip.second.second; ++i )
+        {
+            std::cout << "\tINPUT " << ip.first << "["
+                      << i << "] " << ip.second.first << "\n";
+        }
+    }
+
+    for ( auto & ip: outs )
+    {
+        for ( size_t i = 0; i < ip.second.second; ++i )
+        {
+            std::cout << "\tOUTPUT " << ip.first << "["
+                      << i << "] " << ip.second.first << "\n";
+        }
+    }
+
+
 
     for ( size_t i = 0; i < n; ++i )
     {

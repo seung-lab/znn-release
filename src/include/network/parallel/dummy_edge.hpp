@@ -31,7 +31,7 @@ public:
         out_nodes->forward(out_num,get_copy(*f));
     }
 
-    void backward( ccube_p<real> const & g )
+    void backward( ccube_p<real> const & g ) override
     {
         in_nodes->backward(in_num,get_copy(*g));
     }
