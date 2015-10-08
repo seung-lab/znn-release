@@ -18,6 +18,13 @@ def timestamp():
 
     return truncated_time
 
+def write_to_log(filename, line):
+    '''Writes a line of output to the log file. Manages opening and closing'''
+    with open(filename, 'a') as f:
+        f.write(line)
+        f.write('\n')
+        f.close()
+
 def assert_arglist(single_arg_option, multi_arg_option):
     '''
     Several functions can be called using a composite (parameters/params) data structure or
@@ -40,6 +47,24 @@ def assert_arglist(single_arg_option, multi_arg_option):
         ])
 
     assert(params_defined or all_optional_args_defined)
+
+def rft_to_string(rft):
+    '''Transforms an rft (bool array) into a string for logging'''
+    if rft is None:
+	return "[]"
+    
+    rft_mapping = ["z-reflection", "y-reflection",
+		   "x-reflection", "xy-transpose"]
+
+    rft_matches_mapping = len(rft) == len(rft_mapping)
+    assert(rft_matches_mapping)
+
+    applied_rules = [rft_mapping[i]
+	for i in range(len(rft_mapping)) if rft[i]]
+
+    rft_string = applied_rules.__repr__().replace("'","")
+
+    return rft_string
 
 def data_aug_transform(data, rft):
         """

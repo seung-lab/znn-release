@@ -14,12 +14,16 @@ import utils
 import zstatistics
 import os
 
-def main( conf_file='config.cfg' ):
+def main( conf_file='config.cfg', logfile=None ):
     #%% parameters
     print "reading config parameters..."
     config, pars = front_end.parser( conf_file )
-    print "recording configuration file..."
-    front_end.record_config_file( pars )
+
+    if pars.has_key('logging') and pars['logging']:
+        print "recording configuration file..."
+        front_end.record_config_file( pars )
+
+        logfile = front_end.make_logfile_name( pars )
 
     #%% create and initialize the network
     outsz = pars['train_outsz']
@@ -48,9 +52,9 @@ def main( conf_file='config.cfg' ):
 
     # initialize samples
     print "\n\ncreate train samples..."
-    smp_trn = front_end.CSamples(config, pars, pars['train_range'], net, outsz)
+    smp_trn = front_end.CSamples(config, pars, pars['train_range'], net, outsz, logfile)
     print "\n\ncreate test samples..."
-    smp_tst = front_end.CSamples(config, pars, pars['test_range'],  net, outsz)
+    smp_tst = front_end.CSamples(config, pars, pars['test_range'],  net, outsz, logfile)
 
     # initialization
     elapsed = 0
@@ -105,8 +109,13 @@ def main( conf_file='config.cfg' ):
             # time
             elapsed = time.time() - start
             elapsed = elapsed / pars['Num_iter_per_show']
-            print "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s/iter, learning rate: %.6f"\
+
+            show_string = "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s/iter, learning rate: %.6f"\
                     %(i, err, cls, elapsed, eta )
+                    
+            if pars.has_key('logging') and pars['logging']:
+                utils.write_to_log(logfile, show_string)
+            print show_string
 
             if pars['is_visual']:
                 # show results To-do: run in a separate thread
