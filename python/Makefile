@@ -23,4 +23,4 @@ mkl: $(SFL)
 	/opt/intel/bin/icc -o $(ODIR)/pyznn.so $(SFL) $(MKL_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(OTH_FLAGS) $(LIBS)
 
 clean:
-	rm -f $(ODIR)/*
+	rm -f $(ODIR)/pyznn.so
