@@ -178,16 +178,10 @@ def check_config(config, pars):
             pars['cost_fn_str'] = 'binomial_cross_entropy'
             pars['cost_fn'] = cost_fn.binomial_cross_entropy
     elif "square" in pars['cost_fn_str']:
-        assert('boundary' in pars['out_type'])
         pars['cost_fn'] = cost_fn.square_loss
     elif  "binomial" in pars['cost_fn_str']:
-        assert('affin' in pars['out_type'])
         pars['cost_fn'] = cost_fn.binomial_cross_entropy
-    elif "multinomial_cross_entropy" in pars['cost_fn_str']:
-        assert('boundary' in pars['out_type'])
-        pars['cost_fn'] = cost_fn.multinomial_cross_entropy
     elif "softmax" in pars['cost_fn_str']:
-        assert('boundary' in pars['out_type'])
         pars['cost_fn'] = cost_fn.softmax_loss
     else:
         raise NameError('unknown type of cost function')
