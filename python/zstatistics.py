@@ -23,7 +23,7 @@ class CLearnCurve:
         # initialize by loading from a h5 file
         if 'statistics' not in fname:
             # it is the network file name
-            fname = path.dirname(fname)+'/net_statistics.h5'
+            fname = find_statistics_file_within_dir(fname)
         assert( path.exists(fname) )
         # read data
         import h5py
@@ -54,7 +54,7 @@ class CLearnCurve:
         # return the last iteration number
         if len(self.tt_it)>0 and len(self.tn_it)>0:
             last_it = max( self.tt_it[-1], self.tn_it[-1] )
-            print "inherite last iteration: ", last_it
+            print "inherit last iteration: ", last_it
             return last_it
         else:
             return 0
@@ -135,6 +135,39 @@ class CLearnCurve:
         # move to new name
         fname2 = root + '_statistics.h5'
         os.rename(fname, fname2)
+
+def find_statistics_file_within_dir(seed_filename):
+    '''
+    Looks for the stats file amongst the directory where
+     the loaded network is stored
+    '''
+    import glob
+
+    containing_directory, filename = path.split(seed_filename)
+
+    #First attempt- if there's only one stats file, take it
+    candidate_files = glob.glob( "{}/*statistics*".format(containing_directory) )
+
+    some_stats_files_in_load_directory = len(candidate_files) > 0
+    assert(some_stats_files_in_load_directory)
+
+    #Next attempt- split filename by '_' and search for more specific files
+    # until only one remains
+
+    filename_fields = filename.split('_')
+    filename_fields.reverse()
+
+    first_field = filename_fields.pop()
+    search_expression_head = containing_directory + "/" + first_field
+    while len(candidate_files) > 1:
+        candidate_files = glob.glob( search_expression_head + "*statistics*" )
+
+        stats_search_found_a_file = len(candidate_files) > 0
+        assert(stats_search_found_a_file)
+
+        search_expression_head += '_' + filename_fields.pop()
+
+    return candidate_files[0]
 
 if __name__ == '__main__':
     """

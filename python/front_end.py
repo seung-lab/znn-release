@@ -91,7 +91,7 @@ def parser( conf_fname ):
     pars['train_load_net'] = config.get('parameters', 'train_load_net')
     #Whether to write .log and .cfg files
     if config.has_option('parameters', 'logging'):
-        pars['logging'] = config.get('parameters', 'logging')
+        pars['logging'] = config.getboolean('parameters', 'logging')
 
     #TRAINING OPTIONS
     #Samples to use for training
@@ -250,7 +250,8 @@ def inter_show(start, lc, eta, vol_ins, props, lbl_outs, grdts, pars):
     plt.pause(1.5)
     return
 
-def record_config_file(params=None, config_filename=None, net_save_filename=None, train=True):
+def record_config_file(params=None, config_filename=None, net_save_filename=None, 
+    timestamp=None, train=True):
     '''
     Copies the config file used for the current run of ZNN under the same
     prefix as the network save prefix
@@ -269,7 +270,10 @@ def record_config_file(params=None, config_filename=None, net_save_filename=None
     #Args default to params values, override by options
     if params is not None:
         _config_filename = params['fconfig']
-        _net_save_filename = params['train_save_net']
+        if train:
+            _net_save_filename = params['train_save_net']
+        else:
+            _net_save_filename = params['']
 
     #Option override
     if config_filename is not None:
@@ -287,7 +291,8 @@ def record_config_file(params=None, config_filename=None, net_save_filename=None
     assert(save_prefix_valid)
 
     #Deriving destination filename information
-    timestamp = utils.timestamp()
+    if timestamp is None:
+        timestamp = utils.timestamp()
     mode = "train" if train else "forward"
 
     #Actually saving
@@ -299,3 +304,38 @@ def record_config_file(params=None, config_filename=None, net_save_filename=None
 
     save_filename = "{}_{}_{}.cfg".format(save_prefix, mode, timestamp)
     shutil.copy( _config_filename, save_filename)
+
+def make_logfile_name(params=None, net_save_filename=None, timestamp = None, train=True):
+    '''
+    Returns the name of the logfile for the current training/forward pass run
+    '''
+
+    #Need to specify either a params object, or the net save prefix
+    utils.assert_arglist(params,
+        [net_save_filename])
+
+    if params is not None:
+        if train:
+            _net_save_filename = params['train_save_net']
+        else:
+            _net_save_filename = params['output_prefix']
+
+    if net_save_filename is not None:
+        _net_save_filename = net_save_filename
+
+    save_prefix = os.path.splitext( _net_save_filename )[0]
+
+    save_prefix_valid = len(save_prefix) > 0
+    assert(save_prefix_valid)
+
+    if timestamp is None:
+        timestamp = utils.timestamp()
+    mode = "train" if train else "forward"
+
+    directory_name = os.path.dirname( save_prefix )
+    if not os.path.exists(directory_name):
+        os.mkdir(directory_name)
+
+    save_filename = "{}_{}_{}.log".format(save_prefix, mode, timestamp)
+
+    return save_filename

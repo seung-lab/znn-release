@@ -245,37 +245,6 @@ class ZNN_Dataset(object):
         '''
         return self.volume_shape - self.fov + 1
 
-class ConfigSampleOutput(object):
-
-    def __init__(self, net, output_volume_shape3d, dtype):
-
-        output_patch_shapes = net.get_outputs_setsz()
-
-        self.output_volumes = {}
-        for name, shape in output_patch_shapes.iteritems():
-
-            num_volumes = shape[0]
-
-            volume_shape = np.hstack((num_volumes,output_volume_shape3d)).astype('uint32')
-
-            empty_bin = np.zeros(volume_shape, dtype=dtype)
-
-            self.output_volumes[name] = ZNN_Dataset(empty_bin, shape[-3:], shape[-3:])
-
-    def set_next_patch(self, output):
-
-        for name, data in output.iteritems():
-            self.output_volumes[name].set_next_patch(data)
-
-    def num_patches(self):
-
-        patch_counts = {}
-
-        for name, dataset in self.output_volumes.iteritems():
-            patch_counts[name] = dataset.num_patches()
-
-        return patch_counts
-
 class ConfigImage(ZNN_Dataset):
     """
     A class which represents a stack of images (up to 4 dimensions)
@@ -734,7 +703,7 @@ class ConfigSample(object):
 
     Designed to be similar with Dataset module of pylearn2
     """
-    def __init__(self, config, pars, sample_id, net, outsz):
+    def __init__(self, config, pars, sample_id, net, outsz, log=None):
 
         # Parameter object (dict)
         self.pars = pars
@@ -744,7 +713,8 @@ class ConfigSample(object):
         setsz_outs = net.get_outputs_setsz()
 
         # Name of the sample within the configuration file
-        sec_name = "sample%d" % sample_id
+        # Also used for logging
+        self.sec_name = "sample%d" % sample_id
 
         # init deviation range
         # we need to consolidate this over all input and output volumes
@@ -757,7 +727,7 @@ class ConfigSample(object):
         for name,setsz in setsz_ins.iteritems():
 
             #Finding the section of the config file
-            imid = config.getint(sec_name, name)
+            imid = config.getint(self.sec_name, name)
             imsec_name = "image%d" % (imid,)
 
             self.inputs[name] = ConfigInputImage( config, pars, imsec_name, setsz, outsz )
@@ -773,11 +743,11 @@ class ConfigSample(object):
         for name, setsz in setsz_outs.iteritems():
 
             #Allowing for users to abstain from specifying labels
-            if not config.has_option(sec_name, name):
+            if not config.has_option(self.sec_name, name):
                 continue
 
             #Finding the section of the config file
-            imid = config.getint(sec_name, name)
+            imid = config.getint(self.sec_name, name)
             imsec_name = "label%d" % (imid,)
 
             self.outputs[name] = ConfigOutputLabel( config, pars, imsec_name, setsz, outsz)
@@ -795,6 +765,9 @@ class ConfigSample(object):
             print "\nWARNING: No output volumes defined!\n"
             self.locs = None
 
+        #Filename for log
+        self.log = log
+
     def get_random_sample(self):
         '''Fetches a matching random sample from all input and output volumes'''
 
@@ -808,6 +781,8 @@ class ConfigSample(object):
         loc[1] = self.locs[1][ind]
         loc[2] = self.locs[2][ind]
         dev = loc - self.outputs.values()[0].center
+
+        self.write_request_to_log(dev, rft)
 
         # get input and output 4D sub arrays
         inputs = dict()
@@ -850,9 +825,55 @@ class ConfigSample(object):
 
         return patch_counts
 
+    def write_request_to_log(self, dev, rft):
+        '''Records the subvolume requested of this sample in a log'''
+
+        if self.log is not None:
+            rft_string = utils.rft_to_string(rft)
+            
+            log_line1 = self.sec_name
+            log_line2 = "subvolume: [{},{},{}] requested".format(dev[0],dev[1],dev[2])
+            log_line3 = "transformation: {}".format(rft_string)
+
+            utils.write_to_log(self.log, log_line1)
+            utils.write_to_log(self.log, log_line2)
+            utils.write_to_log(self.log, log_line3)
+
+class ConfigSampleOutput(object):
+    '''Documentation coming soon...'''
+
+    def __init__(self, net, output_volume_shape3d, dtype):
+
+        output_patch_shapes = net.get_outputs_setsz()
+
+        self.output_volumes = {}
+        for name, shape in output_patch_shapes.iteritems():
+
+            num_volumes = shape[0]
+
+            volume_shape = np.hstack((num_volumes,output_volume_shape3d)).astype('uint32')
+
+            empty_bin = np.zeros(volume_shape, dtype=dtype)
+
+            self.output_volumes[name] = ZNN_Dataset(empty_bin, shape[-3:], shape[-3:])
+
+    def set_next_patch(self, output):
+
+        for name, data in output.iteritems():
+            self.output_volumes[name].set_next_patch(data)
+
+    def num_patches(self):
+
+        patch_counts = {}
+
+        for name, dataset in self.output_volumes.iteritems():
+            patch_counts[name] = dataset.num_patches()
+
+        return patch_counts
+
 class CSamples(object):
 
-    def __init__(self, config, pars, ids, net, outsz):
+    def __init__(self, config, pars, ids, net, outsz, log=None):
         """
         Samples Class - which represents a collection of data samples
 
@@ -873,7 +894,7 @@ class CSamples(object):
 
         self.samples = list()
         for sid in ids:
-            sample = ConfigSample(config, pars, sid, net, outsz)
+            sample = ConfigSample(config, pars, sid, net, outsz, log)
             self.samples.append( sample )
 
     def get_random_sample(self):
