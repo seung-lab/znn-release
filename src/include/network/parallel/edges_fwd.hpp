@@ -20,6 +20,7 @@ public:
     struct real_pooling_tag {};
     struct dropout_tag {};
     struct crop_tag {};
+    struct softmax_tag {};
 
 protected:
     options                                options_;
@@ -46,6 +47,7 @@ public:
 
     edges( nodes *, nodes *, options const &, vec3i const &,
            task_manager &, crop_tag );
+    edges( nodes *, nodes *, options const &, task_manager &, softmax_tag );
 
     std::string name() const
     {

@@ -73,15 +73,12 @@ public:
             ZI_ASSERT(size(out)==fft_complex_size(in));
             ZI_ASSERT(size(in)==sz);
 
-            fft_plan plan = fft_plans.get_forward(
-                vec3i(in.shape()[0],in.shape()[1],in.shape()[2]));
-
             MKL_LONG status;
 
 #           ifdef MEASURE_FFT_RUNTIME
             zi::wall_timer wt;
 #           endif
-            status = DftiComputeForward(*plan,
+            status = DftiComputeForward(*forward_plan,
                                         reinterpret_cast<real*>(in.data()),
                                         reinterpret_cast<real*>(out.data()));
 #           ifdef MEASURE_FFT_RUNTIME
@@ -95,16 +92,12 @@ public:
             ZI_ASSERT(size(in)==fft_complex_size(out));
             ZI_ASSERT(size(out)==sz);
 
-            fft_plan plan = fft_plans.get_backward(
-                vec3i(in.shape()[0],in.shape()[1],in.shape()[2]));
-
             MKL_LONG status;
-
 
 #           ifdef MEASURE_FFT_RUNTIME
             zi::wall_timer wt;
 #           endif
-            status = DftiComputeBackward(*plan,
+            status = DftiComputeBackward(*backward_plan,
                                          reinterpret_cast<real*>(in.data()),
                                          reinterpret_cast<real*>(out.data()));
 #           ifdef MEASURE_FFT_RUNTIME

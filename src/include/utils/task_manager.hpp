@@ -21,6 +21,10 @@
 #include "log.hpp"
 #include "global_task_manager.hpp"
 
+#ifdef ZNN_DFS_TASK_SCHEDULER
+#  include "dfs_task_manager.hpp"
+#else
+
 namespace znn { namespace v4 {
 
 namespace detail {
@@ -367,3 +371,5 @@ public:
 
 
 }} // namespace znn::v4
+
+#endif

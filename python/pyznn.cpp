@@ -290,7 +290,6 @@ bp::dict CNet_get_outputs_setsz( bp::object const & self )
 	return ret;
 }
 //===========================================================================
-
 void CNet_set_phase(bp::object const & self, std::uint8_t const phs = 0)
 {
 	network& net = bp::extract<network&>(self)();
