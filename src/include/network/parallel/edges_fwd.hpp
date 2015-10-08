@@ -16,16 +16,11 @@ class edges
 public:
     struct filter_tag {};
     struct dummy_tag {};
-<<<<<<< HEAD
     struct max_pooling_tag {};
     struct real_pooling_tag {};
     struct dropout_tag {};
     struct crop_tag {};
-=======
-    struct max_pooling_tag{};
-    struct real_pooling_tag{};
     struct softmax_tag {};
->>>>>>> origin/v4
 
 protected:
     options                                options_;
@@ -47,15 +42,12 @@ public:
     edges( nodes *, nodes *, options const &, vec3i const &,
            task_manager &, real_pooling_tag );
 
-<<<<<<< HEAD
     edges( nodes *, nodes *, options const &, vec3i const &,
            task_manager &, phase phs, dropout_tag );
 
     edges( nodes *, nodes *, options const &, vec3i const &,
            task_manager &, crop_tag );
-=======
     edges( nodes *, nodes *, options const &, task_manager &, softmax_tag );
->>>>>>> origin/v4
 
     std::string name() const
     {
