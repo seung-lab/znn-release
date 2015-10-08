@@ -13,6 +13,7 @@ import matplotlib.pylab as plt
 import os
 import cost_fn
 from ZNN_Dataset import CSamples, ConfigSample, ZNN_Dataset, ConfigSampleOutput
+import utils
 
 def parseIntSet(nputstr=""):
     """
@@ -69,6 +70,8 @@ def parser( conf_fname ):
     pars = dict()
 
     #GENERAL OPTIONS
+    #Config filename
+    pars['fconfig'] = conf_fname
     #Network specification filename
     pars['fnet_spec']   = config.get('parameters', 'fnet_spec')
     if config.has_option('parameters', 'fdata_spec'):
@@ -86,6 +89,9 @@ def parser( conf_fname ):
     pars['train_save_net'] = config.get('parameters', 'train_save_net')
     #Network filename to load
     pars['train_load_net'] = config.get('parameters', 'train_load_net')
+    #Whether to write .log and .cfg files
+    if config.has_option('parameters', 'logging'):
+        pars['logging'] = config.get('parameters', 'logging')
 
     #TRAINING OPTIONS
     #Samples to use for training
@@ -244,8 +250,58 @@ def inter_show(start, lc, eta, vol_ins, props, lbl_outs, grdts, pars):
     plt.plot(lc.tt_it, lc.tt_err, 'r', label='test')
     plt.xlabel('iteration'), plt.ylabel('cost energy')
     plt.subplot(246)
-    plt.plot( lc.tn_it, lc.tn_cls, 'b', cl.tt_it, lc.tt_cls, 'r')
+    plt.plot( lc.tn_it, lc.tn_cls, 'b', lc.tt_it, lc.tt_cls, 'r')
     plt.xlabel('iteration'), plt.ylabel( 'classification error' )
 
     plt.pause(1.5)
     return
+
+def record_config_file(params=None, config_filename=None, net_save_filename=None, train=True):
+    '''
+    Copies the config file used for the current run of ZNN under the same
+    prefix as the network save prefix
+
+    Format: {net_save_prefix}_{train/forward}_{timestamp}.cfg
+    e.g. net_train_20151007_17:48:55.cfg
+    '''
+    import shutil
+
+    #Need to specify either a params object, or all of the other optional args
+    #"ALL" optional args excludes train
+    utils.assert_arglist(params,
+        [config_filename, net_save_filename]
+        )
+
+    #Args default to params values, override by options
+    if params is not None:
+        _config_filename = params['fconfig']
+        _net_save_filename = params['train_save_net']
+
+    #Option override
+    if config_filename is not None:
+        _config_filename = config_filename
+    if net_save_filename is not None:
+        _net_save_filename = net_save_filename
+
+    #More error checking
+    save_prefix = os.path.splitext( _net_save_filename )[0]
+
+    config_file_exists = os.path.isfile( _config_filename )
+    assert(config_file_exists)
+
+    save_prefix_valid = len(save_prefix) > 0
+    assert(save_prefix_valid)
+
+    #Deriving destination filename information
+    timestamp = utils.timestamp()
+    mode = "train" if train else "forward"
+
+    #Actually saving
+
+    # get directory name from filename
+    directory_name = os.path.dirname( save_prefix )
+    if not os.path.exists(directory_name):
+        os.mkdir(directory_name)
+
+    save_filename = "{}_{}_{}.cfg".format(save_prefix, mode, timestamp)
+    shutil.copy( _config_filename, save_filename)

@@ -3,6 +3,7 @@ import numpy as np
 import h5py
 import pyznn
 import os.path, shutil
+from utils import assert_arglist
 
 np_array_fields = ("filters","biases","size","stride")
 def save_opts(opts, filename):
@@ -243,15 +244,11 @@ def init_network( params=None, train=True, network_specfile=None,
     overwritten by the other optional arguments
     '''
     #Need to specify either a params object, or all of the other optional args
-    params_defined = params is not None
-
     #"ALL" optional args excludes train
-    all_optional_args_defined = all([
-        arg is not None for arg in
-        ( output_patch_shape, network_specfile, num_threads, optimize )
-        ])
-
-    assert (params_defined or all_optional_args_defined)
+    assert_arglist(params, 
+                [network_specfile, output_patch_shape, 
+                num_threads, optimize]
+                )
 
     #Defining phase argument by train argument
     phase = int(not train)

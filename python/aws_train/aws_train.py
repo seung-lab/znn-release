@@ -10,7 +10,7 @@ conf_file = "~/.starcluster/config"
 cluster_name = 'jpcluster'
 
 # node tag or name
-node_name = 'VD2D'
+node_name = 'W10'
 
 # your bidding of spot instance
 spot_bid = 0.71
@@ -86,13 +86,18 @@ while True:
     mynode = node_search(cl, node_name)
     if mynode == None:
         try:
+            print "add node ", node_name, " with a biding of $", spot_bid
             mynode = cl.add_node( alias=node_name, spot_bid=spot_bid )
         except:
             print "node creation failed"
             continue
-        print "run plugin"
-	mynode = node_search(cl, node_name)
-        mynode.ssh.execute( cmds[node_name] )
+
+        try:
+            print "run command after node launch."
+            mynode.ssh.execute( cmds[node_name] )
+        except:
+            print "command execution failed!"
+            break
 
     f.write('wait for cluster...\n')
     time.sleep(1)

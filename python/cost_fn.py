@@ -125,7 +125,7 @@ def multinomial_cross_entropy(props, lbls):
     for name, prop in props.iteritems():
         lbl = lbls[name]
         grdts[name] = prop - lbl
-        err = err + np.sum( -lbl * np.log(prop) )
+        err = err + np.nansum( -lbl * np.log(prop) )
     return (props, err, grdts)
 
 def softmax_loss(props, lbls):
@@ -229,7 +229,7 @@ def malis_weight(affs, true_affs, threshold=0.5):
     """
     import emirt
     # segment the true affinity graph
-    tseg = emirt.volume_util.seg_affs(true_affs)
+    tseg = emirt.volume_util.aff2seg(true_affs)
     tid_sets, tsegf = emirt.volume_util.map_set( seg )
 
     if isinstance(affs, dict):
