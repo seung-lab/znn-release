@@ -1,0 +1,209 @@
+nodes input
+type input
+size 1
+
+edges conv1a
+type conv
+fft 0
+init msra
+size 1,3,3
+stride 1,1,1
+input input
+output nl1
+
+nodes nl1
+type transfer
+function rectify_linear
+size 24
+
+edges conv1b
+type conv
+fft 0
+init msra
+size 1,3,3
+stride 1,1,1
+input nl1
+output nl2
+
+nodes nl2
+type transfer
+function rectify_linear
+size 24
+
+edges conv1c
+type conv
+fft 0
+init msra
+size 1,2,2
+stride 1,1,1
+input nl2
+output nl3
+
+nodes nl3
+type transfer
+function rectify_linear
+size 24
+
+edges pool1
+type max_filter
+size 1,2,2
+stride 1,2,2
+input nl3
+output nl4
+
+nodes nl4
+type sum
+size 24
+
+edges conv2a
+type conv
+fft 0
+init msra
+size 1,3,3
+stride 1,1,1
+input nl4
+output nl5
+
+nodes nl5
+type transfer
+function rectify_linear
+size 36
+
+edges conv2b
+type conv
+fft 0
+init msra
+size 1,3,3
+stride 1,1,1
+input nl5
+output nl6
+
+nodes nl6
+type transfer
+function rectify_linear
+size 36
+
+edges pool2
+type max_filter
+size 1,2,2
+stride 1,2,2
+input nl6
+output nl7
+
+nodes nl7
+type sum
+size 36
+
+edges conv3a
+type conv
+fft 0
+init msra
+size 1,3,3
+stride 1,1,1
+input nl7
+output nl8
+
+nodes nl8
+type transfer
+function rectify_linear
+size 48
+
+edges conv3b
+type conv
+fft 0
+init msra
+size 1,3,3
+stride 1,1,1
+input nl8
+output nl9
+
+nodes nl9
+type transfer
+function rectify_linear
+size 48
+
+edges pool3
+type max_filter
+size 1,2,2
+stride 1,2,2
+input nl9
+output nl20
+
+nodes nl20
+type sum
+size 48
+
+edges conv4a
+type conv
+fft 0
+init msra
+size 1,3,3
+stride 1,1,1
+input nl20
+output nl21
+
+nodes nl21
+type transfer
+function rectify_linear
+size 60
+
+edges conv4b
+type conv
+fft 0
+init msra
+size 1,3,3
+stride 1,1,1
+input nl21
+output nl22
+
+nodes nl22
+type transfer
+function rectify_linear
+size 60
+
+edges pool4
+type max_filter
+size 1,2,2
+stride 1,2,2
+input nl22
+output nl23
+
+nodes nl23
+type sum
+size 60
+
+edges conv5
+type conv
+fft 0
+init msra
+size 1,3,3
+stride 1,1,1
+input nl23
+output nl24
+
+nodes nl24
+type transfer
+function rectify_linear
+size 200
+
+edges dropout
+type dropout
+ratio 0.5
+
+nodes nl25
+type sum
+size 200
+
+edges convx
+type conv
+fft 0
+init msra
+size 1,1,1
+stride 1,1,1
+input nl25
+output output
+
+nodes output
+type transfer
+function linear
+size 2
