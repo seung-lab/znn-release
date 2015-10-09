@@ -17,7 +17,6 @@ def save_opts(opts, filename):
 
             #each layer is a dict
             layer_name = layer["name"]
-            data_size = layer["size"]
             #Init
 
             #create a dataset for the filters/biases
@@ -245,8 +244,8 @@ def init_network( params=None, train=True, network_specfile=None,
     '''
     #Need to specify either a params object, or all of the other optional args
     #"ALL" optional args excludes train
-    assert_arglist(params, 
-                [network_specfile, output_patch_shape, 
+    assert_arglist(params,
+                [network_specfile, output_patch_shape,
                 num_threads, optimize]
                 )
 
