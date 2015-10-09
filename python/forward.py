@@ -49,7 +49,7 @@ def config_forward_pass( config_filename, verbose=True, sample_ids=None ):
     Performs a full forward pass for all samples specified within
     a configuration file
 
-    sample_ids should be a list of ints describing the samples to run(?)
+    sample_ids should be a list of ints describing the samples to run
     '''
     # parameters
     config, params = front_end.parser( config_filename )
@@ -86,6 +86,7 @@ def run_softmax( sample_output ):
     given sample output
     '''
     from cost_fn import softmax
+
     for dname, dataset in sample_output.output_volumes.iteritems():
 
 		props = {'dataset':dataset.data}
@@ -142,7 +143,7 @@ def output_volume_shape_consistent( output_vol_shapes ):
 	shapes = output_vol_shapes.values()
 	assert len(shapes) > 0
 
-	return all( [np.all(shape == shapes[0]) for shape in shapes])
+	return all( [np.all(shape == shapes[0]) for shape in shapes] )
 
 def num_patches_consistent( input_patch_count, output_patch_count ):
 	'''
@@ -186,14 +187,17 @@ def main( config_filename, sample_ids=None ):
     Script functionality - runs config_forward_pass and saves the
     output volumes
     '''
-    if sample_ids is None:
-        output_volumes = config_forward_pass( config_filename, verbose=True )
-    else:
-        output_volumes = config_forward_pass( config_filename, verbose=True, sample_ids=sample_ids)
-
-    print "Saving Output Volumes..."
     config, params = front_end.parser( config_filename )
-    save_sample_outputs( output_volumes, params[output_prefix_optionname] )
+
+    if sample_ids is None:
+    	sample_ids = params[range_optionname]
+
+    for sample_id in sample_ids:
+
+    	output_volume = config_forward_pass( config_filename, verbose=True, sample_ids=[sample_id])
+
+    	print "Saving Output Volume %d..." % sample_id
+    	save_sample_outputs( output_volume, params[output_prefix_optionname] )
 
 if __name__ == '__main__':
     """

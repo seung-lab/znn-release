@@ -140,11 +140,24 @@ int main(int argc, char** argv)
         tc = atoi(argv[5]);
     }
 
+    size_t freq = 100;
+
+    if ( argc == 7 )
+    {
+        freq = atoi(argv[6]);
+    }
+
     vec3i out_sz(x,y,z);
 
-    parallel_network::network::optimize(nodes,edges,out_sz,tc,10);
+    if ( argc == 8 )
+    {
+        size_t n_opt = 0;
+        if ( n_opt = atoi(argv[7]) )
+            parallel_network::network::optimize(nodes,edges,out_sz,tc,n_opt);
+    }
+
     parallel_network::network net(nodes,edges,out_sz,tc);
-    net.set_eta(0.01 / x / y / z);
+    net.set_eta(0.01);
 
     vec3i in_sz = out_sz + net.fov() - vec3i::one;
 
@@ -181,13 +194,13 @@ int main(int argc, char** argv)
         net.backward(std::move(outsample));
 
         ++i;
-        if ( i % 1000 == 0 )
+        if ( i % freq == 0 )
         {
-            err /= 1000;
+            err /= freq;
             err /= x;
             err /= y;
             err /= z;
-            cls /= 1000; cls /= ( x * y * z );
+            cls /= freq; cls /= ( x * y * z );
             std::cout << "Iteration: " << i << " done, elapsed: "
                       << wt.elapsed<double>() << ", sqerr: " << err
                       << " clserr: " << cls << std::endl;
