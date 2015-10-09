@@ -2,6 +2,11 @@
 # the [image] sections indicate the network inputs
 # format should be gray images with any bit depth.
 #
+# input preprocessing types:
+# standard2D: minus by mean and than normalize by standard deviation
+# standard3D: normalize for the whole 3D volume
+# symetric_rescale: rescale to [ -1, 1 ]
+#
 # [image1]
 # fnames =  path/of/image1.tif/h5,
 #           path/of/image2.tif/h5

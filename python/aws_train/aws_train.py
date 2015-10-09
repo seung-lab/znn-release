@@ -2,41 +2,7 @@
 from starcluster import config
 import time
 import threading
-
-#%% parameters
-conf_file = "~/.starcluster/config"
-
-# cluster name
-cluster_name = 'jpcluster'
-
-# node tag or name
-node_name = 'VD2D3D'
-
-# your bidding of spot instance
-spot_bid = 0.71
-
-# command
-cmds = {'W5':     'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/W5/config.cfg',\
-        'N4':     'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/N4/config.cfg',\
-        'VD2D':   'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/VD2D/config.cfg',\
-        'W10':    'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/W10/config.cfg',\
-        'VD2D3D': 'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/VD2D3D/config'}
-
-# instance type
-instance_type = 'c4.8xlarge'
-
-# if there are several cluster template in config file, you have to set the cluster id to a specific cluster template
-cluster_id = 0
-
-# sleep interval (secs)
-sleep_interval = 1 * 60
-
-#%% configuration
-cfg = config.get_config( conf_file )
-cl = cfg.get_clusters()[ cluster_id ]
-cl.spot_bid = spot_bid
-cl.cluster_tag = cluster_name
-cl.node_instance_type = instance_type
+import ConfigParser
 
 #%% a thread to run
 class ThreadRun(object):
@@ -56,55 +22,116 @@ def node_search(cl, node_name):
             return node
     return None
 
-#%% start the cluster
-print "constantly check whether this cluster is stopped or terminated."
-cid=0
-f = open('log.txt','a+')
-f.write( "try to start a cluster with id: {}\n".format( cid ) )
-while True:
-    # if cluster not started start the cluster
-    if (not cl.nodes) or cl.is_cluster_stopped() or cl.is_cluster_terminated():
-        cid += 1
 
-        print "try to start a cluster with id: {}\n".format( cid )
-        time.sleep(1)
+def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
+    """
+    parameters
+    ----------
+    sec: string, section name and is also the node name
+    train_cfg: configuration file name of training
+    sc_cfg : starcluster configuration file name
+    """
 
-        # run the start in a separate thread
-        try:
-            threadRun = ThreadRun(cl)
-            print "clulster creater thread running..."
-            # wait for the volume mounted
-            print "wait for the volume to attach..."
-            vol_id = cl.volumes['data']['volume_id']
-            volume = cl.ec2.get_volume( vol_id )
-            cl.ec2.wait_for_volume( volume, state='attached' )
-        except:
-            print "running failed"
+    #%% parameters
+    tncfg = ConfigParser.ConfigParser()
+    tncfg.read( train_cfg )
+    # cluster name
+    cluster_name = tncfg.get(sec, 'cluster_name')
+
+    # node tag or name
+    node_name = sec
+
+    # your bidding of spot instance
+    spot_bid = tncfg.getfloat(sec, 'spot_bid')
+
+    # command
+    command = tncfg.get(sec, 'command')
+
+    # instance type
+    instance_type = tncfg.get(sec, 'instance_type')
+
+    # if there are several cluster template in config file,
+    # you have to set the cluster id to a specific cluster template
+    cluster_id = 0
+
+    # sleep interval (secs)
+    sleep_interval = 1 * 60
+
+    #%% configuration
+    cfg = config.get_config( sc_cfg )
+    cl = cfg.get_clusters()[ cluster_id ]
+    cl.spot_bid = spot_bid
+    cl.cluster_tag = cluster_name
+    cl.node_instance_type = instance_type
+
+
+    #%% start the cluster
+    print "constantly check whether this cluster is stopped or terminated."
+    cid=0
+    f = open('log.txt','a+')
+    f.write( "try to start a cluster with id: {}\n".format( cid ) )
+    while True:
+        # if cluster not started start the cluster
+        if (not cl.nodes) or cl.is_cluster_stopped() or cl.is_cluster_terminated():
+            cid += 1
+            print "try to start a cluster with id: {}\n".format( cid )
             time.sleep(1)
-            pass
-    # if node not started, start the node
-    mynode = node_search(cl, node_name)
-    if mynode is None:
-        try:
-            print "add node ", node_name, " with a biding of $", spot_bid
-            mynode = cl.add_node( alias=node_name, spot_bid=spot_bid )
-        except:
-            print "node creation failed."
-            print "please check the starcluster config options, such as subnet."
-            continue
+            # run the start in a separate thread
+            try:
+                threadRun = ThreadRun(cl)
+                print "clulster creater thread running..."
+                # wait for the volume mounted
+                print "wait for the volume to attach..."
+                vol_id = cl.volumes['data']['volume_id']
+                volume = cl.ec2.get_volume( vol_id )
+                cl.ec2.wait_for_volume( volume, state='attached' )
+            except:
+                print "running failed"
+                time.sleep(1)
+                pass
 
-        try:
-            print "run command after node launch."
-            mynode.ssh.execute( cmds[node_name] )
-        except:
-            print "command execution failed!"
-            break
+        # if node not started, start the node
+        mynode = node_search(cl, node_name)
+        if mynode is None:
+            try:
+                print "add node ", node_name, " with a biding of $", spot_bid
+                mynode = cl.add_node( alias=node_name, spot_bid=spot_bid )
+            except:
+                print "node creation failed."
+                print "please check the starcluster config options, such as subnet."
+                continue
+            print "wait for the launch of node..."
+            time.sleep(5*60)
+            try:
+                print "run command after node launch."
+                mynode.ssh.execute( cmds[node_name] )
+            except:
+                print "command execution failed!"
+                break
 
     f.write('wait for cluster...\n')
-    time.sleep(1)
-
     # sleep for a while
     print "node {} is running, wait for {} secs to check.".format( node_name, sleep_interval )
     time.sleep( sleep_interval )
 
-f.close()
+    f.close()
+
+if __name__ == '__main__':
+    print """
+    usage:
+    python aws_train.py node_name train_config starcluster_config
+    default parameters:
+    train_config: train.cfg
+    starcluster_config: ~/.starcluster/config
+    """
+    from sys import argv
+    if len(argv)==1:
+        raise NameError( "please specify the node name!")
+    elif len(argv)==2:
+        main(argv[1])
+    elif len(argv)==3:
+        main(argv[1], argv[2])
+    elif len(argv)==4:
+        main(argv[1], argv[2], argv[3])
+    else:
+        print "too many parameters, please check usage!"
