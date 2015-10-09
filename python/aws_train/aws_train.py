@@ -10,19 +10,20 @@ conf_file = "~/.starcluster/config"
 cluster_name = 'jpcluster'
 
 # node tag or name
-node_name = 'W10'
+node_name = 'VD2D3D'
 
 # your bidding of spot instance
 spot_bid = 0.71
 
 # command
-cmds = {'W5':   'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/W5/config.cfg',\
-        'N4':   'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/N4/config.cfg',\
-        'VD2D': 'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/VD2D/config.cfg',\
-        'W10':  'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/W10/config.cfg'}
+cmds = {'W5':     'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/W5/config.cfg',\
+        'N4':     'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/N4/config.cfg',\
+        'VD2D':   'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/VD2D/config.cfg',\
+        'W10':    'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/W10/config.cfg',\
+        'VD2D3D': 'cd /home/znn-release/python/; /opt/anaconda/bin/python train.py ../experiments/VD2D3D/config'}
 
 # instance type
-instance_type = 'c3.8xlarge'
+instance_type = 'c4.8xlarge'
 
 # if there are several cluster template in config file, you have to set the cluster id to a specific cluster template
 cluster_id = 0
@@ -57,13 +58,13 @@ def node_search(cl, node_name):
 
 #%% start the cluster
 print "constantly check whether this cluster is stopped or terminated."
-cid = 0
+cid=0
 f = open('log.txt','a+')
 f.write( "try to start a cluster with id: {}\n".format( cid ) )
 while True:
     # if cluster not started start the cluster
     if (not cl.nodes) or cl.is_cluster_stopped() or cl.is_cluster_terminated():
-        cid = cid + 1
+        cid += 1
 
         print "try to start a cluster with id: {}\n".format( cid )
         time.sleep(1)
@@ -82,14 +83,14 @@ while True:
             time.sleep(1)
             pass
     # if node not started, start the node
-    hasnode = False
     mynode = node_search(cl, node_name)
-    if mynode == None:
+    if mynode is None:
         try:
             print "add node ", node_name, " with a biding of $", spot_bid
             mynode = cl.add_node( alias=node_name, spot_bid=spot_bid )
         except:
-            print "node creation failed"
+            print "node creation failed."
+            print "please check the starcluster config options, such as subnet."
             continue
 
         try:
@@ -103,7 +104,7 @@ while True:
     time.sleep(1)
 
     # sleep for a while
-    print "node is running, wait for {} secs to check.".format( sleep_interval )
+    print "node {} is running, wait for {} secs to check.".format( node_name, sleep_interval )
     time.sleep( sleep_interval )
 
 f.close()

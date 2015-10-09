@@ -418,7 +418,11 @@ class ConfigInputImage(ConfigImage):
 
         elif 'standard3D' == pp_type:
             vol3d = (vol3d - np.mean(vol3d)) / np.std(vol3d)
-
+        elif 'symetric_rescale' == pp_type:
+            # rescale to -1,1
+            vol3d -= vol3d.min()
+            vol3d = vol3d / vol3d.max()
+            vol3d = vol3d * 2 - 1
         elif 'none' == pp_type or "None" in pp_type:
             return vol3d
 
@@ -830,7 +834,7 @@ class ConfigSample(object):
 
         if self.log is not None:
             rft_string = utils.rft_to_string(rft)
-            
+
             log_line1 = self.sec_name
             log_line2 = "subvolume: [{},{},{}] requested".format(dev[0],dev[1],dev[2])
             log_line3 = "transformation: {}".format(rft_string)
