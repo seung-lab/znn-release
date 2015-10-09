@@ -9,7 +9,6 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 
 import ConfigParser
 import numpy as np
-import matplotlib.pylab as plt
 import os
 import cost_fn
 from ZNN_Dataset import CSamples, ConfigSample, ZNN_Dataset, ConfigSampleOutput
@@ -224,6 +223,7 @@ def inter_show(start, lc, eta, vol_ins, props, lbl_outs, grdts, pars):
     '''
     Plots a display of training information to the screen
     '''
+    import matplotlib.pylab as plt
     name_in, vol  = vol_ins.popitem()
     name_p,  prop = props.popitem()
     name_l,  lbl  = lbl_outs.popitem()

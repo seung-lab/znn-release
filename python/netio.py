@@ -227,7 +227,7 @@ def load_network( params=None, train=True, hdf5_filename=None,
 
     else:
         return init_network( params, train, _network_specfile, _output_patch_shape,
-                _output_patch_shape, _num_threads, _optimize )
+                _num_threads, _optimize )
 
 def init_network( params=None, train=True, network_specfile=None,
             output_patch_shape=None, num_threads=None, optimize=None ):
