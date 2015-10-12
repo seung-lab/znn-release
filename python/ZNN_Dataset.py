@@ -274,6 +274,8 @@ class ConfigImage(ZNN_Dataset):
 
         #4d array of all data
         arr = np.asarray( arrlist, dtype=pars['dtype'])
+        if arr.ndim==3:
+            arr = arr.reshape( (1,) + arr.shape )
         ZNN_Dataset.__init__(self, arr, setsz, outsz)
 
     def _recalculate_sizes(self, net_output_patch_shape):
