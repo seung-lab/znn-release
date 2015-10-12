@@ -101,7 +101,6 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
                 print "please check the starcluster config options, such as subnet."
                 continue
             print "wait for the launch of node {} ...".format(node_name)
-            mynode.wait()
             while True:
                 time.sleep(10)
                 print "check whether the node is up..."
@@ -131,6 +130,9 @@ if __name__ == '__main__':
     default parameters:
     train_config: train.cfg
     starcluster_config: ~/.starcluster/config
+
+    example:
+    python aws_train.py N4
     """
     from sys import argv
     if len(argv)==1:
