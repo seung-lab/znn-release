@@ -14,7 +14,7 @@ class ThreadRun(object):
     def run(self):
         """ Method that runs forever """
         self.cl.start()
-        cl.wait_for_cluster(msg='Waiting for cluster to come up...')
+        self.cl.wait_for_cluster(msg='Waiting for cluster to come up...')
 
 def node_search(cl, node_name):
     for node in cl.nodes:
@@ -100,11 +100,19 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
                 print "node creation failed."
                 print "please check the starcluster config options, such as subnet."
                 continue
-            print "wait for the launch of node..."
-            time.sleep(5*60)
+            print "wait for the launch of node {} ...".format(node_name)
+            mynode.wait()
+            while True:
+                time.sleep(10)
+                print "check whether the node is up..."
+                if mynode.is_up():
+                    print "node {} is up now!".format(node_name)
+                    break
+                else:
+                    print "node {} is not up.".format(node_name)
             try:
                 print "run command after node launch."
-                mynode.ssh.execute( cmds[node_name] )
+                mynode.ssh.execute( command )
             except:
                 print "command execution failed!"
                 break

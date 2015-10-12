@@ -26,9 +26,6 @@ def main( conf_file='config.cfg', logfile=None ):
         logfile = front_end.make_logfile_name( pars )
 
     #%% create and initialize the network
-    outsz = pars['train_outsz']
-    print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
-
     if pars['train_load_net'] and os.path.exists(pars['train_load_net']):
         print "loading network..."
         net = netio.load_network( pars )
@@ -43,7 +40,7 @@ def main( conf_file='config.cfg', logfile=None ):
     # show field of view
     print "field of view: ", net.get_fov()
 
-    # number of output voxels
+    # set some parameters
     print 'setting up the network...'
     vn = utils.get_total_num(net.get_outputs_setsz())
     eta = pars['eta'] #/ vn
@@ -51,6 +48,8 @@ def main( conf_file='config.cfg', logfile=None ):
     net.set_momentum( pars['momentum'] )
 
     # initialize samples
+    outsz = pars['train_outsz']
+    print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
     print "\n\ncreate train samples..."
     smp_trn = front_end.CSamples(config, pars, pars['train_range'], net, outsz, logfile)
     print "\n\ncreate test samples..."
