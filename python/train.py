@@ -69,7 +69,7 @@ def main( conf_file='config.cfg', logfile=None ):
     start = time.time()
     iter_start = lc.get_last_it()
     print "start from ", iter_start
-    for i in xrange(lc.get_last_it(), pars['Max_iter'] ):
+    for i in xrange(lc.get_last_it(), pars['Max_iter']+1 ):
         vol_ins, lbl_outs, msks = smp_trn.get_random_sample()
 
         # forward pass
@@ -112,7 +112,7 @@ def main( conf_file='config.cfg', logfile=None ):
 
             show_string = "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s/iter, learning rate: %.6f"\
                     %(i, err, cls, elapsed, eta )
-                    
+
             if pars.has_key('logging') and pars['logging']:
                 utils.write_to_log(logfile, show_string)
             print show_string
