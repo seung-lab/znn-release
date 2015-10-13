@@ -135,7 +135,6 @@ def main( conf_file='config.cfg', logfile=None ):
 
         if i%pars['Num_iter_per_save']==0:
             # save network
-            print "save as ", pars['train_save_net']
             netio.save_network(net, pars['train_save_net'], num_iters=i)
             lc.save( pars, elapsed )
 

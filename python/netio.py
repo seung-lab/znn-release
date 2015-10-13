@@ -86,6 +86,7 @@ def save_network(network, filename, num_iters=None):
     if num_iters is not None:
         filename = "{}{}{}{}".format(root, '_', num_iters, ext)
 
+    print "save as ", filename
     save_opts(network.get_opts(), filename)
 
     # Overwriting most current file with completely saved version
@@ -175,10 +176,10 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
     source_parameters = {}
     #0=node, 1=edge
     print "defining intiial dict"
-    for group_type in range(len(source_opts)): 
+    for group_type in range(len(source_opts)):
         for group_options_dict in source_opts[group_type]:
 
-            if group_options_dict.has_key('biases'):    
+            if group_options_dict.has_key('biases'):
                 source_parameters[ group_options_dict['name'] ] = ('biases', group_options_dict['biases'])
             elif group_options_dict.has_key('filters'):
                 source_parameters[ group_options_dict['name'] ] = ('filters', group_options_dict['filters'])
@@ -196,7 +197,7 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
                 group_options_dict[key] = array
 
     return dest_opts
-        
+
 
 def load_network( params=None, train=True, hdf5_filename=None,
     network_specfile=None, output_patch_shape=None, num_threads=None,
