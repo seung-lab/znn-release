@@ -101,14 +101,9 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
                 print "please check the starcluster config options, such as subnet."
                 continue
             print "wait for the launch of node {} ...".format(node_name)
-            while True:
-                time.sleep(10)
-                print "check whether the node is up..."
-                if mynode.is_up():
-                    print "node {} is up now!".format(node_name)
-                    break
-                else:
-                    print "node {} is not up.".format(node_name)
+            cl.ec2.wait_for_propagation( spot_requests=mynode )
+            cl.wait_for_ssh()
+            cl.wait_for_cluster(msg="Waiting for node(s) to come up...")
             try:
                 print "run command after node launch."
                 mynode.ssh.execute( command )
