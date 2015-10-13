@@ -74,7 +74,7 @@ def save_network(network, filename, num_iters=None):
     # get directory name from file name
     archive_directory_name = os.path.dirname( filename )
 #    filename = os.path.basename( filename )
-    if not os.path.exists(archive_directory_name):
+    if not os.path.exists(archive_directory_name) and archive_directory_name != '':
         os.mkdir(archive_directory_name)
 
 #    filename = "{}/{}".format(archive_directory_name, filename)
@@ -164,6 +164,40 @@ def load_opts(filename):
 
     return (node_opts, edge_opts)
 
+def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
+    '''
+    Takes two option structures, and implants the filters and biases
+    from the source struct to the dest version based on node/edge group name
+    '''
+
+    #Makes a dictionary mapping group names to filter/bias arrays
+    # (along with the respective key: 'filters' or 'biases')
+    source_parameters = {}
+    #0=node, 1=edge
+    print "defining intiial dict"
+    for group_type in range(len(source_opts)): 
+        for group_options_dict in source_opts[group_type]:
+
+            if group_options_dict.has_key('biases'):    
+                source_parameters[ group_options_dict['name'] ] = ('biases', group_options_dict['biases'])
+            elif group_options_dict.has_key('filters'):
+                source_parameters[ group_options_dict['name'] ] = ('filters', group_options_dict['filters'])
+
+    print "performing consolidation"
+    source_names = source_parameters.keys()
+    #Loops through group names for dest, replaces filter/bias values with source
+    for group_type in range(len(dest_opts)):
+        for group_options_dict in dest_opts[group_type]:
+
+            if group_options_dict['name'] in source_names:
+
+                key, array = source_parameters[ group_options_dict['name'] ]
+
+                group_options_dict[key] = array
+
+    return dest_opts
+        
+
 def load_network( params=None, train=True, hdf5_filename=None,
     network_specfile=None, output_patch_shape=None, num_threads=None,
     optimize=None ):
@@ -180,20 +214,16 @@ def load_network( params=None, train=True, hdf5_filename=None,
     #Need to specify either a params object, or all of the other optional args
     params_defined = params is not None
 
-    #"ALL" optional args excludes train
-    all_optional_args_defined = all([
-        arg is not None for arg in
-        ( hdf5_filename, network_specfile, output_patch_shape,
-            num_threads, optimize )
-        ])
-
-    assert ( params_defined or all_optional_args_defined )
+    #"ALL" optional args excludes train (it has a default)
+    assert_arglist(params,
+        [hdf5_filename, network_specfile, output_patch_shape,
+        num_threads, optimize])
 
     #Defining phase argument by train argument
     phase = int(not train)
 
     #If a params object exists, then those options are the default
-    if params is not None:
+    if params_defined:
 
         if train:
             _hdf5_filename = params['train_load_net']
@@ -218,16 +248,34 @@ def load_network( params=None, train=True, hdf5_filename=None,
         _num_threads = num_threads
 
     #ACTUAL LOADING FUNCTIONALITY
+    #This is a little strange to allow for "seeding" larger
+    # nets with other training runs
+    # 1) Initialize template net for network_specfile
+    # 2) Load options from hdf5_filename (possibly containing the seed net)
+    # 3) Consolidate options from the template and seed (see consolidate_opts above)
+    #  NOTE: the seed network could simply be the network we want to load,
+    #        in which case this will overwrite all of the relevant template opts
+    # 4) Return consolidated CNet object
+
+    template = init_network( params, train, _network_specfile, _output_patch_shape,
+                _num_threads, _optimize )
+
     #If the file doesn't exist, init a new network
     if os.path.isfile( _hdf5_filename ):
 
-        options = load_opts(_hdf5_filename)
-        return pyznn.CNet(options, _network_specfile, _output_patch_shape,
-                _num_threads, _optimize, phase)
+        load_options = load_opts(_hdf5_filename)
+        template_options = template.get_opts()
+        del template
+
+        print "consolidating options..."
+        final_options = consolidate_opts(load_options, template_options, params)
 
     else:
-        return init_network( params, train, _network_specfile, _output_patch_shape,
-                _num_threads, _optimize )
+        final_options = template.get_opts()
+        del template
+
+    return pyznn.CNet(final_options, _network_specfile, _output_patch_shape,
+                _num_threads, _optimize, phase)
 
 def init_network( params=None, train=True, network_specfile=None,
             output_patch_shape=None, num_threads=None, optimize=None ):
