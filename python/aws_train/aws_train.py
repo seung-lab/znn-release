@@ -104,6 +104,7 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
             cl.ec2.wait_for_propagation( spot_requests=mynode )
             cl.wait_for_ssh()
             cl.wait_for_cluster(msg="Waiting for node(s) to come up...")
+            time.sleep( 5*60 )
             try:
                 print "run command after node launch."
                 mynode.ssh.execute( command )
@@ -111,10 +112,10 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
                 print "command execution failed!"
                 break
 
-    f.write('wait for cluster...\n')
-    # sleep for a while
-    print "node {} is running, wait for {} secs to check.".format( node_name, sleep_interval )
-    time.sleep( sleep_interval )
+        f.write('wait for cluster...\n')
+        # sleep for a while
+        print "node {} is running, wait for {} secs to check.".format( node_name, sleep_interval )
+        time.sleep( sleep_interval )
 
     f.close()
 
