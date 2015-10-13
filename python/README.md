@@ -11,6 +11,7 @@ Supports Linux and MacOS.
 |[boost](http://www.boost.org/)|libboost-all-dev|
 |[BoostNumpy](http://github.com/ndarray/Boost.NumPy)|NA|
 |[jemalloc](http://www.canonware.com/jemalloc/)|libjemalloc-dev|
+|[tifffile](https://pypi.python.org/pypi/tifffile)|python-tifffile|
 
 
 Compile
