@@ -95,7 +95,7 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
         if mynode is None:
             try:
                 print "add node ", node_name, " with a biding of $", spot_bid
-                mynode = cl.add_node( alias=node_name, spot_bid=spot_bid )
+                cl.add_node( alias=node_name, spot_bid=spot_bid )
             except:
                 print "node creation failed."
                 print "please check the starcluster config options, such as subnet."
@@ -105,6 +105,8 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
             cl.wait_for_ssh()
             cl.wait_for_cluster(msg="Waiting for node(s) to come up...")
             time.sleep( 5*60 )
+
+            mynode = node_search(cl, node_name)
             try:
                 print "run command after node launch."
                 mynode.ssh.execute( command )
