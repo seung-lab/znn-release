@@ -39,6 +39,7 @@ def main( conf_file='config.cfg', logfile=None ):
 
     # show field of view
     print "field of view: ", net.get_fov()
+    print "output volume sizes: ", net.get_outputs_setsz()
 
     # set some parameters
     print 'setting up the network...'
