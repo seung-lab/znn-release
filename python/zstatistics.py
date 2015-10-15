@@ -69,7 +69,7 @@ class CLearnCurve:
 
     def _get_iter_num(self, fname ):
         root, ext = path.splitext(fname)
-        str_num = root.split('_')[2]
+        str_num = root.split('_')[-1]
         if 'current' in str_num:
             # the last network
             return None
