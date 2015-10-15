@@ -68,9 +68,11 @@ class CLearnCurve:
         return
 
     def _get_iter_num(self, fname ):
+        if '.h5' not in fname:
+            return None
         root, ext = path.splitext(fname)
         str_num = root.split('_')[-1]
-        if 'current' in str_num:
+        if 'current' in str_num or 'statistics' in str_num:
             # the last network
             return None
         else:
