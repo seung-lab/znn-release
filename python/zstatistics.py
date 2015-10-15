@@ -97,7 +97,7 @@ class CLearnCurve:
             print "inherit last iteration: ", last_it
             return last_it
         else:
-            return 1
+            return 0
 
     #%% smooth function
     def _smooth(self, x, y, w):
