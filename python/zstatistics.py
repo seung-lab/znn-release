@@ -18,9 +18,15 @@ class CLearnCurve:
             self.tn_it  = list()
             self.tn_err = list()
             self.tn_cls = list()
-            return
+        else:
+            self._read_curve( fname )
+        return
 
+    def _read_curve(self, fname):
         # initialize by loading from a h5 file
+        # get the iteration number
+        iter_num = self._get_iter_num(fname)
+
         if 'statistics' not in fname:
             # it is the network file name
             fname = find_statistics_file_within_dir(fname)
@@ -37,6 +43,38 @@ class CLearnCurve:
         self.tn_err = list( f['/train/err'].value )
         self.tn_cls = list( f['/train/cls'].value )
         f.close()
+
+        # crop the values
+        if iter_num is not None:
+            self._crop_iters(iter_num)
+        return
+
+    def _crop_iters(self, iter_num):
+        # find the last index
+        for ind in xrange(len(self.tt_it)):
+            if self.tt_it[ind] > iter_num:
+                break
+        self.tt_it  = self.tt_it[:ind]
+        self.tt_err = self.tt_err[:ind]
+        self.tt_cls = self.tt_cls[:ind]
+
+        # find the last index
+        for ind in xrange(len(self.tn_it)):
+            if self.tn_it[ind] > iter_num:
+                break
+        self.tn_it  = self.tn_it[:ind]
+        self.tn_err = self.tn_err[:ind]
+        self.tn_cls = self.tn_cls[:ind]
+        return
+
+    def _get_iter_num(self, fname ):
+        root, ext = path.splitext(fname)
+        str_num = root.split('_')[2]
+        if 'current' in str_num:
+            # the last network
+            return None
+        else:
+            return int(str_num)
 
     def append_test(self, it, err, cls):
         # add a test result
