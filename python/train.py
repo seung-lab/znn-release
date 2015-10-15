@@ -69,7 +69,7 @@ def main( conf_file='config.cfg', logfile=None ):
     start = time.time()
     iter_start = lc.get_last_it()
     print "start from ", iter_start
-    for i in xrange(lc.get_last_it(), pars['Max_iter']+1 ):
+    for i in xrange(iter_start, pars['Max_iter']+1 ):
         vol_ins, lbl_outs, msks = smp_trn.get_random_sample()
 
         # forward pass
