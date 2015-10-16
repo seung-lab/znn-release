@@ -65,11 +65,15 @@ def main( conf_file='config.cfg', logfile=None ):
     plt.ion()
     plt.show()
 
+    # save the initial network before starting training
+    iter_last = lc.get_last_it()
+    netio.save_network(net, pars['train_save_net'], num_iters=iter_last)
+    lc.save(pars, elapsed)
+
     print "start training..."
     start = time.time()
-    iter_start = lc.get_last_it()
-    print "start from ", iter_start
-    for i in xrange(lc.get_last_it(), pars['Max_iter']+1 ):
+    print "start from ", iter_last+1
+    for i in xrange(iter_last+1, pars['Max_iter']+1):
         vol_ins, lbl_outs, msks = smp_trn.get_random_sample()
 
         # forward pass
