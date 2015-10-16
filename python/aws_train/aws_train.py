@@ -85,6 +85,7 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
                 vol_id = cl.volumes['data']['volume_id']
                 volume = cl.ec2.get_volume( vol_id )
                 cl.ec2.wait_for_volume( volume, state='attached' )
+                time.sleep(3*60)
             except:
                 print "running failed"
                 time.sleep(1)
