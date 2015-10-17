@@ -4,6 +4,7 @@ __doc__ = """
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
+import emirt
 # numba accelaration
 #from numba import jit
 
@@ -213,7 +214,7 @@ def malis_uion(r1, r2, seg, id_sets):
     return seg, id_sets
 
 # TO-DO, not fully implemented
-def malis_weight(affs, true_affs, threshold=0.5):
+def malis_weight_aff(affs, true_affs, threshold=0.5):
     """
     compute malis tree_size
 
@@ -227,7 +228,6 @@ def malis_weight(affs, true_affs, threshold=0.5):
     ------
     weights : 4D array of weights
     """
-    import emirt
     # segment the true affinity graph
     tseg = emirt.volume_util.aff2seg(true_affs)
     tid_sets, tsegf = emirt.volume_util.map_set( seg )
@@ -304,6 +304,95 @@ def malis_weight(affs, true_affs, threshold=0.5):
     ret = dict()
     #ret[key] = weights
     return ret
+
+def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
+    """
+    compute malis weight for boundary map
+
+    Parameters
+    ----------
+    bdm: 2D array, forward pass output boundary map
+    lbl: 2D array, manual labels
+    threshold: binarization threshold
+
+    Returns
+    -------
+    weights: 2D array of weights
+    """
+    # eliminate the second output
+    assert(bdm.ndim==2)
+    assert(bdm.shape==lbl.shape)
+    # initialize the weight
+    w = np.zeros(lbl.shape, dtype=bdm.dtype)
+
+    # initialize segmentation with individual id of each voxel
+    ids = np.arange(1,N+1).reshape( bdm0.shape )
+    seg = np.copy(ids).flatten()
+
+    # create edges: aff, id1, id2, true aff
+    # the affinity was represented by the minimal boundary map value
+    # the voxel with id1 has the minimal value
+    edges = list()
+    for y in xrange(bdm.shape[0]):
+        for x in xrange(bdm.shape[1]-1):
+            v1 = bdm[y,x]
+            i1 = ids[y,x]
+            v2 = bdm[y,x+1]
+            i2 = ids[y,x+1]
+            if v1 > v2:
+                v1, v2 = v2, v1
+                i1, i2 = i2, i1
+            if lbl[y,x] and lbl[y,x+1]:
+                t = True
+            else:
+                t = False
+            edges.append(v1, i1, i2, t)
+
+    for y in xrange(bdm.shape[1]-1):
+        for x in xrange(bdm.shape[0]):
+            v1 = bdm[y,x]
+            i1 = ids[y,x]
+            v2 = bdm[y+1,x]
+            i2 = ids[y+1,x]
+            if v1 > v2:
+                v1, v2 = v2, v1
+                i1, i2 = i2, i1
+            if lbl[y,x] and lbl[y+1,x]:
+                t = True
+            else:
+                t = False
+            edges.append(v1, i1, i2, t)
+    return w
+
+def malis_weight_bdm(bdm, lbl, threshold=0.5):
+    """
+    compute the malis weight of boundary map
+
+    Parameter
+    ---------
+    bdm: 3D or 4D array, boundary map
+    lbl: 3D or 4D array, labeled ground truth
+
+    Return
+    ------
+    weights: 3D or 4D array, the malis weights
+    """
+    assert(bdm.shape==lbl.shape)
+    assert(bdm.ndim==4 or bdm.ndim==3)
+    original_shape = bdm.shape
+    if bdm.ndim==3:
+        bdm = bdm.reshape((1,)+(bdm.shape))
+        lbl = lbl.reshape((1,)+(lbl.shape))
+    # initialize the weights
+    weights = np.empty(bdm.shape, dtype=bdm.dtype)
+    # traverse along the z axis
+    for z in bdm.shape[1]:
+        w = malis_weight_bdm_2D(bdm[0,z,:,:], lbl[0,z,:,:], threshold)
+        for c in bdm.shape[0]:
+            weights[c,z,:,:] = w
+    weights = weights.reshape( original_shape )
+
+    return weights
 
 def sparse_cost(outputs, labels, cost_fn):
     """
