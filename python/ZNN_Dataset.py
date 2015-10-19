@@ -592,7 +592,8 @@ class ConfigOutputLabel(ConfigImage):
         """
         weight = np.empty(lbl.shape, self.pars['dtype'])
         for c in xrange(lbl.shape[0]):
-            wp, wz = self._get_balance_weight( lbl[c,:,:,:] )
+            # wp, wz = self._get_balance_weight( lbl[c,:,:,:] )
+            wp, wz = self._get_balance_weight_v1( lbl[c,:,:,:] )
             weight[c,:,:,:][lbl[c,:,:,:] > 0] = wp
             weight[c,:,:,:][lbl[c,:,:,:] ==0] = wz
         if msk is None or msk.shape == (0,):
@@ -601,7 +602,7 @@ class ConfigOutputLabel(ConfigImage):
             msk = msk * weight
         return msk
 
-    def _get_balance_weight(self, arr ):
+    def _get_balance_weight(self, arr):
         # number of nonzero elements
         pn = float( np.count_nonzero(arr) )
         # total number of elements
@@ -616,6 +617,24 @@ class ConfigOutputLabel(ConfigImage):
             wz = 0.5 * num / zn
             return wp, wz
 
+    # ZNNv1 uses different normalization
+    # This method is only temporary (for reproducing paper results)
+    def _get_balance_weight_v1(self, arr):
+        # number of nonzero elements
+        pn = float( np.count_nonzero(arr) )
+        # total number of elements
+        num = float( np.size(arr) )
+        zn = num - pn
+
+        # weight of positive and zero
+        if pn==0 or zn==0:
+            return 1,1
+        else:
+            wp = 1 / pn
+            wz = 1 / zn
+            wp = wp/(wp+wz)
+            wz = wz/(wp+wz)
+            return wp, wz
 
     def _rebalance_aff(self, lbl, msk):
         wts = np.zeros(lbl.shape, dtype=self.pars['dtype'])
