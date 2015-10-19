@@ -459,6 +459,8 @@ class ConfigOutputLabel(ConfigImage):
     def __init__(self, config, pars, sec_name, setsz, outsz):
         ConfigImage.__init__(self, config, pars, sec_name, setsz, outsz)
 
+        # record and use parameters
+        self.pars = pars
         # Affinity preprocessing decreases the output
         # size by one voxel in each dimension, this counteracts
         # that effect
@@ -578,7 +580,39 @@ class ConfigOutputLabel(ConfigImage):
                     # apply the rebalancing
                     submsk = self._rebalance_aff(sublbl, submsk)
 
+        # rebalance of output patch
+        if self.pars['is_patch_rebalance']:
+            submsk = self._patch_rebalance(sublbl, submsk)
+
         return sublbl, submsk
+
+    def _patch_rebalance(self, lbl, msk):
+        """
+        rebalance based on output patch
+        """
+        weight = np.empty(lbl.shape, self.pars['dtype'])
+        for c in xrange(lbl.shape[0]):
+            wp, wz = self._get_balance_weight( lbl[c,:,:,:] )
+            weight[c,:,:,:][lbl[c,:,:,:] > 0] = wp
+            weight[c,:,:,:][lbl[c,:,:,:] ==0] = wz
+        if msk is None or msk.shape == (0,):
+            msk = weight
+        else:
+            msk = msk * weight
+        return msk
+
+    def _get_balance_weight(self, arr ):
+        # number of nonzero elements
+        pn = float( np.count_nonzero(arr) )
+        # total number of elements
+        num = float( np.size(arr) )
+        zn = num - pn
+
+        # weight of positive and zero
+        wp = 0.5 * num / pn
+        wz = 0.5 * num / zn
+        return wp, wz
+
 
     def _rebalance_aff(self, lbl, msk):
         wts = np.zeros(lbl.shape, dtype=self.pars['dtype'])
@@ -634,14 +668,14 @@ class ConfigOutputLabel(ConfigImage):
             zlbl = (self.data[0,1:,1:,1:] == self.data[0, :-1, 1:,  1:])
             ylbl = (self.data[0,1:,1:,1:] == self.data[0, 1:,  :-1, 1:])
             xlbl = (self.data[0,1:,1:,1:] == self.data[0, 1:,  1:,  :-1])
-            self.zwp, self.zwz = emirt.volume_util.get_balance_weight(zlbl)
-            self.ywp, self.ywz = emirt.volume_util.get_balance_weight(ylbl)
-            self.xwp, self.xwz = emirt.volume_util.get_balance_weight(xlbl)
+            self.zwp, self.zwz = self._get_balance_weight(zlbl)
+            self.ywp, self.ywz = self._get_balance_weight(ylbl)
+            self.xwp, self.xwz = self._get_balance_weight(xlbl)
         else:
             weight = np.empty( self.data.shape, dtype=self.data.dtype )
             for c in xrange( self.data.shape[0] ):
                 # positive is non-boundary, zero is boundary
-                wp, wz = emirt.volume_util.get_balance_weight(self.data[c,:,:,:])
+                wp, wz = self._get_balance_weight(self.data[c,:,:,:])
                 print "reblance weights: ", wp, ", ", wz
                 # give value
                 weight[c,:,:,:][self.data[c,:,:,:]> 0] = wp
@@ -788,29 +822,8 @@ class ConfigSample(object):
         for name, lbl in self.outputs.iteritems():
             outputs[name], msks[name] = lbl.get_subvolume(dev, rft)
 
-        # rebalance of output patch
-        if self.pars['is_patch_rebalance']:
-            msks = self._patch_rebalance(outputs, msks)
 
         return ( inputs, outputs, msks )
-
-    def _patch_rebalance(self, outputs, msks):
-        """
-        rebalance based on output patch
-        """
-        for name, msk in msks.iteritems():
-            lbl = outputs[name]
-            weight = np.empty(lbl.shape, self.pars['dtype'])
-            for c in xrange(lbl.shape[0]):
-                wp, wz = emirt.volume_util.get_balance_weight( lbl[c,:,:,:] )
-                weight[c,:,:,:][lbl[c,:,:,:] > 0] = wp
-                weight[c,:,:,:][lbl[c,:,:,:] ==0] = wz
-            if msk is None or msk.shape == (0,):
-                msk = weight
-            else:
-                msk = msk * weight
-            msks[name] = msk
-        return msks
 
     def get_next_patch(self):
 
