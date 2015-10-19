@@ -632,8 +632,9 @@ class ConfigOutputLabel(ConfigImage):
         else:
             wp = 1 / pn
             wz = 1 / zn
-            wp = wp/(wp+wz)
-            wz = wz/(wp+wz)
+            ws = wp + wz
+            wp = wp / ws
+            wz = wz / ws
             return wp, wz
 
     def _rebalance_aff(self, lbl, msk):
