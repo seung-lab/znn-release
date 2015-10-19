@@ -118,6 +118,8 @@ def parser( conf_fname ):
     pars['is_bd_mirror']= config.getboolean('parameters', 'is_bd_mirror')
     #Whether to use rebalanced training
     pars['is_rebalance']= config.getboolean('parameters', 'is_rebalance')
+    # whether to use rebalance of output patch
+    pars['is_patch_rebalance']=config.getboolean('parameters', 'is_patch_rebalance')
     #Whether to use malis cost
     pars['is_malis']    = config.getboolean('parameters', 'is_malis')
     #Whether to display progress plots
@@ -195,6 +197,9 @@ def check_config(config, pars):
     assert(pars['momentum']>=0      and pars['momentum']<=1)
     assert(pars['weight_decay']>=0  and pars['weight_decay']<=1)
 
+    # normally, we shoud not use two rebalance technique together
+    assert(not (pars['is_rebalance'] and pars['is_patch_rebalance']) )
+
     assert(pars['Num_iter_per_show']>0)
     assert(pars['Num_iter_per_test']>0)
     assert(pars['test_num']>0)
@@ -250,7 +255,7 @@ def inter_show(start, lc, eta, vol_ins, props, lbl_outs, grdts, pars):
     plt.pause(1.5)
     return
 
-def record_config_file(params=None, config_filename=None, net_save_filename=None, 
+def record_config_file(params=None, config_filename=None, net_save_filename=None,
     timestamp=None, train=True):
     '''
     Copies the config file used for the current run of ZNN under the same

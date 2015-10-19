@@ -624,19 +624,6 @@ class ConfigOutputLabel(ConfigImage):
                             ret[2,z,y,x] = 1
         return ret
 
-    def _get_balance_weight( self, arr ):
-        # number of nonzero elements
-        pn = float( np.count_nonzero(arr) )
-        # total number of elements
-        num = float( np.size(arr) )
-        zn = num - pn
-
-        # weight of positive and zero
-        wp = 0.5 * num / pn
-        wz = 0.5 * num / zn
-        print "rebalance positive weight: ", wp
-        print "rebalance zero     weight: ", wz
-        return wp, wz
 
     def _rebalance( self ):
         """
@@ -647,14 +634,15 @@ class ConfigOutputLabel(ConfigImage):
             zlbl = (self.data[0,1:,1:,1:] == self.data[0, :-1, 1:,  1:])
             ylbl = (self.data[0,1:,1:,1:] == self.data[0, 1:,  :-1, 1:])
             xlbl = (self.data[0,1:,1:,1:] == self.data[0, 1:,  1:,  :-1])
-            self.zwp, self.zwz = self._get_balance_weight(zlbl)
-            self.ywp, self.ywz = self._get_balance_weight(ylbl)
-            self.xwp, self.xwz = self._get_balance_weight(xlbl)
+            self.zwp, self.zwz = emirt.volume_util.get_balance_weight(zlbl)
+            self.ywp, self.ywz = emirt.volume_util.get_balance_weight(ylbl)
+            self.xwp, self.xwz = emirt.volume_util.get_balance_weight(xlbl)
         else:
             weight = np.empty( self.data.shape, dtype=self.data.dtype )
             for c in xrange( self.data.shape[0] ):
                 # positive is non-boundary, zero is boundary
-                wp, wz = self._get_balance_weight(self.data[c,:,:,:])
+                wp, wz = emirt.volume_util.get_balance_weight(self.data[c,:,:,:])
+                print "reblance weights: ", wp, ", ", wz
                 # give value
                 weight[c,:,:,:][self.data[c,:,:,:]> 0] = wp
                 weight[c,:,:,:][self.data[c,:,:,:]==0] = wz
@@ -800,7 +788,29 @@ class ConfigSample(object):
         for name, lbl in self.outputs.iteritems():
             outputs[name], msks[name] = lbl.get_subvolume(dev, rft)
 
+        # rebalance of output patch
+        if self.pars['is_patch_rebalance']:
+            msks = self._patch_rebalance(outputs, msks)
+
         return ( inputs, outputs, msks )
+
+    def _patch_rebalance(self, outputs, msks):
+        """
+        rebalance based on output patch
+        """
+        for name, msk in msks.iteritems():
+            lbl = outputs[name]
+            weight = np.empty(lbl.shape, self.pars['dtype'])
+            for c in xrange(lbl.shape[0]):
+                wp, wz = emirt.volume_util.get_balance_weight( lbl[c,:,:,:] )
+                weight[c,:,:,:][lbl[c,:,:,:] > 0] = wp
+                weight[c,:,:,:][lbl[c,:,:,:] ==0] = wz
+            if msk is None or msk.shape == (0,):
+                msk = weight
+            else:
+                msk = msk * weight
+            msks[name] = msk
+        return msks
 
     def get_next_patch(self):
 

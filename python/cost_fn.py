@@ -362,6 +362,28 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
             else:
                 t = False
             edges.append(v1, i1, i2, t)
+    # descending sort
+    edges.sort(reverse=True)
+
+    # find the maximum spanning tree based on union-find algorithm
+
+    # union find the sets
+    for e in edges:
+        # find the segment/root id
+        r1 = malis_find(e[1], seg)
+        r2 = malis_find(e[2], seg)
+        if r1==r2:
+            # this is not a maximin edge
+            # these pixel pair is already in one segment
+            continue
+
+        # deal with the maximin edge
+        if e[0]>threshold:
+            # current segmentation will merge two sets
+            continue
+        else:
+            # current segmentation will split the two sets
+            continue
     return w
 
 def malis_weight_bdm(bdm, lbl, threshold=0.5):
