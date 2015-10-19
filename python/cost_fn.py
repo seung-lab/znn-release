@@ -273,8 +273,8 @@ def malis_weight_aff(affs, true_affs, threshold=0.5):
     for i in xrange(1,N+1):
         id_sets[i] = i
 
-    # accumulate the malis weights
-    amw = 0
+    # accumulate the merge and split errors
+    merr = serr = 0
 
     # union find the sets
     for e in edges:
@@ -365,9 +365,15 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     # descending sort
     edges.sort(reverse=True)
 
-    # find the maximum spanning tree based on union-find algorithm
+    # initalize the merge and split errors
+    merr = serr = 0
+    # set of ids
+    id_sets = dict()
+    # initalize the id sets
+    for i in xrange(1,lbl.size+1):
+        id_sets[i] = {i}
 
-    # union find the sets
+    # find the maximum spanning tree based on union-find algorithm
     for e in edges:
         # find the segment/root id
         r1 = malis_find(e[1], seg)
@@ -377,12 +383,20 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
             # these pixel pair is already in one segment
             continue
 
+        # find the id set pair of this edge
+        set1 = id_sets[r1]
+        set2 = id_sets[r2]
         # deal with the maximin edge
         if e[0]>threshold:
             # current segmentation will merge two sets
-            continue
+
+            # accumulate the merging error
+            merr += err
+            # merge the two sets
+            seg, id_sets = malis_union(r1,r2, seg, id_sets)
         else:
             # current segmentation will split the two sets
+            # accumulate the spliting error
             continue
     return w
 
@@ -393,7 +407,7 @@ def malis_weight_bdm(bdm, lbl, threshold=0.5):
     Parameter
     ---------
     bdm: 3D or 4D array, boundary map
-    lbl: 3D or 4D array, labeled ground truth
+    lbl: 3D or 4D array, binary ground truth
 
     Return
     ------
@@ -405,6 +419,10 @@ def malis_weight_bdm(bdm, lbl, threshold=0.5):
     if bdm.ndim==3:
         bdm = bdm.reshape((1,)+(bdm.shape))
         lbl = lbl.reshape((1,)+(lbl.shape))
+    # segment the ground truth label
+    for c in xrange(lbl.shape[0]):
+        lbl[c,:,:,:] = emirt.volume_util.bdm2seg(lbl[c,:,:,:])
+
     # initialize the weights
     weights = np.empty(bdm.shape, dtype=bdm.dtype)
     # traverse along the z axis

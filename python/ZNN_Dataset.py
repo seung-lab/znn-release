@@ -609,9 +609,12 @@ class ConfigOutputLabel(ConfigImage):
         zn = num - pn
 
         # weight of positive and zero
-        wp = 0.5 * num / pn
-        wz = 0.5 * num / zn
-        return wp, wz
+        if pn==0 or zn==0:
+            return 1,1
+        else:
+            wp = 0.5 * num / pn
+            wz = 0.5 * num / zn
+            return wp, wz
 
 
     def _rebalance_aff(self, lbl, msk):
