@@ -1,0 +1,230 @@
+nodes input
+type input
+size 1
+
+nodes rinput
+type input
+size 1
+
+edges conv1a
+type conv
+init msra
+size 1,3,3
+stride 1,1,1
+input input
+output nconv1a
+
+edges rconv1a
+type conv
+init msra
+size 1,3,3
+stride 1,1,1
+input rinput
+output nrconv1a
+
+nodes nconv1a
+type transfer
+function rectify_linear
+size 24
+
+nodes nrconv1a
+type transfer
+function rectify_linear
+size 24
+
+edges conv1b
+type conv
+init msra
+size 1,3,3
+stride 1,1,1
+input nconv1a
+output nconv1b
+
+edges rconv1b
+type conv
+init msra
+size 1,3,3
+stride 1,1,1
+input nrconv1a
+output nrconv1b
+
+nodes nconv1b
+type transfer
+function rectify_linear
+size 24
+
+nodes nrconv1b
+type transfer
+function rectify_linear
+size 24
+
+edges conv1c
+type conv
+init msra
+size 1,2,2
+stride 1,1,1
+input nconv1b
+output nconv1c
+
+edges rconv1c
+type conv
+init msra
+size 1,2,2
+stride 1,1,1
+input nrconv1b
+output nconv1c
+
+nodes nconv1c
+type transfer
+function tanh
+function_args 1.7159,0.6666
+size 24
+
+edges pool1
+type max_filter
+size 1,2,2
+stride 1,2,2
+input nconv1a
+output npool1
+
+nodes npool1
+type sum
+size 24
+
+edges conv2a
+type conv
+init msra
+size 1,3,3
+stride 1,1,1
+input npool1
+output nconv2a
+
+nodes nconv2a
+type transfer
+function rectify_linear
+size 36
+
+edges conv2b
+type conv
+init msra
+size 1,3,3
+stride 1,1,1
+input nconv2a
+output nconv2b
+
+nodes nconv2b
+type transfer
+function tanh
+function_args 1.7159,0.6666
+size 36
+
+edges pool2
+type max_filter
+size 1,2,2
+stride 1,2,2
+input nconv2b
+output npool2
+
+nodes npool2
+type sum
+size 36
+
+edges conv3a
+type conv
+init msra
+size 1,3,3
+stride 1,1,1
+input npool2
+output nconv3a
+
+nodes nconv3a
+type transfer
+function rectify_linear
+size 48
+
+edges conv3b
+type conv
+init msra
+size 1,3,3
+stride 1,1,1
+input nconv3a
+output nconv3b
+
+nodes nconv3b
+type transfer
+function tanh
+function_args 1.7159,0.6666
+size 48
+
+edges pool3
+type max_filter
+size 2,2,2
+stride 1,1,1
+input nconv3b
+output npool3
+
+nodes npool3
+type sum
+size 48
+
+edges rconv4a
+type conv
+init msra
+size 2,3,3
+stride 1,1,1
+input npool3
+output nrconv4a
+
+nodes nrconv4a
+type transfer
+function rectify_linear
+size 60
+
+edges rconv4b
+type conv
+init msra
+size 2,3,3
+stride 1,1,1
+input nconv4a
+output nconv4b
+
+nodes nrconv4b
+type transfer
+function rectify_linear
+size 60
+
+edges rconv4c
+type conv
+init msra
+size 2,3,3
+stride 1,1,1
+input nrconv4b
+output nconv4c
+
+nodes nrconv4c
+type transfer
+function rectify_linear
+size 100
+
+edges rdropout
+type dropout
+ratio 0.5
+input nrconv4c
+output ndropout
+
+nodes nrdropout
+type sum
+size 100
+
+edges rconvx
+type conv
+init msra
+size 1,1,1
+stride 1,1,1
+input nrdropout
+output output2
+
+nodes output2
+type transfer
+function linear
+size 2
