@@ -3,7 +3,6 @@ __doc__ = """
 
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
-import numpy as np
 import time
 import matplotlib.pylab as plt
 import front_end
@@ -124,14 +123,16 @@ def main( conf_file='config.cfg', logfile=None ):
             if pars['is_visual']:
                 # show results To-do: run in a separate thread
                 front_end.inter_show(start, lc, eta, vol_ins, props, lbl_outs, grdts, pars)
-            if pars['is_visual'] and pars['is_rebalance'] and 'aff' not in pars['out_type']:
-                plt.subplot(247)
-                plt.imshow(msks.values()[0][0,0,:,:], interpolation='nearest', cmap='gray')
-                plt.xlabel('rebalance weight')
-            if pars['is_visual'] and pars['is_malis']:
-                plt.subplot(248)
-                plt.imshow(np.log(malis_weights.values()[0][0,0,:,:]), interpolation='nearest', cmap='gray')
-                plt.xlabel('malis weight (log)')
+                if pars['is_rebalance'] and 'aff' not in pars['out_type']:
+                    plt.subplot(247)
+                    plt.imshow(msks.values()[0][0,0,:,:], interpolation='nearest', cmap='gray')
+                    plt.xlabel('rebalance weight')
+                if pars['is_malis']:
+                    plt.subplot(248)
+                    plt.imshow(malis_weights.values()[0][0,0,:,:], interpolation='nearest', cmap='gray')
+                    plt.xlabel('malis weight (log)')
+                plt.pause(2)
+                plt.show()
             # reset err and cls
             err = 0
             cls = 0
