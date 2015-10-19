@@ -179,8 +179,16 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
     for group_type in range(len(source_opts)):
         for group_options_dict in source_opts[group_type]:
 
+            candidate_to_load = (
+              (not group_options_dict.has_key('load')) or
+              group_options_dict['load'] == "yes"
+              )
+
+            if not candidate_to_load:
+                continue
+
             if group_options_dict.has_key('biases'):
-                source_parameters[ group_options_dict['name'] ] = ('biases', group_options_dict['biases'])
+               source_parameters[ group_options_dict['name'] ] = ('biases', group_options_dict['biases'])
             elif group_options_dict.has_key('filters'):
                 source_parameters[ group_options_dict['name'] ] = ('filters', group_options_dict['filters'])
 
@@ -195,6 +203,14 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
                 key, array = source_parameters[ group_options_dict['name'] ]
 
                 group_options_dict[key] = array
+
+                #should only be one copy of the layer to load,
+                # and this allows for warning messages below
+                del source_parameters[ group_options_dict['name'] ]
+
+    layers_not_copied = source_parameters.keys()
+    if len(layers_not_copied) != 0:
+        print "WARNING: layer(s) {} not copied!".format(layers_not_copied)
 
     return dest_opts
 
