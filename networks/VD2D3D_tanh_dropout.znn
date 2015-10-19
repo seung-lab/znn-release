@@ -84,7 +84,7 @@ edges pool1
 type max_filter
 size 1,2,2
 stride 1,2,2
-input nconv1a
+input nconv1c
 output npool1
 
 nodes npool1
