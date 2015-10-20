@@ -207,11 +207,6 @@ def check_config(config, pars):
     assert(pars['Max_iter']>0)
     assert(pars['Max_iter']>pars['Num_iter_per_save'])
 
-    #%% check the consistency of some options
-    if pars['is_malis']:
-        if 'aff' not in pars['out_type']:
-            raise NameError( 'malis weight should be used with affinity label type!' )
-
     # check and correct the image and labels
     for sec in config.sections():
         if 'label' in sec:
@@ -251,8 +246,6 @@ def inter_show(start, lc, eta, vol_ins, props, lbl_outs, grdts, pars):
     plt.subplot(246)
     plt.plot( lc.tn_it, lc.tn_cls, 'b', lc.tt_it, lc.tt_cls, 'r')
     plt.xlabel('iteration'), plt.ylabel( 'classification error' )
-
-    plt.pause(1.5)
     return
 
 def record_config_file(params=None, config_filename=None, net_save_filename=None,

@@ -174,7 +174,7 @@ def malis_find(sid, seg):
     """
     return seg[sid-1]
 
-def malis_uion(r1, r2, seg, id_sets):
+def malis_union(r1, r2, seg, id_sets):
     """
     union the two sets, keep the "tree" update.
 
@@ -190,27 +190,21 @@ def malis_uion(r1, r2, seg, id_sets):
     seg :
     id_sets
     """
+    # get set pair
+    set1 = id_sets[r1]
+    set2 = id_sets[r2]
 
-    if id_sets.has_key(r1):
-        set1 = id_sets[r1]
-    else:
-        set1 = {r1}
-    if id_sets.has_key(r2):
-        set2 = id_sets[r2]
-    else:
-        set2 = {r2}
-
-    if set1.size() < set2.size():
-        # merge the small set to big set
+    if len(set1) < len(set2):
         # exchange the two sets
         r1, r2 = r2, r1
         set1, set2 = set2, set1
-    id_sets[r1] = set1.add( set2 )
-    # update the tree
+    # merge the small set to big set
+    id_sets[r1]= set1.union( set2 )
+    # update the segmentation
     for vid in set2:
         seg[vid-1] = r1
     # remove the small set in dict
-    id_sets.pop(r2)
+    del id_sets[r2]
     return seg, id_sets
 
 # TO-DO, not fully implemented
@@ -322,11 +316,9 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     # eliminate the second output
     assert(bdm.ndim==2)
     assert(bdm.shape==lbl.shape)
-    # initialize the weight
-    w = np.zeros(lbl.shape, dtype=bdm.dtype)
 
     # initialize segmentation with individual id of each voxel
-    ids = np.arange(1,N+1).reshape( bdm0.shape )
+    ids = np.arange(1,bdm.size+1).reshape( bdm.shape )
     seg = np.copy(ids).flatten()
 
     # create edges: aff, id1, id2, true aff
@@ -346,7 +338,7 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
                 t = True
             else:
                 t = False
-            edges.append(v1, i1, i2, t)
+            edges.append((v1, i1, i2, t))
 
     for y in xrange(bdm.shape[1]-1):
         for x in xrange(bdm.shape[0]):
@@ -361,12 +353,13 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
                 t = True
             else:
                 t = False
-            edges.append(v1, i1, i2, t)
+            edges.append((v1, i1, i2, t))
     # descending sort
     edges.sort(reverse=True)
 
     # initalize the merge and split errors
-    merr = serr = 0
+    merr = np.zeros(lbl.size, dtype=bdm.dtype)
+    serr = np.zeros(lbl.size, dtype=bdm.dtype)
     # set of ids
     id_sets = dict()
     # initalize the id sets
@@ -386,19 +379,74 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
         # find the id set pair of this edge
         set1 = id_sets[r1]
         set2 = id_sets[r2]
+
+        # current segmentation will merge two sets
+        me, se = get_merge_split_errors(set1, set2, lbl)
+
         # deal with the maximin edge
         if e[0]>threshold:
-            # current segmentation will merge two sets
-
             # accumulate the merging error
-            merr += err
+            merr[e[1]-1] = me
             # merge the two sets
             seg, id_sets = malis_union(r1,r2, seg, id_sets)
         else:
             # current segmentation will split the two sets
             # accumulate the spliting error
-            continue
+            serr[e[1]-1] = se
+    # normalize the weight
+    merr = merr * ( merr.size*0.5 / np.sum(merr, dtype=bdm.dtype) )
+    serr = serr * ( serr.size*0.5 / np.sum(serr, dtype=bdm.dtype) )
+    # combine the two error weights
+    w = (merr + serr).reshape(bdm.shape)
     return w
+
+def get_merge_split_errors(set1, set2, lbl):
+    """
+    count the merging and spliting errors
+
+    Parameters
+    ----------
+    set1: set of integers, cluster of ids
+    set2: the other set
+    seg: array of integers, current segmentation
+    lbl: array of integers, ground truth segmentation
+
+    Returns
+    -------
+    me: integer, mergers
+    se: integer, splits
+    """
+    # transform to a dictionary of pixel ids
+    # key: label id
+    # value: set of pixel ids
+    d1 = dict()
+    d2 = dict()
+    for i in set1:
+        l1 = lbl.flat[i-1]
+        if d1.has_key(l1):
+            d1[l1].add(i)
+        else:
+            d1[l1] = {i}
+    for i in set2:
+        l2 = lbl.flat[i-1]
+        if d2.has_key(l2):
+            d2[l2].add(i)
+        else:
+            d2[l2] = {i}
+    # mergers and spliters
+    me = se = 0
+    for l1, s1 in d1.iteritems():
+        for l2, s2 in d2.iteritems():
+            if l1==l2:
+                # they should merge together
+                # this is split error
+                se += len(s1) * len(s2)
+            else:
+                # they should be split
+                # this is merge error
+                me += len(s1) * len(s2)
+    #print "merging and spliting error: ", me, ", ", se
+    return me, se
 
 def malis_weight_bdm(bdm, lbl, threshold=0.5):
     """
@@ -426,13 +474,28 @@ def malis_weight_bdm(bdm, lbl, threshold=0.5):
     # initialize the weights
     weights = np.empty(bdm.shape, dtype=bdm.dtype)
     # traverse along the z axis
-    for z in bdm.shape[1]:
+    for z in xrange(bdm.shape[1]):
         w = malis_weight_bdm_2D(bdm[0,z,:,:], lbl[0,z,:,:], threshold)
-        for c in bdm.shape[0]:
+        for c in xrange(bdm.shape[0]):
             weights[c,z,:,:] = w
     weights = weights.reshape( original_shape )
 
     return weights
+
+def malis_weight(props, lbls):
+    """
+    compute the malis weight including boundary map and affinity cases
+    """
+    ret = dict()
+    for name, prop in props.iteritems():
+        lbl = lbls[name]
+        if prop.shape[0]==3:
+            # affinity output
+            ret[name] = malis_weight_aff(prop, lbl)
+        else:
+            # take it as boundary map
+            ret[name] = malis_weight_bdm(prop, lbl)
+    return ret
 
 def sparse_cost(outputs, labels, cost_fn):
     """

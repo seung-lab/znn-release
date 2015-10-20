@@ -52,7 +52,7 @@ def rft_to_string(rft):
     '''Transforms an rft (bool array) into a string for logging'''
     if rft is None:
 	return "[]"
-    
+
     rft_mapping = ["z-reflection", "y-reflection",
 		   "x-reflection", "xy-transpose"]
 
@@ -233,7 +233,7 @@ def dict_mul(das,dbs):
     ret = dict()
     for name, a in das.iteritems():
         b = dbs[name]
-        if np.size(b)==np.size(a):
+        if b.shape==a.shape:
             ret[name] = a * b
         elif np.size(b)==0:
             ret[name] = a
