@@ -97,19 +97,19 @@ fmasks =
 [sample1]
 input = 1
 input-r = 5
-output2 = 1
+output = 1
 
 [sample2]
 input = 2
 input-r = 6
-output2 = 2
+output = 2
 
 [sample3]
 input = 3
 input-r = 7
-output2 = 3
+output = 3
 
 [sample4]
 input = 4
 input-r = 8
-output2 = 4
+output = 4
