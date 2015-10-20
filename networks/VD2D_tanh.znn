@@ -38,7 +38,8 @@ output nconv1c
 
 nodes nconv1c
 type transfer
-function rectify_linear
+function tanh
+function_args 1.7159,0.6666
 size 24
 
 edges pool1
@@ -75,7 +76,8 @@ output nconv2b
 
 nodes nconv2b
 type transfer
-function rectify_linear
+function tanh
+function_args 1.7159,0.6666
 size 36
 
 edges pool2
@@ -112,7 +114,8 @@ output nconv3b
 
 nodes nconv3b
 type transfer
-function rectify_linear
+function tanh
+function_args 1.7159,0.6666
 size 48
 
 edges pool3
@@ -149,7 +152,8 @@ output nconv4b
 
 nodes nconv4b
 type transfer
-function rectify_linear
+function tanh
+function_args 1.7159,0.6666
 size 60
 
 edges pool4

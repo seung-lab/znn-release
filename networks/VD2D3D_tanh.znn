@@ -2,6 +2,10 @@ nodes input
 type input
 size 1
 
+nodes input-r
+type input
+size 1
+
 edges conv1a
 type conv
 init msra
@@ -10,7 +14,20 @@ stride 1,1,1
 input input
 output nconv1a
 
+edges conv1a-r
+type conv
+init msra
+size 1,3,3
+stride 1,1,1
+input input-r
+output nconv1a-r
+
 nodes nconv1a
+type transfer
+function rectify_linear
+size 24
+
+nodes nconv1a-r
 type transfer
 function rectify_linear
 size 24
@@ -23,7 +40,20 @@ stride 1,1,1
 input nconv1a
 output nconv1b
 
+edges conv1b-r
+type conv
+init msra
+size 1,3,3
+stride 1,1,1
+input nconv1a-r
+output nconv1b-r
+
 nodes nconv1b
+type transfer
+function rectify_linear
+size 24
+
+nodes nconv1b-r
 type transfer
 function rectify_linear
 size 24
@@ -36,9 +66,18 @@ stride 1,1,1
 input nconv1b
 output nconv1c
 
+edges conv1c-r
+type conv
+init msra
+size 1,2,2
+stride 1,1,1
+input nconv1b-r
+output nconv1c
+
 nodes nconv1c
 type transfer
-function rectify_linear
+function tanh
+function_args 1.7159,0.6666
 size 24
 
 edges pool1
@@ -75,7 +114,8 @@ output nconv2b
 
 nodes nconv2b
 type transfer
-function rectify_linear
+function tanh
+function_args 1.7159,0.6666
 size 36
 
 edges pool2
@@ -112,13 +152,14 @@ output nconv3b
 
 nodes nconv3b
 type transfer
-function rectify_linear
+function tanh
+function_args 1.7159,0.6666
 size 48
 
 edges pool3
 type max_filter
-size 1,2,2
-stride 1,2,2
+size 2,2,2
+stride 1,1,1
 input nconv3b
 output npool3
 
@@ -129,62 +170,55 @@ size 48
 edges conv4a
 type conv
 init msra
-size 1,3,3
+size 2,3,3
 stride 1,1,1
 input npool3
 output nconv4a
+load 0
 
 nodes nconv4a
 type transfer
 function rectify_linear
 size 60
+load 0
 
 edges conv4b
 type conv
 init msra
-size 1,3,3
+size 2,3,3
 stride 1,1,1
 input nconv4a
 output nconv4b
+load 0
 
 nodes nconv4b
 type transfer
 function rectify_linear
 size 60
+load 0
 
-edges pool4
-type max_filter
-size 1,2,2
-stride 1,2,2
-input nconv4b
-output npool4
-
-nodes npool4
-type sum
-size 60
-
-edges conv5
+edges conv4c
 type conv
 init msra
-size 1,3,3
+size 2,3,3
 stride 1,1,1
-input npool4
-output nconv5
+input nconv4b
+output nconv4c
 
-nodes nconv5
+nodes nconv4c
 type transfer
 function rectify_linear
-size 200
+size 100
 
 edges dropout
 type dropout
 ratio 0.5
-input nconv5
+input nconv4c
 output ndropout
 
 nodes ndropout
 type sum
-size 200
+size 100
 
 edges convx
 type conv
@@ -193,8 +227,10 @@ size 1,1,1
 stride 1,1,1
 input ndropout
 output output
+load 0
 
 nodes output
 type transfer
 function linear
 size 2
+load 0
