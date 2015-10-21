@@ -66,12 +66,12 @@ public:
             //return s;
             // SLOW so what, SUE ME!
             if ( s < 10 ) return s;
-            if ( s > 384 ) return s;
+            if ( s > 392 ) return s;
 
             std::vector<int32_t> mins({
-                    10,15,16,20,25,32,36,44,48,64,72,78,84,88,90,
-                        100,112,128,140,150,160,176,200,220,224,
-                        256,260,300,320,384});
+                    11,13,14,15,16,18,20,33,36,49,54,55,60,64,80,81,90,100,
+                        104,128,132,136,160,168,176,192,200,208,210,216,224,
+                        240,256,264,280,288,294,300,320,336,352,360,364,384,392});
 
             return *std::lower_bound(mins.begin(), mins.end(),s);
         }
@@ -83,7 +83,8 @@ public:
         {
             if ( s[1] == s[2] )
             {
-
+                int32_t opt = get_optimal(s[1]);
+                actual_sz[1] = actual_sz[2] = opt;
             }
 
             forward_plan  = fft_plans.get_forward(actual_sz);
