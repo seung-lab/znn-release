@@ -45,6 +45,11 @@ private:
         auto dEdW = fftw_.backward(std::move(dEdW_fft));
         real norm = dEdW->num_elements();
 
+        if ( fftw_.size() != fftw_.actual_size() )
+        {
+            dEdW = crop_left(*dEdW, fftw_.size());
+        }
+
         flip(*dEdW);
         // TODO(zlateski): WTH was happening with sparse_implode before
         //                 when I had to use sparse_implode_slow
@@ -72,7 +77,8 @@ private:
         //                 when I had to use sparse_explode_slow,
         //                 ony happened on my laptop
         auto w_tmp = sparse_explode_slow(filter_.W(), filter_stride,
-                                         in_nodes->fsize());
+                                         fftw_.actual_size());
+//                                         in_nodes->fsize());
         return fftw_.forward(std::move(w_tmp));
     }
 
