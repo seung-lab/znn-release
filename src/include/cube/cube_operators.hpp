@@ -444,6 +444,49 @@ inline cube_p<real> pad_zeros( const cube<real>& v, vec3i const & s )
     return r;
 }
 
+enum class pad_style : std::uint8_t {BOTH = 0, PRE = 1, POST = 2};
+
+inline cube_p<real>
+pad_zeros( const cube<real>& v, vec3i const & pad, pad_style style )
+{
+    vec3i off = vec3i::zero;
+    vec3i s = size(v) + pad;
+
+    if ( style == pad_style::BOTH )
+    {
+        off = pad;
+        s  += pad;
+    }
+    else if ( style == pad_style::PRE )
+    {
+        off = pad;
+    }
+    else if ( style == pad_style::POST )
+    {
+        // keep initial setting
+    }
+    else
+    {
+        throw std::logic_error(HERE() + "unknown pad style");
+    }
+
+    cube_p<real> r = get_cube<real>(s);
+
+    if ( size(v) != s ) fill(*r, 0);
+
+    std::size_t ox = off[0];
+    std::size_t oy = off[1];
+    std::size_t oz = off[2];
+
+    std::size_t sx = v.shape()[0];
+    std::size_t sy = v.shape()[1];
+    std::size_t sz = v.shape()[2];
+
+    (*r)[indices[range(ox,ox+sx)][range(oy,oy+sy)][range(oz,oz+sz)]] = v;
+
+    return r;
+}
+
 template<typename T>
 inline cube_p<T> crop( cube<T> const & c, vec3i const & l, vec3i const & s )
 {

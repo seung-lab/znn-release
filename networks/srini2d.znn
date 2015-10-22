@@ -27,11 +27,6 @@ type transfer
 function rectify_linear
 size 10
 
-nodes output
-type transfer
-function logistics
-size 1
-
 edges conv1
 type conv
 init uniform
@@ -75,7 +70,12 @@ output nl5
 edges conv6
 type conv
 init uniform
-size 7,7,1
+size 1,7,7
 stride 1,1,1
 input nl5
 output output
+
+nodes output
+type transfer
+function linear
+size 2

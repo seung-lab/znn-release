@@ -36,45 +36,46 @@ struct random_number_generator_impl: std::mutex
 
 } // namespace detail
 
+template <typename T>
 class initializator
 {
 protected:
-    template <typename T>
-    static void initialize_with_distribution(T&& dis, real* v, size_t n) noexcept
+    template <typename D>
+    static void initialize_with_distribution(D&& dis, T* v, size_t n) noexcept
     {
-        static detail::random_number_generator_impl& rng =
+        detail::random_number_generator_impl& rng = 
             zi::singleton<detail::random_number_generator_impl>::instance();
 
         guard g(rng);
 
-        for ( std::size_t i = 0; i < n; ++i )
+        for ( size_t i = 0; i < n; ++i )
         {
-            v[i] = dis(rng.rng);
+            v[i] = static_cast<T>(dis(rng.rng));
         }
     }
 
-    template <typename T>
-    static void initialize_with_distribution(T&& dis, cube<real>& v) noexcept
+    template <typename D>
+    static void initialize_with_distribution(D&& dis, cube<real>& v) noexcept
     {
         initialize_with_distribution(std::forward<T>(dis),
                                      v.data(), v.num_elements());
     }
 
 
-    virtual void do_initialize( real*, size_t ) noexcept = 0;
+    virtual void do_initialize( T*, size_t ) noexcept = 0;
 
 public:
     virtual ~initializator() {}
 
-    void initialize( real* v, size_t n ) noexcept
+    void initialize( T* v, size_t n ) noexcept
     { this->do_initialize(v,n); }
 
-    void initialize( cube<real>& v ) noexcept
+    void initialize( cube<T>& v ) noexcept
     {
         this->do_initialize(v.data(), v.num_elements());
     }
 
-    void initialize( const cube_p<real>& v ) noexcept
+    void initialize( const cube_p<T>& v ) noexcept
     {
         this->do_initialize(v->data(), v->num_elements());
     }

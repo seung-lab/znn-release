@@ -25,6 +25,9 @@
 #include "fft_filter_ds_edge.hpp"
 #include "dummy_edge.hpp"
 #include "max_pooling_edge.hpp"
+#include "dropout_edge.hpp"
+#include "crop_edge.hpp"
+#include "maxout_edge.hpp"
 #include "nodes.hpp"
 #include "../../utils/waiter.hpp"
 #include "../../options/options.hpp"
@@ -56,7 +59,7 @@ inline edges::edges( nodes * in,
     real eta  = opts.optional_as<real>("eta", 0.0001);
     real mom  = opts.optional_as<real>("momentum", 0.0);
     real wd   = opts.optional_as<real>("weight_decay", 0.0);
-    auto   sz   = opts.require_as<ovec3i>("size");
+    auto sz   = opts.require_as<ovec3i>("size");
 
     size_ = sz;
 
@@ -67,20 +70,25 @@ inline edges::edges( nodes * in,
 
     std::string filter_values;
 
-
     if ( opts.contains("filters") )
     {
         filter_values = opts.require_as<std::string>("filters");
     }
     else
     {
-        size_t n_values = n*m*size_[0]*size_[1]*size_[2];
+        size_t n_coeffs = size_[0]*size_[1]*size_[2];
+        size_t n_values = n*m*n_coeffs;
         real * filters_raw = new real[n_values];
 
-        auto initf = get_initializator(opts);
+        // additional information for initialization
+        // e.g. fan-in, fan-out
+        options info;
+        info.push("fan-in",n*n_coeffs);
+        info.push("fan-out",m*n_coeffs);
 
+        auto initf = get_initializator( opts, &info );
 
-        initf->initialize( filters_raw, n*m*size_[0]*size_[1]*size_[2] );
+        initf->initialize( filters_raw, n_values );
 
         filter_values = std::string( reinterpret_cast<char*>(filters_raw),
                                      sizeof(real) * n_values );
@@ -130,9 +138,6 @@ inline edges::edges( nodes * in,
             }
         }
     }
-
-
-
 }
 
 inline edges::edges( nodes * in,
@@ -156,7 +161,6 @@ inline edges::edges( nodes * in,
     }
 }
 
-
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
@@ -179,8 +183,6 @@ inline edges::edges( nodes * in,
             (in, i, out, i, tm, layer);
     }
 }
-
-
 
 inline edges::edges( nodes * in,
                      nodes * out,
@@ -207,7 +209,6 @@ inline edges::edges( nodes * in,
             = std::make_unique<max_pooling_edge>
             (in, i, out, i, tm_, sz, stride);
     }
-
 }
 
 inline edges::edges( nodes * in,
@@ -234,8 +235,81 @@ inline edges::edges( nodes * in,
             = std::make_unique<real_pooling_edge>
             (in, i, out, i, tm_, sz);
     }
-
 }
 
+// dropout
+inline edges::edges( nodes * in,
+                     nodes * out,
+                     options const & opts,
+                     vec3i const & in_size,
+                     task_manager & tm,
+                     phase phs,
+                     dropout_tag )
+    : options_(opts)
+    , size_(in_size)
+    , tm_(tm)
+{
+    ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
+
+    size_t n = in->num_out_nodes();
+    edges_.resize(n);
+    waiter_.set(n);
+
+    auto ratio = opts.optional_as<real>("ratio", 0.5);
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        edges_[i]
+            = std::make_unique<dropout_edge>
+            (in, i, out, i, tm_, ratio, phs);
+    }
+}
+
+// crop
+inline edges::edges( nodes * in,
+                     nodes * out,
+                     options const & opts,
+                     task_manager & tm,
+                     crop_tag )
+    : options_(opts)
+    , tm_(tm)
+{
+    ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
+
+    size_t n = in->num_out_nodes();
+    edges_.resize(n);
+    waiter_.set(n);
+
+    auto offset = opts.require_as<ovec3i>("offset");
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        edges_[i]
+            = std::make_unique<crop_edge>
+            (in, i, out, i, tm_, offset);
+    }
+}
+
+// maxout
+inline edges::edges( nodes * in,
+                     nodes * out,
+                     options const & opts,
+                     task_manager & tm,
+                     maxout_tag )
+    : options_(opts)
+    , tm_(tm)
+{
+    ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
+
+    size_t n = in->num_out_nodes();
+    edges_.resize(n);
+    waiter_.set(n);
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        edges_[i] = std::make_unique<maxout_edge>
+            (in, i, out, i, tm);
+    }
+}
 
 }}} // namespace znn::v4::parallel_network

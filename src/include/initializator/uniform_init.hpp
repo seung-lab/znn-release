@@ -21,7 +21,7 @@
 
 namespace znn { namespace v4 {
 
-class uniform_init: public initializator
+class uniform_init: public initializator<real>
 {
 private:
     std::uniform_real_distribution<real> dis;

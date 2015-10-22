@@ -21,6 +21,7 @@
 
 using namespace znn::v4;
 
+// g++ -std=c++11 src/cpp/ISBI2012.cpp -o isbi -DNDEBUG -O3 -DZNN_USE_FLOATS -DZNN_CUBE_POOL_LOCKFREE -I. -I./src/include -lpthread -lrt -ljemalloc -lfftw3f
 
 namespace ISBI2012 {
 
@@ -156,17 +157,33 @@ int main(int argc, char** argv)
         tc = atoi(argv[5]);
     }
 
+    size_t freq = 100;
+
+    if ( argc == 7 )
+    {
+        freq = atoi(argv[6]);
+    }
+
     vec3i out_sz(x,y,z);
 
-    //parallel_network::network::optimize(nodes,edges,out_sz,tc,50);
+    if ( argc == 8 )
+    {
+        size_t n_opt = 0;
+        if ( n_opt = atoi(argv[7]) )
+            parallel_network::network::optimize(nodes,edges,out_sz,tc,n_opt);
+    }
+
     parallel_network::network net(nodes,edges,out_sz,tc);
-    net.set_eta(0.01 / x / y / z);
+    net.set_eta(0.01);
 
     vec3i in_sz = out_sz + net.fov() - vec3i::one;
 
 
     ISBI2012::ISBI2012 isbi( "./dataset/ISBI2012/data/batch1",
                              vec3i(30,256,256), in_sz, out_sz );
+
+    zi::wall_timer wt;
+    wt.reset();
 
     real err = 0;
     real cls = 0;
@@ -194,19 +211,34 @@ int main(int argc, char** argv)
         net.backward(std::move(outsample));
 
         ++i;
-        if ( i % 100 == 0 )
+        if ( i % freq == 0 )
         {
-            err /= 100;
+            err /= freq;
             err /= x;
             err /= y;
             err /= z;
-            cls /= 100; cls /= ( x * y * z );
-            std::cout << "Iteration: " << i << " done, sqerr: " << err
+            cls /= freq; cls /= ( x * y * z );
+            std::cout << "Iteration: " << i << " done, elapsed: "
+                      << wt.elapsed<double>() << ", sqerr: " << err
                       << " clserr: " << cls << std::endl;
             err = 0;
             cls = 0;
-        }
+            wt.reset();
 
+            // // show prop
+            // cube_p<real> outcube_p = prop["output"][0];
+            // std::cout<<"prop output cube:"<<std::endl;
+            // for(std::size_t i=0; i<outcube_p->num_elements(); i++)
+            // 	std::cout<< outcube_p->data()[i]<< ",";
+            // std::cout<<std::endl;
+
+            // // show gradient
+            // cube_p<real> grad_p = std::get<2>(grad);
+            // std::cout<<"gradient:"<<std::endl;
+            // for(std::size_t i=0; i<grad_p->num_elements(); i++)
+            //     std::cout<< grad_p->data()[i]<< ",";
+            // std::cout<<std::endl;
+        }
     }
 
 }

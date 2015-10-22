@@ -186,8 +186,8 @@ pooling_filter_no_indices( cube_p<real>&& featuremap,
 
 
 inline cube_p<real> pooling_backprop( vec3i         const & sz,
-                                        ccube<real> const & vals,
-                                        ccube<int>    const & indices )
+                                      ccube<real> const & vals,
+                                      ccube<int>    const & indices )
 {
     ZI_ASSERT(size(vals)==size(indices));
 
@@ -196,7 +196,7 @@ inline cube_p<real> pooling_backprop( vec3i         const & sz,
 
     real*       rp = ret->data();
     const real* vp = vals.data();
-    const int*    ip = indices.data();
+    const int*  ip = indices.data();
 
     for ( size_t i = 0; i < vals.num_elements(); ++i ) rp[ip[i]] += vp[i];
 

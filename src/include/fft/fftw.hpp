@@ -94,21 +94,56 @@ public:
     {
     private:
         vec3i    sz           ;
+        vec3i    actual_sz    ;
         fft_plan forward_plan ;
         fft_plan backward_plan;
+
+        int32_t get_optimal(int32_t s) const
+        {
+            //return s;
+            // SLOW so what, SUE ME!
+            if ( s < 10 ) return s;
+            if ( s > 384 ) return s;
+
+            std::vector<int32_t> mins({
+                    10,15,16,20,25,32,36,44,48,64,72,78,84,88,90,
+                        100,112,128,140,150,160,176,200,220,224,
+                        256,260,300,320,384});
+
+            return *std::lower_bound(mins.begin(), mins.end(),s);
+        }
+
 
     public:
         transformer(const vec3i& s)
             : sz(s)
-            , forward_plan(fft_plans.get_forward(s))
-            , backward_plan(fft_plans.get_backward(s))
-        {}
+            , actual_sz(s)
+        {
+            if ( (s[0] == 1) && (s[1] == s[2]) )
+            {
+                int32_t opt = get_optimal(s[1]);
+                actual_sz[1] = actual_sz[2] = opt;
+            }
+
+            forward_plan  = fft_plans.get_forward(actual_sz);
+            backward_plan = fft_plans.get_backward(actual_sz);
+        }
+
+        vec3i const & size() const
+        {
+            return sz;
+        }
+
+        vec3i const & actual_size() const
+        {
+            return actual_sz;
+        }
 
         void forward( cube<real>& in,
                       cube<complex>& out )
         {
             ZI_ASSERT(size(out)==fft_complex_size(in));
-            ZI_ASSERT(size(in)==sz);
+            ZI_ASSERT(size(in)==actual_sz);
 
             ZNN_MEASURE_FFT_START();
             FFT_EXECUTE_DFT_R2C(forward_plan,
@@ -121,7 +156,7 @@ public:
                        cube<real>& out )
         {
             ZI_ASSERT(size(in)==fft_complex_size(out));
-            ZI_ASSERT(size(out)==sz);
+            ZI_ASSERT(size(out)==actual_sz);
 
             ZNN_MEASURE_FFT_START();
             FFT_EXECUTE_DFT_C2R(backward_plan,
@@ -139,13 +174,13 @@ public:
 
         cube_p<complex> forward_pad( const ccube_p<real>& in )
         {
-            cube_p<real> pin = pad_zeros(*in, sz);
+            cube_p<real> pin = pad_zeros(*in, actual_sz);
             return forward(std::move(pin));
         }
 
         cube_p<real> backward( cube_p<complex>&& in )
         {
-            cube_p<real> ret = get_cube<real>(sz);
+            cube_p<real> ret = get_cube<real>(actual_sz);
             backward( *in, *ret );
             return ret;
         }

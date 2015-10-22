@@ -124,5 +124,5 @@ output output
 
 nodes output
 type transfer
-function rectify_linear
-size 1
+function linear
+size 2

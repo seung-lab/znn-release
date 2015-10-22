@@ -22,7 +22,7 @@
 
 namespace znn { namespace v4 {
 
-class normalize_init: public initializator
+class normalize_init: public initializator<real>
 {
 private:
     real lower_;

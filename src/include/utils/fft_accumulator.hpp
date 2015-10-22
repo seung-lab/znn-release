@@ -38,6 +38,8 @@ private:
 
     std::unique_ptr<fftw::transformer> fftw_;
 
+    real weight_ = 0;
+
     bool do_add(cube_p<complex>&& to_add)
     {
         cube_p<complex> previous_sum;
@@ -63,7 +65,15 @@ public:
         , current_(0)
         , sum_()
         , fftw_(std::make_unique<fftw::transformer>(size))
-    {}
+    {
+        vec3i s = fftw_->actual_size();
+        weight_ = s[0] * s[1] * s[2];
+    }
+
+    fftw::transformer const & get_transformer() const
+    {
+        return *fftw_;
+    }
 
     const vec3i& size() const
     {
@@ -114,7 +124,7 @@ public:
 
     real weight() const
     {
-        return size_[0] * size_[1] * size_[2];
+        return weight_;
     }
 
 };

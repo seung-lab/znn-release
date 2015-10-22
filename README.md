@@ -9,6 +9,9 @@ Supports Linux and MacOS. When using MKL fftw is not required
 |:-----:|-------------------|
 |[fftw](http://www.fftw.org/)|libfftw3-dev|
 |[boost](http://www.boost.org/)|libboost-all-dev|
+|[BoostNumpy](http://github.com/ndarray/Boost.NumPy)|NA|
+|[jemalloc](http://www.canonware.com/jemalloc/)|libjemalloc-dev|
+
 
 Compiler flags
 --------------
@@ -27,11 +30,11 @@ Compiler flags
 
 Compile gcc and clang
 ---------------------
-    g++ -std=c++1y training_test.cpp -I../../../.. -I.. -lfftw3 -lfftw3f -lpthread -pthread -O3 -DNDEBUG -o training_test
+    g++ -std=c++1y training_test.cpp -I../../ -I../include -lfftw3 -lfftw3f -lpthread -pthread -O3 -DNDEBUG -o training_test
 
 Compile icc
 -----------
-    icc -std=c++1y training_test.cpp -I../../../.. -I.. -lpthread -lrt -static-intel -DNDEBUG -O3 -mkl=sequential -o training_test
+    icc -std=c++1y training_test.cpp -I../../ -I../include -lpthread -lrt -static-intel -DNDEBUG -O3 -mkl=sequential -o training_test
 
 
 Contact

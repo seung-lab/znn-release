@@ -18,9 +18,9 @@
 #pragma once
 
 #include "edges.hpp"
-#include "softmax_edges.hpp"
 #include "input_nodes.hpp"
 #include "transfer_nodes.hpp"
+#include "maxout_nodes.hpp"
 #include "../../initializator/initializators.hpp"
 #include "../helpers.hpp"
 
@@ -43,6 +43,7 @@ private:
         vec3i in_fsize  = vec3i::zero ;
 
         bool pool = false;
+        bool crop = false;
 
         nnodes * in;
         nnodes * out;
@@ -109,7 +110,13 @@ private:
     std::map<std::string, nnodes*> input_nodes_;
     std::map<std::string, nnodes*> output_nodes_;
 
+    // [kisuklee]
+    // This is only temporary implementation and will be removed.
+    std::map<std::string, nedges*> phase_dependent_edges_;
+
     task_manager tm_;
+
+    phase phase_;
 
 #ifdef ZNN_ANALYSE_TASK_MANAGER
     void dump() { tm_.dump(); }
@@ -138,6 +145,11 @@ private:
                     vec3i new_fov   = fov * e->width;
                     vec3i new_fsize = e->width * fsize;
                     fov_pass(e->in, new_fov, new_fsize);
+                }
+                else if ( e->crop )
+                {
+                    // FoV doesn't change
+                    fov_pass(e->in, fov, fsize + e->width - vec3i::one);
                 }
                 else
                 {
@@ -215,6 +227,19 @@ private:
         return n->bwd_priority;
     }
 
+    // [kisuklee]
+    // This should be modified later to deal with multiple output layers
+    // with different size.
+    void set_patch_size( vec3i const& outsz )
+    {
+        real s = outsz[0]*outsz[1]*outsz[2];
+
+        for ( auto& n: nodes_ )
+            n.second->dnodes->set_patch_size(s);
+        for ( auto& e: edges_ )
+            e.second->dedges->set_patch_size(s);
+    }
+
     void init( vec3i const& outsz )
     {
         for ( auto& o: nodes_ )
@@ -230,7 +255,6 @@ private:
             fwd_priority_pass(o.second);
         for ( auto& o: input_nodes_ )
             bwd_priority_pass(o.second);
-
 
         // for ( auto& o: nodes_ )
         // {
@@ -255,7 +279,7 @@ private:
         auto type = op.require_as<std::string>("type");
 
         ZI_ASSERT(nodes_.count(name)==0);
-        nnodes* ns   = new nnodes;
+        nnodes* ns = new nnodes;
         ns->opts = &op;
         nodes_[name] = ns;
 
@@ -269,32 +293,58 @@ private:
     {
         for ( auto & e: edges_ )
         {
-            auto type = e.second->opts->require_as<std::string>("type");
+            auto opts = e.second->opts;
+            auto type = opts->require_as<std::string>("type");
             nodes * in  = e.second->in->dnodes.get();
             nodes * out = e.second->out->dnodes.get();
 
             if ( type == "max_filter" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts, e.second->in_stride,
+                    ( in, out, *opts, e.second->in_stride,
                       e.second->in_fsize, tm_, edges::max_pooling_tag() );
             }
             else if ( type == "max_pool" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts,
+                    ( in, out, *opts,
                       e.second->in_fsize, tm_, edges::real_pooling_tag() );
             }
             else if ( type == "conv" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts, e.second->in_stride,
+                    ( in, out, *opts, e.second->in_stride,
                       e.second->in_fsize, tm_, edges::filter_tag() );
+            }
+            else if ( type == "dropout" )
+            {
+                // [kisuklee]
+                // This version of dropout isn't actually disabling individual
+                // nodes, but making a random binary dropout masks for each
+                // node. This is the version that was implemented in v1, and
+                // the effectiveness is yet to be proven.
+
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, e.second->in_fsize,
+                      tm_, phase_, edges::dropout_tag() );
+            }
+            else if ( type == "crop" )
+            {
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, tm_, edges::crop_tag() );
+            }
+            else if ( type == "maxout")
+            {
+                // sanity check
+                STRONG_ASSERT(dynamic_cast<maxout_nodes*>(out));
+
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, tm_, edges::maxout_tag() );
             }
             else if ( type == "dummy" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts, tm_, edges::dummy_tag() );
+                    ( in, out, *opts, tm_, edges::dummy_tag() );
             }
             else
             {
@@ -338,6 +388,12 @@ private:
                     ( sz, n.second->fsize, *n.second->opts, tm_,
                       fwd_p,bwd_p,n.second->out.size()==0 );
             }
+            else if ( type == "maxout" )
+            {
+                n.second->dnodes = std::make_unique<maxout_nodes>
+                    ( sz, n.second->fsize, *n.second->opts, tm_,
+                      fwd_p,bwd_p,n.second->out.size()==0 );
+            }
             else
             {
                 throw std::logic_error(HERE() + "unknown nodes type: " + type);
@@ -359,11 +415,12 @@ private:
         ZI_ASSERT(nodes_.count(in)&&nodes_.count(out));
 
         nedges * es = new nedges;
-        es->opts   = &op;
-        es->in     = nodes_[in];
-        es->out    = nodes_[out];
-        es->pool   = false;
-        es->stride = vec3i::one;
+        es->opts    = &op;
+        es->in      = nodes_[in];
+        es->out     = nodes_[out];
+        es->pool    = false;
+        es->crop    = false;
+        es->stride  = vec3i::one;
         nodes_[in]->out.push_back(es);
         nodes_[out]->in.push_back(es);
 
@@ -384,6 +441,19 @@ private:
             es->width  = op.require_as<ovec3i>("size");
             es->pool   = true;
         }
+        else if ( type == "dropout" )
+        {
+            phase_dependent_edges_[name] = es;
+        }
+        else if ( type == "crop" )
+        {
+            auto off = op.require_as<ovec3i>("offset");
+            es->width   = off + off + vec3i::one;
+            es->crop    = true;
+        }
+        else if ( type == "maxout" )
+        {
+        }
         else if ( type == "dummy" )
         {
         }
@@ -399,14 +469,19 @@ public:
     network( std::vector<options> const & ns,
              std::vector<options> const & es,
              vec3i const & outsz,
-             size_t n_threads = 1 )
+             size_t n_threads = 1,
+             phase phs = phase::TRAIN )
         : tm_(n_threads)
+        , phase_(phs)
     {
         for ( auto& n: ns ) add_nodes(n);
         for ( auto& e: es ) add_edges(e);
         init(outsz);
         create_nodes();
         create_edges();
+
+        // minibatch averaging
+        set_patch_size(outsz);
     }
 
     void set_eta( real eta )
@@ -433,6 +508,15 @@ public:
     vec3i fov() const
     {
         return input_nodes_.begin()->second->fov;
+    }
+
+    // [kisuklee]
+    // This is only temporary implementation and will be removed.
+    void set_phase( phase phs = phase::TRAIN )
+    {
+        zap();
+        for ( auto & e: phase_dependent_edges_ )
+            e.second->dedges->set_phase(phs);
     }
 
     std::map<std::string, std::pair<vec3i,size_t>> inputs() const

@@ -28,7 +28,7 @@
 
 namespace znn { namespace v4 {
 
-class options: std::map<std::string,std::string>
+class options: public std::map<std::string,std::string>
 {
 public:
 

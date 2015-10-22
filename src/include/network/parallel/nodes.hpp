@@ -24,6 +24,8 @@
 
 namespace znn { namespace v4 { namespace parallel_network {
 
+enum class phase : std::uint8_t {TRAIN = 0, TEST = 1};
+
 // Forward definition
 class edge;
 
@@ -39,6 +41,10 @@ private:
 
     size_t const   fwd_priority_;
     size_t const   bwd_priority_;
+
+protected:
+    // minibatch averaging
+    real           patch_sz_ = 1;
 
 protected:
     nodes( size_t sz,
@@ -73,6 +79,12 @@ public:
 
     size_t         fwd_priority() const { return fwd_priority_; }
     size_t         bwd_priority() const { return bwd_priority_; }
+
+    void set_patch_size( real s )
+    {
+        ZI_ASSERT(s > 0);
+        patch_sz_ = s;
+    }
 
     std::string name() const
     {

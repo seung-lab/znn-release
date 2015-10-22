@@ -21,7 +21,7 @@
 
 namespace znn { namespace v4 {
 
-class gaussian_init: public initializator
+class gaussian_init: public initializator<real>
 {
 private:
     std::normal_distribution<real> dis;

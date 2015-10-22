@@ -64,9 +64,17 @@ private:
     {
         cube_p<real> f = buckets_[b]->reset();
         if ( Forward )
-            f = crop_right(*f, size_);
+        {
+            f = crop(*f, buckets_[b]->size() - size_, size_);
+        }
         else
+        {
+            if ( size(*f) != size_ )
+            {
+                f = crop_left(*f, size_);
+            }
             flip(*f);
+        }
 
         *f /= buckets_[b]->weight();
         return do_add(std::move(f));

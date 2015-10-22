@@ -22,7 +22,7 @@
 
 namespace znn { namespace v4 {
 
-class constant_init: public initializator
+class constant_init: public initializator<real>
 {
 private:
     real c_;

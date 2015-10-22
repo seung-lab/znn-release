@@ -173,7 +173,7 @@ private:
     void do_forward(size_t n)
     {
         fs_[n] = fwd_accumulators_[n]->reset();
-        STRONG_ASSERT(!fwd_done_[n]);
+        //STRONG_ASSERT(!fwd_done_[n]);
         fwd_done_[n] = true;
 
 
@@ -240,7 +240,7 @@ public:
 private:
     void do_backward(size_t n, cube_p<real> const & g)
     {
-        STRONG_ASSERT(fwd_done_[n]);
+        //STRONG_ASSERT(fwd_done_[n]);
         fwd_done_[n] = false;
 
         if ( func_ )
@@ -254,7 +254,7 @@ private:
             //     STRONG_ASSERT(0);
             // }
             func_.apply_grad(*g,*fs_[n]);
-            biases_[n]->update(sum(*g));
+            biases_[n]->update(sum(*g),patch_sz_);
             fs_[n].reset();
         }
         bwd_dispatch_.dispatch(n,g,nodes::manager());
