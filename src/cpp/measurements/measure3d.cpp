@@ -51,6 +51,7 @@ int main(int argc, char** argv)
     edges[0].push("input","input");
     edges[D-1].push("output","output");
     nodes[D].push("name","output");
+    nodes[D].push("size","1");
 
     int64_t x = 9;
     int64_t y = 9;
@@ -76,6 +77,7 @@ int main(int argc, char** argv)
     {
         nrnds = atoi(argv[8]);
     }
+
 
     size_t max_threads = 240;
 
