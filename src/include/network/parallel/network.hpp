@@ -319,9 +319,7 @@ private:
             else if ( type == "maxout")
             {
                 // sanity check
-                // auto oopts = e.second->out->opts;
-                // auto otype = oopts->require_as<std::string>("type");
-                // ZI_ASSERT(otype=="maxout");
+                STRONG_ASSERT(dynamic_cast<maxout_nodes*>(out));
 
                 e.second->dedges = std::make_unique<edges>
                     ( in, out, *opts, tm_, edges::maxout_tag() );
