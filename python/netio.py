@@ -276,7 +276,7 @@ def load_network( params=None, train=True, hdf5_filename=None,
     # 4) Return consolidated CNet object
 
     template = init_network( params, train, _network_specfile, _output_patch_shape,
-                _num_threads, False )
+                _num_threads, False, False )
 
     #If the file doesn't exist, init a new network
     if os.path.isfile( _hdf5_filename ):
