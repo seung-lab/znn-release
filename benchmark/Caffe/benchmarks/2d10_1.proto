@@ -1,0 +1,153 @@
+name: "fc"
+input: "data"
+input_dim: 1
+input_dim: 1
+input_dim: 175
+input_dim: 175
+force_backward: true
+
+layers {
+  name: "conv1"
+  type: CONVOLUTION
+  bottom: "data"
+  top: "conv1"
+  blobs_lr: 1
+  blobs_lr: 2
+  convolution_param {
+    num_output: 40
+    kernel_size: 10
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+
+layers {
+  name: "pool1"
+  type: POOLING
+  bottom: "conv1"
+  top: "pool1"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+
+
+layers {
+  name: "conv2"
+  type: CONVOLUTION
+  bottom: "pool1"
+  top: "conv2"
+  blobs_lr: 1
+  blobs_lr: 2
+  convolution_param {
+    num_output: 40
+    kernel_size: 10
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+
+layers {
+  name: "pool2"
+  type: POOLING
+  bottom: "conv2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 2
+    stride: 2
+  }
+}
+
+
+layers {
+  name: "conv3"
+  type: CONVOLUTION
+  bottom: "pool2"
+  top: "conv3"
+  blobs_lr: 1
+  blobs_lr: 2
+  convolution_param {
+    num_output: 40
+    kernel_size: 10
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+
+layers {
+  name: "conv4"
+  type: CONVOLUTION
+  bottom: "conv3"
+  top: "conv4"
+  blobs_lr: 1
+  blobs_lr: 2
+  convolution_param {
+    num_output: 40
+    kernel_size: 10
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+
+layers {
+  name: "conv5"
+  type: CONVOLUTION
+  bottom: "conv4"
+  top: "conv5"
+  blobs_lr: 1
+  blobs_lr: 2
+  convolution_param {
+    num_output: 40
+    kernel_size: 10
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}
+
+layers {
+  name: "conv6"
+  type: CONVOLUTION
+  bottom: "conv5"
+  top: "conv6"
+  blobs_lr: 1
+  blobs_lr: 2
+  convolution_param {
+    num_output: 3
+    kernel_size: 10
+    stride: 1
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+}

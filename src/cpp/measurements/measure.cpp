@@ -1,3 +1,20 @@
+//
+// Copyright (C) 2012-2015  Aleksandar Zlateski <zlateski@mit.edu>
+// ---------------------------------------------------------------
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
 #include "network/parallel/network.hpp"
 #include "network/trivial/trivial_fft_network.hpp"
 #include "network/trivial/trivial_network.hpp"
@@ -40,21 +57,34 @@ int main(int argc, char** argv)
         nrnds = atoi(argv[6]);
     }
 
+    size_t min_threads = 1;
+
+    if ( argc >= 8 )
+    {
+        min_threads = atoi(argv[7]);
+    }
+
     size_t max_threads = 240;
 
-    std::vector<double> speeds(max_threads+1);
+    if ( argc >= 9 )
+    {
+        max_threads = atoi(argv[8]);
+    }
 
-    for ( int i = 18; i <= max_threads; ++i )
+
+    double speed = 1e32;
+
+    for ( int i = min_threads; i <= max_threads; ++i )
     {
         auto res = parallel_network::network::speed_test
             (nodes, edges, {z,y,x}, i, nrnds, warmup);
 
-        speeds[i] = res.first;
+        speed = std::min(speed, res.first);
 
         std::cout << i << ", "
                   << res.first << ", " << res.second
                   << " ( " << ( res.second * 100  / res.first ) << "% )"
                   << ";" << std::endl
-                  << "____SPEEDUP: " << ( speeds[1] / speeds[i] ) << std::endl;
+                  << "____BEST: " << speed << std::endl;
     }
 }
