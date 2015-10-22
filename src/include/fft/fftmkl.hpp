@@ -1,3 +1,20 @@
+//
+// Copyright (C) 2012-2015  Aleksandar Zlateski <zlateski@mit.edu>
+// ---------------------------------------------------------------
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
 #pragma once
 
 #include "fftmkl_plans.hpp"
@@ -57,21 +74,58 @@ public:
     {
     private:
         vec3i    sz           ;
+        vec3i    actual_sz    ;
         fft_plan forward_plan ;
         fft_plan backward_plan;
+
+        int32_t get_optimal(int32_t s) const
+        {
+            //return s;
+            // SLOW so what, SUE ME!
+            if ( s < 10 ) return s;
+            if ( s > 1024 ) return s;
+
+            std::vector<int32_t> mins(
+                { 11,13,14,15,16,18,20,33,36,49,54,55,60,64,80,81,90,100,
+                  104,128,132,136,160,168,176,192,200,208,210,216,224,
+                  240,256,264,280,288,294,300,320,336,352,360,364,384,392,
+                  400,416,448,450,462,480,512,520,560,576,588,600,640,648,
+                  650,672,704,728,750,768,784,800,832,840,864,896,936,960,
+                  968,1000,1024});
+
+            return *std::lower_bound(mins.begin(), mins.end(),s);
+        }
 
     public:
         transformer(const vec3i& s)
             : sz(s)
-            , forward_plan(fft_plans.get_forward(s))
-            , backward_plan(fft_plans.get_backward(s))
-        {}
+            , actual_sz(s)
+        {
+            if ( (s[0] == 1) && (s[1] == s[2]) )
+            {
+                int32_t opt = get_optimal(s[1]);
+                actual_sz[1] = actual_sz[2] = opt;
+            }
+
+            forward_plan  = fft_plans.get_forward(actual_sz);
+            backward_plan = fft_plans.get_backward(actual_sz);
+        }
+
+        vec3i const & size() const
+        {
+            return sz;
+        }
+
+        vec3i const & actual_size() const
+        {
+            return actual_sz;
+        }
 
         void forward( cube<real>& in,
                       cube<complex>& out )
         {
             ZI_ASSERT(size(out)==fft_complex_size(in));
-            ZI_ASSERT(size(in)==sz);
+            ZI_ASSERT(size(in)==actual_sz);
 
             MKL_LONG status;
 
@@ -90,7 +144,7 @@ public:
                        cube<real>& out )
         {
             ZI_ASSERT(size(in)==fft_complex_size(out));
-            ZI_ASSERT(size(out)==sz);
+            ZI_ASSERT(size(out)==actual_sz);
 
             MKL_LONG status;
 
@@ -114,13 +168,13 @@ public:
 
         cube_p<complex> forward_pad( const ccube_p<real>& in )
         {
-            cube_p<real> pin = pad_zeros(*in, sz);
+            cube_p<real> pin = pad_zeros(*in, actual_sz);
             return forward(std::move(pin));
         }
 
         cube_p<real> backward( cube_p<complex>&& in )
         {
-            cube_p<real> ret = get_cube<real>(sz);
+            cube_p<real> ret = get_cube<real>(actual_sz);
             backward( *in, *ret );
             return ret;
         }

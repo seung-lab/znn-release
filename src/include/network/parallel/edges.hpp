@@ -1,3 +1,20 @@
+//
+// Copyright (C) 2012-2015  Aleksandar Zlateski <zlateski@mit.edu>
+// ---------------------------------------------------------------
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
 #pragma once
 
 #include "edges_fwd.hpp"
@@ -10,6 +27,7 @@
 #include "max_pooling_edge.hpp"
 #include "dropout_edge.hpp"
 #include "crop_edge.hpp"
+#include "maxout_edge.hpp"
 #include "nodes.hpp"
 #include "../../utils/waiter.hpp"
 #include "../../options/options.hpp"
@@ -166,8 +184,6 @@ inline edges::edges( nodes * in,
     }
 }
 
-
-
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
@@ -253,11 +269,9 @@ inline edges::edges( nodes * in,
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
-                     vec3i const & in_size,
                      task_manager & tm,
                      crop_tag )
     : options_(opts)
-    , size_(in_size)
     , tm_(tm)
 {
     ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
@@ -273,6 +287,28 @@ inline edges::edges( nodes * in,
         edges_[i]
             = std::make_unique<crop_edge>
             (in, i, out, i, tm_, offset);
+    }
+}
+
+// maxout
+inline edges::edges( nodes * in,
+                     nodes * out,
+                     options const & opts,
+                     task_manager & tm,
+                     maxout_tag )
+    : options_(opts)
+    , tm_(tm)
+{
+    ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
+
+    size_t n = in->num_out_nodes();
+    edges_.resize(n);
+    waiter_.set(n);
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        edges_[i] = std::make_unique<maxout_edge>
+            (in, i, out, i, tm);
     }
 }
 

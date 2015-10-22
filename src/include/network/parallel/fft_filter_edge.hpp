@@ -1,3 +1,20 @@
+//
+// Copyright (C) 2012-2015  Aleksandar Zlateski <zlateski@mit.edu>
+// ---------------------------------------------------------------
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
 #pragma once
 
 #include "edge.hpp"
@@ -45,6 +62,11 @@ private:
         auto dEdW = fftw_.backward(std::move(dEdW_fft));
         real norm = dEdW->num_elements();
 
+        if ( fftw_.size() != fftw_.actual_size() )
+        {
+            dEdW = crop_left(*dEdW, fftw_.size());
+        }
+
         flip(*dEdW);
         // TODO(zlateski): WTH was happening with sparse_implode before
         //                 when I had to use sparse_implode_slow
@@ -72,7 +94,8 @@ private:
         //                 when I had to use sparse_explode_slow,
         //                 ony happened on my laptop
         auto w_tmp = sparse_explode_slow(filter_.W(), filter_stride,
-                                         in_nodes->fsize());
+                                         fftw_.actual_size());
+//                                         in_nodes->fsize());
         return fftw_.forward(std::move(w_tmp));
     }
 

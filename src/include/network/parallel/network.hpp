@@ -1,9 +1,26 @@
+//
+// Copyright (C) 2012-2015  Aleksandar Zlateski <zlateski@mit.edu>
+// ---------------------------------------------------------------
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
 #pragma once
 
 #include "edges.hpp"
-#include "softmax_edges.hpp"
 #include "input_nodes.hpp"
 #include "transfer_nodes.hpp"
+#include "maxout_nodes.hpp"
 #include "../../initializator/initializators.hpp"
 #include "../helpers.hpp"
 
@@ -262,7 +279,7 @@ private:
         auto type = op.require_as<std::string>("type");
 
         ZI_ASSERT(nodes_.count(name)==0);
-        nnodes* ns   = new nnodes;
+        nnodes* ns = new nnodes;
         ns->opts = &op;
         nodes_[name] = ns;
 
@@ -276,26 +293,27 @@ private:
     {
         for ( auto & e: edges_ )
         {
-            auto type = e.second->opts->require_as<std::string>("type");
+            auto opts = e.second->opts;
+            auto type = opts->require_as<std::string>("type");
             nodes * in  = e.second->in->dnodes.get();
             nodes * out = e.second->out->dnodes.get();
 
             if ( type == "max_filter" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts, e.second->in_stride,
+                    ( in, out, *opts, e.second->in_stride,
                       e.second->in_fsize, tm_, edges::max_pooling_tag() );
             }
             else if ( type == "max_pool" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts,
+                    ( in, out, *opts,
                       e.second->in_fsize, tm_, edges::real_pooling_tag() );
             }
             else if ( type == "conv" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts, e.second->in_stride,
+                    ( in, out, *opts, e.second->in_stride,
                       e.second->in_fsize, tm_, edges::filter_tag() );
             }
             else if ( type == "dropout" )
@@ -307,19 +325,26 @@ private:
                 // the effectiveness is yet to be proven.
 
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts, e.second->in_fsize,
+                    ( in, out, *opts, e.second->in_fsize,
                       tm_, phase_, edges::dropout_tag() );
             }
             else if ( type == "crop" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts,
-                      e.second->in_fsize, tm_, edges::crop_tag() );
+                    ( in, out, *opts, tm_, edges::crop_tag() );
+            }
+            else if ( type == "maxout")
+            {
+                // sanity check
+                STRONG_ASSERT(dynamic_cast<maxout_nodes*>(out));
+
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, tm_, edges::maxout_tag() );
             }
             else if ( type == "dummy" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts, tm_, edges::dummy_tag() );
+                    ( in, out, *opts, tm_, edges::dummy_tag() );
             }
             else
             {
@@ -363,6 +388,12 @@ private:
                     ( sz, n.second->fsize, *n.second->opts, tm_,
                       fwd_p,bwd_p,n.second->out.size()==0 );
             }
+            else if ( type == "maxout" )
+            {
+                n.second->dnodes = std::make_unique<maxout_nodes>
+                    ( sz, n.second->fsize, *n.second->opts, tm_,
+                      fwd_p,bwd_p,n.second->out.size()==0 );
+            }
             else
             {
                 throw std::logic_error(HERE() + "unknown nodes type: " + type);
@@ -384,12 +415,12 @@ private:
         ZI_ASSERT(nodes_.count(in)&&nodes_.count(out));
 
         nedges * es = new nedges;
-        es->opts   = &op;
-        es->in     = nodes_[in];
-        es->out    = nodes_[out];
-        es->pool   = false;
-        es->crop   = false;
-        es->stride = vec3i::one;
+        es->opts    = &op;
+        es->in      = nodes_[in];
+        es->out     = nodes_[out];
+        es->pool    = false;
+        es->crop    = false;
+        es->stride  = vec3i::one;
         nodes_[in]->out.push_back(es);
         nodes_[out]->in.push_back(es);
 
@@ -419,6 +450,9 @@ private:
             auto off = op.require_as<ovec3i>("offset");
             es->width   = off + off + vec3i::one;
             es->crop    = true;
+        }
+        else if ( type == "maxout" )
+        {
         }
         else if ( type == "dummy" )
         {

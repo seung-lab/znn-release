@@ -46,6 +46,7 @@ def main( conf_file='config.cfg', logfile=None ):
     eta = pars['eta'] #/ vn
     net.set_eta( eta )
     net.set_momentum( pars['momentum'] )
+    net.set_weight_decay( pars['weight_decay'] )
 
     # initialize samples
     outsz = pars['train_outsz']
