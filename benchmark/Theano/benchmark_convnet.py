@@ -94,9 +94,12 @@ def evaluate_convnet(learning_rate=0.01, n_epochs=100, nlayer=5, width=[10], fxy
     print '\n input size = {} x {} x {}'.format(fmapxy[0], fmapxy[0], fmapz[0])
     print 'output size = {} x {} x {}'.format(outxy, outxy, outz)
 
-    # deterministic input
-    x = random_matrix((1, fmapz[0], 1, fmapxy[0], fmapxy[0]), rng, 'x')
-    y = random_matrix((1, outz, width[-1], outxy, outxy), rng, 'y')
+    # random input
+    data_x = random_matrix((n_epochs, fmapz[0], 1, fmapxy[0], fmapxy[0]), rng, 'data_x')
+    data_y = random_matrix((n_epochs, outz, width[-1], outxy, outxy), rng, 'data_y')
+    idx = T.lscalar()
+    x = data_x[idx]
+    y = data_y[idx]
 
     # patch size
     patch_sz = outxy*outxy*outz
@@ -138,7 +141,7 @@ def evaluate_convnet(learning_rate=0.01, n_epochs=100, nlayer=5, width=[10], fxy
     ]
 
     train_model = theano.function(
-        [],
+        [idx],
         cost,
         updates=updates
         )
@@ -154,8 +157,8 @@ def evaluate_convnet(learning_rate=0.01, n_epochs=100, nlayer=5, width=[10], fxy
     time_accum = 0
     while (epoch < n_epochs) and (not done_looping):
         start_time = timeit.default_timer()
+        cost = train_model(epoch)
         epoch = epoch + 1
-        cost = train_model()
         end_time = timeit.default_timer()
         elapsed = end_time - start_time
         print 'epoch {} took {}, cost: {}'.format(epoch, elapsed, cost)
@@ -191,12 +194,20 @@ if __name__ == '__main__':
     #pz=[1,1,2,2,1,1]
 
     # ReferenceNet
+    #nlayer=6
+    #width=[40,40,40,40,40,3]
+    #fxy=[9]
+    #fz=[9]
+    #pxy=[2,2,1,1,1,1]
+    #pz=[2,2,1,1,1,1]
+
+    # 2D ReferenceNet
     nlayer=6
     width=[40,40,40,40,40,3]
-    fxy=[7]
-    fz=[7]
+    fxy=[20]
+    fz=[1]
     pxy=[2,2,1,1,1,1]
-    pz=[2,2,1,1,1,1]
+    pz=[1,1,1,1,1,1]
 
     # output patch size
     outxy=int(sys.argv[1])
