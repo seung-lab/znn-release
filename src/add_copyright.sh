@@ -7,6 +7,7 @@ do
   fi
 done
 
+
 for i in `find . | grep "\.cpp$"` # or whatever other pattern...
 do
   if ! grep -q Copyright $i
@@ -15,3 +16,4 @@ do
     echo $i
   fi
 done
+
