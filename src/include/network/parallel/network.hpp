@@ -1,7 +1,6 @@
 #pragma once
 
 #include "edges.hpp"
-#include "softmax_edges.hpp"
 #include "input_nodes.hpp"
 #include "transfer_nodes.hpp"
 #include "../../initializator/initializators.hpp"
@@ -64,6 +63,9 @@ public:
         zap();
         for ( auto& n: nodes_ ) delete n.second;
         for ( auto& e: edges_ ) delete e.second;
+
+        // maxout
+        for ( auto& m: maxout_layers_ ) delete m.second;
     }
 
 private:
@@ -92,6 +94,9 @@ private:
     std::map<std::string, nnodes*> nodes_;
     std::map<std::string, nnodes*> input_nodes_;
     std::map<std::string, nnodes*> output_nodes_;
+
+    // maxout reservoir
+    std::map<std::string, maxout_edge::layer*> maxout_layers_;
 
     // [kisuklee]
     // This is only temporary implementation and will be removed.
@@ -262,7 +267,7 @@ private:
         auto type = op.require_as<std::string>("type");
 
         ZI_ASSERT(nodes_.count(name)==0);
-        nnodes* ns   = new nnodes;
+        nnodes* ns = new nnodes;
         ns->opts = &op;
         nodes_[name] = ns;
 
@@ -276,26 +281,27 @@ private:
     {
         for ( auto & e: edges_ )
         {
-            auto type = e.second->opts->require_as<std::string>("type");
+            auto opts = e.second->opts;
+            auto type = opts->require_as<std::string>("type");
             nodes * in  = e.second->in->dnodes.get();
             nodes * out = e.second->out->dnodes.get();
 
             if ( type == "max_filter" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts, e.second->in_stride,
+                    ( in, out, *opts, e.second->in_stride,
                       e.second->in_fsize, tm_, edges::max_pooling_tag() );
             }
             else if ( type == "max_pool" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts,
+                    ( in, out, *opts,
                       e.second->in_fsize, tm_, edges::real_pooling_tag() );
             }
             else if ( type == "conv" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts, e.second->in_stride,
+                    ( in, out, *opts, e.second->in_stride,
                       e.second->in_fsize, tm_, edges::filter_tag() );
             }
             else if ( type == "dropout" )
@@ -307,19 +313,34 @@ private:
                 // the effectiveness is yet to be proven.
 
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts, e.second->in_fsize,
+                    ( in, out, *opts, e.second->in_fsize,
                       tm_, phase_, edges::dropout_tag() );
             }
             else if ( type == "crop" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts,
-                      e.second->in_fsize, tm_, edges::crop_tag() );
+                    ( in, out, *opts, e.second->in_fsize,
+                      tm_, edges::crop_tag() );
+            }
+            else if ( type == "maxout")
+            {
+                // add maxout layer
+                auto name = opts->require_as<std::string>("output");
+                if ( !maxout_layers_.count(name) )
+                {
+                    auto width = out->size();
+                    auto group = e.second->out->in.size();
+                    maxout_layers_[name] = new maxout_edge::layer(width,group);
+                }
+
+                auto layer = maxout_layers_[name];
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, layer, tm_, edges::maxout_tag() );
             }
             else if ( type == "dummy" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *e.second->opts, tm_, edges::dummy_tag() );
+                    ( in, out, *opts, tm_, edges::dummy_tag() );
             }
             else
             {
@@ -384,12 +405,12 @@ private:
         ZI_ASSERT(nodes_.count(in)&&nodes_.count(out));
 
         nedges * es = new nedges;
-        es->opts   = &op;
-        es->in     = nodes_[in];
-        es->out    = nodes_[out];
-        es->pool   = false;
-        es->crop   = false;
-        es->stride = vec3i::one;
+        es->opts    = &op;
+        es->in      = nodes_[in];
+        es->out     = nodes_[out];
+        es->pool    = false;
+        es->crop    = false;
+        es->stride  = vec3i::one;
         nodes_[in]->out.push_back(es);
         nodes_[out]->in.push_back(es);
 

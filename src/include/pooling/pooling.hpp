@@ -179,7 +179,7 @@ inline cube_p<real> pooling_backprop( vec3i         const & sz,
 
     real*       rp = ret->data();
     const real* vp = vals.data();
-    const int*    ip = indices.data();
+    const int*  ip = indices.data();
 
     for ( size_t i = 0; i < vals.num_elements(); ++i ) rp[ip[i]] += vp[i];
 
