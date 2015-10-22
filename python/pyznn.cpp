@@ -74,6 +74,7 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 #include <boost/python.hpp>
 #include <boost/numpy.hpp>
 #include <boost/python/stl_iterator.hpp>
+#include <boost/lexical_cast.hpp>
 
 // system
 #include <string>
@@ -112,12 +113,28 @@ std::shared_ptr< network > CNet_Init(
                     reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
                     reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
 					);
-    if (0==tc)
+    if ( tc == 0 )
     	tc = std::thread::hardware_concurrency();
 
     // optimize
-    if(is_optimize)
-    	network::optimize(nodes, edges, out_sz, tc, 10);
+    if ( is_optimize )
+    {
+        phase _phs = static_cast<phase>(phs);
+        if ( _phs == phase::TRAIN )
+        {
+            network::optimize(nodes, edges, out_sz, tc, 10);
+        }
+        else if ( _phs == phase::TEST )
+        {
+            network::optimize_forward(nodes, edges, out_sz, tc, 2);
+        }
+        else
+        {
+            std::string str = boost::lexical_cast<std::string>(phs);
+            throw std::logic_error(HERE() + "unknown phase: " + str);
+        }
+    }
+
 
     std::cout<< "construct the network class using the edges and nodes..." <<std::endl;
     std::cout<<"if unseccessful, please check the network config file (networks/XXX.znn)."<<std::endl;
