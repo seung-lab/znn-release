@@ -1,4 +1,4 @@
-nodes input
+Vnodes input
 type input
 size 1
 
@@ -66,15 +66,45 @@ stride 1,1,1
 input nconv1b
 output nconv1c
 
-edges conv1c-r
+nodes rinput
+type input
+size 1
+
+edges rconv1a
+type conv
+init msra
+size 1,3,3
+stride 1,1,1
+input rinput
+output rnl1
+
+nodes rnl1
+type transfer
+function rectify_linear
+size 24
+
+edges rconv1b
+type conv
+init msra
+size 1,3,3
+stride 1,1,1
+input rnl1
+output rnl2
+
+nodes rnl2
+type transfer
+function rectify_linear
+size 24
+
+edges rconv1c
 type conv
 init msra
 size 1,2,2
 stride 1,1,1
-input nconv1b-r
-output nconv1c
+input rnl2
+output nl3
 
-nodes nconv1c
+nodes nl3
 type transfer
 function rectify_linear
 size 24
@@ -97,6 +127,7 @@ size 1,3,3
 stride 1,1,1
 input npool1
 output nconv2a
+
 
 nodes nconv2a
 type transfer
@@ -206,6 +237,7 @@ nodes nconv4c
 type transfer
 function rectify_linear
 size 100
+load 0
 
 edges dropout
 type dropout
