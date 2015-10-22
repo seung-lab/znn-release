@@ -3,6 +3,7 @@
 #include "edges.hpp"
 #include "input_nodes.hpp"
 #include "transfer_nodes.hpp"
+#include "maxout_nodes.hpp"
 #include "../../initializator/initializators.hpp"
 #include "../helpers.hpp"
 
@@ -63,9 +64,6 @@ public:
         zap();
         for ( auto& n: nodes_ ) delete n.second;
         for ( auto& e: edges_ ) delete e.second;
-
-        // maxout
-        for ( auto& m: maxout_layers_ ) delete m.second;
     }
 
 private:
@@ -94,9 +92,6 @@ private:
     std::map<std::string, nnodes*> nodes_;
     std::map<std::string, nnodes*> input_nodes_;
     std::map<std::string, nnodes*> output_nodes_;
-
-    // maxout reservoir
-    std::map<std::string, maxout_edge::layer*> maxout_layers_;
 
     // [kisuklee]
     // This is only temporary implementation and will be removed.
@@ -319,23 +314,17 @@ private:
             else if ( type == "crop" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts, e.second->in_fsize,
-                      tm_, edges::crop_tag() );
+                    ( in, out, *opts, tm_, edges::crop_tag() );
             }
             else if ( type == "maxout")
             {
-                // add maxout layer
-                auto name = opts->require_as<std::string>("output");
-                if ( !maxout_layers_.count(name) )
-                {
-                    auto width = out->size();
-                    auto group = e.second->out->in.size();
-                    maxout_layers_[name] = new maxout_edge::layer(width,group);
-                }
+                // sanity check
+                auto oopts = e.second->out->opts;
+                auto otype = oopts->require_as<std::string>("type");
+                ZI_ASSERT(otype=="maxout");
 
-                auto layer = maxout_layers_[name];
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts, layer, tm_, edges::maxout_tag() );
+                    ( in, out, *opts, tm_, edges::maxout_tag() );
             }
             else if ( type == "dummy" )
             {
@@ -381,6 +370,12 @@ private:
             else if ( (type == "sum") || (type == "transfer") )
             {
                 n.second->dnodes = std::make_unique<transfer_nodes>
+                    ( sz, n.second->fsize, *n.second->opts, tm_,
+                      fwd_p,bwd_p,n.second->out.size()==0 );
+            }
+            else if ( type == "maxout" )
+            {
+                n.second->dnodes = std::make_unique<maxout_nodes>
                     ( sz, n.second->fsize, *n.second->opts, tm_,
                       fwd_p,bwd_p,n.second->out.size()==0 );
             }

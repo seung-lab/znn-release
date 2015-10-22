@@ -46,8 +46,7 @@ public:
     edges( nodes *, nodes *, options const &, vec3i const &,
            task_manager &, phase phs, dropout_tag );
 
-    edges( nodes *, nodes *, options const &, vec3i const &,
-           task_manager &, crop_tag );
+    edges( nodes *, nodes *, options const &, task_manager &, crop_tag );
 
     edges( nodes *, nodes *, options const &, task_manager &, softmax_tag );
 

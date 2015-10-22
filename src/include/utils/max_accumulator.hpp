@@ -14,11 +14,11 @@ private:
     size_t required_;
     size_t current_ ;
 
-    cube_p<real>       maximum_;
-    cube_p<int>        indices_;
-    std::mutex         mutex_;
+    cube_p<real>    maximum_;
+    cube_p<int>     indices_;
+    std::mutex      mutex_;
 
-    bool do_max(cube_p<real>&& to_add, size_t idx)
+    bool do_max(cube_p<real>&& to_add, int idx)
     {
         cube_p<real> previous_max;
         cube_p<int>  previous_idx;
@@ -38,7 +38,7 @@ private:
                     else
                     {
                         indices_ = get_cube<int>(size(*maximum_));
-                        fill(indices_,idx);
+                        fill(*indices_,idx);
                     }
 
                     return ++current_ == required_;
@@ -53,7 +53,7 @@ private:
     // v  = maximum(c,v)
     // vi = update_indices(vi,idx)
     void maximum( cube<real> const & c, cube<int> & vi,
-                  cube<real> & v, size_t idx )
+                  cube<real> & v, int idx )
     {
         ZI_ASSERT(c.num_elements()==v.num_elements());
         const real* src = c.data();
@@ -81,10 +81,16 @@ public:
         , indices_()
     {}
 
+    size_t increment()
+    {
+        ZI_ASSERT(current_==0);
+        return required_++;
+    }
+
     //
     // maximum = max(maximum, f)
     //
-    bool add(cube_p<real>&& f, size_t idx)
+    bool add(cube_p<real>&& f, int idx)
     {
         ZI_ASSERT(current_<required_);
         return do_max(std::move(f),idx);

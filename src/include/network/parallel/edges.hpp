@@ -252,11 +252,9 @@ inline edges::edges( nodes * in,
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
-                     vec3i const & in_size,
                      task_manager & tm,
                      crop_tag )
     : options_(opts)
-    , size_(in_size)
     , tm_(tm)
 {
     ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
@@ -279,11 +277,9 @@ inline edges::edges( nodes * in,
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
-                     maxout_edge::layer *
                      task_manager & tm,
                      maxout_tag )
     : options_(opts)
-    , size_(in_size)
     , tm_(tm)
 {
     ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
@@ -292,13 +288,10 @@ inline edges::edges( nodes * in,
     edges_.resize(n);
     waiter_.set(n);
 
-    // register
-    size_t idx = layer->register();
-
     for ( size_t i = 0; i < n; ++i )
     {
         edges_[i] = std::make_unique<maxout_edge>
-            (in, i, out, i, tm, *layer, idx);
+            (in, i, out, i, tm);
     }
 }
 
