@@ -467,15 +467,17 @@ def malis_weight_bdm(bdm, lbl, threshold=0.5):
     if bdm.ndim==3:
         bdm = bdm.reshape((1,)+(bdm.shape))
         lbl = lbl.reshape((1,)+(lbl.shape))
+
+    # only compute weight of the first channel
+    bdm0 = bdm[0,:,:,:]
     # segment the ground truth label
-    for c in xrange(lbl.shape[0]):
-        lbl[c,:,:,:] = emirt.volume_util.bdm2seg(lbl[c,:,:,:])
+    lbl0 = emirt.volume_util.bdm2seg(lbl[0,:,:,:])
 
     # initialize the weights
     weights = np.empty(bdm.shape, dtype=bdm.dtype)
     # traverse along the z axis
     for z in xrange(bdm.shape[1]):
-        w = malis_weight_bdm_2D(bdm[0,z,:,:], lbl[0,z,:,:], threshold)
+        w = malis_weight_bdm_2D(bdm0[z,:,:], lbl0[z,:,:], threshold)
         for c in xrange(bdm.shape[0]):
             weights[c,z,:,:] = w
     weights = weights.reshape( original_shape )
