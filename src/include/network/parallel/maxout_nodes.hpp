@@ -10,8 +10,6 @@
 
 namespace znn { namespace v4 { namespace parallel_network {
 
-class maxout_edge;
-
 class maxout_nodes: public nodes
 {
 private:
@@ -26,7 +24,6 @@ private:
     std::vector<int>             fwd_done_;
     waiter                       waiter_  ;
 
-    friend class maxout_edge;
 
 public:
     maxout_nodes( size_t s,
@@ -72,6 +69,11 @@ public:
     std::vector<cube_p<real>>& get_featuremaps() override
     {
         return fs_;
+    }
+
+    std::vector<cube_p<int>>& get_indices_maps()
+    {
+        return is_;
     }
 
 private:

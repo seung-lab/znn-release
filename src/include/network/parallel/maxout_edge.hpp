@@ -18,7 +18,7 @@ private:
         auto         r = get_cube<real>(size(g));
         real*       rp = r->data();
         const real* gp = g.data();
-        const int*  ip = target->is_[out_num]->data();
+        const int*  ip = target->get_indices_maps()[out_num]->data();
 
         for ( size_t i = 0; i < r->num_elements(); ++i )
         {

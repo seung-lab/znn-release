@@ -273,7 +273,7 @@ inline edges::edges( nodes * in,
     }
 }
 
-// maxpout
+// maxout
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,

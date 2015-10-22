@@ -319,9 +319,9 @@ private:
             else if ( type == "maxout")
             {
                 // sanity check
-                auto oopts = e.second->out->opts;
-                auto otype = oopts->require_as<std::string>("type");
-                ZI_ASSERT(otype=="maxout");
+                // auto oopts = e.second->out->opts;
+                // auto otype = oopts->require_as<std::string>("type");
+                // ZI_ASSERT(otype=="maxout");
 
                 e.second->dedges = std::make_unique<edges>
                     ( in, out, *opts, tm_, edges::maxout_tag() );
@@ -435,6 +435,9 @@ private:
             auto off = op.require_as<ovec3i>("offset");
             es->width   = off + off + vec3i::one;
             es->crop    = true;
+        }
+        else if ( type == "maxout" )
+        {
         }
         else if ( type == "dummy" )
         {
