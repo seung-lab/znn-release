@@ -217,7 +217,7 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
 
 def load_network( params=None, train=True, hdf5_filename=None,
     network_specfile=None, output_patch_shape=None, num_threads=None,
-    optimize=None ):
+    optimize=None, force_fft=None ):
     '''
     Loads a network from an hdf5 file.
 
@@ -234,7 +234,7 @@ def load_network( params=None, train=True, hdf5_filename=None,
     #"ALL" optional args excludes train (it has a default)
     assert_arglist(params,
         [hdf5_filename, network_specfile, output_patch_shape,
-        num_threads, optimize])
+        num_threads, optimize, force_fft])
 
     #Defining phase argument by train argument
     phase = int(not train)
@@ -251,6 +251,7 @@ def load_network( params=None, train=True, hdf5_filename=None,
             _output_patch_shape = params['forward_outsz']
             _optimize = params['is_forward_optimize']
 
+        _force_fft = params['force_fft']
         _network_specfile = params['fnet_spec']
         _num_threads = params['num_threads']
 
@@ -292,10 +293,11 @@ def load_network( params=None, train=True, hdf5_filename=None,
         del template
 
     return pyznn.CNet(final_options, _network_specfile, _output_patch_shape,
-                _num_threads, _optimize, phase)
+                _num_threads, _optimize, phase, _force_fft)
 
 def init_network( params=None, train=True, network_specfile=None,
-            output_patch_shape=None, num_threads=None, optimize=None ):
+            output_patch_shape=None, num_threads=None, optimize=None,
+            force_fft=None ):
     '''
     Initializes a random network using the Boost Python interface and configuration
     file options.
@@ -327,6 +329,7 @@ def init_network( params=None, train=True, network_specfile=None,
             _output_patch_shape = params['forward_outsz']
             _optimize = params['is_forward_optimize']
 
+        _force_fft = params['force_fft']
         _network_specfile = params['fnet_spec']
         _num_threads = params['num_threads']
 
@@ -339,6 +342,8 @@ def init_network( params=None, train=True, network_specfile=None,
         _num_threads = num_threads
     if optimize is not None:
         _optimize = optimize
+    if force_fft is not None:
+        _force_fft = force_fft
 
     return pyznn.CNet(_network_specfile, _output_patch_shape,
-                    _num_threads, _optimize, phase)
+                    _num_threads, _optimize, phase, _force_fft)

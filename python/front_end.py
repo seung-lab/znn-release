@@ -112,6 +112,7 @@ def parser( conf_fname ):
     # (FFT vs Direct Convolution)
     pars['is_train_optimize'] = config.getboolean('parameters', 'is_train_optimize')
     pars['is_forward_optimize'] = config.getboolean('parameters', 'is_forward_optimize')
+    pars['force_fft'] = config.getboolean('parameters', 'force_fft')
     #Whether to use data augmentation
     pars['is_data_aug'] = config.getboolean('parameters', 'is_data_aug')
     #Whether to use boundary mirroring

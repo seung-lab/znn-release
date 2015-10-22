@@ -852,6 +852,17 @@ public:
         }
     }
 
+    static void force_fft( std::vector<options> & es )
+    {
+        for ( auto & e: es )
+        {
+            if ( e.require_as<std::string>("type") == "conv" )
+            {
+                int does_fft = options_.optional_as<int>("fft", "1");
+                e.push("fft",does_fft);
+            }
+        }
+    }
 
     static std::pair<double,double> speed_test( std::vector<options> & ns,
                                                 std::vector<options> & es,
