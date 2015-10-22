@@ -161,8 +161,9 @@ std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
 	std::string const net_config_file,
 	np::ndarray const & outsz_a,
 	std::size_t const tc,
-	bool const optimize = true,
-	std::uint8_t const phs = 0 )
+	bool const is_optimize = true,
+	std::uint8_t const phs = 0,
+    bool const force_fft = false )
 {
 
 	bp::list node_opts_list = bp::extract<bp::list>( opts[0] );
@@ -177,9 +178,31 @@ std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
 					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
 					);
 
-	// optimize
-    if( optimize )
-    	network::optimize( node_opts, edge_opts, out_sz, tc, 10 );
+     // force fft or optimize
+    if ( force_fft )
+    {
+        network::force_fft(edge_opts);
+    }
+    else
+    {
+        if ( is_optimize )
+        {
+            phase _phs = static_cast<phase>(phs);
+            if ( _phs == phase::TRAIN )
+            {
+                network::optimize(node_opts, edge_opts, out_sz, tc, 10);
+            }
+            else if ( _phs == phase::TEST )
+            {
+                network::optimize_forward(node_opts, edge_opts, out_sz, tc, 2);
+            }
+            else
+            {
+                std::string str = boost::lexical_cast<std::string>(phs);
+                throw std::logic_error(HERE() + "unknown phase: " + str);
+            }
+        }
+    }
 
 	std::shared_ptr<network> net(
 		new network( node_opts,edge_opts,out_sz,tc,static_cast<phase>(phs) ));
