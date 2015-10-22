@@ -1,3 +1,20 @@
+//
+// Copyright (C) 2012-2015  Aleksandar Zlateski <zlateski@mit.edu>
+// ---------------------------------------------------------------
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
 #pragma once
 
 #include "fftmkl_plans.hpp"
@@ -66,12 +83,15 @@ public:
             //return s;
             // SLOW so what, SUE ME!
             if ( s < 10 ) return s;
-            if ( s > 392 ) return s;
+            if ( s > 1024 ) return s;
 
-            std::vector<int32_t> mins({
-                    11,13,14,15,16,18,20,33,36,49,54,55,60,64,80,81,90,100,
-                        104,128,132,136,160,168,176,192,200,208,210,216,224,
-                        240,256,264,280,288,294,300,320,336,352,360,364,384,392});
+            std::vector<int32_t> mins(
+                { 11,13,14,15,16,18,20,33,36,49,54,55,60,64,80,81,90,100,
+                  104,128,132,136,160,168,176,192,200,208,210,216,224,
+                  240,256,264,280,288,294,300,320,336,352,360,364,384,392,
+                  400,416,448,450,462,480,512,520,560,576,588,600,640,648,
+                  650,672,704,728,750,768,784,800,832,840,864,896,936,960,
+                  968,1000,1024});
 
             return *std::lower_bound(mins.begin(), mins.end(),s);
         }
@@ -81,7 +101,7 @@ public:
             : sz(s)
             , actual_sz(s)
         {
-            if ( s[1] == s[2] )
+            if ( (s[0] == 1) && (s[1] == s[2]) )
             {
                 int32_t opt = get_optimal(s[1]);
                 actual_sz[1] = actual_sz[2] = opt;
