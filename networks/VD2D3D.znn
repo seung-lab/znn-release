@@ -206,7 +206,6 @@ nodes nconv4c
 type transfer
 function rectify_linear
 size 100
-load 0
 
 edges dropout
 type dropout
