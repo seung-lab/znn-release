@@ -50,21 +50,27 @@ class CLearnCurve:
         return
 
     def _crop_iters(self, iter_num):
-        # find the last index
-        for ind in xrange(len(self.tt_it)):
-            if self.tt_it[ind] > iter_num:
-                break
-        self.tt_it  = self.tt_it[:ind]
-        self.tt_err = self.tt_err[:ind]
-        self.tt_cls = self.tt_cls[:ind]
 
-        # find the last index
-        for ind in xrange(len(self.tn_it)):
-            if self.tn_it[ind] > iter_num:
-                break
-        self.tn_it  = self.tn_it[:ind]
-        self.tn_err = self.tn_err[:ind]
-        self.tn_cls = self.tn_cls[:ind]
+        # test iterations
+        gen = (i for i,v in enumerate(self.tt_it) if v>iter_num)
+        try:
+            ind = next(gen)
+            self.tt_it  = self.tt_it[:ind]
+            self.tt_err = self.tt_err[:ind]
+            self.tt_cls = self.tt_cls[:ind]
+        except StopIteration:
+            pass
+
+        # train iterations
+        gen = (i for i,v in enumerate(self.tn_it) if v>iter_num)
+        try:
+            ind = next(gen)
+            self.tn_it  = self.tn_it[:ind]
+            self.tn_err = self.tn_err[:ind]
+            self.tn_cls = self.tn_cls[:ind]
+        except StopIteration:
+            pass
+
         return
 
     def _get_iter_num(self, fname ):
