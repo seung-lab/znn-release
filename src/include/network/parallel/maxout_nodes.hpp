@@ -171,6 +171,10 @@ public:
         return bwd_accumulators_[n]->grow_fft(nodes::fsize(),1);
     }
 
+    void set_eta( real /*eta*/ ) override {}
+    void set_momentum( real /*mom*/ ) override {}
+    void set_weight_decay( real /*wd*/ ) override {}
+
     void wait() override { waiter_.wait(); }
 
     void zap() override {}
