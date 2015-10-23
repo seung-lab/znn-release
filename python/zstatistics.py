@@ -52,7 +52,7 @@ class CLearnCurve:
     def _crop_iters(self, iter_num):
 
         # test iterations
-        gen = (i for i,v in enumerate(slef.tt_it) if v>iter_num)
+        gen = (i for i,v in enumerate(self.tt_it) if v>iter_num)
         try:
             ind = next(gen)
             self.tt_it  = self.tt_it[:ind]
@@ -62,7 +62,7 @@ class CLearnCurve:
             pass
 
         # train iterations
-        gen = (i for i,v in enumerate(slef.tn_it) if v>iter_num)
+        gen = (i for i,v in enumerate(self.tn_it) if v>iter_num)
         try:
             ind = next(gen)
             self.tn_it  = self.tn_it[:ind]
