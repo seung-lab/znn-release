@@ -66,6 +66,19 @@ stride 1,1,1
 input nconv1b
 output nconv1c
 
+edges conv1c-r
+type conv
+init msra
+size 1,2,2
+stride 1,1,1
+input nconv1b-r
+output nconv1c
+
+nodes nconv1c
+type transfer
+function rectify_linear
+size 24
+
 edges pool1
 type max_filter
 size 1,2,2
