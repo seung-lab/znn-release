@@ -4,7 +4,8 @@ size 1
 
 edges conv1a
 type conv
-init msra
+init uniform
+init_args 0.05
 size 1,3,3
 stride 1,1,1
 input input
@@ -17,7 +18,8 @@ size 24
 
 edges conv1b
 type conv
-init msra
+init uniform
+init_args 0.05
 size 1,3,3
 stride 1,1,1
 input nconv1a
@@ -30,7 +32,7 @@ size 24
 
 edges conv1c
 type conv
-init msra
+init xavier
 size 1,2,2
 stride 1,1,1
 input nconv1b
@@ -55,7 +57,8 @@ size 24
 
 edges conv2a
 type conv
-init msra
+init uniform
+init_args 0.05
 size 1,3,3
 stride 1,1,1
 input npool1
@@ -68,7 +71,7 @@ size 36
 
 edges conv2b
 type conv
-init msra
+init xavier
 size 1,3,3
 stride 1,1,1
 input nconv2a
@@ -93,7 +96,8 @@ size 36
 
 edges conv3a
 type conv
-init msra
+init uniform
+init_args 0.05
 size 1,3,3
 stride 1,1,1
 input npool2
@@ -106,7 +110,7 @@ size 48
 
 edges conv3b
 type conv
-init msra
+init xavier
 size 1,3,3
 stride 1,1,1
 input nconv3a
@@ -131,7 +135,8 @@ size 48
 
 edges conv4a
 type conv
-init msra
+init uniform
+init_args 0.05
 size 1,3,3
 stride 1,1,1
 input npool3
@@ -144,7 +149,7 @@ size 60
 
 edges conv4b
 type conv
-init msra
+init xavier
 size 1,3,3
 stride 1,1,1
 input nconv4a
@@ -169,7 +174,8 @@ size 60
 
 edges conv5
 type conv
-init msra
+init uniform
+init_args 0.05
 size 1,3,3
 stride 1,1,1
 input npool4
@@ -192,7 +198,8 @@ size 200
 
 edges convx
 type conv
-init msra
+init uniform
+init_args 0.05
 size 1,1,1
 stride 1,1,1
 input ndropout
