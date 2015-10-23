@@ -165,6 +165,55 @@ def load_opts(filename):
 
     return (node_opts, edge_opts)
 
+# def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
+#     '''
+#     Takes two option structures, and implants the filters and biases
+#     from the source struct to the dest version based on node/edge group name
+#     '''
+
+#     #Makes a dictionary mapping group names to filter/bias arrays
+#     # (along with the respective key: 'filters' or 'biases')
+#     source_parameters = {}
+#     #0=node, 1=edge
+#     print "defining initial dict"
+#     for group_type in range(len(source_opts)):
+#         for group_options_dict in source_opts[group_type]:
+
+#             candidate_to_load = (
+#               (not group_options_dict.has_key('load')) or
+#               group_options_dict['load'] == "yes"
+#               )
+
+#             if not candidate_to_load:
+#                 continue
+
+#             if group_options_dict.has_key('biases'):
+#                source_parameters[ group_options_dict['name'] ] = ('biases', group_options_dict['biases'])
+#             elif group_options_dict.has_key('filters'):
+#                 source_parameters[ group_options_dict['name'] ] = ('filters', group_options_dict['filters'])
+
+#     print "performing consolidation"
+#     source_names = source_parameters.keys()
+#     #Loops through group names for dest, replaces filter/bias values with source
+#     for group_type in range(len(dest_opts)):
+#         for group_options_dict in dest_opts[group_type]:
+
+#             if group_options_dict['name'] in source_names:
+
+#                 key, array = source_parameters[ group_options_dict['name'] ]
+
+#                 group_options_dict[key] = array
+
+#                 #should only be one copy of the layer to load,
+#                 # and this allows for warning messages below
+#                 del source_parameters[ group_options_dict['name'] ]
+
+#     layers_not_copied = source_parameters.keys()
+#     if len(layers_not_copied) != 0:
+#         print "WARNING: layer(s) {} not copied!".format(layers_not_copied)
+
+#     return dest_opts
+
 def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
     '''
     Takes two option structures, and implants the filters and biases
@@ -173,42 +222,36 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
 
     #Makes a dictionary mapping group names to filter/bias arrays
     # (along with the respective key: 'filters' or 'biases')
-    source_parameters = {}
+    src_params = {}
     #0=node, 1=edge
-    print "defining intiial dict"
+    print "defining initial dict"
     for group_type in range(len(source_opts)):
-        for group_options_dict in source_opts[group_type]:
+        for opt_dict in source_opts[group_type]:
 
-            candidate_to_load = (
-              (not group_options_dict.has_key('load')) or
-              group_options_dict['load'] == "yes"
-              )
-
-            if not candidate_to_load:
-                continue
-
-            if group_options_dict.has_key('biases'):
-               source_parameters[ group_options_dict['name'] ] = ('biases', group_options_dict['biases'])
-            elif group_options_dict.has_key('filters'):
-                source_parameters[ group_options_dict['name'] ] = ('filters', group_options_dict['filters'])
+            if opt_dict.has_key('biases'):
+                src_params[opt_dict['name']] = ('biases',opt_dict['biases'])
+            elif opt_dict.has_key('filters'):
+                src_params[opt_dict['name']] = ('filters',opt_dict['filters'])
 
     print "performing consolidation"
-    source_names = source_parameters.keys()
+    source_names = src_params.keys()
     #Loops through group names for dest, replaces filter/bias values with source
     for group_type in range(len(dest_opts)):
-        for group_options_dict in dest_opts[group_type]:
+        for opt_dict in dest_opts[group_type]:
 
-            if group_options_dict['name'] in source_names:
+            if opt_dict.has_key('load') and (opt_dict['load'] == "no"):
+                continue
 
-                key, array = source_parameters[ group_options_dict['name'] ]
-
-                group_options_dict[key] = array
+            if opt_dict['name'] in source_names:
+                # TODO: sanity check (filter size, node size, etc.)
+                key, array = src_params[opt_dict['name']]
+                opt_dict[key] = array
 
                 #should only be one copy of the layer to load,
                 # and this allows for warning messages below
-                del source_parameters[ group_options_dict['name'] ]
+                del src_params[ opt_dict['name'] ]
 
-    layers_not_copied = source_parameters.keys()
+    layers_not_copied = src_params.keys()
     if len(layers_not_copied) != 0:
         print "WARNING: layer(s) {} not copied!".format(layers_not_copied)
 
