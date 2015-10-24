@@ -33,7 +33,7 @@ def main( conf_file='config.cfg', logfile=None ):
     else:
         if pars['train_seed_net'] and os.path.exists(pars['train_seed_net']):
             print "seeding network..."
-            net = netio.seed_network( pars )
+            net = netio.seed_network( pars, is_seed=True )
         else:
             print "initializing network..."
             net = netio.init_network( pars )

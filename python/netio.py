@@ -165,7 +165,7 @@ def load_opts(filename):
 
     return (node_opts, edge_opts)
 
-def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
+def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=False):
     '''
     Takes two option structures, and implants the filters and biases
     from the source struct to the dest version based on node/edge group name
@@ -190,7 +190,7 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
     for group_type in range(len(dest_opts)):
         for opt_dict in dest_opts[group_type]:
 
-            if opt_dict.has_key('seeding') and (opt_dict['seeding'] == "0"):
+            if is_seed and opt_dict.has_key('seeding') and (opt_dict['seeding'] == "0"):
                 continue
 
             if opt_dict['name'] in source_names:
@@ -209,7 +209,7 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
     return dest_opts
 
 
-def load_network( params=None, train=True, hdf5_filename=None,
+def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
     network_specfile=None, output_patch_shape=None, num_threads=None,
     optimize=None, force_fft=None ):
     '''
@@ -226,7 +226,7 @@ def load_network( params=None, train=True, hdf5_filename=None,
     params_defined = params is not None
 
     #"ALL" optional args excludes train (it has a default)
-    assert_arglist(params,
+    assert_arglist(params, is_seed,
         [hdf5_filename, network_specfile, output_patch_shape,
         num_threads, optimize, force_fft])
 
@@ -280,7 +280,7 @@ def load_network( params=None, train=True, hdf5_filename=None,
         del template
 
         print "consolidating options..."
-        final_options = consolidate_opts(load_options, template_options, params)
+        final_options = consolidate_opts(load_options, template_options, params, is_seed)
 
     else:
         final_options = template.get_opts()
