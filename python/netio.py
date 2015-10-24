@@ -190,7 +190,7 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
     for group_type in range(len(dest_opts)):
         for opt_dict in dest_opts[group_type]:
 
-            if opt_dict.has_key('load') and (opt_dict['load'] == "0"):
+            if opt_dict.has_key('seeding') and (opt_dict['seeding'] == "0"):
                 continue
 
             if opt_dict['name'] in source_names:

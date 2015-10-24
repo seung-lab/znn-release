@@ -86,6 +86,8 @@ def parser( conf_fname ):
     #IO OPTIONS
     #Filename under which we save the network
     pars['train_save_net'] = config.get('parameters', 'train_save_net')
+    # initialize from a seed network
+    pars['train_seed_net'] = config.get('parameters', 'train_seed_net')
     #Network filename to load
     pars['train_load_net'] = config.get('parameters', 'train_load_net')
     #Whether to write .log and .cfg files

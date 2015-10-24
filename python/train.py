@@ -31,8 +31,12 @@ def main( conf_file='config.cfg', logfile=None ):
         # load existing learning curve
         lc = zstatistics.CLearnCurve( pars['train_load_net'] )
     else:
-        print "initializing network..."
-        net = netio.init_network( pars )
+        if pars['train_seed_net'] and os.path.exists(pars['train_seed_net']):
+            print "seeding network..."
+            net = netio.seed_network( pars )
+        else:
+            print "initializing network..."
+            net = netio.init_network( pars )
         # initalize a learning curve
         lc = zstatistics.CLearnCurve()
 
