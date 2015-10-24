@@ -226,8 +226,8 @@ def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
     params_defined = params is not None
 
     #"ALL" optional args excludes train (it has a default)
-    assert_arglist(params, is_seed,
-        [hdf5_filename, network_specfile, output_patch_shape,
+    assert_arglist(params,
+        [is_seed, hdf5_filename, network_specfile, output_patch_shape,
         num_threads, optimize, force_fft])
 
     #Defining phase argument by train argument
