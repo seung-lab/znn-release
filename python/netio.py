@@ -165,7 +165,7 @@ def load_opts(filename):
 
     return (node_opts, edge_opts)
 
-def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
+def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=False):
     '''
     Takes two option structures, and implants the filters and biases
     from the source struct to the dest version based on node/edge group name
@@ -173,51 +173,45 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
 
     #Makes a dictionary mapping group names to filter/bias arrays
     # (along with the respective key: 'filters' or 'biases')
-    source_parameters = {}
+    src_params = {}
     #0=node, 1=edge
-    print "defining intiial dict"
+    print "defining initial dict"
     for group_type in range(len(source_opts)):
-        for group_options_dict in source_opts[group_type]:
+        for opt_dict in source_opts[group_type]:
 
-            candidate_to_load = (
-              (not group_options_dict.has_key('load')) or
-              group_options_dict['load'] == "yes"
-              )
-
-            if not candidate_to_load:
-                continue
-
-            if group_options_dict.has_key('biases'):
-               source_parameters[ group_options_dict['name'] ] = ('biases', group_options_dict['biases'])
-            elif group_options_dict.has_key('filters'):
-                source_parameters[ group_options_dict['name'] ] = ('filters', group_options_dict['filters'])
+            if opt_dict.has_key('biases'):
+                src_params[opt_dict['name']] = ('biases',opt_dict['biases'])
+            elif opt_dict.has_key('filters'):
+                src_params[opt_dict['name']] = ('filters',opt_dict['filters'])
 
     print "performing consolidation"
-    source_names = source_parameters.keys()
+    source_names = src_params.keys()
     #Loops through group names for dest, replaces filter/bias values with source
     for group_type in range(len(dest_opts)):
-        for group_options_dict in dest_opts[group_type]:
+        for opt_dict in dest_opts[group_type]:
 
-            if group_options_dict['name'] in source_names:
+            if is_seed and opt_dict.has_key('seeding') and (opt_dict['seeding'] == "0"):
+                continue
 
-                key, array = source_parameters[ group_options_dict['name'] ]
-
-                group_options_dict[key] = array
+            if opt_dict['name'] in source_names:
+                # TODO: sanity check (filter size, node size, etc.)
+                key, array = src_params[opt_dict['name']]
+                opt_dict[key] = array
 
                 #should only be one copy of the layer to load,
                 # and this allows for warning messages below
-                del source_parameters[ group_options_dict['name'] ]
+                del src_params[ opt_dict['name'] ]
 
-    layers_not_copied = source_parameters.keys()
+    layers_not_copied = src_params.keys()
     if len(layers_not_copied) != 0:
         print "WARNING: layer(s) {} not copied!".format(layers_not_copied)
 
     return dest_opts
 
 
-def load_network( params=None, train=True, hdf5_filename=None,
+def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
     network_specfile=None, output_patch_shape=None, num_threads=None,
-    optimize=None ):
+    optimize=None, force_fft=None ):
     '''
     Loads a network from an hdf5 file.
 
@@ -233,8 +227,8 @@ def load_network( params=None, train=True, hdf5_filename=None,
 
     #"ALL" optional args excludes train (it has a default)
     assert_arglist(params,
-        [hdf5_filename, network_specfile, output_patch_shape,
-        num_threads, optimize])
+        [is_seed, hdf5_filename, network_specfile, output_patch_shape,
+        num_threads, optimize, force_fft])
 
     #Defining phase argument by train argument
     phase = int(not train)
@@ -251,6 +245,7 @@ def load_network( params=None, train=True, hdf5_filename=None,
             _output_patch_shape = params['forward_outsz']
             _optimize = params['is_forward_optimize']
 
+        _force_fft = params['force_fft']
         _network_specfile = params['fnet_spec']
         _num_threads = params['num_threads']
 
@@ -275,7 +270,7 @@ def load_network( params=None, train=True, hdf5_filename=None,
     # 4) Return consolidated CNet object
 
     template = init_network( params, train, _network_specfile, _output_patch_shape,
-                _num_threads, False )
+                _num_threads, False, False )
 
     #If the file doesn't exist, init a new network
     if os.path.isfile( _hdf5_filename ):
@@ -285,17 +280,18 @@ def load_network( params=None, train=True, hdf5_filename=None,
         del template
 
         print "consolidating options..."
-        final_options = consolidate_opts(load_options, template_options, params)
+        final_options = consolidate_opts(load_options, template_options, params, is_seed)
 
     else:
         final_options = template.get_opts()
         del template
 
     return pyznn.CNet(final_options, _network_specfile, _output_patch_shape,
-                _num_threads, _optimize, phase)
+                _num_threads, _optimize, phase, _force_fft)
 
 def init_network( params=None, train=True, network_specfile=None,
-            output_patch_shape=None, num_threads=None, optimize=None ):
+            output_patch_shape=None, num_threads=None, optimize=None,
+            force_fft=None ):
     '''
     Initializes a random network using the Boost Python interface and configuration
     file options.
@@ -327,6 +323,7 @@ def init_network( params=None, train=True, network_specfile=None,
             _output_patch_shape = params['forward_outsz']
             _optimize = params['is_forward_optimize']
 
+        _force_fft = params['force_fft']
         _network_specfile = params['fnet_spec']
         _num_threads = params['num_threads']
 
@@ -339,6 +336,8 @@ def init_network( params=None, train=True, network_specfile=None,
         _num_threads = num_threads
     if optimize is not None:
         _optimize = optimize
+    if force_fft is not None:
+        _force_fft = force_fft
 
     return pyznn.CNet(_network_specfile, _output_patch_shape,
-                    _num_threads, _optimize, phase)
+                    _num_threads, _optimize, phase, _force_fft)

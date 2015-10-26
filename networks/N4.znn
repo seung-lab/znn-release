@@ -4,13 +4,13 @@ size 1
 
 edges conv1
 type conv
-init uniform
+init xavier
 size 1,4,4
 stride 1,1,1
 input input
-output nl1
+output nconv1
 
-nodes nl1
+nodes nconv1
 type transfer
 function rectify_linear
 size 48
@@ -19,22 +19,22 @@ edges pool1
 type max_filter
 size 1,2,2
 stride 1,2,2
-input nl1
-output nl2
+input nconv1
+output npool1
 
-nodes nl2
+nodes npool1
 type sum
 size 48
 
 edges conv2
 type conv
-init uniform
+init xavier
 size 1,5,5
 stride 1,1,1
-input nl2
-output nl3
+input npool1
+output nconv2
 
-nodes nl3
+nodes nconv2
 type transfer
 function rectify_linear
 size 48
@@ -43,22 +43,22 @@ edges pool2
 type max_filter
 size 1,2,2
 stride 1,2,2
-input nl3
-output nl4
+input nconv2
+output npool2
 
-nodes nl4
+nodes npool2
 type sum
 size 48
 
 edges conv3
 type conv
-init uniform
+init xavier
 size 1,4,4
 stride 1,1,1
-input nl4
-output nl5
+input npool2
+output nconv3
 
-nodes nl5
+nodes nconv3
 type transfer
 function rectify_linear
 size 48
@@ -67,22 +67,22 @@ edges pool3
 type max_filter
 size 1,2,2
 stride 1,2,2
-input nl5
-output nl6
+input nconv3
+output npool3
 
-nodes nl6
+nodes npool3
 type sum
 size 48
 
 edges conv4
 type conv
-init uniform
+init xavier
 size 1,4,4
 stride 1,1,1
-input nl6
-output nl7
+input npool3
+output nconv4
 
-nodes nl7
+nodes nconv4
 type transfer
 function rectify_linear
 size 48
@@ -91,36 +91,33 @@ edges pool4
 type max_filter
 size 1,2,2
 stride 1,2,2
-input nl7
-output nl8
+input nconv4
+output npool4
 
-nodes nl8
+nodes npool4
 type sum
 size 48
 
-
 edges conv5
 type conv
-init uniform
+init xavier
 size 1,3,3
 stride 1,1,1
-input nl8
-output nl9
+input npool4
+output nconv5
 
-nodes nl9
+nodes nconv5
 type transfer
 function rectify_linear
 size 200
 
-
 edges conv6
 type conv
-init uniform
+init xavier
 size 1,1,1
 stride 1,1,1
-input nl9
+input nconv5
 output output
-
 
 nodes output
 type transfer

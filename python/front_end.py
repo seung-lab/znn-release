@@ -86,6 +86,8 @@ def parser( conf_fname ):
     #IO OPTIONS
     #Filename under which we save the network
     pars['train_save_net'] = config.get('parameters', 'train_save_net')
+    # initialize from a seed network
+    pars['train_seed_net'] = config.get('parameters', 'train_seed_net')
     #Network filename to load
     pars['train_load_net'] = config.get('parameters', 'train_load_net')
     #Whether to write .log and .cfg files
@@ -112,6 +114,7 @@ def parser( conf_fname ):
     # (FFT vs Direct Convolution)
     pars['is_train_optimize'] = config.getboolean('parameters', 'is_train_optimize')
     pars['is_forward_optimize'] = config.getboolean('parameters', 'is_forward_optimize')
+    pars['force_fft'] = config.getboolean('parameters', 'force_fft')
     #Whether to use data augmentation
     pars['is_data_aug'] = config.getboolean('parameters', 'is_data_aug')
     #Whether to use boundary mirroring
