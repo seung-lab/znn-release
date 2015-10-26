@@ -157,7 +157,7 @@ class CLearnCurve:
         plt.show()
         return
 
-    def save( self, pars, elapsed):
+    def save(self, pars, elapsed):
         # get filename
         fname = pars['train_save_net']
         import os
