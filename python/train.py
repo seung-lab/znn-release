@@ -42,7 +42,7 @@ def main( conf_file='config.cfg', logfile=None ):
 
     # show field of view
     print "field of view: ", net.get_fov()
-    print "output volume sizes: ", net.get_outputs_setsz()
+    print "output volume info: ", net.get_outputs_setsz()
 
     # set some parameters
     print 'setting up the network...'
@@ -54,7 +54,6 @@ def main( conf_file='config.cfg', logfile=None ):
 
     # initialize samples
     outsz = pars['train_outsz']
-    print "output volume size: {}x{}x{}".format(outsz[0], outsz[1], outsz[2])
     print "\n\ncreate train samples..."
     smp_trn = front_end.CSamples(config, pars, pars['train_range'], net, outsz, logfile)
     print "\n\ncreate test samples..."
@@ -69,10 +68,9 @@ def main( conf_file='config.cfg', logfile=None ):
     plt.ion()
     plt.show()
 
-    # save the initial network before starting training
+    # the last iteration we want to continue training
     iter_last = lc.get_last_it()
-    netio.save_network(net, pars['train_save_net'], num_iters=iter_last)
-    lc.save(pars, elapsed)
+
 
     print "start training..."
     start = time.time()

@@ -377,25 +377,6 @@ class ConfigImage(ZNN_Dataset):
             ret.append( vol )
         return ret
 
-    def get_subvolume(self, dev, rft=[], data=None):
-        """
-        Returns a 4d subvolume of the original, specified
-        by deviation from the center voxel. Performs data
-        augmentation if specified by the rft argument
-
-        Parameters
-        ----------
-        dev : the deviation from the whole volume center
-        rft : the random transformation rule.
-        Return:
-        -------
-        subvol : the transformed sub volume.
-        """
-        if not self.pars['is_data_aug']:
-            rft = None
-
-        return super(ConfigImage, self).get_subvolume(dev, rft=rft, data=data)
-
 class ConfigInputImage(ConfigImage):
     '''
     Subclass of ConfigImage which represents the type of input data seen
@@ -438,6 +419,31 @@ class ConfigInputImage(ConfigImage):
             raise NameError( 'invalid preprocessing type' )
 
         return vol3d
+
+    def get_subvolume(self, dev, rft=[], data=None):
+        """
+        Returns a 4d subvolume of the original, specified
+        by deviation from the center voxel. Performs data
+        augmentation if specified by the rft argument
+
+        Parameters
+        ----------
+        dev : the deviation from the whole volume center
+        rft : the random transformation rule.
+        Return:
+        -------
+        subvol : the transformed sub volume.
+        """
+        if not self.pars['is_data_aug']:
+            rft = None
+
+        subvol = super(ConfigInputImage, self).get_subvolume(dev, rft=rft, data=data)
+        assert(subvol.ndim==4)
+        if 'aff' in self.pars['out_type']:
+            # remove the bottom voxel for affinity input
+            subvol = subvol[:,1:,1:,1:]
+        return subvol
+
 
 class ConfigOutputLabel(ConfigImage):
     '''
