@@ -617,21 +617,6 @@ class ConfigOutputLabel(ConfigImage):
             wz = wz / ws
             return wp, wz
 
-    def _rebalance_aff(self):
-        lbl = self.data
-        wts = np.zeros(lbl.shape, dtype=self.pars['dtype'])
-        wts[0,:,:,:][lbl[0,:,:,:] >0] = self.zwp
-        wts[1,:,:,:][lbl[1,:,:,:] >0] = self.ywp
-        wts[2,:,:,:][lbl[2,:,:,:] >0] = self.xwp
-
-        wts[0,:,:,:][lbl[0,:,:,:]==0] = self.zwz
-        wts[1,:,:,:][lbl[1,:,:,:]==0] = self.ywz
-        wts[2,:,:,:][lbl[2,:,:,:]==0] = self.xwz
-        if np.size(self.msk)==0:
-            self.msk = wts
-        else:
-            self.msk = msk*wts
-        return
 
     @autojit(nopython=True)
     def _msk2affmsk( self, msk ):
@@ -663,6 +648,27 @@ class ConfigOutputLabel(ConfigImage):
                             ret[2,z,y,x] = 1
         return ret
 
+    def _rebalance_aff(self):
+        """
+        rebalance the affinity labeling with size of (3,Z,Y,X)
+        """
+        if self.data.ndim==3:
+            lbl = emirt.volume_util.seg2aff( self.data )
+        elif self.data.ndim==4 and self.data.shape[0]==3:
+            lbl = self.data
+        wts = np.zeros(lbl.shape, dtype=self.pars['dtype'])
+        wts[0,:,:,:][lbl[0,:,:,:] >0] = self.zwp
+        wts[1,:,:,:][lbl[1,:,:,:] >0] = self.ywp
+        wts[2,:,:,:][lbl[2,:,:,:] >0] = self.xwp
+
+        wts[0,:,:,:][lbl[0,:,:,:]==0] = self.zwz
+        wts[1,:,:,:][lbl[1,:,:,:]==0] = self.ywz
+        wts[2,:,:,:][lbl[2,:,:,:]==0] = self.xwz
+        if np.size(self.msk)==0:
+            self.msk = wts
+        else:
+            self.msk = msk*wts
+        return
 
     def _rebalance( self ):
         """
