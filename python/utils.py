@@ -97,7 +97,7 @@ def data_aug_transform(data, rft):
         #x-reflection
         if rft[2]:
             data = data[:,  :,    :,    ::-1]
-        #transpose
+        # transpose in XY
         if rft[3]:
             data = data.transpose(0,1,3,2)
 

@@ -17,11 +17,17 @@ import utils
 
 class ZNN_Dataset(object):
 
-    def __init__(self, data, data_patch_shape, net_output_patch_shape):
+    def __init__(self, pars, data, data_patch_shape, net_output_patch_shape):
 
+        # parameters
+        self.pars = pars
+        # main data
         self.data = data
         #Desired size of subvolumes returned by this instance
         self.patch_shape = np.asarray(data_patch_shape[-3:])
+        # increase the patch shape for affinity
+        if 'aff' in self.pars['out_type']:
+            self.patch_shape += 1
 
         self.volume_shape = np.asarray(self.data.shape[-3:])
         # network field of view (wrt THIS dataset)
@@ -39,7 +45,7 @@ class ZNN_Dataset(object):
         # get_sub_volume)
         self.patch_margin_high = self.patch_shape / 2
 
-        #Display some instance information (...meh)
+        # Display some instance information (...meh)
         # print "image stack size:    ", self.arr.shape
         # print "set size:            ", self.setsz
         # print "center:              ", self.center
@@ -276,7 +282,7 @@ class ConfigImage(ZNN_Dataset):
         arr = np.asarray( arrlist, dtype=pars['dtype'])
         if arr.ndim==3:
             arr = arr.reshape( (1,) + arr.shape )
-        ZNN_Dataset.__init__(self, arr, setsz, outsz)
+        ZNN_Dataset.__init__(self, pars, arr, setsz, outsz)
 
     def _recalculate_sizes(self, net_output_patch_shape):
         '''
@@ -433,20 +439,6 @@ class ConfigInputImage(ConfigImage):
 
         return vol3d
 
-    def get_dev_range(self):
-        '''Override of the CImage implementation to account
-        for affinity preprocessing'''
-
-        low, high = super(ConfigInputImage, self).get_dev_range()
-
-        if 'aff' in self.pars['out_type']:
-            #Given affinity preprocessing (see emirt/volume_util.seg2aff), valid affinity
-            # values only exist for the later voxels, which can create
-            # boundary issues
-            low += 1
-
-        return low, high
-
 class ConfigOutputLabel(ConfigImage):
     '''
     Subclass of CImage which represents output labels for
@@ -461,13 +453,6 @@ class ConfigOutputLabel(ConfigImage):
 
         # record and use parameters
         self.pars = pars
-        # Affinity preprocessing decreases the output
-        # size by one voxel in each dimension, this counteracts
-        # that effect
-        if 'aff' in pars['out_type']:
-            # increase the subvolume size for affinity
-            self.patch_shape += 1
-            self._recalculate_sizes( outsz )
 
         # deal with mask
         self.msk = np.array([])
@@ -516,7 +501,6 @@ class ConfigOutputLabel(ConfigImage):
                 # affinity preprocessing handled later
                 # when fetching subvolumes (get_subvolume)
                 pass
-
             else:
                 raise NameError( 'invalid preprocessing type' )
 
@@ -572,13 +556,9 @@ class ConfigOutputLabel(ConfigImage):
             sublbl = emirt.volume_util.seg2aff( sublbl )
 
             # get the affinity mask
-            if np.size(self.msk)>0:
-                #?? not sure what this is doing yet
+            if submsk.size >0:
+                # transform the boundary mask (Z,Y,X) to affinity mask (3,Z-1,Y-1,X-1)
                 submsk = self._msk2affmsk( submsk )
-
-                if self.pars['is_rebalance']:
-                    # apply the rebalancing
-                    submsk = self._rebalance_aff(sublbl, submsk)
 
         # rebalance of output patch
         if self.pars['is_patch_rebalance']:
@@ -637,7 +617,8 @@ class ConfigOutputLabel(ConfigImage):
             wz = wz / ws
             return wp, wz
 
-    def _rebalance_aff(self, lbl, msk):
+    def _rebalance_aff(self):
+        lbl = self.data
         wts = np.zeros(lbl.shape, dtype=self.pars['dtype'])
         wts[0,:,:,:][lbl[0,:,:,:] >0] = self.zwp
         wts[1,:,:,:][lbl[1,:,:,:] >0] = self.ywp
@@ -646,10 +627,11 @@ class ConfigOutputLabel(ConfigImage):
         wts[0,:,:,:][lbl[0,:,:,:]==0] = self.zwz
         wts[1,:,:,:][lbl[1,:,:,:]==0] = self.ywz
         wts[2,:,:,:][lbl[2,:,:,:]==0] = self.xwz
-        if np.size(msk)==0:
-            return wts
+        if np.size(self.msk)==0:
+            self.msk = wts
         else:
-            return msk*wts
+            self.msk = msk*wts
+        return
 
     @autojit(nopython=True)
     def _msk2affmsk( self, msk ):
@@ -694,6 +676,7 @@ class ConfigOutputLabel(ConfigImage):
             self.zwp, self.zwz = self._get_balance_weight(zlbl)
             self.ywp, self.ywz = self._get_balance_weight(ylbl)
             self.xwp, self.xwz = self._get_balance_weight(xlbl)
+            self._rebalance_aff()
         else:
             weight = np.empty( self.data.shape, dtype=self.data.dtype )
             for c in xrange( self.data.shape[0] ):
