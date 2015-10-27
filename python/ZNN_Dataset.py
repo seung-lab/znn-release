@@ -17,7 +17,7 @@ import utils
 
 class ZNN_Dataset(object):
 
-    def __init__(self, pars, data, data_patch_shape, net_output_patch_shape):
+    def __init__(self, data, data_patch_shape, net_output_patch_shape):
 
         # main data
         self.data = data
