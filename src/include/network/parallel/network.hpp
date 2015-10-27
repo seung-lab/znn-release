@@ -858,7 +858,7 @@ public:
         {
             if ( e.require_as<std::string>("type") == "conv" )
             {
-                e.push("fft",does_fft);
+                e.push("fft",1);
             }
         }
     }
