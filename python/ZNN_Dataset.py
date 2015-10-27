@@ -10,7 +10,7 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 import sys
 
 import numpy as np
-from numba import autojit
+#from numba import autojit
 
 import emirt
 import utils
@@ -624,7 +624,7 @@ class ConfigOutputLabel(ConfigImage):
             return wp, wz
 
 
-    @autojit(nopython=True)
+    # @autojit(nopython=True)
     def _msk2affmsk( self, msk ):
         """
         transform binary mask to affinity mask
@@ -658,10 +658,14 @@ class ConfigOutputLabel(ConfigImage):
         """
         rebalance the affinity labeling with size of (3,Z,Y,X)
         """
-        if self.data.ndim==3:
+        if self.data.ndim==4 and self.data.shape[0]==1:
             lbl = emirt.volume_util.seg2aff( self.data )
         elif self.data.ndim==4 and self.data.shape[0]==3:
             lbl = self.data
+        else:
+            print self.data.shape
+            raise NameError('invalid data!')
+
         wts = np.zeros(lbl.shape, dtype=self.pars['dtype'])
         wts[0,:,:,:][lbl[0,:,:,:] >0] = self.zwp
         wts[1,:,:,:][lbl[1,:,:,:] >0] = self.ywp
