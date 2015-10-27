@@ -19,14 +19,14 @@ class ZNN_Dataset(object):
 
     def __init__(self, pars, data, data_patch_shape, net_output_patch_shape):
 
-        # parameters
-        self.pars = pars
         # main data
         self.data = data
         #Desired size of subvolumes returned by this instance
         self.patch_shape = np.asarray(data_patch_shape[-3:])
+
         # increase the patch shape for affinity
-        if 'aff' in self.pars['out_type']:
+        if net_output_patch_shape.size==4 and \
+           net_output_patch_shape[0]==3 :
             self.patch_shape += 1
 
         self.volume_shape = np.asarray(self.data.shape[-3:])
@@ -282,7 +282,7 @@ class ConfigImage(ZNN_Dataset):
         arr = np.asarray( arrlist, dtype=pars['dtype'])
         if arr.ndim==3:
             arr = arr.reshape( (1,) + arr.shape )
-        ZNN_Dataset.__init__(self, pars, arr, setsz, outsz)
+        ZNN_Dataset.__init__(self, arr, setsz, outsz)
 
     def _recalculate_sizes(self, net_output_patch_shape):
         '''
