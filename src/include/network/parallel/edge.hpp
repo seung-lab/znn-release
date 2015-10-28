@@ -43,6 +43,10 @@ protected:
     // minibatch averaging
     real   patch_sz_ = 1;
 
+    // on/off
+    bool   enabled_ = true;
+    bool   frozen_  = false;
+
 public:
     edge( nodes * in, size_t inn, nodes * out, size_t outn, task_manager & m )
         : in_nodes(in), in_num(inn), out_nodes(out), out_num(outn), manager(m)
@@ -73,6 +77,9 @@ public:
 
     virtual void backward( ccube_p<complex> const & )
     { UNIMPLEMENTED(); }
+
+    virtual void enable(bool b) { enabled_ = b; }
+    virtual void freeze(bool b) { frozen_  = b; }
 
     // [kisuklee]
     // This is only temporary implementation and will be removed.

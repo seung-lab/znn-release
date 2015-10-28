@@ -94,6 +94,14 @@ public:
 public:
     virtual ~nodes() {}
 
+    // forward w/o any computation
+    virtual void forward(size_t)
+    { UNIMPLEMENTED(); }
+
+    // backward w/o any computation
+    virtual void backward(size_t)
+    { UNIMPLEMENTED(); }
+
     // receive a featuremap for the i-th input
     // featuremap is absorbed
     virtual void forward(size_t, cube_p<real>&&)

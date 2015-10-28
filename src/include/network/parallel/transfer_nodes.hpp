@@ -194,6 +194,11 @@ private:
 
 public:
 
+    void forward(size_t n) override
+    {
+        forward(n, cube_p<real>());
+    }
+
     void forward(size_t n, cube_p<real>&& f) override
     {
         ZI_ASSERT(n<nodes::size());
@@ -261,6 +266,11 @@ private:
     }
 
 public:
+    void backward(size_t n) override
+    {
+        backward(n, cube_p<real>());
+    }
+
     void backward(size_t n, cube_p<real>&& g) override
     {
         ZI_ASSERT(n<nodes::size());

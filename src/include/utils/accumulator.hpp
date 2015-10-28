@@ -49,6 +49,13 @@ private:
         {
             {
                 guard g(mutex_);
+
+                // empty computation
+                if ( !to_add )
+                {
+                    return ++current_ == required_;
+                }
+
                 if ( !sum_ )
                 {
                     sum_ = std::move(to_add);
