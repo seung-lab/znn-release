@@ -224,7 +224,7 @@ def malis_weight_aff(affs, true_affs, threshold=0.5):
     """
     # segment the true affinity graph
     tseg = emirt.volume_util.aff2seg(true_affs)
-    tid_sets, tsegf = emirt.volume_util.map_set( seg )
+    tid_sets, tsegf = emirt.volume_util.map_set( tseg )
 
     if isinstance(affs, dict):
         assert( len(affs.keys())==1 )
@@ -268,7 +268,7 @@ def malis_weight_aff(affs, true_affs, threshold=0.5):
         id_sets[i] = i
 
     # accumulate the merge and split errors
-    merr = serr = 0
+    #merr = serr = 0
 
     # union find the sets
     for e in edges:
@@ -282,8 +282,9 @@ def malis_weight_aff(affs, true_affs, threshold=0.5):
 
         if e[0]>threshold:
             # merge two sets, the voxel pairs not in a segments are errors
-            weights[e[3], r1-1] = weights[e[3],r1-1] + s1*s2
+            #weights[e[3], r1-1] = weights[e[3],r1-1] + s1*s2
             # merge the two sets/trees
+            pass
 
         else:
         # do not merge, the voxel pairs in a same segments are errors
@@ -396,9 +397,13 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     # normalize the weight
     merr = merr * ( merr.size*0.5 / np.sum(merr, dtype=bdm.dtype) )
     serr = serr * ( serr.size*0.5 / np.sum(serr, dtype=bdm.dtype) )
+    # reshape the err
+    merr = merr.reshape(bdm.shape)
+    serr = serr.reshape(bdm.shape)
     # combine the two error weights
-    w = (merr + serr).reshape(bdm.shape)
-    return w
+    w = (merr + serr)
+
+    return (w, merr, serr)
 
 def get_merge_split_errors(set1, set2, lbl):
     """
@@ -406,7 +411,7 @@ def get_merge_split_errors(set1, set2, lbl):
 
     Parameters
     ----------
-    set1: set of integers, cluster of ids
+    set1: set of integers, set of segment ids
     set2: the other set
     seg: array of integers, current segmentation
     lbl: array of integers, ground truth segmentation
@@ -421,14 +426,15 @@ def get_merge_split_errors(set1, set2, lbl):
     # value: set of pixel ids
     d1 = dict()
     d2 = dict()
+    lbl = lbl.flatten()
     for i in set1:
-        l1 = lbl.flat[i-1]
+        l1 = lbl[i-1]
         if d1.has_key(l1):
             d1[l1].add(i)
         else:
             d1[l1] = {i}
     for i in set2:
-        l2 = lbl.flat[i-1]
+        l2 = lbl[i-1]
         if d2.has_key(l2):
             d2[l2].add(i)
         else:
@@ -442,11 +448,32 @@ def get_merge_split_errors(set1, set2, lbl):
                 # this is split error
                 se += len(s1) * len(s2)
             else:
-                # they should be split
+                # they should be splited
                 # this is merge error
                 me += len(s1) * len(s2)
     #print "merging and spliting error: ", me, ", ", se
     return me, se
+
+def constrained_malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
+    """
+    adding constraints for malis weight
+    fill the intracellular space with ground truth when computing merging error
+    fill the boundary with ground truth when computing spliting error
+    """
+    # merging error boundary map filled with intracellular ground truth
+    mbdm = np.copy(bdm)
+    mbdm[lbl>0] = 1
+    # get the merger weights
+    mw, mme, mse = malis_weight_bdm_2D(mbdm, lbl, threshold)
+
+    # splitting error boundary map filled with boundary ground truth
+    sbdm = np.copy(bdm)
+    sbdm[lbl==0] = 0
+    # get the splitter weights
+    sw, sme, sse = malis_weight_bdm_2D(sbdm, lbl, threshold)
+
+    w = mme + sse
+    return (w, mme, sse)
 
 def malis_weight_bdm(bdm, lbl, threshold=0.5):
     """
