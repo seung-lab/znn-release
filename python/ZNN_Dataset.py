@@ -17,7 +17,7 @@ import utils
 
 class ZNN_Dataset(object):
 
-    def __init__(self, data, data_patch_shape, net_output_patch_shape):
+    def __init__(self, pars, data, data_patch_shape, net_output_patch_shape):
 
         # main data
         self.data = data
@@ -25,8 +25,7 @@ class ZNN_Dataset(object):
         self.patch_shape = np.asarray(data_patch_shape[-3:])
 
         # increase the patch shape for affinity
-        if net_output_patch_shape.size==4 and \
-           net_output_patch_shape[0]==3 :
+        if 'aff' in pars['out_type']:
             self.patch_shape += 1
 
         self.volume_shape = np.asarray(self.data.shape[-3:])
@@ -282,7 +281,7 @@ class ConfigImage(ZNN_Dataset):
         arr = np.asarray( arrlist, dtype=pars['dtype'])
         if arr.ndim==3:
             arr = arr.reshape( (1,) + arr.shape )
-        ZNN_Dataset.__init__(self, arr, setsz, outsz)
+        ZNN_Dataset.__init__(self, pars, arr, setsz, outsz)
 
     def _recalculate_sizes(self, net_output_patch_shape):
         '''
@@ -893,7 +892,7 @@ class ConfigSample(object):
 class ConfigSampleOutput(object):
     '''Documentation coming soon...'''
 
-    def __init__(self, net, output_volume_shape3d, dtype):
+    def __init__(self, pars, net, output_volume_shape3d, dtype):
 
         output_patch_shapes = net.get_outputs_setsz()
 
@@ -906,7 +905,7 @@ class ConfigSampleOutput(object):
 
             empty_bin = np.zeros(volume_shape, dtype=dtype)
 
-            self.output_volumes[name] = ZNN_Dataset(empty_bin, shape[-3:], shape[-3:])
+            self.output_volumes[name] = ZNN_Dataset(pars, empty_bin, shape[-3:], shape[-3:])
 
     def set_next_patch(self, output):
 

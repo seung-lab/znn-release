@@ -72,7 +72,8 @@ def config_forward_pass( config_filename, verbose=True, sample_ids=None ):
                                          sample, net, output_patch_shape )
 
         sample_outputs[sample] = generate_full_output(Dataset, net,
-						params['dtype'], verbose=True)
+						      params, params['dtype'],
+                                                      verbose=True)
 
         # softmax if using softmax_loss
         if 'softmax' in params['cost_fn_str']:
@@ -96,7 +97,8 @@ def run_softmax( sample_output ):
 
     return sample_output
 
-def generate_full_output( Dataset, network, dtype='float32', verbose=True ):
+def generate_full_output( Dataset, network, params,
+                          dtype='float32', verbose=True ):
 	'''
 	Performs a full forward pass for a given ConfigSample object (Dataset) and
 	a given network object.
@@ -107,7 +109,8 @@ def generate_full_output( Dataset, network, dtype='float32', verbose=True ):
 	assert output_volume_shape_consistent(output_vol_shapes)
 	output_vol_shape = output_vol_shapes.values()[0]
 
-	Output = front_end.ConfigSampleOutput( network, output_vol_shape, dtype )
+	Output = front_end.ConfigSampleOutput( params, network,
+                                               output_vol_shape, dtype )
 
 	input_num_patches = Dataset.num_patches()
 	output_num_patches = Output.num_patches()
