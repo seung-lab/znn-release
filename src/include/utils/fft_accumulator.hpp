@@ -48,7 +48,9 @@ private:
             {
                 guard g(mutex_);
 
-                // empty computation
+                // [kisuklee]
+                // null pointer represents computation flow
+                // from the disabled node/edge
                 if ( !to_add )
                 {
                     return ++current_ == required_;
@@ -122,9 +124,17 @@ public:
     {
         ZI_ASSERT(current_==required_);
 
-        cube_p<real> r = fftw_->backward(std::move(sum_));
-        sum_.reset();
-        current_ = 0;
+        cube_p<real> r;
+
+        // [kisuklee]
+        // null pointer represents computation flow
+        // from the disabled node/edge
+        if ( sum_ )
+        {
+            cube_p<real> r = fftw_->backward(std::move(sum_));
+            sum_.reset();
+            current_ = 0;
+        }
 
         return r;
     }

@@ -50,7 +50,9 @@ private:
             {
                 guard g(mutex_);
 
-                // empty computation
+                // [kisuklee]
+                // null pointer represents computation flow
+                // from the disabled node/edge
                 if ( !to_add )
                 {
                     return ++current_ == required_;
@@ -70,20 +72,28 @@ private:
     bool merge_bucket(size_t b)
     {
         cube_p<real> f = buckets_[b]->reset();
-        if ( Forward )
+
+        // [kisuklee]
+        // null pointer represents computation flow
+        // from the disabled node/edge
+        if ( f )
         {
-            f = crop(*f, buckets_[b]->size() - size_, size_);
-        }
-        else
-        {
-            if ( size(*f) != size_ )
+            if ( Forward )
             {
-                f = crop_left(*f, size_);
+                f = crop(*f, buckets_[b]->size() - size_, size_);
             }
-            flip(*f);
+            else
+            {
+                if ( size(*f) != size_ )
+                {
+                    f = crop_left(*f, size_);
+                }
+                flip(*f);
+            }
+
+            *f /= buckets_[b]->weight();
         }
 
-        *f /= buckets_[b]->weight();
         return do_add(std::move(f));
     }
 

@@ -43,8 +43,10 @@ private:
     size_t const   bwd_priority_;
 
 protected:
-    // minibatch averaging
-    real           patch_sz_ = 1;
+    real           patch_sz_ = 1    ; // minibatch averaging
+
+    bool           enabled_  = true ;
+    bool           frozen_   = false;
 
 protected:
     nodes( size_t sz,
@@ -156,6 +158,8 @@ public:
                           ccube_p<complex> const & /* fft(filter) */ )
     { UNIMPLEMENTED(); }
 
+    virtual void enable(bool b) { enabled_ = b; }
+    virtual void freeze(bool b) { frozen_  = b; }
 
     virtual std::vector<cube_p<real>>& get_featuremaps()
     { UNIMPLEMENTED(); }
