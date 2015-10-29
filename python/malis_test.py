@@ -3,6 +3,7 @@ import emirt
 import numpy as np
 import time
 import utils
+import matplotlib.pylab as plt
 
 #%% parameters
 z = 8
@@ -20,26 +21,28 @@ is_constrained = True
 is_fill_lbl_holes = True
 
 # thicken boundary of label by morphological errosion
-errosion_size = 5
+erosion_size = 0
 
 
 #%% read images
 bdm = emirt.emio.imread('../experiments/zfish/VD2D/out_sample91_output_0.tif')
 lbl = emirt.emio.imread('../dataset/zfish/Merlin_label2_24bit.tif')
+raw = emirt.emio.imread('../dataset/zfish/Merlin_raw2.tif')
 lbl = emirt.volume_util.lbl_RGB2uint32(lbl)
 lbl = lbl[z,:,:]
 bdm = bdm[z,:,:]
 
 # fill label holes
 if is_fill_lbl_holes:
-    lbl = utils.fill_boundary( lbl )
-
-if errosion_size>0:
-    errosion_structure = np.ones((errosion_size, errosion_size))
+    utils.fill_boundary_holes( lbl )
+   
+# increase boundary width
+if erosion_size>0:
+    erosion_structure = np.ones((erosion_size, erosion_size))
     msk = np.copy(lbl>0)
-    from scipy.ndimage import binary_errosion
-    msk = binary_errosion(msk, structure=errosion_structure)
-    lbl[not msk] = 0
+    from scipy.ndimage.morphology import binary_erosion
+    msk = binary_erosion(msk, structure=erosion_structure)
+    lbl[msk==False] = 0
 
 import cost_fn
 start = time.time()
@@ -56,26 +59,25 @@ print "elapsed time is {} sec".format(elapsed)
 
 #%% plot the results
 print "plot the images"
-import matplotlib.pylab as plt
 if is_constrained:
     mbdm = np.copy(bdm)
     mbdm[lbl>0] = 1
     plt.subplot(231)
-    plt.imshow(1-mbdm, cmap='gray')
+    plt.imshow(1-mbdm, cmap='gray', interpolation='nearest')
     plt.xlabel('merger constrained boundary map')
 
     sbdm = np.copy(bdm)
     sbdm[lbl==0] = 0
-    plt.subplot(231)
-    plt.imshow(1-sbdm, cmap='gray')
+    plt.subplot(234)
+    plt.imshow(1-sbdm, cmap='gray', interpolation='nearest')
     plt.xlabel('splitter constrained boundary map')
 else:
-    plt.subplot(232)
-    plt.imshow(1-bdm, cmap='gray')
+    plt.subplot(231)
+    plt.imshow(1-bdm, cmap='gray', interpolation='nearest')
     plt.xlabel('boundary map')
     plt.subplot(234)
-    #plt.imshow(lbl==0, cmap='gray')
-    emirt.show.random_color_show( lbl )
+    plt.imshow(lbl==0, cmap='gray', interpolation='nearest')
+#    emirt.show.random_color_show( lbl )
     plt.xlabel('manual labeling')
 
 # rescale to 0-1
@@ -96,19 +98,19 @@ def combine2rgb(bdm, w):
 # combine merging error with boundary map
 rgbm = combine2rgb(bdm, np.log(me+eps))
 plt.subplot(232)
-plt.imshow( rgbm )
+plt.imshow( rgbm, interpolation='nearest' )
 plt.xlabel('combine boundary map(red) and ln(merge weight)(green)')
 
 # combine merging error with boundary map
 rgbs = combine2rgb(bdm, np.log(se+eps))
 plt.subplot(235)
-plt.imshow( rgbs )
+plt.imshow( rgbs, interpolation='nearest' )
 plt.xlabel('combine boundary map(red) and ln(split weight)(green)')
 
 # combine merging error with boundary map
 rgbm = combine2rgb(bdm, me)
 plt.subplot(233)
-plt.imshow( rgbm )
+plt.imshow( rgbm, interpolation='nearest' )
 plt.xlabel('combine boundary map(red) and merge weight(green disk)')
 # plot disk to illustrate the weight strength
 # rescale to 0-1
@@ -120,7 +122,7 @@ plt.scatter(x,y,r, c='g', alpha=0.8)
 # combine merging error with boundary map
 rgbs = combine2rgb(bdm, se)
 plt.subplot(236)
-plt.imshow( rgbs )
+plt.imshow( rgbs, interpolation='nearest' )
 plt.xlabel('combine boundary map(red) and split weight(green disk)')
 # plot disk to illustrate the weight strength
 # rescale to 0-1
