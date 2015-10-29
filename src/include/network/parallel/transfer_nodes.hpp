@@ -177,7 +177,7 @@ private:
         fwd_done_[n] = true;
 
 
-        if ( func_ )
+        if ( enabled_ && func_ )
         {
             func_.apply(*fs_[n], biases_[n]->b());
         }
@@ -193,7 +193,8 @@ private:
     }
 
 public:
-
+    // [kisuklee]
+    // computation flow from the disabled node/edge
     void forward(size_t n) override
     {
         forward(n, cube_p<real>());
@@ -253,7 +254,7 @@ private:
         //STRONG_ASSERT(fwd_done_[n]);
         fwd_done_[n] = false;
 
-        if ( func_ )
+        if ( enabled_ && !frozen_ && func_ )
         {
             //STRONG_ASSERT(g);
             STRONG_ASSERT(fs_[n]);
@@ -271,6 +272,8 @@ private:
     }
 
 public:
+    // [kisuklee]
+    // computation flow from the disabled node/edge
     void backward(size_t n) override
     {
         backward(n, cube_p<real>());
@@ -325,6 +328,20 @@ public:
         {
             do_backward(n,bwd_accumulators_[n]->reset());
         }
+    }
+
+    void enable(bool b) override
+    {
+        nodes::enable(b);
+
+        // TODO: disable adjacent edges
+    }
+
+    void freeze(bool b) override
+    {
+        nodes::freeze(b);
+
+        // TODO: freeze backward
     }
 
     void attach_in_edge(size_t i, edge* e) override
