@@ -2,6 +2,8 @@
 import emirt
 import numpy as np
 import time
+import utils
+
 #%% parameters
 z = 8
 # epsilone: a small number for log to avoind -infinity
@@ -14,14 +16,30 @@ Ds = 50
 # whether using constrained malis
 is_constrained = True
 
-#%% read images
+# fill the boundary hole
+is_fill_lbl_holes = True
 
+# thicken boundary of label by morphological errosion
+errosion_size = 5
+
+
+#%% read images
 bdm = emirt.emio.imread('../experiments/zfish/VD2D/out_sample91_output_0.tif')
 lbl = emirt.emio.imread('../dataset/zfish/Merlin_label2_24bit.tif')
 lbl = emirt.volume_util.lbl_RGB2uint32(lbl)
 lbl = lbl[z,:,:]
 bdm = bdm[z,:,:]
 
+# fill label holes
+if is_fill_lbl_holes:
+    lbl = utils.fill_boundary( lbl )
+
+if errosion_size>0:
+    errosion_structure = np.ones((errosion_size, errosion_size))
+    msk = np.copy(lbl>0)
+    from scipy.ndimage import binary_errosion
+    msk = binary_errosion(msk, structure=errosion_structure)
+    lbl[not msk] = 0
 
 import cost_fn
 start = time.time()
@@ -45,7 +63,7 @@ if is_constrained:
     plt.subplot(231)
     plt.imshow(1-mbdm, cmap='gray')
     plt.xlabel('merger constrained boundary map')
-    
+
     sbdm = np.copy(bdm)
     sbdm[lbl==0] = 0
     plt.subplot(231)
@@ -56,7 +74,8 @@ else:
     plt.imshow(1-bdm, cmap='gray')
     plt.xlabel('boundary map')
     plt.subplot(234)
-    plt.imshow(lbl==0, cmap='gray')
+    #plt.imshow(lbl==0, cmap='gray')
+    emirt.show.random_color_show( lbl )
     plt.xlabel('manual labeling')
 
 # rescale to 0-1

@@ -476,7 +476,7 @@ class ConfigOutputLabel(ConfigImage):
         self.pp_types = config.get(sec_name, 'pp_types').split(',')
         self._preprocess()
 
-        if pars['is_rebalance']:
+        if pars['is_rebalance'] and 'aff' not in pars['out_type']:
             self._rebalance()
 
     def _preprocess( self ):
@@ -691,7 +691,6 @@ class ConfigOutputLabel(ConfigImage):
             self.zwp, self.zwz = self._get_balance_weight(zlbl)
             self.ywp, self.ywz = self._get_balance_weight(ylbl)
             self.xwp, self.xwz = self._get_balance_weight(xlbl)
-            self._rebalance_aff()
         else:
             weight = np.empty( self.data.shape, dtype=self.data.dtype )
             for c in xrange( self.data.shape[0] ):

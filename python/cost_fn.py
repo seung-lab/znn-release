@@ -307,7 +307,7 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     Parameters
     ----------
     bdm: 2D array, forward pass output boundary map
-    lbl: 2D array, manual labels
+    lbl: 2D array, manual labels containing segment ids
     threshold: binarization threshold
 
     Returns
@@ -322,9 +322,10 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     ids = np.arange(1,bdm.size+1).reshape( bdm.shape )
     seg = np.copy(ids).flatten()
 
-    # create edges: aff, id1, id2, true aff
-    # the affinity was represented by the minimal boundary map value
-    # the voxel with id1 has the minimal value
+    # create edges: bdm, id1, id2, true label
+    # the affinity of neiboring boundary map voxels
+    # was represented by the minimal boundary map value
+
     edges = list()
     for y in xrange(bdm.shape[0]):
         for x in xrange(bdm.shape[1]-1):
@@ -332,6 +333,7 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
             i1 = ids[y,x]
             v2 = bdm[y,x+1]
             i2 = ids[y,x+1]
+            # the voxel with id1 will always has the minimal value
             if v1 > v2:
                 v1, v2 = v2, v1
                 i1, i2 = i2, i1
@@ -381,17 +383,18 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
         set1 = id_sets[r1]
         set2 = id_sets[r2]
 
-        # current segmentation will merge two sets
+        # compute the merging and spliting error
         me, se = get_merge_split_errors(set1, set2, lbl)
 
         # deal with the maximin edge
         if e[0]>threshold:
+            # current segmentation will merge the two sets
             # accumulate the merging error
             merr[e[1]-1] = me
             # merge the two sets
             seg, id_sets = malis_union(r1,r2, seg, id_sets)
         else:
-            # current segmentation will split the two sets
+            # current segmentation will leave the two sets splitted
             # accumulate the spliting error
             serr[e[1]-1] = se
     # normalize the weight
@@ -413,7 +416,6 @@ def get_merge_split_errors(set1, set2, lbl):
     ----------
     set1: set of integers, set of segment ids
     set2: the other set
-    seg: array of integers, current segmentation
     lbl: array of integers, ground truth segmentation
 
     Returns
@@ -422,11 +424,17 @@ def get_merge_split_errors(set1, set2, lbl):
     se: integer, splits
     """
     # transform to a dictionary of pixel ids
-    # key: label id
+    # key: segmentation id in manual labeling
     # value: set of pixel ids
     d1 = dict()
     d2 = dict()
-    lbl = lbl.flatten()
+    # label should have multiple segments
+    # it is not a binary labeling
+    assert(lbl.max()>1)
+    # make lbl flat
+    if lbl.ndim>1:
+        lbl = lbl.flatten()
+
     for i in set1:
         l1 = lbl[i-1]
         if d1.has_key(l1):
