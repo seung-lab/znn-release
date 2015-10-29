@@ -98,35 +98,45 @@ public:
 
     void forward( ccube_p<real> const & f ) override
     {
-        ZI_ASSERT(size(*f)==insize);
-
-        auto fmap = get_copy(*f);
-        if ( phase_ == phase::TRAIN )
+        if ( enabled_ )
         {
-            dropout_forward(*fmap);
-        }
+            ZI_ASSERT(size(*f)==insize);
 
-        out_nodes->forward(out_num, std::move(fmap));
+            auto fmap = get_copy(*f);
+            if ( phase_ == phase::TRAIN )
+            {
+                dropout_forward(*fmap);
+            }
+
+            out_nodes->forward(out_num, std::move(fmap));
+        }
+        else
+            out_nodes->forward(out_num);
     }
 
     void backward( ccube_p<real> const & g )
     {
-        ZI_ASSERT(insize==size(*g));
-
-        auto gmap = get_copy(*g);
-        if ( phase_ == phase::TRAIN )
+        if ( enabled_ )
         {
-            dropout_backward(*gmap);
-        }
+            ZI_ASSERT(insize==size(*g));
 
-        if ( in_nodes->is_input() )
-        {
-            in_nodes->backward(in_num, cube_p<real>());
+            auto gmap = get_copy(*g);
+            if ( phase_ == phase::TRAIN )
+            {
+                dropout_backward(*gmap);
+            }
+
+            if ( in_nodes->is_input() )
+            {
+                in_nodes->backward(in_num, cube_p<real>());
+            }
+            else
+            {
+                in_nodes->backward(in_num, std::move(gmap));
+            }
         }
         else
-        {
-            in_nodes->backward(in_num, std::move(gmap));
-        }
+            in_nodes->backward(in_num);
     }
 
     void set_phase( phase phs ) override

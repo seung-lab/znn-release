@@ -72,6 +72,7 @@ private:
 public:
     void shoot( ccube_p<real> const & sum )
     {
+        ZI_ASSERT(enabled_);
         *last_input /= *sum;
         out_nodes->forward(out_num,get_copy(*last_input));
     }
@@ -96,8 +97,13 @@ public:
 
     void forward( ccube_p<real> const & f ) override
     {
-        last_input = exp(*f);
-        layer_data->add_to_the_sum(get_copy(*last_input));
+        if ( enabled_ )
+        {
+            last_input = exp(*f);
+            layer_data->add_to_the_sum(get_copy(*last_input));
+        }
+        else
+            out_nodes->forward(out_num);
     }
 
     void backward( ccube_p<real> const & g ) override

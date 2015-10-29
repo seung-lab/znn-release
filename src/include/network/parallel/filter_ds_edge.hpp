@@ -83,22 +83,20 @@ public:
 
     void backward( ccube_p<real> const & g )
     {
-        ZI_ASSERT(last_input);
         if ( enabled_ && !frozen_ )
         {
+            ZI_ASSERT(last_input);
+
             in_nodes->backward(in_num,
                            convolve_sparse_inverse(*g,
                                                    filter_.W(),
                                                    filter_stride));
-        }
-        else
-            in_nodes->backward(in_num);
 
-        if ( enabled_ && !frozen_ )
-        {
             pending_ = manager.schedule_unprivileged(&filter_ds_edge::do_update,
                                                      this, g);
         }
+        else
+            in_nodes->backward(in_num);
     }
 
     void zap(edges* e)

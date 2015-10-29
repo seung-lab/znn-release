@@ -131,7 +131,7 @@ public:
         // from the disabled node/edge
         if ( sum_ )
         {
-            cube_p<real> r = fftw_->backward(std::move(sum_));
+            r = fftw_->backward(std::move(sum_));
             sum_.reset();
             current_ = 0;
         }

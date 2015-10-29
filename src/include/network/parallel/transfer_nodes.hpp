@@ -176,7 +176,7 @@ private:
         //STRONG_ASSERT(!fwd_done_[n]);
         fwd_done_[n] = true;
 
-
+        ZI_ASSERT((enabled_&&fs_[n]) || !enabled_);
         if ( enabled_ && func_ )
         {
             func_.apply(*fs_[n], biases_[n]->b());

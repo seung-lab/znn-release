@@ -44,6 +44,15 @@ private:
         {
             {
                 guard g(mutex_);
+
+                // [kisuklee]
+                // null pointer represents computation flow
+                // from the disabled node/edge
+                if ( !to_add )
+                {
+                    return ++current_ == required_;
+                }
+
                 if ( !maximum_ )
                 {
                     maximum_ = std::move(to_add);

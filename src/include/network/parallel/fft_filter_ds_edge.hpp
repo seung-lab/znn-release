@@ -134,15 +134,15 @@ public:
 
     void backward( ccube_p<complex> const & g )
     {
-        ZI_ASSERT(last_input);
+        if ( enabled_ && !frozen_ )
+        {
+            ZI_ASSERT(last_input);
 
-        if ( in_nodes->is_input() )
-        {
-            in_nodes->backward(in_num, bwd_bucket_, cube_p<complex>());
-        }
-        else
-        {
-            if ( enabled_ && !frozen_ )
+            if ( in_nodes->is_input() )
+            {
+                in_nodes->backward(in_num, bwd_bucket_, cube_p<complex>());
+            }
+            else
             {
 #ifdef ZNN_DONT_CACHE_FFTS
                 auto w_fft = get_w_fft();
@@ -150,15 +150,12 @@ public:
                 auto grad = *w_fft * *g;
                 in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
             }
-            else
-                in_nodes->backward(in_num, bwd_bucket_);
-        }
 
-        if ( enabled_ && !frozen_ )
-        {
             pending_ = manager.schedule_unprivileged(
                                     &fft_filter_ds_edge::do_update, this, g);
         }
+        else
+            in_nodes->backward(in_num, bwd_bucket_);
     }
 
     void zap(edges* e)

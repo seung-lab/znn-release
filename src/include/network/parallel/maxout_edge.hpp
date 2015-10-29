@@ -68,19 +68,27 @@ public:
 
     void forward( ccube_p<real> const & f ) override
     {
-        target->forward(out_num, get_copy(*f), group_idx);
+        if ( enabled_ )
+            target->forward(out_num, get_copy(*f), group_idx);
+        else
+            out_nodes->forward(out_num);
     }
 
     void backward( ccube_p<real> const & g ) override
     {
-        if ( in_nodes->is_input() )
+        if ( enabled_ )
         {
-            in_nodes->backward(in_num, cube_p<real>());
+            if ( in_nodes->is_input() )
+            {
+                in_nodes->backward(in_num, cube_p<real>());
+            }
+            else
+            {
+                in_nodes->backward(in_num, maxout_backprop(*g));
+            }
         }
         else
-        {
-            in_nodes->backward(in_num, maxout_backprop(*g));
-        }
+            out_nodes->backward(out_num);
     }
 
     void zap(edges* e)
