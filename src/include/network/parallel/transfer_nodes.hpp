@@ -221,6 +221,11 @@ public:
 
     }
 
+    void forward(size_t n, size_t b) override
+    {
+        forward(n, b, cube_p<complex>());
+    }
+
     void forward(size_t n, size_t b, cube_p<complex>&& f) override
     {
         ZI_ASSERT(n<nodes::size());
@@ -295,6 +300,11 @@ public:
         {
             do_backward(n,bwd_accumulators_[n]->reset());
         }
+    }
+
+    void backward(size_t n, size_t b) override
+    {
+        backward(n, b, cube_p<complex>());
     }
 
     void backward(size_t n, size_t b, cube_p<complex>&& g) override

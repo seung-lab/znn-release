@@ -126,6 +126,13 @@ public:
                           vec3i const &           /* filter_stride */ )
     { UNIMPLEMENTED(); }
 
+    // forward w/o any computation
+    virtual void forward(size_t, size_t)
+    { UNIMPLEMENTED(); }
+
+    // backward w/o any computation
+    virtual void backward(size_t, size_t)
+    { UNIMPLEMENTED(); }
 
     // receive a featuremap for the i-th input
     // featuremap is absorbed

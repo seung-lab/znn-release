@@ -51,11 +51,10 @@ private:
 
     void do_update( ccube_p<real> const & g )
     {
-        if ( enabled_ && !frozen_ )
-        {
-            auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
-            filter_.update(*dEdW, patch_sz_);
-        }
+        if ( !enabled_ || frozen_ ) return;
+
+        auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
+        filter_.update(*dEdW, patch_sz_);
     }
 
 public:
