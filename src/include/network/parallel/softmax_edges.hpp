@@ -38,6 +38,14 @@ public:
         void attach(size_t n, softmax_edge* e)
         {
             edges_[n] = e;
+            accum_.inc();
+        }
+
+        void detach(size_t n)
+        {
+            ZI_ASSERT(n<edges_.size());
+            edges_[n] = nullptr;
+            accum_.dec();
         }
 
         void add_to_the_sum(cube_p<real>&& f)
@@ -47,9 +55,9 @@ public:
                 auto sum = accum_.reset();
                 for ( auto & e: edges_ )
                 {
-                    tm_.schedule(e->fwd_priority(), [e,sum]() {
-                            e->shoot(sum);
-                        });
+                    if ( e )
+                        tm_.schedule(e->fwd_priority(),
+                                    [e,sum](){e->shoot(sum);});
                 }
             }
         }
@@ -59,7 +67,7 @@ public:
     public:
         layer( size_t n, task_manager & tm )
             : edges_(n)
-            , accum_(n)
+            , accum_(0)
             , tm_(tm)
         {}
     };
@@ -72,6 +80,7 @@ private:
 public:
     void shoot( ccube_p<real> const & sum )
     {
+        ZI_ASSERT(enabled_);
         *last_input /= *sum;
         out_nodes->forward(out_num,get_copy(*last_input));
     }
@@ -88,7 +97,7 @@ public:
         : edge(in,inn,out,outn,tm)
         , layer_data(layer)
     {
-        ZI_ASSERT(inn=outn);
+        ZI_ASSERT(inn==outn);
         in->attach_out_edge(inn,this);
         out->attach_in_edge(outn,this);
         layer->attach(inn,this);
@@ -96,6 +105,8 @@ public:
 
     void forward( ccube_p<real> const & f ) override
     {
+        if ( !enabled_ ) return;
+
         last_input = exp(*f);
         layer_data->add_to_the_sum(get_copy(*last_input));
     }
@@ -103,6 +114,30 @@ public:
     void backward( ccube_p<real> const & g ) override
     {
 
+    }
+
+    void enable_fwd(bool b) override
+    {
+        if ( enabled_ == b ) return;
+
+        edge::enable_fwd(b);
+
+        if ( enabled_ )
+            layer_data->attach(in_num,this);
+        else
+            layer_data->detach(in_num);
+    }
+
+    void enable_bwd(bool b) override
+    {
+        if ( enabled_ == b ) return;
+
+        edge::enable_bwd(b);
+
+        if ( enabled_ )
+            layer_data->attach(in_num,this);
+        else
+            layer_data->detach(in_num);
     }
 
     void zap(edges* e)

@@ -53,6 +53,8 @@ public:
 
     void forward( ccube_p<real> const & f ) override
     {
+        if ( !enabled_ ) return;
+
         ZI_ASSERT(size(*f)==insize);
         auto r = pooling_filter(get_copy(*f),
                                 [](real a, real b){ return a>b; },
@@ -64,6 +66,8 @@ public:
 
     void backward( ccube_p<real> const & g )
     {
+        if ( !enabled_ ) return;
+
         ZI_ASSERT(indices);
         ZI_ASSERT(insize==size(*g)+(filter_size-vec3i::one)*filter_stride);
         if ( in_nodes->is_input() )
@@ -72,7 +76,8 @@ public:
         }
         else
         {
-            in_nodes->backward(in_num, pooling_backprop(insize, *g, *indices));
+            in_nodes->backward(in_num,
+                               pooling_backprop(insize, *g, *indices));
         }
     }
 
@@ -114,6 +119,8 @@ public:
 
     void forward( ccube_p<real> const & f ) override
     {
+        if ( !enabled_ ) return;
+
         ZI_ASSERT(size(*f)==insize);
         auto r = pooling_filter(get_copy(*f),
                                 [](real a, real b){ return a>b; },
@@ -122,11 +129,13 @@ public:
 
         indices = sparse_implode_slow(*r.second,filter_size,outsize);
         out_nodes->forward(out_num,
-                           sparse_implode_slow(*r.first,filter_size,outsize));
+            sparse_implode_slow(*r.first,filter_size,outsize));
     }
 
     void backward( ccube_p<real> const & g )
     {
+        if ( !enabled_ ) return;
+
         ZI_ASSERT(indices);
         ZI_ASSERT(insize==size(*g)*filter_size);
         if ( in_nodes->is_input() )
@@ -135,7 +144,8 @@ public:
         }
         else
         {
-            in_nodes->backward(in_num, pooling_backprop(insize, *g, *indices));
+            in_nodes->backward(in_num,
+                               pooling_backprop(insize, *g, *indices));
         }
     }
 

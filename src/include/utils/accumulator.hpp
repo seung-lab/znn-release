@@ -37,6 +37,7 @@ private:
     vector<std::unique_ptr<fft_accumulator>> buckets_   ;
 
     size_t required_;
+    size_t disabled_;
     size_t current_ ;
 
     cube_p<real>       sum_;
@@ -49,19 +50,10 @@ private:
         {
             {
                 guard g(mutex_);
-
-                // [kisuklee]
-                // null pointer represents computation flow
-                // from the disabled node/edge
-                if ( !to_add )
-                {
-                    return ++current_ == required_;
-                }
-
                 if ( !sum_ )
                 {
                     sum_ = std::move(to_add);
-                    return ++current_ == required_;
+                    return ++current_ == effectively_required();
                 }
                 previous_sum = std::move(sum_);
             }
@@ -73,27 +65,20 @@ private:
     {
         cube_p<real> f = buckets_[b]->reset();
 
-        // [kisuklee]
-        // null pointer represents computation flow
-        // from the disabled node/edge
-        if ( f )
+        if ( Forward )
         {
-            if ( Forward )
+            f = crop(*f, buckets_[b]->size() - size_, size_);
+        }
+        else
+        {
+            if ( size(*f) != size_ )
             {
-                f = crop(*f, buckets_[b]->size() - size_, size_);
+                f = crop_left(*f, size_);
             }
-            else
-            {
-                if ( size(*f) != size_ )
-                {
-                    f = crop_left(*f, size_);
-                }
-                flip(*f);
-            }
-
-            *f /= buckets_[b]->weight();
+            flip(*f);
         }
 
+        *f /= buckets_[b]->weight();
         return do_add(std::move(f));
     }
 
@@ -103,6 +88,7 @@ public:
         , bucket_map_()
         , buckets_()
         , required_(n)
+        , disabled_(0)
         , current_(0)
         , sum_()
     {}
@@ -112,6 +98,14 @@ public:
         ZI_ASSERT(current_==0);
         required_ += n;
         return required_;
+    }
+
+    size_t disable(size_t n)
+    {
+        ZI_ASSERT(current_==0);
+        ZI_ASSERT(n<=effectively_required());
+        disabled_ += n;
+        return effectively_required();
     }
 
     size_t grow_fft(const vec3i& size, size_t n)
@@ -131,12 +125,33 @@ public:
         return bucket_map_[size];
     }
 
+    size_t disable_fft(const vec3i& size, size_t n)
+    {
+        ZI_ASSERT(current_==0);
+        ZI_ASSERT(bucket_map_.count(size)!=0);
+        ZI_ASSERT(effectively_required()>0);
+
+        if ( buckets_[bucket_map_[size]]->disable(n) == 0 )
+            ++disabled_;
+
+        return bucket_map_[size];
+    }
+
+    size_t enable_all(bool b)
+    {
+        disabled_ = b ? 0 : required_;
+        for ( auto& bucket: buckets_ )
+            bucket->enable_all(b);
+
+        return effectively_required();
+    }
+
     //
     // sum += f
     //
     bool add(cube_p<real>&& f)
     {
-        ZI_ASSERT(current_<required_);
+        ZI_ASSERT(current_<effectively_required());
         return do_add(std::move(f));
     }
 
@@ -146,7 +161,7 @@ public:
     bool add(const ccube_p<real>& f, const ccube_p<real>& w,
              const vec3i& sparse = vec3i::one )
     {
-        ZI_ASSERT(current_<required_);
+        ZI_ASSERT(current_<effectively_required());
 
         cube_p<real> previous_sum;
 
@@ -188,7 +203,7 @@ public:
     //
     bool add(size_t bucket, cube_p<complex>&& f)
     {
-        ZI_ASSERT(current_<required_);
+        ZI_ASSERT(current_<effectively_required());
 
         if ( buckets_[bucket]->add(std::move(f)) )
         {
@@ -202,7 +217,7 @@ public:
     //
     bool add(size_t bucket, const ccube_p<complex>& f, const ccube_p<complex>& w)
     {
-        ZI_ASSERT(current_<required_);
+        ZI_ASSERT(current_<effectively_required());
 
         if ( buckets_[bucket]->add(f,w) )
         {
@@ -213,7 +228,7 @@ public:
 
     cube_p<real> reset()
     {
-        ZI_ASSERT(current_==required_);
+        ZI_ASSERT(current_==effectively_required());
         current_ = 0;
         return std::move(sum_);
     }
@@ -221,6 +236,11 @@ public:
     size_t required() const
     {
         return required_;
+    }
+
+    size_t effectively_required() const
+    {
+        return required_ - disabled_;
     }
 
 };

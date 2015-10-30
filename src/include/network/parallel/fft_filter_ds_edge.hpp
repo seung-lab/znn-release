@@ -46,24 +46,21 @@ private:
 private:
     void do_forward( ccube_p<complex> const & f )
     {
+        ZI_ASSERT(enabled_);
+
         last_input = f;
 
-        if ( enabled_ )
-        {
 #ifdef ZNN_DONT_CACHE_FFTS
-            auto w_fft = get_w_fft();
+        auto w_fft = get_w_fft();
 #endif
-            auto fw = *w_fft * *f;
-            out_nodes->forward(out_num, fwd_bucket_, std::move(fw));
-            //out_nodes->forward(out_num, fwd_bucket_, w_fft, f);
-        }
-        else
-            out_nodes->forward(out_num, fwd_bucket_);
+        auto fw = *w_fft * *f;
+        out_nodes->forward(out_num, fwd_bucket_, std::move(fw));
+        //out_nodes->forward(out_num, fwd_bucket_, w_fft, f);
     }
 
     void do_update( ccube_p<complex> const & g )
     {
-        if ( !enabled_ || frozen_ ) return;
+        ZI_ASSERT(enabled_);
 
         auto dEdW_fft = *last_input * *g;
         auto dEdW = fftw::backward(std::move(dEdW_fft), in_nodes->fsize());
@@ -129,11 +126,15 @@ public:
 
     void forward( ccube_p<complex> const & f ) override
     {
+        if ( !enabled_ ) return;
+
         manager.require_done( pending_, &fft_filter_ds_edge::do_forward, this, f );
     }
 
     void backward( ccube_p<complex> const & g )
     {
+        if ( !enabled_ ) return;
+
         ZI_ASSERT(last_input);
 
         if ( in_nodes->is_input() )
@@ -142,23 +143,15 @@ public:
         }
         else
         {
-            if ( enabled_ && !frozen_ )
-            {
 #ifdef ZNN_DONT_CACHE_FFTS
-                auto w_fft = get_w_fft();
+            auto w_fft = get_w_fft();
 #endif
-                auto grad = *w_fft * *g;
-                in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
-            }
-            else
-                in_nodes->backward(in_num, bwd_bucket_);
+            auto grad = *w_fft * *g;
+            in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
         }
 
-        if ( enabled_ && !frozen_ )
-        {
-            pending_ = manager.schedule_unprivileged(
-                                    &fft_filter_ds_edge::do_update, this, g);
-        }
+        pending_ = manager.schedule_unprivileged(
+                                &fft_filter_ds_edge::do_update, this, g);
     }
 
     void zap(edges* e)

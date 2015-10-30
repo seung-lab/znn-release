@@ -59,6 +59,19 @@ public:
         , sum_()
     {}
 
+    void inc(size_t n = 1)
+    {
+        ZI_ASSERT(current_==0);
+        required_ += n;
+    }
+
+    void dec(size_t n = 1)
+    {
+        ZI_ASSERT(current_==0);
+        ZI_ASSERT(n<=required_);
+        required_ -= n;
+    }
+
     //
     // sum += f
     //

@@ -142,8 +142,8 @@ public:
         void forward( cube<real>& in,
                       cube<complex>& out )
         {
-            ZI_ASSERT(size(out)==fft_complex_size(in));
-            ZI_ASSERT(size(in)==actual_sz);
+            ZI_ASSERT(v4::size(out)==fft_complex_size(in));
+            ZI_ASSERT(v4::size(in)==actual_sz);
 
             ZNN_MEASURE_FFT_START();
             FFT_EXECUTE_DFT_R2C(forward_plan,
@@ -155,8 +155,8 @@ public:
         void backward( cube<complex>& in,
                        cube<real>& out )
         {
-            ZI_ASSERT(size(in)==fft_complex_size(out));
-            ZI_ASSERT(size(out)==actual_sz);
+            ZI_ASSERT(v4::size(in)==fft_complex_size(out));
+            ZI_ASSERT(v4::size(out)==actual_sz);
 
             ZNN_MEASURE_FFT_START();
             FFT_EXECUTE_DFT_C2R(backward_plan,

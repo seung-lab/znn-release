@@ -42,10 +42,18 @@ public:
     {
     }
 
-    void inc()
+    void inc(size_t n = 1)
     {
         std::unique_lock<std::mutex> g(mutex_);
-        ++required_;
+        required_ += n;
+    }
+
+    void dec(size_t n = 1)
+    {
+        std::unique_lock<std::mutex> g(mutex_);
+        ZI_ASSERT(current_==0);
+        ZI_ASSERT(n<=required_);
+        required_ -= n;
     }
 
     void set(size_t n)
@@ -54,7 +62,6 @@ public:
         ZI_ASSERT(current_==0);
         required_ = n;
     }
-
 
     void one_done()
     {

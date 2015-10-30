@@ -53,12 +53,16 @@ public:
 
     void forward( ccube_p<real> const & f ) override
     {
+        if ( !enabled_ ) return;
+
         ZI_ASSERT(size(*f)==insize);
         out_nodes->forward(out_num, crop(*f,offset,crop_size()));
     }
 
     void backward( ccube_p<real> const & g )
     {
+        if ( !enabled_ ) return;
+
         ZI_ASSERT(insize==size(*g));
 
         if ( in_nodes->is_input() )
@@ -68,7 +72,8 @@ public:
         else
         {
             auto gmap = get_cube<real>(insize);
-            in_nodes->backward(in_num, pad_zeros(*g,offset,pad_style::BOTH));
+            in_nodes->backward(in_num,
+                               pad_zeros(*g,offset,pad_style::BOTH));
         }
     }
 

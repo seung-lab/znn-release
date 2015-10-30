@@ -98,6 +98,8 @@ public:
 
     void forward( ccube_p<real> const & f ) override
     {
+        if ( !enabled_ ) return;
+
         ZI_ASSERT(size(*f)==insize);
 
         auto fmap = get_copy(*f);
@@ -111,6 +113,8 @@ public:
 
     void backward( ccube_p<real> const & g )
     {
+        if ( !enabled_ ) return;
+
         ZI_ASSERT(insize==size(*g));
 
         auto gmap = get_copy(*g);
