@@ -84,6 +84,14 @@ public:
                 t->enable_fwd(b);
     }
 
+    size_t size() const
+    {
+        size_t r = targets_.size();
+        for ( auto& fft_target: fft_targets_)
+            r += fft_target.second.size();
+        return r;
+    }
+
 }; // class forward_dispatcher
 
 
@@ -135,6 +143,14 @@ public:
         for ( auto& fft_target: fft_targets_)
             for ( auto& t: fft_target.second )
                 t->enable_bwd(b);
+    }
+
+    size_t size() const
+    {
+        size_t r = targets_.size();
+        for ( auto& fft_target: fft_targets_)
+            r += fft_target.second.size();
+        return r;
     }
 
 }; // class backward_dispatcher
@@ -198,6 +214,14 @@ public:
         for ( auto& fft_target: fft_targets_)
             for ( auto& t: fft_target.second )
                 t->enable_fwd(b);
+    }
+
+    size_t size() const
+    {
+        size_t r = targets_.size();
+        for ( auto& fft_target: fft_targets_)
+            r += fft_target.second.size();
+        return r;
     }
 
 }; // class concurrent_forward_dispatcher
@@ -266,6 +290,14 @@ public:
                 t->enable_bwd(b);
     }
 
+    size_t size() const
+    {
+        size_t r = targets_.size();
+        for ( auto& fft_target: fft_targets_)
+            r += fft_target.second.size();
+        return r;
+    }
+
 }; // class concurrent_backward_dispatcher
 
 
@@ -313,6 +345,12 @@ public:
     {
         ZI_ASSERT(i<dispatchers_.size());
         dispatchers_[i].enable(b);
+    }
+
+    size_t size(size_t i) const
+    {
+        ZI_ASSERT(i<dispatchers_.size());
+        return dispatchers_[i].size();
     }
 
 };

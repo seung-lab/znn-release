@@ -97,6 +97,23 @@ public:
         return 0;
     }
 
+    void enable(size_t n, bool b) override
+    {
+        ZI_ASSERT(n<nodes::size());
+        if ( enabled_[n] == b ) return;
+
+        // enable/disable outgoing edges
+        outputs_.enable(n,b);
+
+        enabled_[n] = b;
+
+        // waiter inc/dec
+        if ( enabled_[n] )
+            waiter_.inc(outputs_.size(n));
+        else
+            waiter_.dec(outputs_.size(n));
+    }
+
     void wait() override { waiter_.wait(); }
 
     void zap() override {}
