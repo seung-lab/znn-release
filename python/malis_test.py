@@ -39,12 +39,14 @@ if not is_fake:
     bdm = bdm[z,:,:]
 else:
     bdm = np.ones((10,10), dtype='float32')
-    bdm[5,:] = 0
-    bdm[5,5] = 0.3
-    bdm[5,8] = 0.8
+    bdm[3,:] = 0.6
+    bdm[3,7] = 0.8
+    bdm[7,:] = 0
+    bdm[7,7] = 0.3
+    bdm[7,8] = 0.8
     lbl = np.zeros((10,10), dtype='uint32')
-    lbl[:5, :] = 1
-    lbl[6:, :] = 2
+    lbl[:7, :] = 1
+    lbl[8:, :] = 2
 assert lbl.max()>1
 
 # only a corner for test
