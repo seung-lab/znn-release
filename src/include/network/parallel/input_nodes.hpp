@@ -65,9 +65,6 @@ private:
     void backward() { waiter_.one_done(); }
 
 public:
-    void backward(size_t) override
-    { backward(); }
-
     void backward(size_t, cube_p<real>&&) override
     { backward(); }
 

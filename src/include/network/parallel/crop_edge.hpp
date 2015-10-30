@@ -53,34 +53,28 @@ public:
 
     void forward( ccube_p<real> const & f ) override
     {
-        if ( enabled_ )
-        {
-            ZI_ASSERT(size(*f)==insize);
-            out_nodes->forward(out_num, crop(*f,offset,crop_size()));
-        }
-        else
-            out_nodes->forward(out_num);
+        if ( !enabled_ ) return;
+
+        ZI_ASSERT(size(*f)==insize);
+        out_nodes->forward(out_num, crop(*f,offset,crop_size()));
     }
 
     void backward( ccube_p<real> const & g )
     {
-        if ( enabled_ )
-        {
-            ZI_ASSERT(insize==size(*g));
+        if ( !enabled_ ) return;
 
-            if ( in_nodes->is_input() )
-            {
-                in_nodes->backward(in_num, cube_p<real>());
-            }
-            else
-            {
-                auto gmap = get_cube<real>(insize);
-                in_nodes->backward(in_num,
-                                   pad_zeros(*g,offset,pad_style::BOTH));
-            }
+        ZI_ASSERT(insize==size(*g));
+
+        if ( in_nodes->is_input() )
+        {
+            in_nodes->backward(in_num, cube_p<real>());
         }
         else
-            in_nodes->backward(in_num);
+        {
+            auto gmap = get_cube<real>(insize);
+            in_nodes->backward(in_num,
+                               pad_zeros(*g,offset,pad_style::BOTH));
+        }
     }
 
     void zap(edges* e)

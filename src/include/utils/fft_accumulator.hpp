@@ -31,6 +31,7 @@ private:
     const vec3i size_;
 
     size_t required_;
+    size_t disabled_;
     size_t current_ ;
 
     cube_p<complex>     sum_  ;
@@ -47,19 +48,10 @@ private:
         {
             {
                 guard g(mutex_);
-
-                // [kisuklee]
-                // null pointer represents computation flow
-                // from the disabled node/edge
-                if ( !to_add )
-                {
-                    return ++current_ == required_;
-                }
-
                 if ( !sum_ )
                 {
                     sum_ = std::move(to_add);
-                    return ++current_ == required_;
+                    return ++current_ == effectively_required();
                 }
                 previous_sum = std::move(sum_);
             }
@@ -71,6 +63,7 @@ public:
     explicit fft_accumulator(const vec3i& size, size_t total = 0)
         : size_(size)
         , required_(total)
+        , disabled_(0)
         , current_(0)
         , sum_()
         , fftw_(std::make_unique<fftw::transformer>(size))
@@ -93,6 +86,18 @@ public:
     {
         required_ += n;
         return required_;
+    }
+
+    size_t disable(size_t n)
+    {
+        ZI_ASSERt(n<=effectively_required());
+        disabled_ += n;
+        return effectively_required();
+    }
+
+    void enable_all(bool b)
+    {
+        disabled_ = b ? 0 : required_;
     }
 
     bool add(cube_p<complex>&& v)
@@ -122,19 +127,11 @@ public:
 
     cube_p<real> reset()
     {
-        ZI_ASSERT(current_==required_);
+        ZI_ASSERT(current_==effectively_required());
 
-        cube_p<real> r;
-
-        // [kisuklee]
-        // null pointer represents computation flow
-        // from the disabled node/edge
-        if ( sum_ )
-        {
-            r = fftw_->backward(std::move(sum_));
-            sum_.reset();
-            current_ = 0;
-        }
+        cube_p<real> r = fftw_->backward(std::move(sum_));
+        sum_.reset();
+        current_ = 0;
 
         return r;
     }
@@ -142,6 +139,11 @@ public:
     real weight() const
     {
         return weight_;
+    }
+
+    size_t effectively_required() const
+    {
+        return required_ - disabled_;
     }
 
 };

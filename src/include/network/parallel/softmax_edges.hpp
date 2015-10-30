@@ -97,13 +97,10 @@ public:
 
     void forward( ccube_p<real> const & f ) override
     {
-        if ( enabled_ )
-        {
-            last_input = exp(*f);
-            layer_data->add_to_the_sum(get_copy(*last_input));
-        }
-        else
-            out_nodes->forward(out_num);
+        if ( !enabled_ ) return;
+
+        last_input = exp(*f);
+        layer_data->add_to_the_sum(get_copy(*last_input));
     }
 
     void backward( ccube_p<real> const & g ) override

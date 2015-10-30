@@ -45,7 +45,6 @@ protected:
 
     // on/off
     bool   enabled_ = true;
-    bool   frozen_  = false;
 
 public:
     edge( nodes * in, size_t inn, nodes * out, size_t outn, task_manager & m )
@@ -64,6 +63,12 @@ public:
         patch_sz_ = s;
     }
 
+    std::string name() const
+    {
+        return in_nodes->name() + ":" + std::string::to_string(in_num) + "_"
+               out_nodes->name() + ":" + std::string::to_string(out_num);
+    }
+
     virtual ~edge() {}
 
     virtual void forward( ccube_p<real> const & )
@@ -78,8 +83,35 @@ public:
     virtual void backward( ccube_p<complex> const & )
     { UNIMPLEMENTED(); }
 
-    virtual void enable(bool b) { enabled_ = b; }
-    virtual void freeze(bool b) { frozen_  = b; }
+    virtual void enable_fwd(bool b)
+    {
+        if ( enabled_ == b ) return;
+
+        enabled_ = b;
+        if ( enabled_ )
+        {
+            out_nodes->enable(out_num,true);
+        }
+        else // disable
+        {
+            out_nodes->disable_in_edge(out_num);
+        }
+    }
+
+    virtual void enable_bwd(bool b)
+    {
+        if ( enabled_ == b ) return;
+
+        enabled_ = b;
+        if ( enabled_ )
+        {
+            in_nodes->enable(in_num,true);
+        }
+        else // disabled_
+        {
+            in_nodes->disable_out_edge(in_num);
+        }
+    }
 
     // [kisuklee]
     // This is only temporary implementation and will be removed.

@@ -43,10 +43,9 @@ private:
     size_t const   bwd_priority_;
 
 protected:
-    real           patch_sz_ = 1    ; // minibatch averaging
+    real           patch_sz_ = 1; // minibatch averaging
 
-    bool           enabled_  = true ;
-    bool           frozen_   = false;
+    std::vector<bool>   enabled_;
 
 protected:
     nodes( size_t sz,
@@ -65,6 +64,7 @@ protected:
         , is_output_(is_out)
         , fwd_priority_(fwd_p)
         , bwd_priority_(bwd_p)
+        , enabled_(sz,true)
     {
     }
 
@@ -95,14 +95,6 @@ public:
 
 public:
     virtual ~nodes() {}
-
-    // forward w/o any computation
-    virtual void forward(size_t)
-    { UNIMPLEMENTED(); }
-
-    // backward w/o any computation
-    virtual void backward(size_t)
-    { UNIMPLEMENTED(); }
 
     // receive a featuremap for the i-th input
     // featuremap is absorbed
@@ -158,9 +150,6 @@ public:
                           ccube_p<complex> const & /* fft(filter) */ )
     { UNIMPLEMENTED(); }
 
-    virtual void enable(bool b) { enabled_ = b; }
-    virtual void freeze(bool b) { frozen_  = b; }
-
     virtual std::vector<cube_p<real>>& get_featuremaps()
     { UNIMPLEMENTED(); }
 
@@ -180,6 +169,21 @@ public:
     { UNIMPLEMENTED(); }
 
     virtual size_t attach_in_fft_edge(size_t, edge*, vec3i const &)
+    { UNIMPLEMENTED(); }
+
+    virtual void enable(size_t, bool)
+    { UNIMPLEMENTED(); }
+
+    virtual void disable_out_edge(size_t)
+    { UNIMPLEMENTED(); }
+
+    virtual void disable_in_edge(size_t)
+    { UNIMPLEMENTED(); }
+
+    virtual void disable_out_fft_edge(size_t)
+    { UNIMPLEMENTED(); }
+
+    virtual void disable_in_fft_edge(size_t, vec3i const &)
     { UNIMPLEMENTED(); }
 
     virtual void set_eta( real )

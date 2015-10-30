@@ -39,19 +39,17 @@ private:
 private:
     void do_forward( ccube_p<real> const & f )
     {
+        ZI_ASSERT(enabled_);
+
         last_input = f;
 
-        if ( enabled_ )
-            out_nodes->forward(out_num,
-                convolve_sparse(*f, filter_.W(), filter_stride));
-        else
-            out_nodes->forward(out_num);
-
+        out_nodes->forward(out_num,
+            convolve_sparse(*f, filter_.W(), filter_stride));
     }
 
     void do_update( ccube_p<real> const & g )
     {
-        if ( !enabled_ || frozen_ ) return;
+        ZI_ASSERT(enabled_);
 
         auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
         filter_.update(*dEdW, patch_sz_);
@@ -73,29 +71,28 @@ public:
 
     void forward( ccube_p<real> const & f ) override
     {
+        if ( !enabled_ ) return;
+
         manager.require_done( pending_, &filter_edge::do_forward, this, f );
     }
 
     void backward( ccube_p<real> const & g )
     {
-        if ( enabled_ && !frozen_ )
-        {
-            ZI_ASSERT(last_input);
-            if ( in_nodes->is_input() )
-            {
-                in_nodes->backward(in_num, cube_p<real>());
-            }
-            else
-            {
-                in_nodes->backward(in_num,
-                    convolve_sparse_inverse(*g, filter_.W(), filter_stride));
-            }
+        if ( !enabled_ ) return;
 
-            pending_ = manager.schedule_unprivileged(&filter_edge::do_update,
-                                                     this, g);
+        ZI_ASSERT(last_input);
+        if ( in_nodes->is_input() )
+        {
+            in_nodes->backward(in_num, cube_p<real>());
         }
         else
-            in_nodes->backward(in_num);
+        {
+            in_nodes->backward(in_num,
+                convolve_sparse_inverse(*g, filter_.W(), filter_stride));
+        }
+
+        pending_ = manager.schedule_unprivileged(&filter_edge::do_update,
+                                                 this, g);
     }
 
     void zap(edges* e)
