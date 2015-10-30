@@ -58,6 +58,8 @@ public:
     void forward(size_t n, cube_p<real> && f) override
     {
         ZI_ASSERT(n<nodes::size());
+        if ( !enabled_[n] ) return;
+
         outputs_.dispatch(n,f,nodes::manager());
     }
 

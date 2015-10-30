@@ -65,8 +65,8 @@ public:
 
     std::string name() const
     {
-        return in_nodes->name() + ":" + std::string::to_string(in_num) + "_"
-               out_nodes->name() + ":" + std::string::to_string(out_num);
+        return in_nodes->name() + ":" + std::to_string(in_num) + "_" +
+               out_nodes->name() + ":" + std::to_string(out_num);
     }
 
     virtual ~edge() {}

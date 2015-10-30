@@ -90,7 +90,7 @@ public:
 
     size_t disable(size_t n)
     {
-        ZI_ASSERt(n<=effectively_required());
+        ZI_ASSERT(n<=effectively_required());
         disabled_ += n;
         return effectively_required();
     }

@@ -172,12 +172,13 @@ public:
 private:
     void do_forward(size_t n)
     {
+        ZI_ASSERT(enabled_[n]);
+
         fs_[n] = fwd_accumulators_[n]->reset();
         //STRONG_ASSERT(!fwd_done_[n]);
         fwd_done_[n] = true;
 
-        ZI_ASSERT((enabled_[n]&&fs_[n]) || !enabled_[n]);
-        if ( enabled_[n] && func_ )
+        if ( func_ )
         {
             func_.apply(*fs_[n], biases_[n]->b());
         }
@@ -196,6 +197,8 @@ public:
     void forward(size_t n, cube_p<real>&& f) override
     {
         ZI_ASSERT(n<nodes::size());
+        if ( !enabled_[n] ) return;
+
         if ( fwd_accumulators_[n]->add(std::move(f)) )
         {
             do_forward(n);
@@ -208,6 +211,8 @@ public:
                  vec3i const & stride) override
     {
         ZI_ASSERT(n<nodes::size());
+        if ( !enabled_[n] ) return;
+
         if ( fwd_accumulators_[n]->add(f,w,stride) )
         {
             do_forward(n);
@@ -215,14 +220,11 @@ public:
 
     }
 
-    void forward(size_t n, size_t b) override
-    {
-        forward(n, b, cube_p<complex>());
-    }
-
     void forward(size_t n, size_t b, cube_p<complex>&& f) override
     {
         ZI_ASSERT(n<nodes::size());
+        if ( !enabled_[n] ) return;
+
         if ( fwd_accumulators_[n]->add(b,std::move(f)) )
         {
             do_forward(n);
@@ -234,6 +236,8 @@ public:
                  ccube_p<complex> const & w ) override
     {
         ZI_ASSERT(n<nodes::size());
+        if ( !enabled_[n] ) return;
+
         if ( fwd_accumulators_[n]->add(b,f,w) )
         {
             do_forward(n);
@@ -244,10 +248,12 @@ public:
 private:
     void do_backward(size_t n, cube_p<real> const & g)
     {
+        ZI_ASSERT(enabled_[n]);
+
         //STRONG_ASSERT(fwd_done_[n]);
         fwd_done_[n] = false;
 
-        if ( enabled_[n] && !frozen_ && func_ )
+        if ( func_ )
         {
             //STRONG_ASSERT(g);
             STRONG_ASSERT(fs_[n]);
@@ -268,6 +274,8 @@ public:
     void backward(size_t n, cube_p<real>&& g) override
     {
         ZI_ASSERT(n<nodes::size());
+        if ( !enabled_[n] ) return;
+
         if ( nodes::is_output() )
         {
             do_backward(n,g);
@@ -285,20 +293,19 @@ public:
                   ccube_p<real> const & w, vec3i const & stride) override
     {
         ZI_ASSERT((n<nodes::size())&&(!nodes::is_output()));
+        if ( !enabled_[n] ) return;
+
         if ( bwd_accumulators_[n]->add(g,w,stride) )
         {
             do_backward(n,bwd_accumulators_[n]->reset());
         }
     }
 
-    void backward(size_t n, size_t b) override
-    {
-        backward(n, b, cube_p<complex>());
-    }
-
     void backward(size_t n, size_t b, cube_p<complex>&& g) override
     {
         ZI_ASSERT((n<nodes::size())&&(!nodes::is_output()));
+        if ( !enabled_[n] ) return;
+
         if ( bwd_accumulators_[n]->add(b,std::move(g)) )
         {
             do_backward(n,bwd_accumulators_[n]->reset());
@@ -310,6 +317,8 @@ public:
                   ccube_p<complex> const & w) override
     {
         ZI_ASSERT((n<nodes::size())&&(!nodes::is_output()));
+        if ( !enabled_[n] ) return;
+
         if ( bwd_accumulators_[n]->add(b,g,w) )
         {
             do_backward(n,bwd_accumulators_[n]->reset());
@@ -346,7 +355,7 @@ public:
 
     void enable(size_t n, bool b) override
     {
-        ZI_ASSERT(n<node::size());
+        ZI_ASSERT(n<nodes::size());
 
         if ( enabled_[n] == b ) return;
 
@@ -363,7 +372,7 @@ public:
 
     void disable_out_edge(size_t n) override
     {
-        ZI_ASSERT(n<node::size());
+        ZI_ASSERT(n<nodes::size());
         bwd_accumulators_[n]->disable(1);
 
         // disconnected forward
@@ -373,7 +382,7 @@ public:
 
     void disable_in_edge(size_t n) override
     {
-        ZI_ASSERT(n<node::size());
+        ZI_ASSERT(n<nodes::size());
         fwd_accumulators_[n]->disable(1);
 
         // disconnected backward
@@ -383,7 +392,7 @@ public:
 
     void disable_out_fft_edge(size_t n) override
     {
-        ZI_ASSERT(n<node::size());
+        ZI_ASSERT(n<nodes::size());
         bwd_accumulators_[n]->disable_fft(nodes::fsize(),1);
 
         // disconnected forward
@@ -393,24 +402,12 @@ public:
 
     void disable_in_fft_edge(size_t n, vec3i const & s) override
     {
-        ZI_ASSERT(n<node::size());
-        fwd_accumulators_[n]->disable(s,1);
+        ZI_ASSERT(n<nodes::size());
+        fwd_accumulators_[n]->disable_fft(s,1);
 
         // disconnected backward
         if ( !fwd_accumulators_[n]->effectively_required() )
             enable(n,false);
-    }
-
-    void freeze(size_t n, bool b) override
-    {
-        ZI_ASSERT(n<node::size());
-        if ( frozen_[n] != b )
-        {
-            frozen_[n] = b;
-
-            // freeze backward
-            bwd_dispatch_[n]->freeze(b);
-        }
     }
 
     void wait() override { waiter_.wait(); }
