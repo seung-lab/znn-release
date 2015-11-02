@@ -4,7 +4,6 @@ import numpy as np
 import time
 import utils
 import matplotlib.pylab as plt
-import os
 #%% parameters
 z = 8
 # epsilone: a small number for log to avoind -infinity
@@ -18,10 +17,10 @@ Ds = 500
 is_fake = True
 
 # whether using constrained malis
-is_constrained = False
+is_constrained = True
 
 # thicken boundary of label by morphological errosion
-erosion_size = 0
+erosion_size = 3
 
 # a small corner
 corner_size = 0
