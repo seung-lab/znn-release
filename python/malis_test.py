@@ -17,10 +17,10 @@ Ds = 500
 is_fake = True
 
 # whether using constrained malis
-is_constrained = True
+is_constrained = False
 
 # thicken boundary of label by morphological errosion
-erosion_size = 3
+erosion_size = 0
 
 # a small corner
 corner_size = 0
@@ -37,14 +37,16 @@ if not is_fake:
     lbl = lbl[z,:,:]
     bdm = bdm[z,:,:]
 else:
-    bdm = np.ones((10,10), dtype='float32')
+    # fake image size
+    fs = 20
+    bdm = np.ones((fs,fs), dtype='float32')
     bdm[3,:] = 0.5
     bdm[3,7] = 0.8
     bdm[3,3] = 0.2
     bdm[6,:] = 0.5
     bdm[6,3] = 0.2
     bdm[6,7] = 0.8
-    lbl = np.zeros((10,10), dtype='uint32')
+    lbl = np.zeros((fs,fs), dtype='uint32')
     lbl[:6, :] = 1
     lbl[7:, :] = 2
 assert lbl.max()>1
@@ -55,10 +57,12 @@ if corner_size > 0:
     bdm = bdm[:corner_size, :corner_size]
 
 # fill label holes
+print "fill boundary hole..."
 utils.fill_boundary_holes( lbl )
 
 # increase boundary width
 if erosion_size>0:
+    print "increase boundary width"
     erosion_structure = np.ones((erosion_size, erosion_size))
     msk = np.copy(lbl>0)
     from scipy.ndimage.morphology import binary_erosion
@@ -66,7 +70,7 @@ if erosion_size>0:
     lbl[msk==False] = 0
 
 # recompile and use cost_fn
-print "compile the cost function..."
+#print "compile the cost function..."
 #os.system('python compile.py cost_fn')
 import cost_fn
 start = time.time()
@@ -168,18 +172,6 @@ grdt = 2 * (bdm-  (lbl>0).astype('float32'))
 # merger and splitter gradient
 mg = grdt * me
 sg = grdt * se
-
-def gradient2rgb(g):
-    # positive part
-    pg = np.zeros(g.shape, g.dtype)
-    pg[g>0] = g[g>0]
-    # negative part
-    ng = np.zeros(g.shape, g.dtype)
-    ng[g<0] = g[g<0]
-    # combine to RGB image
-    cim = combine2rgb(pg, ng)
-    return cim, pg, ng
-
 
 plt.subplot(244)
 #cim,mpg,mng = gradient2rgb(mg)
