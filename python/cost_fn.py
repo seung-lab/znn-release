@@ -337,9 +337,7 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
             if v1 > v2:
                 v1, v2 = v2, v1
                 i1, i2 = i2, i1
-            if v1 > 0:
-                # we only merge the edges with aff>0
-                edges.append((v1, i1, i2))
+            edges.append((v1, i1, i2))
 
     for y in xrange(bdm.shape[1]-1):
         for x in xrange(bdm.shape[0]):
@@ -350,9 +348,8 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
             if v1 > v2:
                 v1, v2 = v2, v1
                 i1, i2 = i2, i1
-            if v1 > 0:
-                # we only merge the edges with aff>0
-                edges.append((v1, i1, i2))
+            edges.append((v1, i1, i2))
+
     # descending sort
     edges.sort(reverse=True)
 
