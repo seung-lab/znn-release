@@ -14,7 +14,7 @@ Dm = 500
 Ds = 500
 
 # make a fake test image
-is_fake = True
+is_fake = False
 
 # whether using constrained malis
 is_constrained = False
