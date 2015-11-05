@@ -163,6 +163,12 @@ public:
     virtual size_t attach_in_fft_edge(size_t, edge*, vec3i const &)
     { UNIMPLEMENTED(); }
 
+    virtual void enable(bool b)
+    {
+        for ( size_t i = 0; i < nodes::size(); ++i )
+            enable(i,b);
+    }
+
     virtual void enable(size_t, bool)
     { UNIMPLEMENTED(); }
 
