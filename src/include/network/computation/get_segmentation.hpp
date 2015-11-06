@@ -31,20 +31,11 @@ inline cube_p<int>
 get_segmentation( std::vector<cube_p<real>> affs,
                   real threshold = 0.5 )
 {
-    // only takes 2D or 3D affinity graph
-    ZI_ASSERT((affs.size()==2)||(affs.size==3));
+    // only takes 3D affinity graph
+    ZI_ASSERT(affs.size==3);
 
     vec3i  s = size(*affs[0]);
     size_t n = s[0]*s[1]*s[2];
-
-    // For 2D affinity graph,
-    // z-affinity is all disconnected
-    if ( affs.size() == 2)
-    {
-        auto r = get_cube<real>(s);
-        fill(*r,0);
-        affs.push_back(r);
-    }
 
     cube<real> const & xaff = *affs[0];
     cube<real> const & yaff = *affs[1];

@@ -39,9 +39,9 @@ make_affinity( cube<int> const & vol, size_t dim = 3 )
     real one  = static_cast<real>(1);
     real zero = static_cast<real>(0);
 
-    for ( size_t x = 0; x < s[2]; ++x )
+    for ( size_t z = 0; z < s[0]; ++z )
         for ( size_t y = 0; y < s[1]; ++y )
-            for ( size_t z = 0; z < s[0]; ++z )
+            for ( size_t x = 0; x < s[2]; ++x )
             {
                 int id = vol[z][y][x];
 
@@ -86,9 +86,9 @@ make_affinity( cube<real> const & vol, size_t dim = 3 )
     real one  = static_cast<real>(1);
     real zero = static_cast<real>(0);
 
-    for ( size_t x = 0; x < s[2]; ++x )
+    for ( size_t z = 0; z < s[0]; ++z )
         for ( size_t y = 0; y < s[1]; ++y )
-            for ( size_t z = 0; z < s[0]; ++z )
+            for ( size_t x = 0; x < s[2]; ++x )
             {
                 if ( x > 0 )
                 {

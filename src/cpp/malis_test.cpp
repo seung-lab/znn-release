@@ -1,13 +1,17 @@
 #include "network/computation/make_affinity.hpp"
 #include "network/computation/get_segmentation.hpp"
+#include "network/computation/zalis.hpp"
+#include "options/options.hpp"
+
+#include <zi/time.hpp>
 #include <zi/zargs/zargs.hpp>
 
 using namespace znn::v4;
 
-namespace malis_test {
+namespace malis_io {
 
 template<typename F, typename T>
-inline cube_p<T> load( std::string const & fname, vec3i const & sz )
+inline cube_p<T> read( std::string const & fname, vec3i const & sz )
 {
     FILE* fvol = fopen(fname.c_str(), "r");
 
@@ -52,53 +56,161 @@ inline bool write( std::string const & fname, cube_p<T> vol )
     return true;
 }
 
+template<typename F, typename T>
+inline bool write_tensor( std::string const & fname,
+                          std::vector<cube_p<T>> vols )
+{
+    FILE* fvol = fopen(fname.c_str(), "w");
+
+    STRONG_ASSERT(fvol);
+
+    F v;
+
+    for ( auto& vol: vols )
+    {
+        vec3i sz = size(*vol);
+        for ( long_t z = 0; z < sz[0]; ++z )
+            for ( long_t y = 0; y < sz[1]; ++y )
+                for ( long_t x = 0; x < sz[2]; ++x )
+                {
+                    v = static_cast<T>((*vol)[z][y][x]);
+                    static_cast<void>(fwrite(&v, sizeof(F), 1, fvol));
+                }
+    }
+
+    fclose(fvol);
+
+    return true;
+}
+
+bool export_size_info( std::string const & fname,
+                       vec3i const & sz, size_t n = 0 )
+{
+    std::string ssz = fname + ".size";
+
+    FILE* fsz = fopen(ssz.c_str(), "w");
+
+    uint32_t v;
+
+    v = static_cast<uint32_t>(sz[2]); // x
+    static_cast<void>(fwrite(&v, sizeof(uint32_t), 1, fsz));
+
+    v = static_cast<uint32_t>(sz[1]); // y
+    static_cast<void>(fwrite(&v, sizeof(uint32_t), 1, fsz));
+
+    v = static_cast<uint32_t>(sz[0]); // z
+    static_cast<void>(fwrite(&v, sizeof(uint32_t), 1, fsz));
+
+    if ( n )
+    {
+        v = static_cast<uint32_t>(n);
+        static_cast<void>(fwrite(&v, sizeof(uint32_t), 1, fsz));
+    }
+
+    fclose(fsz);
+
+    return true;
+}
+
 }
 
 int main(int argc, char** argv)
 {
-    // path to the input volume
-    std::string ifname = argv[1];
+    options op;
+
+    std::string fname(argv[1]);
+
+    parse_option_file(op, fname);
 
     // input volume size
-    int64_t x = atoi(argv[2]);
-    int64_t y = atoi(argv[3]);
-    int64_t z = atoi(argv[4]);
-    vec3i   s = {z,y,x};
+    vec3i s = op.require_as<ovec3i>("size");
 
-    // path to the output volume
-    std::string ofname = argv[5];
+    // I/O paths
+    std::string bfname = op.require_as<std::string>("bmap");
+    std::string lfname = op.require_as<std::string>("lbl");
+    std::string ofname = op.require_as<std::string>("out");
 
-    // affinity graph dimension
-    size_t dim = atoi(argv[6]);
+    // high & low threshold
+    real high = op.optional_as<real>("high","1");
+    real low  = op.optional_as<real>("low","0");
 
-    // load input volume
-    auto bmap = malis_test::load<double,int>(ifname,s);
-#if defined( DEBUG )
-    std::cout << "\n[bmap]\n" << *bmap << std::endl;
-#endif
+    // debug print
+    bool debug_print = op.optional_as<bool>("debug_print","0");
+
+    // load input
+    auto bmap = malis_io::read<double,real>(bfname,s);
+    auto lbl  = malis_io::read<double,int>(lfname,s);
+    if ( debug_print )
+    {
+        std::cout << "\n[bmap]\n" << *bmap << std::endl;
+        std::cout << "\n[lbl]\n"  << *lbl << std::endl;
+    }
 
     // make affinity
-    auto aff = make_affinity( *bmap, dim );
-#if defined( DEBUG )
-    std::cout << "\n[aff]" << std::endl;
-    for ( auto& a: aff )
+    zi::wall_timer wt;
+    wt.reset();
+
+    auto aff      = make_affinity( *bmap );
+    auto true_aff = make_affinity( *lbl );
+
+    std::cout << "\n[make_affinity] done, elapsed: "
+              << wt.elapsed<double>() << " secs" << std::endl;
+
+    if ( debug_print )
     {
-        std::cout << *a << "\n\n";
+        std::cout << "\n[aff]" << std::endl;
+        for ( auto& a: aff )
+        {
+            std::cout << *a << "\n\n";
+        }
+
+        std::cout << "\n[true_aff]" << std::endl;
+        for ( auto& a: true_aff )
+        {
+            std::cout << *a << "\n\n";
+        }
     }
+
+    // ZALIS weight
+    wt.reset();
+
+    auto weight = zalis(true_aff,aff);
+
+    std::cout << "\n[zalis] done, elapsed: "
+              << wt.elapsed<double>() << std::endl;
+
+    if ( debug_print )
+    {
+        std::cout << "\n[merger weight]" << std::endl;
+        for ( auto& w: weight.merger )
+        {
+            std::cout << *w << "\n\n";
+        }
+
+        std::cout << "\n[splitter weight]" << std::endl;
+        for ( auto& w: weight.splitter )
+        {
+            std::cout << *w << "\n\n";
+        }
+    }
+
+    // save results
+    wt.reset();
+
+    // write merger weight
+    malis_io::write_tensor<double,real>(ofname + ".merger",weight.merger);
+    malis_io::export_size_info(ofname + ".merger",s,weight.merger.size());
+
+    // write splitter weight
+    malis_io::write_tensor<double,real>(ofname + ".splitter",weight.splitter);
+    malis_io::export_size_info(ofname + ".splitter",s,weight.splitter.size());
+
+#if defined( DEBUG )
+    // write evolution
+    malis_io::write_tensor<double,int>(ofname + ".evolution",weight.evolution);
+    malis_io::export_size_info(ofname + ".evolution",s,weight.evolution.size());
 #endif
 
-    // connected component segmentation
-    auto seg = get_segmentation( aff );
-#if defined( DEBUG )
-    std::cout << "[seg]\n" << *seg << std::endl;
-#endif
-
-    // write
-    malis_test::write<double,real>(ofname + "xaff.bin",aff[0]);
-    malis_test::write<double,real>(ofname + "yaff.bin",aff[1]);
-    if ( aff.size() == 3 )
-    {
-        malis_test::write<double,real>(ofname + "zaff.bin",aff[2]);
-    }
-    malis_test::write<int,int>(ofname + "seg.bin",seg);
+    std::cout << "\n[save] done, elapsed: "
+              << wt.elapsed<double>() << '\n' << std::endl;
 }

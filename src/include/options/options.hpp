@@ -177,5 +177,24 @@ void parse_net_file( std::vector<options> & nodes,
     }
 }
 
+void parse_option_file( options & op, std::string const & fname )
+{
+    op.clear();
+
+    std::string line;
+    std::ifstream ifs(fname.c_str());
+
+    while ( std::getline(ifs, line) )
+    {
+        if ( line.size() )
+        {
+            std::istringstream iss(line);
+            std::string a, b;
+            iss >> a >> b;
+            op.push(a,b);
+        }
+    }
+}
+
 
 }} // namespace znn::v4
