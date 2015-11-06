@@ -194,8 +194,8 @@ def malis_union(r1, r2, seg, id_sets):
     set1 = id_sets[r1]
     set2 = id_sets[r2]
 
+    # make sure that set1 is larger than set2
     if len(set1) < len(set2):
-        # exchange the two sets
         r1, r2 = r2, r1
         set1, set2 = set2, set1
     # merge the small set to big set
@@ -320,7 +320,7 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
 
     # initialize segmentation with individual id of each voxel
     ids = np.arange(1,bdm.size+1).reshape( bdm.shape )
-    seg = np.copy(ids).flatten()
+    seg = np.arange(1,bdm.size+1)
 
     # create edges: bdm, id1, id2, true label
     # the affinity of neiboring boundary map voxels
@@ -337,11 +337,9 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
             if v1 > v2:
                 v1, v2 = v2, v1
                 i1, i2 = i2, i1
-            if lbl[y,x] and lbl[y,x+1]:
-                t = True
-            else:
-                t = False
-            edges.append((v1, i1, i2, t))
+            if v1 > 0:
+                # we only merge the edges with aff>0
+                edges.append((v1, i1, i2))
 
     for y in xrange(bdm.shape[1]-1):
         for x in xrange(bdm.shape[0]):
@@ -352,17 +350,15 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
             if v1 > v2:
                 v1, v2 = v2, v1
                 i1, i2 = i2, i1
-            if lbl[y,x] and lbl[y+1,x]:
-                t = True
-            else:
-                t = False
-            edges.append((v1, i1, i2, t))
+            if v1 > 0:
+                # we only merge the edges with aff>0
+                edges.append((v1, i1, i2))
     # descending sort
     edges.sort(reverse=True)
 
     # initalize the merge and split errors
-    merr = np.zeros(lbl.size, dtype=bdm.dtype)
-    serr = np.zeros(lbl.size, dtype=bdm.dtype)
+    merr = np.zeros(bdm.size, dtype=bdm.dtype)
+    serr = np.zeros(bdm.size, dtype=bdm.dtype)
     # set of ids
     id_sets = dict()
     # initalize the id sets
@@ -387,20 +383,17 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
         me, se = get_merge_split_errors(set1, set2, lbl)
 
         # deal with the maximin edge
-        if e[0]>threshold:
-            # current segmentation will merge the two sets
-            # accumulate the merging error
-            merr[e[1]-1] = me
-            # merge the two sets
-            seg, id_sets = malis_union(r1,r2, seg, id_sets)
-        else:
-            # current segmentation will leave the two sets splitted
-            # accumulate the spliting error
-            serr[e[1]-1] = se
+        # accumulate the merging error
+        merr[e[1]-1] += me
+        # accumulate the spliting error
+        serr[e[1]-1] += se
+        # merge the two sets
+        seg, id_sets = malis_union(r1,r2, seg, id_sets)
     # normalize the weight
-    merr = merr * ( merr.size*0.5 / np.sum(merr, dtype=bdm.dtype) )
-    serr = serr * ( serr.size*0.5 / np.sum(serr, dtype=bdm.dtype) )
+    merr *= merr.size*0.5 / np.sum(merr, dtype=bdm.dtype)
+    serr *= serr.size*0.5 / np.sum(serr, dtype=bdm.dtype)
     # reshape the err
+
     merr = merr.reshape(bdm.shape)
     serr = serr.reshape(bdm.shape)
     # combine the two error weights
@@ -414,7 +407,7 @@ def get_merge_split_errors(set1, set2, lbl):
 
     Parameters
     ----------
-    set1: set of integers, set of segment ids
+    set1: set of integers, set of pixel ids
     set2: the other set
     lbl: array of integers, ground truth segmentation
 
@@ -431,22 +424,25 @@ def get_merge_split_errors(set1, set2, lbl):
     # label should have multiple segments
     # it is not a binary labeling
     assert(lbl.max()>1)
-    # make lbl flat
-    if lbl.ndim>1:
-        lbl = lbl.flatten()
 
     for i in set1:
-        l1 = lbl[i-1]
-        if d1.has_key(l1):
-            d1[l1].add(i)
-        else:
-            d1[l1] = {i}
+        # get labeled id
+        l1 = lbl.flat[i-1]
+        # skip boundary
+        if l1 > 0:
+            if d1.has_key(l1):
+                d1[l1].add(i)
+            else:
+                d1[l1] = {i}
     for i in set2:
-        l2 = lbl[i-1]
-        if d2.has_key(l2):
-            d2[l2].add(i)
-        else:
-            d2[l2] = {i}
+        # get labeled id
+        l2 = lbl.flat[i-1]
+        # skip boundary
+        if l2 > 0:
+            if d2.has_key(l2):
+                d2[l2].add(i)
+            else:
+                d2[l2] = {i}
     # mergers and spliters
     me = se = 0
     for l1, s1 in d1.iteritems():

@@ -44,15 +44,13 @@ range_optionname = 'forward_range'
 outsz_optionname = 'forward_outsz'
 
 
-def config_forward_pass( config_filename, verbose=True, sample_ids=None ):
+def config_forward_pass( config, params, verbose=True, sample_ids=None ):
     '''
     Performs a full forward pass for all samples specified within
     a configuration file
 
     sample_ids should be a list of ints describing the samples to run
     '''
-    # parameters
-    config, params = front_end.parser( config_filename )
     # set command line sample ids
     if sample_ids is not None:
         params[range_optionname] = sample_ids
@@ -197,7 +195,7 @@ def main( config_filename, sample_ids=None ):
 
     for sample_id in sample_ids:
 
-    	output_volume = config_forward_pass( config_filename, verbose=True, sample_ids=[sample_id])
+    	output_volume = config_forward_pass( config, params, verbose=True, sample_ids=[sample_id])
 
     	print "Saving Output Volume %d..." % sample_id
     	save_sample_outputs( output_volume, params[output_prefix_optionname] )
