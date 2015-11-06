@@ -55,7 +55,7 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
     cluster_id = 0
 
     # sleep interval (secs)
-    sleep_interval = 1 * 60
+    sleep_interval = 10 * 60
 
     #%% configuration
     cfg = config.get_config( sc_cfg )
