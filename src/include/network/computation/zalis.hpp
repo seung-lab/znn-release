@@ -64,6 +64,14 @@ zalis( std::vector<cube_p<real>> true_affs,
     auto ysw = get_cube<real>(s); fill(*ysw,0); sw.push_back(ysw);
     auto zsw = get_cube<real>(s); fill(*zsw,0); sw.push_back(zsw);
 
+#if defined( DEBUG )
+    // timestamp
+    std::vector<cube_p<int>> ts;
+    auto xts = get_cube<int>(s); fill(*xts,0); ts.push_back(xts);
+    auto yts = get_cube<int>(s); fill(*yts,0); ts.push_back(yts);
+    auto zts = get_cube<int>(s); fill(*zts,0); ts.push_back(zts);
+#endif
+
     // data structures for computing merger & splitter weight
     zi::disjoint_sets<uint32_t>     sets(n+1);
     std::vector<uint32_t>           sizes(n+1);
@@ -86,8 +94,12 @@ zalis( std::vector<cube_p<real>> true_affs,
         }
     }
 
+#if defined( DEBUG )
+    typedef boost::tuple<real,uint32_t,uint32_t,real*,real*,int*> edge_type;
+#else
     // (affinity value, vertex 1, vertex 2, merger weight, splitter weight)
     typedef boost::tuple<real,uint32_t,uint32_t,real*,real*> edge_type;
+#endif
     typedef std::greater<edge_type> edge_compare;
 
     std::vector<edge_type> edges;
@@ -103,9 +115,16 @@ zalis( std::vector<cube_p<real>> true_affs,
 
                     if ( affinity > low )
                     {
+#if defined( DEBUG )
+                        edges.push_back(edge_type(affinity, ids[z][y][x-1],
+                                              ids[z][y][x], &((*xmw)[z][y][x]),
+                                              &((*xsw)[z][y][x]),
+                                              &((*xts)[z][y][x])));
+#else
                         edges.push_back(edge_type(affinity, ids[z][y][x-1],
                                               ids[z][y][x], &((*xmw)[z][y][x]),
                                               &((*xsw)[z][y][x])));
+#endif
                     }
                 }
 
@@ -115,9 +134,16 @@ zalis( std::vector<cube_p<real>> true_affs,
 
                     if ( affinity > low )
                     {
+#if defined( DEBUG )
+                        edges.push_back(edge_type(affinity, ids[z][y-1][x],
+                                              ids[z][y][x], &((*ymw)[z][y][x]),
+                                              &((*ysw)[z][y][x]),
+                                              &((*yts)[z][y][x])));
+#else
                         edges.push_back(edge_type(affinity, ids[z][y-1][x],
                                               ids[z][y][x], &((*ymw)[z][y][x]),
                                               &((*ysw)[z][y][x])));
+#endif
                     }
                 }
 
@@ -127,9 +153,16 @@ zalis( std::vector<cube_p<real>> true_affs,
 
                     if ( affinity > low )
                     {
+#if defined( DEBUG )
+                        edges.push_back(edge_type(affinity, ids[z-1][y][x],
+                                              ids[z][y][x], &((*zmw)[z][y][x]),
+                                              &((*zsw)[z][y][x]),
+                                              &((*zts)[z][y][x])));
+#else
                         edges.push_back(edge_type(affinity, ids[z-1][y][x],
                                               ids[z][y][x], &((*zmw)[z][y][x]),
                                               &((*zsw)[z][y][x])));
+#endif
                     }
                 }
             }
@@ -146,8 +179,12 @@ zalis( std::vector<cube_p<real>> true_affs,
             for ( size_t x = 0; x < s[2]; ++x )
                 (*ws)[z][y][x] = sets.find_set(ids[z][y][x]);
 
-    std::vector<cube_p<int>> ws_vec;
-    ws_vec.push_back(ws);
+    std::vector<cube_p<int>> ws_snapshots;
+    ws_snapshots.push_back(ws);
+
+    size_t timestamp = 0;
+    std::vector<int> ws_timestamp;
+    ws_timestamp.push_back(timestamp);
 #endif
 
     for ( auto& e: edges )
@@ -198,6 +235,19 @@ zalis( std::vector<cube_p<real>> true_affs,
 
 #if defined( DEBUG )
             bool is_singleton = (sizes[set1] == 1) || (sizes[set2] == 1);
+
+            // // before merging non-singleton watershed domains
+            // if ( !is_singleton && timestamp > ws_timestamp.back() )
+            // {
+            //     auto ws = get_cube<int>(s);
+            //     for ( size_t z = 0; z < s[0]; ++z )
+            //         for ( size_t y = 0; y < s[1]; ++y )
+            //             for ( size_t x = 0; x < s[2]; ++x )
+            //                 (*ws)[z][y][x] = sets.find_set(ids[z][y][x]);
+
+            //     ws_snapshots.push_back(ws);
+            //     ws_timestamp.push_back(timestamp);
+            // }
 #endif
 
             uint32_t new_set = sets.join(set1, set2);
@@ -214,8 +264,10 @@ zalis( std::vector<cube_p<real>> true_affs,
             std::swap(contains[new_set], contains[set1]);
 
 #if defined( DEBUG )
-            // if ( !is_singleton )
-            if ( true )
+            *(e.get<5>()) = ++timestamp; // timestamp
+
+            // after merging non-singleton watershed domains
+            if ( !is_singleton )
             {
                 auto ws = get_cube<int>(s);
                 for ( size_t z = 0; z < s[0]; ++z )
@@ -223,7 +275,8 @@ zalis( std::vector<cube_p<real>> true_affs,
                         for ( size_t x = 0; x < s[2]; ++x )
                             (*ws)[z][y][x] = sets.find_set(ids[z][y][x]);
 
-                ws_vec.push_back(ws);
+                ws_snapshots.push_back(ws);
+                ws_timestamp.push_back(timestamp);
             }
 #endif
         }
@@ -231,8 +284,10 @@ zalis( std::vector<cube_p<real>> true_affs,
 
     zalis_weight ret(mw,sw);
 #if defined( DEBUG )
-    ret.evolution = ws_vec;
-    std::cout << "[evolution step] = " << ws_vec.size() << std::endl;
+    ret.ws_snapshots = ws_snapshots;
+    ret.ws_timestamp = ws_timestamp;
+    ret.timestamp    = ts;
+    std::cout << "[ws_snapshots] = " << ws_snapshots.size() << std::endl;
 #endif
 
     return ret;

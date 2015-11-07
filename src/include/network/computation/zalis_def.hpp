@@ -22,20 +22,26 @@
 
 namespace znn { namespace v4 {
 
+enum class zalis_phase : std::uint8_t {BOTH = 0, MERGER = 1, SPLITTER = 2};
+
 struct zalis_weight
 {
     std::vector<cube_p<real>>   merger;
     std::vector<cube_p<real>>   splitter;
 
 #if defined( DEBUG )
-    std::vector<cube_p<int>>    evolution;
+    std::vector<cube_p<int>>    ws_snapshots;
+    std::vector<int>            ws_timestamp;
+    std::vector<cube_p<int>>    timestamp;
 #endif
 
     zalis_weight(std::vector<cube_p<real>> m, std::vector<cube_p<real>> s)
         : merger(m)
         , splitter(s)
 #if defined( DEBUG )
-        , evolution()
+        , ws_snapshots()
+        , ws_timestamp()
+        , timestamp()
 #endif
     {}
 };
