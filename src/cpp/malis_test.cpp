@@ -182,6 +182,9 @@ int main(int argc, char** argv)
     // constrained
     bool is_constrained = op.optional_as<bool>("constrain","0");
 
+    // fraction normalize
+    bool is_frac_norm = op.optional_as<bool>("frac_norm","0");
+
     // debug print
     bool debug_print = op.optional_as<bool>("debug_print","0");
 
@@ -251,7 +254,7 @@ int main(int argc, char** argv)
     // ---------------------------------------------------------------
     wt.reset();
 
-    auto weight = zalis(true_affs,affs,high,low);
+    auto weight = zalis(true_affs, affs, high, low, is_frac_norm);
 
     std::cout << "\n[zalis] done, elapsed: "
               << wt.elapsed<double>() << std::endl;

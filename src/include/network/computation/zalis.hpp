@@ -35,7 +35,8 @@ inline zalis_weight
 zalis( std::vector<cube_p<real>> true_affs,
        std::vector<cube_p<real>> affs,
        real high = 0.99,
-       real low  = 0.01 )
+       real low  = 0.01,
+       bool frac_norm = false )
 {
     ZI_ASSERT(affs.size()==3);
     ZI_ASSERT(true_affs.size()==affs.size());
@@ -194,35 +195,41 @@ zalis( std::vector<cube_p<real>> true_affs,
 
         if ( set1 != set2 )
         {
-            size_t n_same_pair = 0;
-            size_t n_diff_pair = sizes[set1] * sizes[set2];
+            real n_same_pair = 0;
+            real n_diff_pair = 0;
 
-            for ( auto& contain: contains[set1] )
+            // each segment fraction in watershed domain A
+            for ( auto& seg1: contains[set1] )
             {
-                uint32_t segID   = contain.first;
-                uint32_t segsize = contain.second;
+                uint32_t segID1   = seg1.first;
+                real     segsize1 = seg1.second;
 
-                // boundary in A
-                if ( segID == 0 )
+                // fraction normalize
+                if ( frac_norm ) segsize1 /= seg_sizes[segID1];
+
+                // skip boundary
+                if ( segID1 == 0 ) continue;
+
+                // each segment fraction in watershed domain B
+                for ( auto& seg2: contains[set2] )
                 {
-                    size_t pairs = segsize * sizes[set2];
-                    n_diff_pair -= pairs;
-                }
-                else
-                {
-                    // same segments in both A and B
-                    if ( contains[set2].find(segID) != contains[set2].end() )
+                    uint32_t segID2   = seg2.first;
+                    real     segsize2 = seg2.second;
+
+                    // fraction normalize
+                    if ( frac_norm ) segsize2 /= seg_sizes[segID2];
+
+                    // skip boundary
+                    if ( segID2 == 0 ) continue;
+
+                    // a pair of fractions belongs to the same segment
+                    if ( segID1 == segID2 )
                     {
-                        size_t pairs = segsize * contains[set2][segID];
-                        n_diff_pair -= pairs;
-                        n_same_pair += pairs;
+                        n_same_pair += segsize1 * segsize2;
                     }
-
-                    // boundary in B
-                    if ( contains[set2].find(0) != contains[set2].end() )
+                    else
                     {
-                        size_t pairs = segsize * contains[set2][0];
-                        n_diff_pair -= pairs;
+                        n_diff_pair += segsize1 * segsize2;
                     }
                 }
             }
