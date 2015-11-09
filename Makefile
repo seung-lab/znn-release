@@ -18,6 +18,12 @@ endif
 test: $(SFL)
 	$(CPP) -o $(ODIR)/test $(SFL) $(CPP_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(OTH_FLAGS) $(LIBS)
 
+malis:
+	$(CPP) -o $(ODIR)/malis src/cpp/malis_test.cpp $(CPP_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(OTH_FLAGS) $(LIBS) -Wno-unused-result
+
+malis_debug:
+	$(CPP) -o $(ODIR)/malis_debug src/cpp/malis_test.cpp $(CPP_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(OTH_FLAGS) $(LIBS) -Wno-unused-result -DDEBUG
+
 .PHONY: clean
 
 mkl: $(SFL)

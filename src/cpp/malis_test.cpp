@@ -151,7 +151,9 @@ int main(int argc, char** argv)
     vec3i s = op.require_as<ovec3i>("size");
 
     // I/O paths
-    std::string bfname = op.require_as<std::string>("bmap");
+    std::string xfname = op.require_as<std::string>("xaff");
+    std::string yfname = op.require_as<std::string>("yaff");
+    std::string zfname = op.require_as<std::string>("zaff");
     std::string lfname = op.require_as<std::string>("lbl");
     std::string ofname = op.require_as<std::string>("out");
 
@@ -189,12 +191,16 @@ int main(int argc, char** argv)
     bool debug_print = op.optional_as<bool>("debug_print","0");
 
     // load input
-    auto bmap = malis_io::read<double,real>(bfname,s);
+    auto xaff = malis_io::read<double,real>(xfname,s);
+    auto yaff = malis_io::read<double,real>(yfname,s);
+    auto zaff = malis_io::read<double,real>(zfname,s);
     auto lbl  = malis_io::read<double,int>(lfname,s);
 
     if ( debug_print )
     {
-        std::cout << "\n[bmap]\n" << *bmap << std::endl;
+        std::cout << "\n[xaff]\n" << *xaff << std::endl;
+        std::cout << "\n[yaff]\n" << *yaff << std::endl;
+        std::cout << "\n[zaff]\n" << *zaff << std::endl;
         std::cout << "\n[lbl]\n"  << *lbl << std::endl;
     }
 
@@ -204,7 +210,11 @@ int main(int argc, char** argv)
     zi::wall_timer wt;
     wt.reset();
 
-    auto affs      = make_affinity( *bmap );
+    std::vector<cube_p<real>> affs;
+    affs.push_back(xaff);
+    affs.push_back(yaff);
+    affs.push_back(zaff);
+
     auto true_affs = make_affinity( *lbl );
 
     std::cout << "\n[make_affinity] done, elapsed: "
