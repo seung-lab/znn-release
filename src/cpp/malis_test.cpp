@@ -1,7 +1,7 @@
-#include "network/computation/make_affinity.hpp"
-#include "network/computation/get_segmentation.hpp"
-#include "network/computation/zalis.hpp"
-#include "network/computation/constrain_affinity.hpp"
+#include "computation_graph/computation/make_affinity.hpp"
+#include "computation_graph/computation/get_segmentation.hpp"
+#include "computation_graph/computation/zalis.hpp"
+#include "computation_graph/computation/constrain_affinity.hpp"
 #include "options/options.hpp"
 #include "network/parallel/nodes.hpp"
 
