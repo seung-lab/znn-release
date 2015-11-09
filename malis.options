@@ -1,0 +1,6 @@
+size 1,10,10
+xaff ./test/malis/data/phantom/xaff.bin
+yaff ./test/malis/data/phantom/yaff.bin
+zaff ./test/malis/data/phantom/zaff.bin
+lbl ./test/malis/data/phantom/label.bin
+out ./test/malis/out
