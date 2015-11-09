@@ -168,7 +168,7 @@ def softmax_loss2(props, lbls):
 # TO-DO
 
 
-def malis_weight_aff(affs, true_affs, threshold=0.5):
+def malis_weight_aff(affs, true_affs, Dim = 3, threshold=0.5):
     """
     compute malis tree_size
 
@@ -176,6 +176,7 @@ def malis_weight_aff(affs, true_affs, threshold=0.5):
     -----------
     affs:      4D array of forward pass output affinity graphs, size: C*Z*Y*X
     true_affs : 4d array of ground truth affinity graph
+    Dim: dimension
     threshold: threshold for segmentation
 
     Return:
@@ -184,38 +185,34 @@ def malis_weight_aff(affs, true_affs, threshold=0.5):
     """
     # segment the true affinity graph
     tseg = emirt.volume_util.aff2seg(true_affs)
-    tid_sets, tsegf = emirt.volume_util.map_set( tseg )
 
-    if isinstance(affs, dict):
-        assert( len(affs.keys())==1 )
-        key = affs.keys()[0]
-        affs = affs.values()[0]
     # get affinity graphs
     xaff = affs[2]
     yaff = affs[1]
     zaff = affs[0]
-    shape = xaff.shape
 
-    # initialize segmentation with individual label of each voxel
-    seg_shp = np.asarray(xaff.shape)+1
-    N = np.prod( seg_shp )
-    ids = np.arange(1, N+1).reshape( seg_shp )
-    seg = np.copy( ids ).flatten()
+    # voxel ids
+    vids = np.arange( xaff.size )
 
     # initialize edges: aff, id1, id2, z/y/x, true_aff
     edges = list()
-    for z in xrange(shape[0]):
-        for y in xrange(shape[1]):
-            for x in xrange(1,shape[2]):
-                edges.append( (xaff[z,y,x], ids[z,y,x], ids[z,y,x-1], 2) )
-    for z in xrange(shape[0]):
-        for y in xrange(1,shape[1]):
-            for x in xrange(shape[2]):
-                edges.append( (yaff[z,y,x], ids[z,y,x], ids[z,y-1,x], 1) )
-    for z in xrange(1,shape[0]):
-        for y in xrange(shape[1]):
-            for x in xrange(shape[2]):
-                edges.append( (zaff[z,y,x], ids[z,y,x], ids[z-1,y,x], 0) )
+    # x affinity edge
+    for z in xrange( xaff.shape[0] ):
+        for y in xrange( xaff.shape[1] ):
+            for x in xrange( 1, xaff.shape[2] ):
+                edges.append( (xaff[z,y,x], ids[z,y,x], ids[z,y,x-1], 2,z,y,x) )
+    # y affinity edge
+    for z in xrange( yaff.shape[0] ):
+        for y in xrange( 1, yaff.shape[1] ):
+            for x in xrange( yaff.shape[2] ):
+                edges.append( (yaff[z,y,x], ids[z,y,x], ids[z,y-1,x], 1,z,y,x) )
+    # do not include z affinity edge for 2D affinity
+    if Dim==3:
+        # z affinity edge
+        for z in xrange( 1, zaff.shape[0] ):
+            for y in xrange( zaff.shape[1] ):
+                for x in xrange( zaff.shape[2] ):
+                    edges.append( (zaff[z,y,x], ids[z,y,x], ids[z-1,y,x], 0,z,y,x) )
     # descending sort
     edges.sort(reverse=True)
 
@@ -231,13 +228,17 @@ def malis_weight_aff(affs, true_affs, threshold=0.5):
         # voxel ids
         vid1 = e[1]
         vid2 = e[2]
+        c = e[-4]
+        z = e[-3]
+        y = e[-2]
+        x = e[-1]
         # union the domains
         me, se = dms.union( vid1, vid2 )
 
         # deal with the maiximin edge
         # accumulate the merging error
-        merr += me
-        serr += se
+        merr[c,z,y,x] += me
+        serr[c,z,y,x] += se
 
     # reshape the error
     merr = merr.reshape(affs.shape)
@@ -247,9 +248,6 @@ def malis_weight_aff(affs, true_affs, threshold=0.5):
     w = (merr + serr)
     return w
 
-
-def malis_weight_aff_2D( bdm, lbl, threshold=0.5 ):
-    return
 
 def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     """
