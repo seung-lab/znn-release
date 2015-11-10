@@ -104,9 +104,7 @@ def main( conf_file='config.cfg', logfile=None ):
             lc = test.znn_test(net, pars, smp_tst, vn, i, lc)
 
         if i%pars['Num_iter_per_show']==0:
-            # anneal factor
-            eta = eta * pars['anneal_factor']
-            net.set_eta(eta)
+
             # normalize
             err = err / vn / pars['Num_iter_per_show']
             cls = cls / vn / pars['Num_iter_per_show']
@@ -141,6 +139,11 @@ def main( conf_file='config.cfg', logfile=None ):
             cls = 0
             # reset time
             start = time.time()
+
+        if i%pars['Num_iter_per_annealing']==0:
+            # anneal factor
+            eta = eta * pars['anneal_factor']
+            net.set_eta(eta)
 
         if i%pars['Num_iter_per_save']==0:
             # save network

@@ -644,13 +644,25 @@ class ConfigOutputLabel(ConfigImage):
         for z in xrange(Z-1):
             for y in xrange(Y-1):
                 for x in xrange(X-1):
-                    if msk[0,z,y,x]>0:
-                        if msk[0,z+1,y,x]>0:
+                    #Current affinity convention
+                    if msk[0,z+1,y+1,x+1]>0:
+
+                        if msk[0,z,y+1,x+1]>0:
                             ret[0,z,y,x] = 1
-                        if msk[0,z,y+1,x]>0:
+
+                        if msk[0,z+1,y,x+1]>0:
                             ret[1,z,y,x] = 1
-                        if msk[0,z,y,x+1]>0:
+
+                        if msk[0,z+1,y+1,x]>0:
                             ret[2,z,y,x] = 1
+                    #Current watershed convention
+                    # if msk[0,z,y,x]>0:
+                    #     if msk[0,z+1,y,x]>0:
+                    #         ret[0,z,y,x] = 1
+                    #     if msk[0,z,y+1,x]>0:
+                    #         ret[1,z,y,x] = 1
+                    #     if msk[0,z,y,x+1]>0:
+                    #         ret[2,z,y,x] = 1
         return ret
 
     def _rebalance_aff(self):
