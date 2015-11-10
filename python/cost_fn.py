@@ -168,7 +168,7 @@ def softmax_loss2(props, lbls):
 # TO-DO
 
 
-def malis_weight_aff(affs, true_affs, Dim = 3, threshold=0.5):
+def malis_weight_aff(affs, true_affs, Dim = 3):
     """
     compute malis tree_size
 
@@ -200,19 +200,19 @@ def malis_weight_aff(affs, true_affs, Dim = 3, threshold=0.5):
     for z in xrange( xaff.shape[0] ):
         for y in xrange( xaff.shape[1] ):
             for x in xrange( 1, xaff.shape[2] ):
-                edges.append( (xaff[z,y,x], ids[z,y,x], ids[z,y,x-1], 2,z,y,x) )
+                edges.append( (xaff[z,y,x], vids[z,y,x], vids[z,y,x-1], 2,z,y,x) )
     # y affinity edge
     for z in xrange( yaff.shape[0] ):
         for y in xrange( 1, yaff.shape[1] ):
             for x in xrange( yaff.shape[2] ):
-                edges.append( (yaff[z,y,x], ids[z,y,x], ids[z,y-1,x], 1,z,y,x) )
+                edges.append( (yaff[z,y,x], vids[z,y,x], vids[z,y-1,x], 1,z,y,x) )
     # do not include z affinity edge for 2D affinity
     if Dim==3:
         # z affinity edge
         for z in xrange( 1, zaff.shape[0] ):
             for y in xrange( zaff.shape[1] ):
                 for x in xrange( zaff.shape[2] ):
-                    edges.append( (zaff[z,y,x], ids[z,y,x], ids[z-1,y,x], 0,z,y,x) )
+                    edges.append( (zaff[z,y,x], vids[z,y,x], vids[z-1,y,x], 0,z,y,x) )
     # descending sort
     edges.sort(reverse=True)
 
@@ -246,7 +246,7 @@ def malis_weight_aff(affs, true_affs, Dim = 3, threshold=0.5):
 
     # combine the two error weights
     w = (merr + serr)
-    return w
+    return w, merr, serr
 
 
 def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
@@ -369,6 +369,8 @@ def malis_weight_bdm(bdm, lbl, threshold=0.5):
     Return
     ------
     weights: 3D or 4D array, the malis weights
+    merr: merger error
+    serr: splitter error
     """
     assert(bdm.shape==lbl.shape)
     assert(bdm.ndim==4 or bdm.ndim==3)
@@ -384,14 +386,20 @@ def malis_weight_bdm(bdm, lbl, threshold=0.5):
 
     # initialize the weights
     weights = np.empty(bdm.shape, dtype=bdm.dtype)
+    merr = np.empty(bdm.shape, dtype=bdm.dtype)
+    serr = np.empty(bdm.shape, dtype=bdm.dtype)
+
     # traverse along the z axis
     for z in xrange(bdm.shape[1]):
-        w = malis_weight_bdm_2D(bdm0[z,:,:], lbl0[z,:,:], threshold)
+        w, me, se = malis_weight_bdm_2D(bdm0[z,:,:], lbl0[z,:,:], threshold)
         for c in xrange(bdm.shape[0]):
             weights[c,z,:,:] = w
+            merr[c,z,:,:] = me
+            serr[c,z,:,:] = se
     weights = weights.reshape( original_shape )
-
-    return weights
+    merr = merr.reshape( original_shape )
+    serr = serr.reshape( original_shape )
+    return weights, merr, serr
 
 def malis_weight(props, lbls):
     """
@@ -399,13 +407,14 @@ def malis_weight(props, lbls):
     """
     ret = dict()
     for name, prop in props.iteritems():
+        assert prop.ndim==4
         lbl = lbls[name]
         if prop.shape[0]==3:
             # affinity output
-            ret[name] = malis_weight_aff(prop, lbl)
+            ret[name], merr, serr = malis_weight_aff(prop, lbl)
         else:
             # take it as boundary map
-            ret[name] = malis_weight_bdm(prop, lbl)
+            ret[name], merr, serr = malis_weight_bdm(prop, lbl)
     return ret
 
 def sparse_cost(outputs, labels, cost_fn):

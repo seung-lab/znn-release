@@ -1,7 +1,3 @@
-
-/*
-*/
-
 //===========================================================================
 // INCLUDE STATEMENTS
 // boost python
@@ -22,7 +18,7 @@
 namespace bp = boost::python;
 namespace np = boost::numpy;
 
-namespace znn { namespace v4 { 
+namespace znn { namespace v4 {
 //===========================================================================
 
 //Converts std::vector<std::size_t> vector to tuple of std::size_t

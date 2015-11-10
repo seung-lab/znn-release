@@ -526,7 +526,7 @@ class ConfigOutputLabel(ConfigImage):
         assert(lbl.shape[0] == 1)
 
         # fill the contacting segments with boundaries
-        lbl[0,:,:,:] = utils.fill_boundary( lbl[0,:,:,:] )
+        lbl[0,:,:,:] = utils.fill_boundary_holes( lbl[0,:,:,:] )
 
         ret = np.empty((2,)+ lbl.shape[1:4], dtype= self.pars['dtype'])
         ret[0, :,:,:] = (lbl[0,:,:,:]>0).astype(self.pars['dtype'])
