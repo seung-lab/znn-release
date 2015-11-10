@@ -43,6 +43,35 @@ inline cube_p<T> read( std::string const & fname, vec3i const & sz )
     return ret;
 }
 
+inline bool export_size_info( std::string const & fname,
+                              vec3i const & sz, size_t n = 0 )
+{
+    std::string ssz = fname + ".size";
+
+    FILE* fsz = fopen(ssz.c_str(), "w");
+
+    uint32_t v;
+
+    v = static_cast<uint32_t>(sz[2]); // x
+    static_cast<void>(fwrite(&v, sizeof(uint32_t), 1, fsz));
+
+    v = static_cast<uint32_t>(sz[1]); // y
+    static_cast<void>(fwrite(&v, sizeof(uint32_t), 1, fsz));
+
+    v = static_cast<uint32_t>(sz[0]); // z
+    static_cast<void>(fwrite(&v, sizeof(uint32_t), 1, fsz));
+
+    if ( n )
+    {
+        v = static_cast<uint32_t>(n);
+        static_cast<void>(fwrite(&v, sizeof(uint32_t), 1, fsz));
+    }
+
+    fclose(fsz);
+
+    return true;
+}
+
 template<typename F, typename T>
 inline bool write( std::string const & fname, cube_p<T> vol )
 {
@@ -78,7 +107,7 @@ inline bool write_tensor( std::string const & fname,
 
     F v;
 
-    vec3i const & sz = size(*vol[0]);
+    vec3i const & sz = size(*vols[0]);
     for ( auto& vol: vols )
     {
         ZI_ASSERT(size(*vol)==sz);
@@ -94,35 +123,6 @@ inline bool write_tensor( std::string const & fname,
     fclose(fvol);
 
     return export_size_info(fname, sz, vols.size());
-}
-
-bool export_size_info( std::string const & fname,
-                       vec3i const & sz, size_t n = 0 )
-{
-    std::string ssz = fname + ".size";
-
-    FILE* fsz = fopen(ssz.c_str(), "w");
-
-    uint32_t v;
-
-    v = static_cast<uint32_t>(sz[2]); // x
-    static_cast<void>(fwrite(&v, sizeof(uint32_t), 1, fsz));
-
-    v = static_cast<uint32_t>(sz[1]); // y
-    static_cast<void>(fwrite(&v, sizeof(uint32_t), 1, fsz));
-
-    v = static_cast<uint32_t>(sz[0]); // z
-    static_cast<void>(fwrite(&v, sizeof(uint32_t), 1, fsz));
-
-    if ( n )
-    {
-        v = static_cast<uint32_t>(n);
-        static_cast<void>(fwrite(&v, sizeof(uint32_t), 1, fsz));
-    }
-
-    fclose(fsz);
-
-    return true;
 }
 
 }} // namespace znn::v4
