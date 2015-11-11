@@ -19,7 +19,7 @@ def get_params():
     pars['is_affinity'] = True
 
     # make a fake test image
-    pars['is_fake'] = True
+    pars['is_fake'] = False
 
     # use aleks malis
     pars['is_aleks'] = True
@@ -44,9 +44,10 @@ def exchange_x_z( affs ):
     affs[2,:,:,:] = np.copy( tmp )
     return affs
 
-def aleks_malis(affs, true_affs):
+def aleks_malis(affs, lbl):
     import pymalis
 
+    true_affs = emirt.volume_util.seg2aff( lbl )
     # exchange x and z
     affs = exchange_x_z( affs )
     true_affs = exchange_x_z( true_affs )
@@ -99,6 +100,25 @@ def constrained_aleks_malis(affs, lbl, threshold=0.5):
     w = mme + sse
     return (w, mme, sse)
 
+def make_edge_unique( affs ):
+    """
+    make xy affinity edge unique
+    """
+    step = 0.0
+    # y affinity
+    for z in xrange( affs.shape[1] ):
+        for y in xrange( 1, affs.shape[2] ):
+            for x in xrange( affs.shape[3] ):
+                step += 1
+                affs[1,z,y,x] -= 0.00001 * step
+    # x affinity
+    for z in xrange( affs.shape[1] ):
+        for y in xrange( affs.shape[2] ):
+            for x in xrange( 1, affs.shape[3] ):
+                step += 1
+                affs[2,z,y,x] -= 0.00001 * step
+    return affs
+
 if __name__ == "__main__":
     # get the parameters
     pars = get_params()
@@ -110,7 +130,8 @@ if __name__ == "__main__":
         # transform to affinity map
         data = emirt.volume_util.bdm2aff( data )
         true_affs = emirt.volume_util.seg2aff( lbl.reshape((1,)+lbl.shape) )
-
+        if pars['is_fake']:
+            data = make_edge_unique( data )
     # recompile and use cost_fn
     #print "compile the cost function..."
     #os.system('python compile.py cost_fn')
@@ -126,6 +147,8 @@ if __name__ == "__main__":
         if pars['is_aleks']:
             print "normal malis with aleks version..."
             w, me, se = aleks_bin_malis(data, lbl)
+            me = exchange_x_z( me )
+            se = exchange_x_z( se )
         else:
             print "normal malis weight with python version..."
             print "true_affs: ", true_affs

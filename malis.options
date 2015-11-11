@@ -4,3 +4,7 @@ yaff ./experiments/malis/yaff.bin
 zaff ./experiments/malis/zaff.bin
 lbl ./experiments/malis/label.bin
 out ./experiments/malis/out
+
+phase BOTH
+constrain 0
+frac_norm 0
