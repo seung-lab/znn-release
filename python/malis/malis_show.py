@@ -57,15 +57,77 @@ def disk_plot(e, D, DrTh, color='g'):
 
 
 def plot_aff( pars, affs, lbl, me, se):
+    # parameters
+    eps = pars['eps']
+    Dm = pars['Dm']
+    Ds = pars['Ds']
+    DrTh = pars['DrTh']
+
+    # the values
     yaff = affs[1,0,:,:]
     xaff = affs[2,0,:,:]
 
+    yme = me[1,0,:,:]
+    xme = me[2,0,:,:]
+
+    yse = se[1,0,:,:]
+    xse = se[2,0,:,:]
+
+    # 1st column show affinity
     plt.subplot(251)
     plt.imshow(yaff, cmap='gray', interpolation='nearest')
-    plt.label('y affinity')
+    plt.xlabel('y affinity')
     plt.subplot(256)
     plt.imshow(xaff, cmap='gray', interpolation='nearest')
-    plt.label('x affinity')
+    plt.xlabel('x affinity')
+
+    # 2nd column show y directional error in log scale
+    rgbmyl = combine2rgb( 1-yaff, np.log(yme+eps) )
+    plt.subplot(252)
+    plt.imshow( rgbmyl, interpolation='nearest' )
+    plt.xlabel('y affinity (red) and ln(merger)')
+
+    rgbsyl = combine2rgb( 1-yaff, np.log(yse+eps) )
+    plt.subplot(257)
+    plt.imshow( rgbsyl, interpolation='nearest' )
+    plt.xlabel('y affinity (red) and ln(splitter)')
+
+    # 3rd column show x directional error in log scale
+    rgbmxl = combine2rgb( 1-xaff, np.log(xme+eps) )
+    plt.subplot(253)
+    plt.imshow( rgbmxl, interpolation='nearest' )
+    plt.xlabel('x affinity (red) and ln(merger)')
+
+    rgbsxl = combine2rgb( 1-xaff, np.log(xse+eps) )
+    plt.subplot(258)
+    plt.imshow( rgbsxl, interpolation='nearest' )
+    plt.xlabel('x affinity (red) and ln(splitter)')
+
+    # 4th column show y directional error using disks
+    rgby = combine2rgb( 1-yaff )
+    plt.subplot(254)
+    plt.imshow(rgby, interpolation='nearest')
+    disk_plot(yme, Dm, DrTh)
+    plt.xlabel('combine yaff and merger weights')
+
+    plt.subplot(259)
+    plt.imshow(rgby, interpolation='nearest')
+    disk_plot(yse, Dm, DrTh)
+    plt.xlabel('combine yaff and splitter weights')
+
+    # 5th column show x directional error using disks
+    rgbx = combine2rgb( 1-xaff )
+    plt.subplot(255)
+    plt.imshow(rgbx, interpolation='nearest')
+    disk_plot(xme, Dm, DrTh)
+    plt.xlabel('combine xaff and merger weights')
+
+    plt.subplot(2,5,10)
+    plt.imshow(rgbx, interpolation='nearest')
+    disk_plot(xse, Dm, DrTh)
+    plt.xlabel('combine xaff and splitter weights')
+
+    plt.show()
 
 def plot_bdm( pars, bdm, lbl, me, se, mbdm=None, sbdm=None):
     is_constrained = pars['is_constrained']

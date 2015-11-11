@@ -183,16 +183,19 @@ def malis_weight_aff(affs, true_affs, Dim = 3):
     ------
     weights : 4D array of weights
     """
+    print "affinity shape: ", affs.shape
     # segment the true affinity graph
     tseg = emirt.volume_util.aff2seg(true_affs)
 
+    print "true segmentation: ", tseg
+
     # get affinity graphs
-    xaff = affs[2]
-    yaff = affs[1]
-    zaff = affs[0]
+    xaff = affs[2,:,:,:]
+    yaff = affs[1,:,:,:]
+    zaff = affs[0,:,:,:]
 
     # voxel ids
-    vids = np.arange( xaff.size )
+    vids = np.arange( xaff.size, dtype='uint32' ).reshape( xaff.shape )
 
     # initialize edges: aff, id1, id2, z/y/x, true_aff
     edges = list()
@@ -217,8 +220,8 @@ def malis_weight_aff(affs, true_affs, Dim = 3):
     edges.sort(reverse=True)
 
     # find the maximum-spanning tree based on union-find algorithm
-    merr = np.zeros( affs.size, dtype=affs.dtype )
-    serr = np.zeros( affs.size, dtype=affs.dtype )
+    merr = np.zeros( affs.shape, dtype=affs.dtype )
+    serr = np.zeros( affs.shape, dtype=affs.dtype )
 
     # initialize the watershed domains
     dms = emirt.domains.CDomains( tseg )
@@ -239,10 +242,6 @@ def malis_weight_aff(affs, true_affs, Dim = 3):
         # accumulate the merging error
         merr[c,z,y,x] += me
         serr[c,z,y,x] += se
-
-    # reshape the error
-    merr = merr.reshape(affs.shape)
-    serr = serr.reshape(affs.shape)
 
     # combine the two error weights
     w = (merr + serr)

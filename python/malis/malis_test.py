@@ -18,10 +18,10 @@ def get_params():
     pars['is_affinity'] = True
 
     # make a fake test image
-    pars['is_fake'] = True
+    pars['is_fake'] = False
 
     # use aleks malis
-    pars['is_aleks'] = True
+    pars['is_aleks'] = False
 
     # whether using constrained malis
     pars['is_constrained'] = False
@@ -30,7 +30,7 @@ def get_params():
     pars['erosion_size'] = 0
 
     # a small corner
-    pars['corner_size'] = 0
+    pars['corner_size'] = 200
 
     # disk radius threshold
     pars['DrTh'] = 0
@@ -87,17 +87,25 @@ if __name__ == "__main__":
     if pars['is_constrained']:
         if pars['is_aleks']:
             w, me, se = constrained_aleks_malis(data, lbl)
+        else:
             print "compute the constrained malis weight..."
             w, me, se = cost_fn.constrained_malis_weight_bdm_2D(data, lbl, is_affinity = pars['is_affinity'])
     else:
         if pars['is_aleks']:
             print "normal malis with aleks version..."
             w, me, se = aleks_malis(data, lbl)
+        else:
             print "normal malis weight with python version..."
-            w, me, se = cost_fn.malis_weight_aff(data, lbl, Dim=2)
+            true_affs = emirt.volume_util.seg2aff( lbl.reshape((1,)+lbl.shape) )
+            print "true_affs: ", true_affs
+            print "affs: ", data
+            w, me, se = cost_fn.malis_weight_aff(data, true_affs, Dim=2)
 
     elapsed = time.time() - start
     print "elapsed time is {} sec".format(elapsed)
+
+    print "merger error: ", me
+    print "splitter error: ", se
 
     import malis_show
     malis_show.plot(pars, data, lbl, me, se)
