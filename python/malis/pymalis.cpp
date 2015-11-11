@@ -19,8 +19,8 @@ namespace np = boost::numpy;
 using namespace znn::v4;
 
 
-bp::tuple pyzalis( np::ndarray& pytrue_aff,
-                   np::ndarray& pyaff,
+bp::tuple pyzalis( np::ndarray& pyaff,
+                   np::ndarray& pytrue_aff,
                    float high,
                    float low,
                    int is_frac_norm)

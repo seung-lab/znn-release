@@ -2,6 +2,7 @@
 import sys
 sys.path.append('../')
 
+import numpy as np
 import time
 import emirt
 #%% parameters
@@ -37,23 +38,49 @@ def get_params():
     return pars
 
 
-def aleks_malis(affs, lbl):
+def exchange_x_z( affs ):
+    tmp = np.copy( affs[0,:,:,:] )
+    affs[0,:,:,:] = np.copy( affs[2,:,:,:] )
+    affs[2,:,:,:] = np.copy( tmp )
+    return affs
+
+def aleks_malis(affs, true_affs):
     import pymalis
 
+    # exchange x and z
+    affs = exchange_x_z( affs )
+    true_affs = exchange_x_z( true_affs )
+
+    affs = np.ascontiguousarray( affs.astype('float32') )
+    true_affs = np.ascontiguousarray( true_affs.astype('float32') )
+
     print "input affinity: ", affs
+    print "true affinity: ", true_affs
 
-    true_affs = emirt.volume_util.seg2aff( lbl )
-    me, se = pymalis.zalis( true_affs.astype('float32'), affs.astype('float32'),  1.0, 0.0, 0 )
+    me, se = pymalis.zalis(  affs, true_affs, 1.0, 0.0, 1 )
 
-    # adjust the coordinate
-    print "shape: ", me.shape
-    print "maximum merger   weight: ", me.max()
-    print "maximum splitter weight: ", se.max()
+    # total error
+    w = me + se
+    return w, me, se
 
-    print "shape: ", me.shape
-    me = me.reshape( affs.shape )
-    se = se.reshape( affs.shape )
+def aleks_bin_malis( affs, lbl ):
+    affs = np.ascontiguousarray( affs.astype('float64') )
+    lbl = np.ascontiguousarray( lbl.astype('float64') )
+    # save as binary file
+    affs[0,:,:,:].tofile('../../experiments/malis/zaff.bin')
+    affs[1,:,:,:].tofile('../../experiments/malis/yaff.bin')
+    affs[2,:,:,:].tofile('../../experiments/malis/xaff.bin')
 
+#    lbl = emirt.volume_util.aff2seg( true_affs )
+    lbl.tofile( '../../experiments/malis/label.bin' )
+
+    # run binary
+    import os
+    os.system( 'cd ../../; ./bin/malis malis.options' )
+
+    # read the output
+    me = np.fromfile( '../../experiments/malis/out.merger', dtype='float64' ).reshape(affs.shape)
+    se = np.fromfile( '../../experiments/malis/out.splitter', dtype='float64' ).reshape(affs.shape)
     w = me + se
     return w, me, se
 
@@ -82,6 +109,7 @@ if __name__ == "__main__":
     if pars['is_affinity']:
         # transform to affinity map
         data = emirt.volume_util.bdm2aff( data )
+        true_affs = emirt.volume_util.seg2aff( lbl.reshape((1,)+lbl.shape) )
 
     # recompile and use cost_fn
     #print "compile the cost function..."
@@ -97,10 +125,9 @@ if __name__ == "__main__":
     else:
         if pars['is_aleks']:
             print "normal malis with aleks version..."
-            w, me, se = aleks_malis(data, lbl)
+            w, me, se = aleks_bin_malis(data, lbl)
         else:
             print "normal malis weight with python version..."
-            true_affs = emirt.volume_util.seg2aff( lbl.reshape((1,)+lbl.shape) )
             print "true_affs: ", true_affs
             print "affs: ", data
             w, me, se = cost_fn.malis_weight_aff(data, true_affs, Dim=2)
