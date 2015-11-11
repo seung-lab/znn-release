@@ -19,8 +19,7 @@ namespace np = boost::numpy;
 using namespace znn::v4;
 
 
-bp::tuple pyzalis( bp::object const & self,
-                   np::ndarray& pytrue_aff,
+bp::tuple pyzalis( np::ndarray& pytrue_aff,
                    np::ndarray& pyaff,
                    float high,
                    float low,
@@ -34,8 +33,8 @@ bp::tuple pyzalis( bp::object const & self,
     std::vector< cube_p<real> > merger   = weights.merger;
     std::vector< cube_p<real> > splitter = weights.splitter;
 
-    np::ndarray pymerger   = cubelist2array<real>( self, merger   );
-    np::ndarray pysplitter = cubelist2array<real>( self, splitter );
+    np::ndarray pymerger   = cubelist2array<real>(  merger   );
+    np::ndarray pysplitter = cubelist2array<real>(  splitter );
 
     return bp::make_tuple( pymerger, pysplitter );
 }

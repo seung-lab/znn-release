@@ -408,7 +408,7 @@ std::map<std::string, std::vector<cube_p<T>>> pydict2sample( bp::dict pd)
 }
 
 template <typename T>
-np::ndarray cubelist2array( bp::object const & self, std::vector<cube_p< T >> clist )
+np::ndarray cubelist2array( std::vector<cube_p< T >> clist )
 {
 	// number of output cubes
 	std::size_t sc = clist.size();
@@ -429,17 +429,18 @@ np::ndarray cubelist2array( bp::object const & self, std::vector<cube_p< T >> cl
 				np::dtype::get_builtin<T>(),
 				bp::make_tuple(sc,sz,sy,sx),
 				bp::make_tuple(sx*sy*sz*sizeof(T), sx*sy*sizeof(T), sx*sizeof(T), sizeof(T)),
-				self
+				bp::object()
 			);
 }
 
+
 template <typename T>
-bp::dict sample2pydict( bp::object const & self,  std::map<std::string, std::vector<cube_p<T>>> sample)
+bp::dict sample2pydict( std::map<std::string, std::vector<cube_p<T>>> sample)
 {
 	bp::dict ret;
 	for (auto & am: sample )
 	{
-		ret[am.first] = cubelist2array<T>( self,  am.second);
+		ret[am.first] = cubelist2array<T>( am.second);
 	}
 	return ret;
 }

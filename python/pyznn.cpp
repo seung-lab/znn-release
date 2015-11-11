@@ -258,7 +258,7 @@ bp::dict CNet_forward( bp::object const & self, bp::dict& ins )
 
     // run forward and get output
     auto prop = net.forward( std::move( pydict2sample<real>( ins ) ) );
-    return sample2pydict<real>(self, prop);
+    return sample2pydict<real>(prop);
 }
 
 //Computes the backward-pass and updates network parameters

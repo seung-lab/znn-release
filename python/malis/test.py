@@ -18,10 +18,10 @@ def get_params():
     pars['is_affinity'] = True
 
     # make a fake test image
-    pars['is_fake'] = False
+    pars['is_fake'] = True
 
     # use aleks malis
-    pars['is_aleks'] = False
+    pars['is_aleks'] = True
 
     # whether using constrained malis
     pars['is_constrained'] = False
@@ -30,7 +30,7 @@ def get_params():
     pars['erosion_size'] = 0
 
     # a small corner
-    pars['corner_size'] = 200
+    pars['corner_size'] = 0
 
     # disk radius threshold
     pars['DrTh'] = 0
@@ -39,16 +39,20 @@ def get_params():
 
 def aleks_malis(affs, lbl):
     import pymalis
-    me, se = pymalis.zalis( affs, lbl, 1.0, 0.0, 0 )
+
+    print "input affinity: ", affs
+
+    true_affs = emirt.volume_util.seg2aff( lbl )
+    me, se = pymalis.zalis( true_affs.astype('float32'), affs.astype('float32'),  1.0, 0.0, 0 )
 
     # adjust the coordinate
     print "shape: ", me.shape
     print "maximum merger   weight: ", me.max()
     print "maximum splitter weight: ", se.max()
-    me = me[0,0,:,:] + me[1,0,:,:]
-    se = se[0,0,:,:] + se[1,0,:,:]
-    me = me.reshape( bdm.shape )
-    se = se.reshape( bdm.shape )
+
+    print "shape: ", me.shape
+    me = me.reshape( affs.shape )
+    se = se.reshape( affs.shape )
 
     w = me + se
     return w, me, se
