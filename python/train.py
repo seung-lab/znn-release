@@ -4,7 +4,6 @@ __doc__ = """
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import time
-import matplotlib.pylab as plt
 import front_end
 import netio
 import cost_fn
@@ -30,6 +29,8 @@ def main( conf_file='config.cfg', logfile=None ):
         net = netio.load_network( pars )
         # load existing learning curve
         lc = zstatistics.CLearnCurve( pars['train_load_net'] )
+        # the last iteration we want to continue training
+        iter_last = lc.get_last_it()
     else:
         if pars['train_seed_net'] and os.path.exists(pars['train_seed_net']):
             print "seeding network..."
@@ -39,16 +40,17 @@ def main( conf_file='config.cfg', logfile=None ):
             net = netio.init_network( pars )
         # initalize a learning curve
         lc = zstatistics.CLearnCurve()
+        iter_last = lc.get_last_it()
 
     # show field of view
     print "field of view: ", net.get_fov()
-    print "output volume info: ", net.get_outputs_setsz()
+
+    # total voxel number of output volumes
+    vn = utils.get_total_num(net.get_outputs_setsz())
 
     # set some parameters
     print 'setting up the network...'
-    vn = utils.get_total_num(net.get_outputs_setsz())
-    eta = pars['eta'] #/ vn
-    net.set_eta( eta )
+    net.set_eta( pars['eta'] )
     net.set_momentum( pars['momentum'] )
     net.set_weight_decay( pars['weight_decay'] )
 
@@ -65,22 +67,21 @@ def main( conf_file='config.cfg', logfile=None ):
     cls = 0
 
     # interactive visualization
-    plt.ion()
-    plt.show()
-
-    # the last iteration we want to continue training
-    iter_last = lc.get_last_it()
-
+    if pars['is_visual']:
+        import matplotlib.pylab as plt
+        plt.ion()
+        plt.show()
 
     print "start training..."
     start = time.time()
     print "start from ", iter_last+1
     for i in xrange(iter_last+1, pars['Max_iter']+1):
+        # get random sub volume from sample
         vol_ins, lbl_outs, msks = smp_trn.get_random_sample()
 
         # forward pass
+        # apply the transformations in memory rather than array view
         vol_ins = utils.make_continuous(vol_ins, dtype=pars['dtype'])
-
         props = net.forward( vol_ins )
 
         # cost function and accumulate errors
@@ -99,24 +100,21 @@ def main( conf_file='config.cfg', logfile=None ):
             malis_weights = cost_fn.malis_weight(props, lbl_outs)
             grdts = utils.dict_mul(grdts, malis_weights)
 
+        # test the net
         if i%pars['Num_iter_per_test']==0:
-            # test the net
             lc = test.znn_test(net, pars, smp_tst, vn, i, lc)
 
         if i%pars['Num_iter_per_show']==0:
-
             # normalize
             err = err / vn / pars['Num_iter_per_show']
             cls = cls / vn / pars['Num_iter_per_show']
             lc.append_train(i, err, cls)
 
             # time
-            elapsed = time.time() - start
-            elapsed = elapsed / pars['Num_iter_per_show']
+            elapsed = (time.time() - start) / pars['Num_iter_per_show']
 
             show_string = "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s/iter, learning rate: %.6f"\
                     %(i, err, cls, elapsed, eta )
-
             if pars.has_key('logging') and pars['logging']:
                 utils.write_to_log(logfile, show_string)
             print show_string
@@ -126,11 +124,13 @@ def main( conf_file='config.cfg', logfile=None ):
                 front_end.inter_show(start, lc, eta, vol_ins, props, lbl_outs, grdts, pars)
                 if pars['is_rebalance'] and 'aff' not in pars['out_type']:
                     plt.subplot(247)
-                    plt.imshow(msks.values()[0][0,0,:,:], interpolation='nearest', cmap='gray')
+                    plt.imshow(msks.values()[0][0,0,:,:], \
+                               interpolation='nearest', cmap='gray')
                     plt.xlabel('rebalance weight')
                 if pars['is_malis']:
                     plt.subplot(248)
-                    plt.imshow(malis_weights.values()[0][0,0,:,:], interpolation='nearest', cmap='gray')
+                    plt.imshow(malis_weights.values()[0][0,0,:,:], \
+                               interpolation='nearest', cmap='gray')
                     plt.xlabel('malis weight (log)')
                 plt.pause(2)
                 plt.show()
