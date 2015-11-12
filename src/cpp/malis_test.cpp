@@ -80,6 +80,9 @@ int main(int argc, char** argv)
         throw std::logic_error(HERE() + "unknown zalis_phase: " + sphs);
     }
 
+    // affinity dimension
+    size_t dim  = op.optional_as<size_t>("dim","2");
+
     // constrained
     bool is_constrained = op.optional_as<bool>("constrain","0");
 
@@ -114,10 +117,10 @@ int main(int argc, char** argv)
     affs.push_back(yaff);
     affs.push_back(zaff);
 
-    auto true_affs = make_affinity( *lbl );
+    auto true_affs = make_affinity( *lbl, dim );
 
-    std::cout << "\n[make_affinity] done, elapsed: "
-              << wt.elapsed<double>() << " secs" << std::endl;
+    // std::cout << "\n[make_affinity] done, elapsed: "
+    //           << wt.elapsed<double>() << " secs" << std::endl;
 
     if ( debug_print )
     {
@@ -141,12 +144,10 @@ int main(int argc, char** argv)
 
     if ( is_constrained )
     {
-        auto constrained = constrain_affinity(true_affs, affs, phs);
-        affs.clear();
-        affs = constrained;
+        affs = constrain_affinity(true_affs, affs, phs);
 
-        std::cout << "\n[constrain_affinity] done, elapsed: "
-                  << wt.elapsed<double>() << " secs" << std::endl;
+        // std::cout << "\n[constrain_affinity] done, elapsed: "
+        //           << wt.elapsed<double>() << " secs" << std::endl;
 
         if ( debug_print )
         {
@@ -191,11 +192,20 @@ int main(int argc, char** argv)
     // write affinity
     write_tensor<double,real>(ofname + ".affs",affs);
 
-    // write merger weight
-    write_tensor<double,real>(ofname + ".merger",weight.merger);
+    if ( phs == zalis_phase::BOTH )
+    {
+        write_tensor<double,real>(ofname + ".merger",weight.merger);
+        write_tensor<double,real>(ofname + ".splitter",weight.splitter);
+    }
+    else if ( phs == zalis_phase::MERGER )
+    {
+        write_tensor<double,real>(ofname + ".merger",weight.merger);
+    }
+    else if ( phs == zalis_phase::SPLITTER )
+    {
+        write_tensor<double,real>(ofname + ".splitter",weight.splitter);
+    }
 
-    // write splitter weight
-    write_tensor<double,real>(ofname + ".splitter",weight.splitter);
 
 #if defined( DEBUG )
     // write watershed snapshots
@@ -209,6 +219,6 @@ int main(int argc, char** argv)
     write_tensor<double,int>(ofname + ".timestamp",weight.timestamp);
 #endif
 
-    std::cout << "\n[save] done, elapsed: "
+    std::cout << "[save]  done, elapsed: "
               << wt.elapsed<double>() << '\n' << std::endl;
 }
