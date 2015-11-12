@@ -140,6 +140,9 @@ def parser( conf_fname ):
     pars['test_num']    = config.getint( 'parameters', 'test_num' )
     #How often to save the network
     pars['Num_iter_per_save'] = config.getint('parameters', 'Num_iter_per_save')
+    #How often to change the learning rate
+    if config.has_option('parameters','Num_iter_per_annealing'):
+        pars['Num_iter_per_annealing'] = config.getint('parameters', 'Num_iter_per_annealing')
     #Maximum training updates
     pars['Max_iter']    = config.getint('parameters', 'Max_iter')
 
