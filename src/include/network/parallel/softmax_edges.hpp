@@ -140,7 +140,7 @@ public:
             layer_data->detach(in_num);
     }
 
-    void zap(edges* e)
+    void zap(edges* e) override
     {
         e->edge_zapped();
     }

@@ -100,7 +100,7 @@ public:
         apply_grad(g,f,f_);
     }
 
-    options serialize() const
+    options serialize() const override
     {
         return f_.serialize();
     }

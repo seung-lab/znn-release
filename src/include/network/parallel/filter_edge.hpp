@@ -76,7 +76,7 @@ public:
         manager.require_done( pending_, &filter_edge::do_forward, this, f );
     }
 
-    void backward( ccube_p<real> const & g )
+    void backward( ccube_p<real> const & g ) override
     {
         if ( !enabled_ ) return;
 
@@ -95,7 +95,7 @@ public:
                                                  this, g);
     }
 
-    void zap(edges* e)
+    void zap(edges* e) override
     {
         // guard gg(m);
         manager.require_done(pending_,&edges::edge_zapped,e);

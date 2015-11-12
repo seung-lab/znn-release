@@ -131,7 +131,7 @@ public:
         manager.require_done( pending_, &fft_filter_ds_edge::do_forward, this, f );
     }
 
-    void backward( ccube_p<complex> const & g )
+    void backward( ccube_p<complex> const & g ) override
     {
         if ( !enabled_ ) return;
 
@@ -154,7 +154,7 @@ public:
                                 &fft_filter_ds_edge::do_update, this, g);
     }
 
-    void zap(edges* e)
+    void zap(edges* e) override
     {
         manager.require_done(pending_,&edges::edge_zapped,e);
     }
