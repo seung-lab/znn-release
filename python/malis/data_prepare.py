@@ -9,6 +9,70 @@ def make_unique_bdm(bdm):
     bdm -= np.arange(bdm.size).reshape(bdm.shape) * 0.0001
     return bdm
 
+
+def make_fake_2D_bdm(r1, r2, c1, c2):
+    # fake image size
+    fs = 10
+    bdm = np.ones((fs,fs), dtype='float32')
+    bdm[r1,:] = 0.5
+    bdm[r1,7] = 0.8
+    bdm[r1,r1] = 0.2
+    bdm[r2,:] = 0.5
+    bdm[r2,c1] = 0.2
+    bdm[r2,c2] = 0.8
+    lbl = np.zeros((fs,fs), dtype='uint32')
+    lbl[:r2, :] = 1
+    lbl[r2+1:, :] = 2
+    assert lbl.max()>1
+    return bdm, lbl
+
+def make_fake_3D_aff( r1, r2, c1, c2 ):
+    lbl = np.zeros((2,10,10), dtype='uint32')
+    lbl[0, :r2,   :] = 1
+    lbl[0, r2+1:, :] = 2
+    lbl[1, r
+        :r2-1, :] = 1
+    lbl[1, r2:,   :] = 2
+
+    # initialized as true affinity
+    affs = emirt.volume_util.seg2aff( lbl )
+
+    # add x splitter
+    #affs[2, :, r1, : ] = 0.5
+    #affs[2, :, r1, r1] = 0.2
+    #affs[2, :, r1, r2] = 0.8
+
+
+    # add y splitter
+    #affs[1, :, r1, : ] = 0.5
+    #affs[1, :, r1, r1] = 0.2
+    #affs[1, :, r1, r2] = 0.8
+
+    # add x merger
+    #affs[2, :, r2-1, : ] = 0.5
+    #affs[2, :, r2-1, r1] = 0.2
+    #affs[2, :, r2-1, r2] = 0.8
+
+    # add y merger
+    #affs[1, :, r2-1, : ] = 0.5
+    #affs[1, :, r2-1, r1] = 0.2
+    #affs[1, :, r2-1, r2] = 0.8
+
+    #affs[1, :, r2, : ] = 0.5
+    #affs[1, :, r2, r1] = 0.2
+    #affs[1, :, r2, r2] = 0.8
+
+    # add z merger
+    affs[0, 1, r2-2:r2+1, : ] = 0.5
+    affs[0, 1, r2-2:r2+1, r1] = 0.2
+    affs[0, 1, r2-2:r2+1, r2] = 0.8
+
+    affs[0, 1, r2, : ] = 0.5
+    affs[0, 1, r2, r1] = 0.2
+    affs[0, 1, r2, r2] = 0.8
+
+    return affs, lbl
+
 def read_image(pars):
     z=8
     is_fake = pars['is_fake']
@@ -20,23 +84,7 @@ def read_image(pars):
         lbl = emirt.volume_util.lbl_RGB2uint32(lbl)
         lbl = lbl[z,:,:]
         bdm = bdm[z,:,:]
-    else:
-        # fake image size
-        fs = 10
-        bdm = np.ones((fs,fs), dtype='float32')
-        bdm[3,:] = 0.5
-        bdm[3,7] = 0.8
-        bdm[3,3] = 0.2
-        bdm[7,:] = 0.5
-        bdm[7,3] = 0.2
-        bdm[7,7] = 0.8
-        lbl = np.zeros((fs,fs), dtype='uint32')
-        lbl[:7, :] = 1
-        lbl[8:, :] = 2
-        assert lbl.max()>1
 
-     # make unique
-    # bdm = make_unique_bdm( bdm )
 
     # only a corner for test
     corner_size = pars['corner_size']
@@ -66,7 +114,7 @@ if __name__ == "__main__":
     from malis_test import get_params
     pars = get_params()
     if pars['is_affinity']:
-        affs, lbl = read_image(pars)
+        affs, lbl = make_fake_3D_aff( 3, 7, 3, 7 )
     else:
         bdm, lbl = read_image(pars)
 

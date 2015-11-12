@@ -1,4 +1,4 @@
-size 1,10,10
+size 1,504,504
 xaff ./experiments/malis/xaff.bin
 yaff ./experiments/malis/yaff.bin
 zaff ./experiments/malis/zaff.bin
@@ -8,3 +8,4 @@ out ./experiments/malis/out
 phase BOTH
 constrain 0
 frac_norm 0
+debug_print 0

@@ -64,68 +64,100 @@ def plot_aff( pars, affs, lbl, me, se):
     DrTh = pars['DrTh']
 
     # the values
+    zaff = affs[0,0,:,:]
     yaff = affs[1,0,:,:]
     xaff = affs[2,0,:,:]
 
+    zme = me[0,0,:,:]
     yme = me[1,0,:,:]
     xme = me[2,0,:,:]
 
+    zse = se[0,0,:,:]
     yse = se[1,0,:,:]
     xse = se[2,0,:,:]
 
+    # 6th column show true affinity
+
     # 1st column show affinity
-    plt.subplot(251)
-    plt.imshow(yaff, cmap='gray', interpolation='nearest')
-    plt.xlabel('y affinity')
-    plt.subplot(256)
+    plt.subplot(351)
     plt.imshow(xaff, cmap='gray', interpolation='nearest')
     plt.xlabel('x affinity')
 
-    # 2nd column show y directional error in log scale
-    rgbmyl = combine2rgb( 1-yaff, np.log(yme+eps) )
-    plt.subplot(252)
-    plt.imshow( rgbmyl, interpolation='nearest' )
-    plt.xlabel('y affinity (red) and ln(merger)')
+    plt.subplot(356)
+    plt.imshow(yaff, cmap='gray', interpolation='nearest')
+    plt.xlabel('y affinity')
 
-    rgbsyl = combine2rgb( 1-yaff, np.log(yse+eps) )
-    plt.subplot(257)
-    plt.imshow( rgbsyl, interpolation='nearest' )
-    plt.xlabel('y affinity (red) and ln(splitter)')
+    plt.subplot(3,5,11)
+    plt.imshow(zaff, cmap='gray', interpolation='nearest')
+    plt.xlabel('z affinity')
 
-    # 3rd column show x directional error in log scale
+    # 2nd column show merge error in log scale
     rgbmxl = combine2rgb( 1-xaff, np.log(xme+eps) )
-    plt.subplot(253)
+    plt.subplot(352)
     plt.imshow( rgbmxl, interpolation='nearest' )
     plt.xlabel('x affinity (red) and ln(merger)')
 
+    rgbmyl = combine2rgb( 1-yaff, np.log(yme+eps) )
+    plt.subplot(357)
+    plt.imshow( rgbmyl, interpolation='nearest' )
+    plt.xlabel('y affinity (red) and ln(merger)')
+
+    rgbmzl = combine2rgb( 1-zaff, np.log(zme+eps) )
+    plt.subplot(3,5,12)
+    plt.imshow( rgbmzl, interpolation='nearest' )
+    plt.xlabel('z affinity (red) and ln(merger)')
+
+    # 3rd column show split error in log scale
     rgbsxl = combine2rgb( 1-xaff, np.log(xse+eps) )
-    plt.subplot(258)
+    plt.subplot(353)
     plt.imshow( rgbsxl, interpolation='nearest' )
     plt.xlabel('x affinity (red) and ln(splitter)')
 
-    # 4th column show y directional error using disks
-    rgby = combine2rgb( 1-yaff )
-    plt.subplot(254)
-    plt.imshow(rgby, interpolation='nearest')
-    disk_plot(yme, Dm, DrTh)
-    plt.xlabel('combine yaff and merger weights')
+    rgbsyl = combine2rgb( 1-yaff, np.log(yse+eps) )
+    plt.subplot(358)
+    plt.imshow( rgbsyl, interpolation='nearest' )
+    plt.xlabel('y affinity (red) and ln(splitter)')
 
-    plt.subplot(259)
-    plt.imshow(rgby, interpolation='nearest')
-    disk_plot(yse, Dm, DrTh)
-    plt.xlabel('combine yaff and splitter weights')
+    rgbszl = combine2rgb( 1-zaff, np.log(zse+eps) )
+    plt.subplot(3,5,13)
+    plt.imshow( rgbszl, interpolation='nearest' )
+    plt.xlabel('z affinity (red) and ln(splitter)')
 
-    # 5th column show x directional error using disks
+    # 4th column show merger error using disks
     rgbx = combine2rgb( 1-xaff )
-    plt.subplot(255)
+    rgby = combine2rgb( 1-yaff )
+    rgbz = combine2rgb( 1-zaff )
+
+    plt.subplot(3,5,4)
     plt.imshow(rgbx, interpolation='nearest')
     disk_plot(xme, Dm, DrTh)
     plt.xlabel('combine xaff and merger weights')
 
-    plt.subplot(2,5,10)
+    plt.subplot(3,5,9)
+    plt.imshow(rgby, interpolation='nearest')
+    disk_plot(yme, Dm, DrTh)
+    plt.xlabel('combine yaff and merger weights')
+
+    plt.subplot(3,5,14)
+    plt.imshow(rgbz, interpolation='nearest')
+    disk_plot(zme, Dm, DrTh)
+    plt.xlabel('combine zaff and merger weights')
+
+    # 5th column show split error using disks
+    plt.subplot(355)
     plt.imshow(rgbx, interpolation='nearest')
     disk_plot(xse, Dm, DrTh)
     plt.xlabel('combine xaff and splitter weights')
+
+    plt.subplot(3,5,10)
+    plt.imshow(rgby, interpolation='nearest')
+    disk_plot(yse, Dm, DrTh)
+    plt.xlabel('combine yaff and splitter weights')
+
+    plt.subplot(3,5,15)
+    plt.imshow(rgbz, interpolation='nearest')
+    disk_plot(zse, Dm, DrTh)
+    plt.xlabel('combine zaff and splitter weights')
 
     plt.show()
 

@@ -22,7 +22,7 @@ def get_params():
     pars['is_fake'] = False
 
     # use aleks malis
-    pars['is_aleks'] = True
+    pars['is_aleks'] = False
 
     # whether using constrained malis
     pars['is_constrained'] = False
@@ -119,17 +119,28 @@ def make_edge_unique( affs ):
                 affs[2,z,y,x] -= 0.00001 * step
     return affs
 
+
 if __name__ == "__main__":
     # get the parameters
     pars = get_params()
 
     import data_prepare
-    data, lbl = data_prepare.read_image(pars)
+    if pars['is_affinity']:
+        if pars['is_fake']:
+            #        data, lbl = data_prepare.make_fake_3D_aff( 3, 7, 3, 7)
+            data, lbl = data_prepare.make_fake_2D_bdm( 3,7, 3, 7 )
+            # transform boundary map to affinity
+            data = emirt.volume_util.bdm2aff( data )
+        else:
+            data, lbl = data_prepare.read_image(pars)
+            data = emirt.volume_util.bdm2aff( data )
 
     if pars['is_affinity']:
         # transform to affinity map
-        data = emirt.volume_util.bdm2aff( data )
         true_affs = emirt.volume_util.seg2aff( lbl.reshape((1,)+lbl.shape) )
+        lbl2 = emirt.volume_util.aff2seg( true_affs )
+        print "original label: ", lbl
+        print "transformed lable: ", lbl2
         if pars['is_fake']:
             data = make_edge_unique( data )
     # recompile and use cost_fn
@@ -158,8 +169,8 @@ if __name__ == "__main__":
     elapsed = time.time() - start
     print "elapsed time is {} sec".format(elapsed)
 
-    print "merger error: ", me
-    print "splitter error: ", se
+#    print "merger error: ", me
+ #   print "splitter error: ", se
 
     import malis_show
     malis_show.plot(pars, data, lbl, me, se)
