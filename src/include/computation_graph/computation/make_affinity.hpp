@@ -37,7 +37,6 @@ make_affinity( cube<int> const & vol, size_t dim = 3 )
     auto zaff = get_cube<real>(s); fill(*zaff,0);
 
     real one  = static_cast<real>(1);
-    real zero = static_cast<real>(0);
 
     for ( size_t z = 0; z < s[0]; ++z )
         for ( size_t y = 0; y < s[1]; ++y )

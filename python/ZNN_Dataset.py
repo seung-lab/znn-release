@@ -21,7 +21,7 @@ class ZNN_Dataset(object):
 
         # main data
         self.data = data
-        #Desired size of subvolumes returned by this instance
+        # Desired size of subvolumes returned by this instance
         self.patch_shape = np.asarray(data_patch_shape[-3:])
 
         # increase the patch shape for affinity
@@ -44,11 +44,6 @@ class ZNN_Dataset(object):
         # get_sub_volume)
         self.patch_margin_high = self.patch_shape / 2
 
-        # Display some instance information (...meh)
-        # print "image stack size:    ", self.arr.shape
-        # print "set size:            ", self.setsz
-        # print "center:              ", self.center
-
         #Used in calculating patch bounds if using patch functionality
         # (see check_patch_bounds, or _calculate_patch_bounds)
         self.net_output_patch_shape = net_output_patch_shape
@@ -66,9 +61,9 @@ class ZNN_Dataset(object):
         xyz coordinates
         """
 
-        #Number of voxels within index lower than the center
+        # Number of voxels within index lower than the center
         volume_margin_low  = (self.volume_shape - 1) / 2
-        #Number of voxels within index higher than the center
+        # Number of voxels within index higher than the center
         volume_margin_high = self.volume_shape / 2
 
         lower_bound  = -( volume_margin_low - self.patch_margin_low )
@@ -113,7 +108,6 @@ class ZNN_Dataset(object):
         return subvol
 
     def _check_patch_bounds(self):
-
         if self.patch_bounds is None:
             print "Calculating patch bounds..."
             self._calculate_patch_bounds()
@@ -459,6 +453,7 @@ class ConfigOutputLabel(ConfigImage):
         # record and use parameters
         self.pars = pars
 
+
         # deal with mask
         self.msk = np.array([])
         if config.has_option(sec_name, 'fmasks'):
@@ -471,6 +466,12 @@ class ConfigOutputLabel(ConfigImage):
                 # mask 'preprocessing'
                 self.msk = (self.msk>0).astype(self.data.dtype)
                 assert(self.data.shape == self.msk.shape)
+
+        if pars['is_bd_mirror']:
+            self.data = utils.boundary_mirror( self.data, self.fov )
+            self.msk  = utils.boundary_mirror( self.msk,  self.fov )
+            #Modifying the deviation boundaries for the modified dataset
+            self._recalculate_sizes( outsz )
 
         # preprocessing
         self.pp_types = config.get(sec_name, 'pp_types').split(',')
@@ -622,7 +623,6 @@ class ConfigOutputLabel(ConfigImage):
             wz = wz / ws
             return wp, wz
 
-
     # @autojit(nopython=True)
     def _msk2affmsk( self, msk ):
         """
@@ -670,21 +670,22 @@ class ConfigOutputLabel(ConfigImage):
         rebalance the affinity labeling with size of (3,Z,Y,X)
         """
         if self.data.ndim==4 and self.data.shape[0]==1:
-            lbl = emirt.volume_util.seg2aff( self.data )
+            # true affinity
+            true_affs = emirt.volume_util.seg2aff( self.data )
         elif self.data.ndim==4 and self.data.shape[0]==3:
-            lbl = self.data
+            true_affs = self.data
         else:
             print self.data.shape
             raise NameError('invalid data!')
 
         wts = np.zeros(lbl.shape, dtype=self.pars['dtype'])
-        wts[0,:,:,:][lbl[0,:,:,:] >0] = self.zwp
-        wts[1,:,:,:][lbl[1,:,:,:] >0] = self.ywp
-        wts[2,:,:,:][lbl[2,:,:,:] >0] = self.xwp
+        wts[0,:,:,:][true_affs[0,:,:,:] >0] = self.zwp
+        wts[1,:,:,:][true_affs[1,:,:,:] >0] = self.ywp
+        wts[2,:,:,:][true_affs[2,:,:,:] >0] = self.xwp
 
-        wts[0,:,:,:][lbl[0,:,:,:]==0] = self.zwz
-        wts[1,:,:,:][lbl[1,:,:,:]==0] = self.ywz
-        wts[2,:,:,:][lbl[2,:,:,:]==0] = self.xwz
+        wts[0,:,:,:][true_affs[0,:,:,:]==0] = self.zwz
+        wts[1,:,:,:][true_affs[1,:,:,:]==0] = self.ywz
+        wts[2,:,:,:][true_affs[2,:,:,:]==0] = self.xwz
         if np.size(self.msk)==0:
             self.msk = wts
         else:

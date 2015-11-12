@@ -41,8 +41,6 @@ zalis( std::vector<cube_p<real>> true_affs,
     ZI_ASSERT(affs.size()==3);
     ZI_ASSERT(true_affs.size()==affs.size());
 
-    double loss = 0;
-
     cube_p<int> seg_ptr = get_segmentation(true_affs);
     cube<int> const & seg = *seg_ptr;
 
