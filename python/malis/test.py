@@ -19,10 +19,10 @@ def get_params():
     pars['is_affinity'] = True
 
     # make a fake test image
-    pars['is_fake'] = False
+    pars['is_fake'] = True
 
     # use aleks malis
-    pars['is_aleks'] = False
+    pars['is_aleks'] = True
 
     # whether using constrained malis
     pars['is_constrained'] = False
@@ -58,7 +58,7 @@ def aleks_malis(affs, lbl):
     print "input affinity: ", affs
     print "true affinity: ", true_affs
 
-    me, se = pymalis.zalis(  affs, true_affs, 1.0, 0.0, 1 )
+    me, se = pymalis.zalis(  affs, true_affs, 1.0, 0.0, 0 )
 
     # total error
     w = me + se
@@ -158,6 +158,19 @@ if __name__ == "__main__":
         if pars['is_aleks']:
             print "normal malis with aleks version..."
             w, me, se = aleks_bin_malis(data, lbl)
+
+            # python interface of malis
+            w2, me2, se2 = aleks_malis( data, lbl )
+
+            print "me: ", me
+            print "me2: ", me2
+
+            print "se: ", se
+            print "se2: ", se2
+
+            assert( np.all(se2==se) )
+            assert( np.all(me2==me) )
+
             me = exchange_x_z( me )
             se = exchange_x_z( se )
         else:

@@ -1,4 +1,4 @@
-size 1,504,504
+size 1,10,10
 xaff ./experiments/malis/xaff.bin
 yaff ./experiments/malis/yaff.bin
 zaff ./experiments/malis/zaff.bin

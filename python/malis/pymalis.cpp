@@ -19,22 +19,22 @@ namespace np = boost::numpy;
 using namespace znn::v4;
 
 
-bp::tuple pyzalis( np::ndarray& pyaff,
-                   np::ndarray& pytrue_aff,
+bp::tuple pyzalis( np::ndarray& pyaffs,
+                   np::ndarray& pytrue_affs,
                    float high,
                    float low,
                    int is_frac_norm)
 {
-    std::vector< cube_p<real> > true_aff = array2cubelist<real>( pytrue_aff );
-    std::vector< cube_p<real> > aff = array2cubelist<real>( pyaff );
+    // python data structure to c++ data structure
+    std::vector< cube_p<real> > true_affs = array2cubelist<real>( pytrue_affs );
+    std::vector< cube_p<real> > affs = array2cubelist<real>( pyaffs );
 
-    auto weights = zalis(true_aff, aff, high, low, is_frac_norm);
+    // zalis computation
+    auto weights = zalis(true_affs, affs, high, low, is_frac_norm);
 
-    std::vector< cube_p<real> > merger   = weights.merger;
-    std::vector< cube_p<real> > splitter = weights.splitter;
-
-    np::ndarray pymerger   = cubelist2array<real>(  merger   );
-    np::ndarray pysplitter = cubelist2array<real>(  splitter );
+    // transform to python data structure
+    np::ndarray pymerger   = cubelist2array<real>(  weights.merger   );
+    np::ndarray pysplitter = cubelist2array<real>(  weights.splitter );
 
     return bp::make_tuple( pymerger, pysplitter );
 }
