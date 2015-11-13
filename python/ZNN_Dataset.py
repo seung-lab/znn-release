@@ -529,6 +529,37 @@ class ConfigOutputLabel(ConfigImage):
 
         return ret
 
+    def seg2aff( self, lbl ):
+        """
+        transform labels to affinity.
+        Note that this transformation will shrink the volume size
+        it is different with normal transformation keeping the size of lable
+        which is defined in emirt.volume_util.seg2aff
+
+        Parameters
+        ----------
+        lbl : 4D float array, label volume.
+        Returns
+        -------
+        aff : 4D float array, affinity graph.
+        """
+        # the 3D volume number should be one
+        assert( lbl.shape[0] == 1 )
+
+        aff_size = np.asarray(lbl.shape)-1
+        aff_size[0] = 3
+
+        aff = np.zeros( tuple(aff_size) , dtype=lbl.dtype  )
+
+        #x-affinity
+        aff[0,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,:-1, 1:  ,1: ]) & (lbl[0,1:,1:,1:]>0)
+        #y-affinity
+        aff[1,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , :-1 ,1: ]) & (lbl[0,1:,1:,1:]>0)
+        #z-affinity
+        aff[2,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , 1:  ,:-1]) & (lbl[0,1:,1:,1:]>0)
+
+        return aff
+
     def get_subvolume(self, dev, rft=[]):
         """
         get sub volume for training.
@@ -553,7 +584,7 @@ class ConfigOutputLabel(ConfigImage):
 
         if 'aff' in self.pp_types[0]:
             # transform the output volumes to affinity array
-            sublbl = emirt.volume_util.seg2aff( sublbl )
+            sublbl = self.seg2aff( sublbl )
 
             # get the affinity mask
             if submsk.size >0:
