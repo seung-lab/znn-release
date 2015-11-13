@@ -83,7 +83,7 @@ public:
         }
     }
 
-    void zap(edges* e)
+    void zap(edges* e) override
     {
         e->edge_zapped();
     }

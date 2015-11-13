@@ -151,7 +151,7 @@ public:
         }
     }
 
-    options serialize() const
+    options serialize() const override
     {
         options ret = nodes::opts();
         if ( func_ ) ret.push("biases", save_biases(biases_));

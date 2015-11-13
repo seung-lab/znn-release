@@ -64,7 +64,7 @@ public:
         out_nodes->forward(out_num,std::move(r.first));
     }
 
-    void backward( ccube_p<real> const & g )
+    void backward( ccube_p<real> const & g ) override
     {
         if ( !enabled_ ) return;
 
@@ -81,7 +81,7 @@ public:
         }
     }
 
-    void zap(edges* e)
+    void zap(edges* e) override
     {
         e->edge_zapped();
     }
@@ -132,7 +132,7 @@ public:
             sparse_implode_slow(*r.first,filter_size,outsize));
     }
 
-    void backward( ccube_p<real> const & g )
+    void backward( ccube_p<real> const & g ) override
     {
         if ( !enabled_ ) return;
 
@@ -149,7 +149,7 @@ public:
         }
     }
 
-    void zap(edges* e)
+    void zap(edges* e) override
     {
         e->edge_zapped();
     }
