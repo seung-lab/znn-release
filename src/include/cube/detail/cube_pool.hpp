@@ -98,6 +98,11 @@ public:
 
 template <typename T> struct qube: boost::multi_array_ref<T,4>
 {
+private:
+    using base_type =  boost::multi_array_ref<T,3>;
+
+
+public:
     explicit qube(const vec4i& s, T* data)
         : boost::multi_array_ref<T,4>(data,extents[s[0]][s[1]][s[2]][s[3]])
     {
@@ -107,6 +112,20 @@ template <typename T> struct qube: boost::multi_array_ref<T,4>
     {
         znn_free(this);
     }
+
+    qube& operator=(const qube& x)
+    {
+        base_type::operator=(static_cast<base_type>(x));
+        return *this;
+    }
+
+    template< class Array >
+    qube& operator=(const Array& x)
+    {
+        base_type::operator=(x);
+        return *this;
+    }
+
 };
 
 template<typename T>
@@ -142,6 +161,24 @@ cube<T>* malloc_cube(const vec3i& s)
 
     return c;
 }
+
+
+template<typename T>
+cube<T>* malloc_qube(const vec4i& s)
+{
+    void*    mem  = znn_aligned_malloc(__znn_aligned_size<qube<T>>::value
+                                       + s[0]*s[1]*s[2]*s[3]*sizeof(T) );
+
+    ZI_ASSERT((reinterpret_cast<size_t>(mem)&__ZNN_ALIGN)==0);
+
+    T*       data = __offset_cast<T>(mem, __znn_aligned_size<qube<T>>::value);
+    qube<T>* c    = new (mem) qube<T>(s,data);
+
+    ZI_ASSERT(c==mem);
+
+    return c;
+}
+
 
 template<typename T>
 class single_size_cube_pool
@@ -206,6 +243,70 @@ public:
 
 };
 
+template<typename T>
+class single_size_qube_pool
+{
+private:
+    vec4i                      size_;
+    std::list<qube<T>*>        list_;
+    std::mutex                 m_   ;
+
+public:
+    void clear()
+    {
+        std::lock_guard<std::mutex> g(m_);
+        for ( auto& v: list_ )
+        {
+            znn_free(v);
+        }
+        list_.clear();
+    }
+
+public:
+    void return_qube( qube<T>* q )
+    {
+        std::lock_guard<std::mutex> g(m_);
+        list_.push_back(q);
+    }
+
+public:
+    single_size_qube_pool( const vec4i& s )
+        : size_(s)
+        , list_{}
+        , m_{}
+    {}
+
+    ~single_size_qube_pool()
+    {
+        clear();
+    }
+
+    std::shared_ptr<qube<T>> get()
+    {
+        qube<T>* r = nullptr;
+        {
+            std::lock_guard<std::mutex> g(m_);
+            if ( list_.size() > 0 )
+            {
+                r = list_.back();
+                list_.pop_back();
+            }
+        }
+
+        if ( !r )
+        {
+            r = malloc_qube<T>(size_);
+        }
+
+        return std::shared_ptr<cube<T>>(r,[this](qube<T>* c)
+                                        {
+                                            this->return_qube(c);
+                                        });
+    }
+
+};
+
+
 template< typename T >
 class single_type_cube_pool
 {
@@ -213,7 +314,7 @@ private:
     std::mutex                                   m_;
     std::map<vec3i, single_size_cube_pool<T>*>   pools_;
 
-    single_size_cube_pool<T>* get_pool( const vec3i s )
+    single_size_cube_pool<T>* get_pool( const vec3i& s )
     {
         std::lock_guard<std::mutex> g(m_);
         if ( pools_.count(s) )
@@ -241,40 +342,96 @@ public:
 
 }; // single_type_cube_pool
 
+template< typename T >
+class single_type_qube_pool
+{
+private:
+    std::mutex                                   m_;
+    std::map<vec4i, single_size_qube_pool<T>*>   pools_;
+
+    single_size_qube_pool<T>* get_pool( const vec4i& s )
+    {
+        std::lock_guard<std::mutex> g(m_);
+        if ( pools_.count(s) )
+        {
+            return pools_[s];
+        }
+        else
+        {
+            single_size_qube_pool<T>* r = new single_size_qube_pool<T>{s};
+            pools_[s] = r;
+            return r;
+        }
+    }
+
+public:
+    std::shared_ptr<qube<T>> get( const vec4i& s )
+    {
+        return get_pool(s)->get();
+    }
+
+    void return_cube( qube<T>* c )
+    {
+        get_pool(vec4i(c->shape()[0], c->shape()[1],
+                       c->shape()[2], c->shape()[3]))->return_cube(c);
+    }
+
+}; // single_type_cube_pool
+
+
 
 template< typename T >
 struct pool
 {
 private:
-    static single_type_cube_pool<T>& instance;
+    static single_type_cube_pool<T>& cinstance;
+    static single_type_qube_pool<T>& qinstance;
 
 public:
-    static std::shared_ptr<cube<T>> get( const vec3i& s )
+    static std::shared_ptr<cube<T>> get_cube( const vec3i& s )
     {
-        return instance.get(s);
+        return cinstance.get(s);
     }
 
-    static std::shared_ptr<cube<T>> get( size_t x, size_t y, size_t z )
+    static std::shared_ptr<cube<T>> get_cube( size_t x, size_t y, size_t z )
     {
-        return instance.get( vec3i(x,y,z) );
+        return cinstance.get( vec3i(x,y,z) );
     }
-    // Actually private - don't use
 
-    static void return_cube( cube<T>* c )
+    static std::shared_ptr<qube<T>> get_qube( const vec4i& s )
     {
-        instance.return_cube(c);
+        return qinstance.get(s);
     }
+
+    static std::shared_ptr<qube<T>> get_qube( size_t x, size_t y,
+                                              size_t z, size_t t )
+    {
+        return qinstance.get( vec4i(x,y,z,t) );
+    }
+
 };
 
 template< typename T >
-single_type_cube_pool<T>& pool<T>::instance =
+single_type_cube_pool<T>& pool<T>::cinstance =
     zi::singleton<single_type_cube_pool<T>>::instance();
+
+
+template< typename T >
+single_type_qube_pool<T>& pool<T>::qinstance =
+    zi::singleton<single_type_qube_pool<T>>::instance();
 
 
 template<typename T>
 std::shared_ptr<cube<T>> get_cube(const vec3i& s)
 {
-    return pool<T>::get(s);
+    return pool<T>::get_cube(s);
+}
+
+
+template<typename T>
+std::shared_ptr<qube<T>> get_qube(const vec4i& s)
+{
+    return pool<T>::get_qube(s);
 }
 
 
