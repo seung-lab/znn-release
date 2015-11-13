@@ -467,12 +467,6 @@ class ConfigOutputLabel(ConfigImage):
                 self.msk = (self.msk>0).astype(self.data.dtype)
                 assert(self.data.shape == self.msk.shape)
 
-        if pars['is_bd_mirror']:
-            self.data = utils.boundary_mirror( self.data, self.fov )
-            self.msk  = utils.boundary_mirror( self.msk,  self.fov )
-            #Modifying the deviation boundaries for the modified dataset
-            self._recalculate_sizes( outsz )
-
         # preprocessing
         self.pp_types = config.get(sec_name, 'pp_types').split(',')
         self._preprocess()
