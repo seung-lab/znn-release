@@ -58,7 +58,9 @@ def aleks_malis(affs, lbl):
     print "input affinity: ", affs
     print "true affinity: ", true_affs
 
-    me, se = pymalis.zalis(  affs, true_affs, 1.0, 0.0, 0 )
+    ws = pymalis.zalis(  affs, true_affs, 1.0, 0.0, 0 )
+    me = ws[:3, :,:,:]
+    se = ws[3:, :,:,:]
 
     # total error
     w = me + se
