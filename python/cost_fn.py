@@ -412,10 +412,13 @@ def malis_weight(props, lbls):
             # affinity output
             # ret[name], merr, serr = malis_weight_aff(prop, lbl)
             from malis.pymalis import zalis
-            true_affs = emirt.volume_util.seg2aff( lbl )
-            w, merr, serr = zalis( prop, true_affs )
+            #true_affs = emirt.volume_util.seg2aff( lbl )
+            weights = zalis( prop, lbl, 1.0, 0.0, 0)
+            merr = weights[:3, :,:,:]
+            serr = weights[3:, :,:,:]
+            w = merr + serr
             # normalization by N
-            w = w / float(w.size/3)
+            w = w / float(merr.size / 3)
             ret[name] = w
         else:
             # take it as boundary map
