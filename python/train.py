@@ -50,6 +50,7 @@ def main( conf_file='config.cfg', logfile=None ):
 
     # set some parameters
     print 'setting up the network...'
+    eta = pars['eta']
     net.set_eta( pars['eta'] )
     net.set_momentum( pars['momentum'] )
     net.set_weight_decay( pars['weight_decay'] )
