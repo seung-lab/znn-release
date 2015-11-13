@@ -111,7 +111,7 @@ public:
         out_nodes->forward(out_num, std::move(fmap));
     }
 
-    void backward( ccube_p<real> const & g )
+    void backward( ccube_p<real> const & g ) override
     {
         if ( !enabled_ ) return;
 
@@ -138,7 +138,7 @@ public:
         phase_ = phs;
     }
 
-    void zap(edges* e)
+    void zap(edges* e) override
     {
         e->edge_zapped();
     }

@@ -52,7 +52,7 @@ public:
     void set_momentum( real ) override {}
     void set_weight_decay( real ) override {}
 
-    options serialize() const { return nodes::opts(); }
+    options serialize() const override { return nodes::opts(); }
 
     // For the forward pass only this function us supported
     void forward(size_t n, cube_p<real> && f) override

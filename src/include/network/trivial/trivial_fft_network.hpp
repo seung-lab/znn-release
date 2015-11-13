@@ -712,7 +712,7 @@ public:
         for ( auto & f: filters_ ) f->weight_decay() = wd;
     }
 
-    options serialize() const
+    options serialize() const override
     {
         options ret = options_;
         ret.push("filters", save_filters(filters_, size_));
@@ -815,7 +815,7 @@ public:
         for ( auto & f: filters_ ) f->weight_decay() = wd;
     }
 
-    options serialize() const
+    options serialize() const override
     {
         options ret = options_;
         ret.push("filters", save_filters(filters_, size_));
@@ -875,7 +875,7 @@ public:
     void set_momentum( real ) override {}
     void set_weight_decay( real ) override {}
 
-    options serialize() const
+    options serialize() const override
     {
         return opts_;
     }
@@ -921,7 +921,7 @@ public:
     void set_momentum( real ) override {}
     void set_weight_decay( real ) override {}
 
-    options serialize() const
+    options serialize() const override
     {
         return opts_;
     }
@@ -1117,7 +1117,7 @@ public:
         for ( auto& b: biases_ ) b->weight_decay() = wd;
     }
 
-    options serialize() const
+    options serialize() const override
     {
         options ret = options_;
         ret.push("biases", save_biases(biases_));

@@ -73,7 +73,7 @@ public:
         ZI_ASSERT(type=="maxout");
     }
 
-    options serialize() const
+    options serialize() const override
     {
         options ret = nodes::opts();
         return ret;

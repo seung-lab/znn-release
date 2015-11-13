@@ -57,7 +57,7 @@ public:
         in_nodes->backward(in_num,get_copy(*g));
     }
 
-    void zap(edges* e)
+    void zap(edges* e) override
     {
         e->edge_zapped();
     }
