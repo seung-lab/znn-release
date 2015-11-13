@@ -20,49 +20,22 @@
 #include "../../types.hpp"
 #include "../../assert.hpp"
 #include "../../options/options.hpp"
+#include "../utils/counter.hpp"
 
 namespace znn { namespace v4 { namespace flow_graph {
+
 
 typedef std::vector<cube_p<real>>           tensor_type   ;
 typedef std::map<std::string, tensor_type>  interface_type;
 
-// Base node
-class node
+
+class node_base
 {
 private:
-    class counter
-    {
-    private:
-        size_t current_  = 0;
-        size_t required_ = 0;
-
-    public:
-        counter( size_t n = 0 )
-            : required_(n)
-        {}
-
-        bool tick()
-        {
-            bool is_done = false;
-
-            if ( ++current_ == required_ )
-            {
-                is_done  = true;
-                current_ = 0;
-            }
-
-            return is_done;
-        }
-
-        void reset( size_t n )
-        {
-            current_  = 0;
-            required_ = n;
-        }
-    };
-
-protected:
-    typedef std::map<std::string, node*>    targets_type;
+    // [TODO]
+    // Diverging forward?
+    // Diverging backward?
+    typedef std::map<std::string, std::vector<node_base*>> targets_type;
 
 private:
     options      options_;
@@ -107,25 +80,46 @@ private:
         for ( auto& i: interface )
         {
             auto& name    = i.first;
-            auto& targets = targets_[name];
             auto& tensor  = i.second;
+            auto& targets = targets_[name];
 
+            // always pass-by-copy, considering diverging flows
             for ( auto& target: targets )
                 target->receive(name, tensor);
         }
     }
 
+// non-copyable
+private:
+    node_base( node_base const & ) = delete;
+    node_base& operator=( node_base const & ) = delete;
+
+    node_base( node_base && ) = delete;
+    node_base& operator=( node_base && ) = delete;
+
+
 protected:
-    node( options const & op )
+    explicit node_base( options const & op )
         : options_(op)
-    {}
+    {
+        // add tops
+        auto tops = op.require_as<ovector<std::string>>("tops");
+        for ( auto& top: tops )
+
+        // add bottoms
+        auto btms = op.require_as<ovector<std::string>>("bottoms");
+        for ( auto& btm: btms )
+    }
 
     options &       opts()       { return options_; }
     options const & opts() const { return options_; }
 
-    interface_type & tops()    { return tops_;  }
-    interface_type & bottoms() { return btms_;  }
+    interface_type  tops()       { return tops_; }
+    interface_type  bottoms()    { return btms_; }
 
+
+// Load a "gun" (interface) before "firing" (flow)
+protected:
     void fwd_load( std::string const & name, tensor_type && tensor )
     {
         load(tops_, name, std::move(tensor));
@@ -146,31 +140,34 @@ protected:
         load(btms_, std::move(interface));
     }
 
-    virtual void fwd_dispatch() { dispatch(tops_); }
-    virtual void bwd_dispatch() { dispatch(btms_); }
 
-    virtual void receive( std::string const & name, tensor const & T )
+// Core communication functions between nodes
+protected:
+    void fwd_dispatch() { dispatch(tops_); }
+    void bwd_dispatch() { dispatch(btms_); }
+
+    void receive( std::string const & name, tensor const & T )
     {
         bool matched = false;
 
-        // forward flow from bottom node
+        // forward flow from a bottom node
         if ( !matched && btms_.count(name) != 0 )
         {
             btms_[name] = T;
             if ( btms_counter_.tick() )
             {
-                forward(btms_);
+                forward();
             }
             matched = true;
         }
 
-        // backward flow from top node
+        // backward flow from a top node
         if ( !matched && tops_.count(name) != 0 )
         {
             tops_[name] = T;
             if ( tops_counter_.tick() )
             {
-                backward(tops_);
+                backward();
             }
             matched = true;
         }
@@ -178,11 +175,23 @@ protected:
         ZI_ASSERT(matched);
     }
 
-// define forward & backward computations
+
+// Define graph-internal forward & backward computations.
 protected:
-    virtual void setup()                      = 0;
-    virtual void forward( interface_type & )  = 0;
-    virtual void backward( interface_type & ) = 0;
+    virtual void forward()  = 0;
+    virtual void backward() = 0;
+
+// Define graph-external forward & backward computations.
+// Except for loop-allowed nodes (e.g. interface node),
+// it should return the result of computation defined by the node itself,
+// i.e., flowless self-computation.
+public:
+    virtual interface_type forward( interface_type && in )   = 0;
+    virtual interface_type backward( interface_type && out ) = 0;
+
+public:
+    virtual bool is_bidirectional() const = 0;
+    virtual void setup() = 0;
 
 public:
     std::string name() const
@@ -190,20 +199,57 @@ public:
         return options_.require_as<std::string>("name");
     }
 
-    virtual bool is_bidirectional() const
+    void add_top( std::string const & name, node_base* target )
     {
-        return false;
+        // add top
+        static_cast<void>(tops_[name]);
+
+        // add forward target
+        ZI_ASSERT(target);
+        targets_[name].push_back(target);
     }
 
-    virtual void add_target( std::string const & name, node* n )
+    void add_bottom( std::string const & name, node_base* target = nullptr )
     {
-        ZI_ASSERT(targets_.count(name)==0);
-        targets_[name] = n;
+        // add bottom
+        static_cast<void>(btms_[name]);
+
+        // add backward target (optional)
+        if ( !target )
+        {
+            ZI_ASSERT(target->is_bidirectional());
+            targets_[name].push_back(target);
+        }
     }
+
+public:
+    virtual ~node_base() {}
+
+}; // abstract class node_base
+
+
+template< bool Bidirectional >
+class node: public node_base
+{
+public:
+    bool is_bidirectional() const override
+    {
+        return Bidirectional;
+    }
+
+protected:
+    explicit node( options const & op )
+        : node_base(op)
+    {}
 
 public:
     virtual ~node() {}
 
-};
+}; // abstract class template node
 
-}}} // namespace znn::v4
+
+typedef node<true>  bidirectional_node ;
+typedef node<false> unidirectional_node;
+
+
+}}} // namespace znn::v4::flow_graph

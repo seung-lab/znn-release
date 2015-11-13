@@ -33,7 +33,7 @@ private:
         std::vector<std::string> tops;
         std::vector<std::string> btms;
 
-        std::unique_ptr<flow_graph::node> dnode;
+        std::unique_ptr<flow_graph::node_base> dnode;
     };
 
 private:
@@ -69,35 +69,29 @@ private:
     {
         for ( auto& n: nodes_ )
         {
-            auto type = n.second->opts->require_as<std::string>("type");
+            auto opts = n.second->opts;
+            auto type = opts->require_as<std::string>("type");
 
             if ( type == "interface" )
             {
-                UNIMPLEMENTED();
-                // n.second->dnode =
-                //     std::make_unique<flow_graph::interface_node>
-                //         (blah blah blah);
+                n.second->dnode =
+                    std::make_unique<flow_graph::interface_node>(*opts);
             }
             else if ( type == "network" )
             {
-                UNIMPLEMENTED();
-                // n.second->dnode =
-                //     std::make_unique<flow_graph::network_node>
-                //         (blah blah blah);
+                n.second->dnode =
+                    std::make_unique<flow_graph::network_node>(*opts);
             }
             else if ( type == "ZALIS" )
             {
-                UNIMPLEMENTED();
-                // n.second->dnode =
-                //     std::make_unique<flow_graph::zalis_node>
-                //         (blah blah blah);
+                n.second->dnode =
+                    std::make_unique<flow_graph::zalis_node>(*opts);
             }
             else if ( type == "KALIS" )
             {
                 UNIMPLEMENTED();
                 // n.second->dnode =
-                //     std::make_unique<flow_graph::kalis_node>
-                //         (blah blah blah);
+                //     std::make_unique<flow_graph::kalis_node>(*opts);
             }
             else
             {
@@ -116,7 +110,22 @@ private:
             auto opts = n.second->opts;
             auto dest = n.second->dnode;
 
-            // bottoms
+            // [TODO]
+            // The assumption below should be modified!!!
+
+            // We assume that both converging & diverging flows are not
+            // allowed in the flow grpah. That is, multiple flows between
+            // two nodes should always be mediated by distinct tensors.
+            //
+            // For instance,
+            //      node1:top1  -> node2:bottom1,
+            //      node1:top2 <-> node2:bottom2,
+            //      node1:top3 <-  node2:bottom3, ...
+            // and so on.
+            //
+            // Converging & diverging flows should only exist
+            // within network nodes.
+
             auto btms = opts.require_as<ovector<std::string>>("bottoms");
             for ( auto& btm: btms )
             {
@@ -125,12 +134,14 @@ private:
                 ZI_ASSERT(parts.size()==2);
 
                 // forward flow
-                auto src = nodes_[parts[0]]->d;
-                src->add_target(parts[1], dest);
+                auto src = nodes_[parts[0]]->dnode;
+                src->add_top(btm, dest);
 
                 // backward flow
                 if ( src->is_bidirectional() )
-                    dest->add_target(parts[1], src);
+                    dest->add_bottom(btm, src);
+                else
+                    dest->add_bottom(btm);
             }
         }
     }
@@ -148,19 +159,19 @@ public:
         create_flows();
     }
 
-    std::map<std::string, std::pair<vec3i,size_t>> inputs() const
-    {
-        std::map<std::string, std::pair<vec3i,size_t>> ret;
-        // TOOD
-        return ret;
-    }
+    // std::map<std::string, std::pair<vec3i,size_t>> inputs() const
+    // {
+    //     std::map<std::string, std::pair<vec3i,size_t>> ret;
+    //     // [TODO]
+    //     return ret;
+    // }
 
-    std::map<std::string, std::pair<vec3i,size_t>> outputs() const
-    {
-        std::map<std::string, std::pair<vec3i,size_t>> ret;
-        // TODO
-        return ret;
-    }
+    // std::map<std::string, std::pair<vec3i,size_t>> outputs() const
+    // {
+    //     std::map<std::string, std::pair<vec3i,size_t>> ret;
+    //     // [TODO]
+    //     return ret;
+    // }
 
     void setup()
     {

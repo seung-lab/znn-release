@@ -164,7 +164,7 @@ int main(int argc, char** argv)
     // ---------------------------------------------------------------
     wt.reset();
 
-    auto weight = zalis(true_affs, affs, high, low, is_frac_norm);
+    auto weight = zalis(true_affs, affs, is_frac_norm, high, low);
 
     std::cout << "\n[zalis] done, elapsed: "
               << wt.elapsed<double>() << std::endl;

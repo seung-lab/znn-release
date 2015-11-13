@@ -17,42 +17,38 @@
 //
 #pragma once
 
-#include "node.hpp"
-
 namespace znn { namespace v4 { namespace flow_graph {
 
-class interface_node: public bidirectional_node
+class counter
 {
-protected:
-    void forward()  override {}
-    void backward() override {}
+private:
+    std::size_t current_  = 0;
+    std::size_t required_ = 0;
 
 public:
-    void setup() override {}
-
-public:
-    interface_type forward( interface_type && in ) override
-    {
-        fwd_load(std::move(in));
-        fwd_dispatch();
-
-        return bottoms();
-    }
-
-    interface_type backward( interface_type && out ) override
-    {
-        bwd_load(std::move(out));
-        bwd_dispatch();
-
-        return tops();
-    }
-
-public:
-    explicit interface_node( options const & op )
-        : bidirectional_node(op)
+    counter( std::size_t n = 0 )
+        : required_(n)
     {}
 
-    virtual ~interface_node() {}
-};
+    bool tick()
+    {
+        bool is_done = false;
+
+        if ( ++current_ == required_ )
+        {
+            is_done  = true;
+            current_ = 0;
+        }
+
+        return is_done;
+    }
+
+    void reset( std::size_t n )
+    {
+        current_  = 0;
+        required_ = n;
+    }
+
+}; // class counter
 
 }}} // namespace znn::v4::flow_graph

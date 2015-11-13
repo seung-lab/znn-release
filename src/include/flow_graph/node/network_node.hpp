@@ -24,7 +24,7 @@ namespace znn { namespace v4 { namespace flow_graph {
 
 using namespace parallel_network;
 
-class network_node: public node
+class network_node: public bidirectional_node
 {
 private:
     std::unique_ptr<network> net_;
@@ -40,7 +40,7 @@ private:
         // network spec
         std::vector<options> nodes;
         std::vector<options> edges;
-        auto net_spec = op.required_as<std::string>("net");
+        auto net_spec = op.required_as<std::string>("net_spec");
         parse_net_file(nodes, edges, net_spec);
 
         // [TODO]
@@ -54,7 +54,7 @@ private:
         auto out_sz = op.require_as<ovec3i>("size");
 
         // thread count
-        auto tc = op.optional_as<size_t>("tc",1);
+        auto tc = op.optional_as<size_t>("tc",0);
         if ( !tc ) tc = std::thread::hardware_concurrency();
 
         // force fft
@@ -71,48 +71,57 @@ private:
         // Currently only support "TRAIN" network.
 
         // construct network
-        net_ = std::make_unique<Network>(nodes, edges, out_sz, tc);
+        net_ = std::make_unique<network>(nodes, edges, out_sz, tc);
+
+        // [TODO]
+        // hyperparameter setup
     }
 
 protected:
-    void setup() override
+    void forward() override
     {
-        construct_network(node::opts());
+        auto prop = net_->forward(bottoms());
+
+        fwd_load(prop);
+        fwd_dispatch();
     }
 
-    void forward( interface_type && in ) override
+    void backward() override
     {
-        auto prop = net_->forward(std::move(in));
-
-        node::fwd_load(std::move(prop));
-        node::fwd_dispatch();
-    }
-
-    void backward( interface_type & out ) override
-    {
-        auto grad = net_->backward(std::move(out));
+        auto grad = net_->backward(tops());
 
         // [TODO]
-        // Currently backward flow is being blocked.
-        // This should be allowed later for recurrent nets, i.e.,
+        // Currently grad from network is empty.
+        // This should be modified later to allow recurrent nets, i.e.,
         // back propagation through time (BPTT).
-        //
-        // node::bwd_load(std::move(grad));
-        // node::bwd_dispatch();
+        bwd_load(grad);
+        bwd_dispatch();
     }
 
 public:
-    bool is_bidirectional() const override
+    void setup() override
     {
-        return true;
+        construct_network(opts());
     }
 
 public:
-    network_node( options const & op )
-        : node(op)
+    interface_type forward( interface_type && in ) override
+    {
+        return net_->forward(std::move(in));
+    }
+
+    interface_type backward( interface_type && out ) override
+    {
+        return net_->backward(std::move(out));
+    }
+
+public:
+    explicit network_node( options const & op )
+        : bidirectional_node(op)
     {}
 
     virtual ~network_node() {}
-};
 
-}}} // namespace znn::v4
+}; // class network_node
+
+}}} // namespace znn::v4::flow_graph
