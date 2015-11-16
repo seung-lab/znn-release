@@ -534,6 +534,7 @@ class ConfigOutputLabel(ConfigImage):
         transform labels to affinity.
         Note that this transformation will shrink the volume size
         it is different with normal transformation keeping the size of lable
+        which is defined in emirt.volume_util.seg2aff
 
         Parameters
         ----------
