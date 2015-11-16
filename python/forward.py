@@ -24,7 +24,7 @@ Inputs:
 
 Main Outputs:
 
-	-Saved .tif files for each sample within the configuration file
+	-Saved .tif/h5 files for each sample within the configuration file
 
 Nicholas Turner <nturner@cs.princeton.edu>
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
@@ -67,7 +67,7 @@ def config_forward_pass( config, params, verbose=True, sample_ids=None ):
         # Note: preprocessing included within CSamples
         # See CONSTANTS section above for optionname values
         Dataset = front_end.ConfigSample(config, params,
-                                         sample, net, output_patch_shape )
+                                         sample, net, output_patch_shape, is_forward=True )
 
         sample_outputs[sample] = generate_full_output(Dataset, net,
 						      params, params['dtype'],
@@ -173,11 +173,13 @@ def save_sample_outputs(sample_outputs, prefix):
 			num_volumes = dataset.data.shape[0]
 
 			#Consolidated 4d volume
+            # hdf5 output for watershed
 			emio.imsave(dataset.data,
-				"{}_sample{}_{}.tif".format(prefix, sample_num,
+				"{}_sample{}_{}.h5".format(prefix, sample_num,
 								dataset_name))
 
 			#Constitutent 3d volumes
+            # tif file for easy visualization
 			for i in range( num_volumes ):
 				emio.imsave(dataset.data[i,:,:,:],
 					"{}_sample{}_{}_{}.tif".format(prefix, sample_num,

@@ -24,16 +24,31 @@ class ZNN_Dataset(object):
         # Desired size of subvolumes returned by this instance
         self.patch_shape = np.asarray(data_patch_shape[-3:])
 
-        # increase the patch shape for affinity
-        if 'aff' in pars['out_type']:
-            self.patch_shape += 1
+        # (see check_patch_bounds, or _calculate_patch_bounds)
+        self.net_output_patch_shape = net_output_patch_shape
+        #Actually calculating patch bounds can be (somewhat) expensive
+        # so we'll only define this if the user tries to use patches
+        self.patch_bounds = None
+        self.patch_id = 0
+
+        # calculate some attribute sizes for further computation
+        self._calculate_sizes()
+
+    def _calculate_sizes(self):
+        '''
+        Adjusts the shape attributes to account for a change in the
+        shape of the data array
+
+        Currently used to account for boundary mirroring within subclasses
+        '''
 
         self.volume_shape = np.asarray(self.data.shape[-3:])
-        # network field of view (wrt THIS dataset)
-        self.fov = data_patch_shape[-3:] - net_output_patch_shape + 1
+
         # center coordinate
-        #-1 accounts for python indexing
+        # -1 accounts for python indexing
         self.center = (self.volume_shape-1) / 2
+        # field of view
+        self.fov = self.patch_shape[-3:] - self.net_output_patch_shape + 1
 
         #Number of voxels with index lower than the center
         # within a subvolume (used within get_dev_range, and
@@ -43,14 +58,6 @@ class ZNN_Dataset(object):
         # within a subvolume (used within get_dev_range, and
         # get_sub_volume)
         self.patch_margin_high = self.patch_shape / 2
-
-        #Used in calculating patch bounds if using patch functionality
-        # (see check_patch_bounds, or _calculate_patch_bounds)
-        self.net_output_patch_shape = net_output_patch_shape
-        #Actually calculating patch bounds can be (somewhat) expensive
-        # so we'll only define this if the user tries to use patches
-        self.patch_bounds = None
-        self.patch_id = 0
 
     def get_dev_range(self):
         """
@@ -257,7 +264,7 @@ class ConfigImage(ZNN_Dataset):
     rotations and flips for data augmentation.
     """
 
-    def __init__(self, config, pars, sec_name, setsz, outsz):
+    def __init__(self, config, pars, sec_name, setsz, outsz, is_forward=False):
 
         #Parameter object (see parser above)
         self.pars = pars
@@ -277,27 +284,11 @@ class ConfigImage(ZNN_Dataset):
             arr = arr.reshape( (1,) + arr.shape )
         ZNN_Dataset.__init__(self, pars, arr, setsz, outsz)
 
-    def _recalculate_sizes(self, net_output_patch_shape):
-        '''
-        Adjusts the shape attributes to account for a change in the
-        shape of the data array
-
-        Currently used to account for boundary mirroring within subclasses
-        '''
-
-        self.volume_shape = np.asarray(self.data.shape[-3:])
-
-        self.center = (self.volume_shape-1) / 2
-        self.fov = self.patch_shape[-3:] - net_output_patch_shape + 1
-
-        #Number of voxels with index lower than the center
-        # within a subvolume (used within get_dev_range, and
-        # get_sub_volume)
-        self.patch_margin_low  = (self.patch_shape-1) / 2
-        #Number of voxels with index higher than the center
-        # within a subvolume (used within get_dev_range, and
-        # get_sub_volume)
-        self.patch_margin_high = self.patch_shape / 2
+        # increase the patch shape for affinity
+        if not is_forward and 'aff' in pars['out_type']:
+            self.patch_shape += 1
+            # recompute the attribute sizes
+            self._calculate_sizes()
 
     def _center_crop(self, vol, shape):
         """
@@ -379,8 +370,9 @@ class ConfigInputImage(ConfigImage):
     deviation range for affinity data output.
     '''
 
-    def __init__(self, config, pars, sec_name, setsz, outsz ):
-        ConfigImage.__init__(self, config, pars, sec_name, setsz, outsz )
+    def __init__(self, config, pars, sec_name, setsz, outsz, is_forward=False ):
+        ConfigImage.__init__(self, config, pars, sec_name, \
+                             setsz, outsz, is_forward=is_forward )
 
         # preprocessing
         pp_types = config.get(sec_name, 'pp_types').split(',')
@@ -390,7 +382,7 @@ class ConfigInputImage(ConfigImage):
         if pars['is_bd_mirror']:
             self.data = utils.boundary_mirror(self.data, self.fov)
             #Modifying the deviation boundaries for the modified dataset
-            self._recalculate_sizes( outsz )
+            self._calculate_sizes( )
 
     def _preprocess( self, vol3d , pp_type ):
 
@@ -787,9 +779,8 @@ class ConfigSample(object):
     Allows simple interface for procuring matched random samples from all volume
     structures at once
 
-    Designed to be similar with Dataset module of pylearn2
     """
-    def __init__(self, config, pars, sample_id, net, outsz, log=None):
+    def __init__(self, config, pars, sample_id, net, outsz, log=None, is_forward=False):
 
         # Parameter object (dict)
         self.pars = pars
@@ -816,7 +807,8 @@ class ConfigSample(object):
             imid = config.getint(self.sec_name, name)
             imsec_name = "image%d" % (imid,)
 
-            self.inputs[name] = ConfigInputImage( config, pars, imsec_name, setsz, outsz )
+            self.inputs[name] = ConfigInputImage( config, pars, imsec_name, \
+                                                  setsz, outsz, is_forward=is_forward )
             low, high = self.inputs[name].get_dev_range()
 
             # Deviation bookkeeping
