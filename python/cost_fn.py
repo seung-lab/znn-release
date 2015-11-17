@@ -49,10 +49,27 @@ def square_loss(props, lbls):
         lbl = lbls[name]
         grdt = prop - lbl
         # cost and classification error
-        err = err + np.sum( grdt * grdt )
+        err = err + np.sum( np.square(grdt) )
         grdts[name] = grdt * 2
 
     return (props, err, grdts)
+
+def square_square_loss(props, lbls, margin=0.2):
+    """
+    square-square loss (square loss with a margin)
+    """
+    gradients = dict()
+    error = 0
+
+    for name, propagation in props.iteritems():
+        lbl = lbls[name]
+        gradient = propagation - lbl
+        gradient[np.abs(gradient) <= margin] = 0
+
+        error += np.sum( np.square(gradient) )
+        gradients[name] = gradient * 2
+
+    return (props, error, gradients)
 
 #@jit(nopython=True)
 def binomial_cross_entropy(props, lbls):

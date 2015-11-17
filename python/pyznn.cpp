@@ -145,7 +145,7 @@ std::shared_ptr< network > CNet_Init(
     }
 
     std::cout<< "construct the network class using the edges and nodes..." <<std::endl;
-    std::cout<<"if unseccessful, please check the network config file (networks/XXX.znn)."<<std::endl;
+    std::cout<<"if unsuccessful, please check the network config file (networks/XXX.znn)."<<std::endl;
     // construct the network class
     std::shared_ptr<network> net(
         new network(nodes,edges,out_sz,tc,static_cast<phase>(phs)));
