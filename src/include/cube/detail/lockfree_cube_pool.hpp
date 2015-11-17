@@ -240,13 +240,13 @@ public:
 
     static std::shared_ptr<qube<T>> get_qube( const vec4i& s )
     {
-        return instance.get(s);
+        return instance.get_qube(s);
     }
 
     static std::shared_ptr<qube<T>> get_qube( size_t x, size_t y,
                                               size_t z, size_t c )
     {
-        return instance.get( vec4i(x,y,z,c) );
+        return instance.get_qube( vec4i(x,y,z,c) );
     }
 };
 

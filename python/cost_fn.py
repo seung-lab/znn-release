@@ -168,47 +168,7 @@ def softmax_loss2(props, lbls):
 # TO-DO
 
 
-def malis_find(sid, seg):
-    """
-    find the root/segment id
-    """
-    return seg[sid-1]
-
-def malis_union(r1, r2, seg, id_sets):
-    """
-    union the two sets, keep the "tree" update.
-
-    parameters
-    ----------
-    r1, r2 : segment id of two sets
-    seg : 1d array, record the segment id of all the segments
-    id_sets : dict, key is the root/segment id
-                    value is a set of voxel ids.
-
-    returns
-    -------
-    seg :
-    id_sets
-    """
-    # get set pair
-    set1 = id_sets[r1]
-    set2 = id_sets[r2]
-
-    # make sure that set1 is larger than set2
-    if len(set1) < len(set2):
-        r1, r2 = r2, r1
-        set1, set2 = set2, set1
-    # merge the small set to big set
-    id_sets[r1]= set1.union( set2 )
-    # update the segmentation
-    for vid in set2:
-        seg[vid-1] = r1
-    # remove the small set in dict
-    del id_sets[r2]
-    return seg, id_sets
-
-# TO-DO, not fully implemented
-def malis_weight_aff(affs, true_affs, threshold=0.5):
+def malis_weight_aff(affs, true_affs, Dim = 3):
     """
     compute malis tree_size
 
@@ -216,89 +176,77 @@ def malis_weight_aff(affs, true_affs, threshold=0.5):
     -----------
     affs:      4D array of forward pass output affinity graphs, size: C*Z*Y*X
     true_affs : 4d array of ground truth affinity graph
+    Dim: dimension
     threshold: threshold for segmentation
 
     Return:
     ------
     weights : 4D array of weights
     """
+    print "affinity shape: ", affs.shape
     # segment the true affinity graph
     tseg = emirt.volume_util.aff2seg(true_affs)
-    tid_sets, tsegf = emirt.volume_util.map_set( tseg )
 
-    if isinstance(affs, dict):
-        assert( len(affs.keys())==1 )
-        key = affs.keys()[0]
-        affs = affs.values()[0]
+    print "true segmentation: ", tseg
+
     # get affinity graphs
-    xaff = affs[2]
-    yaff = affs[1]
-    zaff = affs[0]
-    shape = xaff.shape
+    xaff = affs[2,:,:,:]
+    yaff = affs[1,:,:,:]
+    zaff = affs[0,:,:,:]
 
-    # initialize segmentation with individual label of each voxel
-    seg_shp = np.asarray(xaff.shape)+1
-    N = np.prod( seg_shp )
-    ids = np.arange(1, N+1).reshape( seg_shp )
-    seg = np.copy( ids ).flatten()
+    # voxel ids
+    vids = np.arange( xaff.size, dtype='uint32' ).reshape( xaff.shape )
 
     # initialize edges: aff, id1, id2, z/y/x, true_aff
     edges = list()
-    for z in xrange(shape[0]):
-        for y in xrange(shape[1]):
-            for x in xrange(1,shape[2]):
-                edges.append( (xaff[z,y,x], ids[z,y,x], ids[z,y,x-1], 2) )
-    for z in xrange(shape[0]):
-        for y in xrange(1,shape[1]):
-            for x in xrange(shape[2]):
-                edges.append( (yaff[z,y,x], ids[z,y,x], ids[z,y-1,x], 1) )
-    for z in xrange(1,shape[0]):
-        for y in xrange(shape[1]):
-            for x in xrange(shape[2]):
-                edges.append( (zaff[z,y,x], ids[z,y,x], ids[z-1,y,x], 0) )
+    # x affinity edge
+    for z in xrange( xaff.shape[0] ):
+        for y in xrange( xaff.shape[1] ):
+            for x in xrange( 1, xaff.shape[2] ):
+                edges.append( (xaff[z,y,x], vids[z,y,x], vids[z,y,x-1], 2,z,y,x) )
+    # y affinity edge
+    for z in xrange( yaff.shape[0] ):
+        for y in xrange( 1, yaff.shape[1] ):
+            for x in xrange( yaff.shape[2] ):
+                edges.append( (yaff[z,y,x], vids[z,y,x], vids[z,y-1,x], 1,z,y,x) )
+    # do not include z affinity edge for 2D affinity
+    if Dim==3:
+        # z affinity edge
+        for z in xrange( 1, zaff.shape[0] ):
+            for y in xrange( zaff.shape[1] ):
+                for x in xrange( zaff.shape[2] ):
+                    edges.append( (zaff[z,y,x], vids[z,y,x], vids[z-1,y,x], 0,z,y,x) )
     # descending sort
     edges.sort(reverse=True)
 
     # find the maximum-spanning tree based on union-find algorithm
-    weights = np.zeros( affs.shape, dtype=affs.dtype )
-    # the dict set containing all the sets
-    id_sets = dict()
-    # initialize the id sets
-    for i in xrange(1,N+1):
-        id_sets[i] = i
+    merr = np.zeros( affs.shape, dtype=affs.dtype )
+    serr = np.zeros( affs.shape, dtype=affs.dtype )
 
-    # accumulate the merge and split errors
-    #merr = serr = 0
+    # initialize the watershed domains
+    dms = emirt.domains.CDomains( tseg )
 
     # union find the sets
     for e in edges:
-        # find the segment/root id
-        r1 = malis_find(e[1], seg)
-        r2 = malis_find(e[2], seg)
+        # voxel ids
+        vid1 = e[1]
+        vid2 = e[2]
+        c = e[-4]
+        z = e[-3]
+        y = e[-2]
+        x = e[-1]
+        # union the domains
+        me, se = dms.union( vid1, vid2 )
 
-        if r1==r2:
-            # this is not a maximin edge
-            continue
+        # deal with the maiximin edge
+        # accumulate the merging error
+        merr[c,z,y,x] += me
+        serr[c,z,y,x] += se
 
-        if e[0]>threshold:
-            # merge two sets, the voxel pairs not in a segments are errors
-            #weights[e[3], r1-1] = weights[e[3],r1-1] + s1*s2
-            # merge the two sets/trees
-            pass
+    # combine the two error weights
+    w = (merr + serr)
+    return w, merr, serr
 
-        else:
-        # do not merge, the voxel pairs in a same segments are errors
-            print "dp "
-
-
-    # normalize the weights
-    #N = float(N)
-    #weights = weights * (3*N) / ( N*(N-1)/2 )
-    #weights = weights.reshape( affs.shape )
-    # transform to dictionary
-    ret = dict()
-    #ret[key] = weights
-    return ret
 
 def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     """
@@ -319,8 +267,8 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     assert(bdm.shape==lbl.shape)
 
     # initialize segmentation with individual id of each voxel
-    ids = np.arange(1,bdm.size+1).reshape( bdm.shape )
-    seg = np.arange(1,bdm.size+1)
+    # voxel id start from 0, is exactly the coordinate of voxel in 1D
+    vids = np.arange(bdm.size).reshape( bdm.shape )
 
     # create edges: bdm, id1, id2, true label
     # the affinity of neiboring boundary map voxels
@@ -329,71 +277,53 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     edges = list()
     for y in xrange(bdm.shape[0]):
         for x in xrange(bdm.shape[1]-1):
-            v1 = bdm[y,x]
-            i1 = ids[y,x]
-            v2 = bdm[y,x+1]
-            i2 = ids[y,x+1]
+            bmv1 = bdm[y,x]
+            vid1 = vids[y,x]
+            bmv2 = bdm[y,x+1]
+            vid2 = vids[y,x+1]
             # the voxel with id1 will always has the minimal value
-            if v1 > v2:
-                v1, v2 = v2, v1
-                i1, i2 = i2, i1
-            if v1 > 0:
-                # we only merge the edges with aff>0
-                edges.append((v1, i1, i2))
+            if bmv1 > bmv2:
+                bmv1, bmv2 = bmv2, bmv1
+                vid1, vid2 = vid2, vid1
+            edges.append((bmv1, vid1, vid2))
 
     for y in xrange(bdm.shape[1]-1):
         for x in xrange(bdm.shape[0]):
-            v1 = bdm[y,x]
-            i1 = ids[y,x]
-            v2 = bdm[y+1,x]
-            i2 = ids[y+1,x]
-            if v1 > v2:
-                v1, v2 = v2, v1
-                i1, i2 = i2, i1
-            if v1 > 0:
-                # we only merge the edges with aff>0
-                edges.append((v1, i1, i2))
+            # boundary map value and voxel id
+            bmv1 = bdm[y,x]
+            vid1 = vids[y,x]
+            bmv2 = bdm[y+1,x]
+            vid2 = vids[y+1,x]
+            if bmv1 > bmv2:
+                bmv1, bmv2 = bmv2, bmv1
+                vid1, vid2 = vid2, vid1
+            edges.append((bmv1, vid1, vid2))
+
     # descending sort
     edges.sort(reverse=True)
 
     # initalize the merge and split errors
     merr = np.zeros(bdm.size, dtype=bdm.dtype)
     serr = np.zeros(bdm.size, dtype=bdm.dtype)
-    # set of ids
-    id_sets = dict()
-    # initalize the id sets
-    for i in xrange(1,lbl.size+1):
-        id_sets[i] = {i}
+
+    # initalize the watershed domains
+    dms = emirt.domains.CDomains( lbl )
 
     # find the maximum spanning tree based on union-find algorithm
     for e in edges:
-        # find the segment/root id
-        r1 = malis_find(e[1], seg)
-        r2 = malis_find(e[2], seg)
-        if r1==r2:
-            # this is not a maximin edge
-            # these pixel pair is already in one segment
-            continue
-
-        # find the id set pair of this edge
-        set1 = id_sets[r1]
-        set2 = id_sets[r2]
-
-        # compute the merging and spliting error
-        me, se = get_merge_split_errors(set1, set2, lbl)
+        # voxel ids
+        vid1 = e[1]
+        vid2 = e[2]
+        # union the domains
+        me, se = dms.union( vid1, vid2 )
 
         # deal with the maximin edge
         # accumulate the merging error
-        merr[e[1]-1] += me
+        merr[vid1] += me
         # accumulate the spliting error
-        serr[e[1]-1] += se
-        # merge the two sets
-        seg, id_sets = malis_union(r1,r2, seg, id_sets)
-    # normalize the weight
-    merr *= merr.size*0.5 / np.sum(merr, dtype=bdm.dtype)
-    serr *= serr.size*0.5 / np.sum(serr, dtype=bdm.dtype)
-    # reshape the err
+        serr[vid1] += se
 
+    # reshape the err
     merr = merr.reshape(bdm.shape)
     serr = serr.reshape(bdm.shape)
     # combine the two error weights
@@ -401,62 +331,16 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
 
     return (w, merr, serr)
 
-def get_merge_split_errors(set1, set2, lbl):
-    """
-    count the merging and spliting errors
+def constrain_label(bdm, lbl):
+    # merging error boundary map filled with intracellular ground truth
+    mbdm = np.copy(bdm)
+    mbdm[lbl>0] = 1
 
-    Parameters
-    ----------
-    set1: set of integers, set of pixel ids
-    set2: the other set
-    lbl: array of integers, ground truth segmentation
+    # splitting error boundary map filled with boundary ground truth
+    sbdm = np.copy(bdm)
+    sbdm[lbl==0] = 0
 
-    Returns
-    -------
-    me: integer, mergers
-    se: integer, splits
-    """
-    # transform to a dictionary of pixel ids
-    # key: segmentation id in manual labeling
-    # value: set of pixel ids
-    d1 = dict()
-    d2 = dict()
-    # label should have multiple segments
-    # it is not a binary labeling
-    assert(lbl.max()>1)
-
-    for i in set1:
-        # get labeled id
-        l1 = lbl.flat[i-1]
-        # skip boundary
-        if l1 > 0:
-            if d1.has_key(l1):
-                d1[l1].add(i)
-            else:
-                d1[l1] = {i}
-    for i in set2:
-        # get labeled id
-        l2 = lbl.flat[i-1]
-        # skip boundary
-        if l2 > 0:
-            if d2.has_key(l2):
-                d2[l2].add(i)
-            else:
-                d2[l2] = {i}
-    # mergers and spliters
-    me = se = 0
-    for l1, s1 in d1.iteritems():
-        for l2, s2 in d2.iteritems():
-            if l1==l2:
-                # they should merge together
-                # this is split error
-                se += len(s1) * len(s2)
-            else:
-                # they should be splited
-                # this is merge error
-                me += len(s1) * len(s2)
-    #print "merging and spliting error: ", me, ", ", se
-    return me, se
+    return mbdm, sbdm
 
 def constrained_malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     """
@@ -464,18 +348,11 @@ def constrained_malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     fill the intracellular space with ground truth when computing merging error
     fill the boundary with ground truth when computing spliting error
     """
-    # merging error boundary map filled with intracellular ground truth
-    mbdm = np.copy(bdm)
-    mbdm[lbl>0] = 1
+    mbdm, sbdm = constrain_label(bdm, lbl)
     # get the merger weights
     mw, mme, mse = malis_weight_bdm_2D(mbdm, lbl, threshold)
-
-    # splitting error boundary map filled with boundary ground truth
-    sbdm = np.copy(bdm)
-    sbdm[lbl==0] = 0
     # get the splitter weights
     sw, sme, sse = malis_weight_bdm_2D(sbdm, lbl, threshold)
-
     w = mme + sse
     return (w, mme, sse)
 
@@ -491,6 +368,8 @@ def malis_weight_bdm(bdm, lbl, threshold=0.5):
     Return
     ------
     weights: 3D or 4D array, the malis weights
+    merr: merger error
+    serr: splitter error
     """
     assert(bdm.shape==lbl.shape)
     assert(bdm.ndim==4 or bdm.ndim==3)
@@ -506,14 +385,20 @@ def malis_weight_bdm(bdm, lbl, threshold=0.5):
 
     # initialize the weights
     weights = np.empty(bdm.shape, dtype=bdm.dtype)
+    merr = np.empty(bdm.shape, dtype=bdm.dtype)
+    serr = np.empty(bdm.shape, dtype=bdm.dtype)
+
     # traverse along the z axis
     for z in xrange(bdm.shape[1]):
-        w = malis_weight_bdm_2D(bdm0[z,:,:], lbl0[z,:,:], threshold)
+        w, me, se = malis_weight_bdm_2D(bdm0[z,:,:], lbl0[z,:,:], threshold)
         for c in xrange(bdm.shape[0]):
             weights[c,z,:,:] = w
+            merr[c,z,:,:] = me
+            serr[c,z,:,:] = se
     weights = weights.reshape( original_shape )
-
-    return weights
+    merr = merr.reshape( original_shape )
+    serr = serr.reshape( original_shape )
+    return weights, merr, serr
 
 def malis_weight(props, lbls):
     """
@@ -521,13 +406,23 @@ def malis_weight(props, lbls):
     """
     ret = dict()
     for name, prop in props.iteritems():
+        assert prop.ndim==4
         lbl = lbls[name]
         if prop.shape[0]==3:
             # affinity output
-            ret[name] = malis_weight_aff(prop, lbl)
+            # ret[name], merr, serr = malis_weight_aff(prop, lbl)
+            from malis.pymalis import zalis
+            #true_affs = emirt.volume_util.seg2aff( lbl )
+            weights = zalis( prop, lbl, 1.0, 0.0, 0)
+            merr = weights[:3, :,:,:]
+            serr = weights[3:, :,:,:]
+            w = merr + serr
+            # normalization by N
+            w = w / float(merr.size / 3)
+            ret[name] = w
         else:
             # take it as boundary map
-            ret[name] = malis_weight_bdm(prop, lbl)
+            ret[name], merr, serr = malis_weight_bdm(prop, lbl)
     return ret
 
 def sparse_cost(outputs, labels, cost_fn):
