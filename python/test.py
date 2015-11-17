@@ -59,7 +59,11 @@ def znn_test(net, pars, samples, vn, it, lc):
     re  = re  / vn / test_num
     # update the learning curve
     lc.append_test( it, err, cls )
-    lc.append_test_rand_error( it, re )
-    print "test iter: %d,     err: %.3f, cls: %.3f, re: %.3f" \
+    lc.append_test_rand_error( re )
+    if pars['is_malis']:
+        print "test iter: %d,     err: %.3f, cls: %.3f, re: %.6f" \
                 %(it, err, cls, re)
+    else:
+        print "test iter: %d,     err: %.3f, cls: %.3f" \
+                %(it, err, cls)
     return lc

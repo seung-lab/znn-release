@@ -106,15 +106,15 @@ class CLearnCurve:
         self.tn_err.append(err)
         self.tn_cls.append(cls)
 
-    def append_train_rand_error( i, re ):
-        while len( self.tn_re ) < i-1:
+    def append_train_rand_error( self, re ):
+        while len( self.tn_re ) < len(self.tn_it)-1:
             # fill with nan
             self.tn_re.append( np.nan )
         self.tn_re.append( re )
         assert len(self.tn_it) == len(self.tn_re)
 
-    def append_test_rand_error( i, re ):
-        while len( self.tt_re ) < i-1:
+    def append_test_rand_error( self, re ):
+        while len( self.tt_re ) < len(self.tt_it)-1:
             self.tt_re.append( np.nan )
         self.tt_re.append( re )
         assert len(self.tt_it) == len(self.tt_re)
@@ -198,7 +198,8 @@ class CLearnCurve:
         import shutil
         root, ext = os.path.splitext(fname)
         fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
-        shutil.rmtree( fname )
+        if os.path.exists(fname):
+            shutil.rmtree( fname )
 
         # save variables
         import h5py
@@ -218,7 +219,8 @@ class CLearnCurve:
 
         # move to new name
         fname2 = root + '_statistics_current.h5'
-        shutil.rmtree( fname2 )
+        if os.path.exists( fname2 ):
+            shutil.rmtree( fname2 )
         shutil.copyfile(fname, fname2)
 
 def find_statistics_file_within_dir(seed_filename):

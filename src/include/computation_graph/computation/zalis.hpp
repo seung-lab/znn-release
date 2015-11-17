@@ -81,7 +81,10 @@ zalis( std::vector<cube_p<real>> true_affs,
     cube<int> & ids = *ids_ptr;
 
     // initialize the counting
-    real TP=0, TN=0, FP=0, FN=0;
+    real TP=0;
+    real TN=0;
+    real FP=0;
+    real FN=0;
 
     for ( size_t i = 0; i < n; ++i )
     {
