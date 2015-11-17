@@ -115,7 +115,7 @@ def main( conf_file='config.cfg', logfile=None ):
             lc.append_train(i, err, cls)
             if pars['is_malis']:
                 re = re / vn / pars['Num_iter_per_show']
-                lc.append_tran_rand_error( i, re )
+                lc.append_train_rand_error( i, re )
 
             # time
             elapsed = (time.time() - start) / pars['Num_iter_per_show']
