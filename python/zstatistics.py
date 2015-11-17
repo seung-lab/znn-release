@@ -199,7 +199,7 @@ class CLearnCurve:
         root, ext = os.path.splitext(fname)
         fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
         if os.path.exists(fname):
-            shutil.rmtree( fname )
+            os.remove( fname )
 
         # save variables
         import h5py
@@ -220,7 +220,7 @@ class CLearnCurve:
         # move to new name
         fname2 = root + '_statistics_current.h5'
         if os.path.exists( fname2 ):
-            shutil.rmtree( fname2 )
+            os.remove( fname2 )
         shutil.copyfile(fname, fname2)
 
 def find_statistics_file_within_dir(seed_filename):
