@@ -49,7 +49,7 @@ def square_loss(props, lbls):
         lbl = lbls[name]
         grdt = prop - lbl
         # cost and classification error
-        err = err + np.sum( grdt * grdt )
+        err = err + np.sum( np.square(grdt) )
         grdts[name] = grdt * 2
 
     return (props, err, grdts)
