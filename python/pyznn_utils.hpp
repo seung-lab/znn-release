@@ -1,7 +1,3 @@
-
-/*
-*/
-
 //===========================================================================
 // INCLUDE STATEMENTS
 // boost python
@@ -22,7 +18,7 @@
 namespace bp = boost::python;
 namespace np = boost::numpy;
 
-namespace znn { namespace v4 { 
+namespace znn { namespace v4 {
 //===========================================================================
 
 //Converts std::vector<std::size_t> vector to tuple of std::size_t
@@ -376,76 +372,81 @@ std::vector<options> pyopt_to_znnopt( bp::list const & py_opts )
 template <typename T>
 std::vector<cube_p< T >> array2cubelist( np::ndarray& vols )
 {
-	// ensure that the input ndarray is 4 dimension
-	assert( vols.get_nd() == 4 );
+    // ensure that the input ndarray is 4 dimension
+    assert( vols.get_nd() == 4 );
 
-	std::vector<cube_p< T >> ret;
-	ret.resize( vols.shape(0) );
-	// input volume size
-	std::size_t sc = vols.shape(0);
-	std::size_t sz = vols.shape(1);
-	std::size_t sy = vols.shape(2);
-	std::size_t sx = vols.shape(3);
+    std::vector<cube_p< T >> ret;
+    ret.resize( vols.shape(0) );
+    // input volume size
+    std::size_t sc = vols.shape(0);
+    std::size_t sz = vols.shape(1);
+    std::size_t sy = vols.shape(2);
+    std::size_t sx = vols.shape(3);
 
-	for (std::size_t c=0; c<sc; c++)
-	{
-		cube_p<T> cp = get_cube<T>(vec3i(sz,sy,sx));
-		for (std::size_t k=0; k< sz*sy*sx; k++)
-			cp->data()[k] = reinterpret_cast<T*>( vols.get_data() )[c*sz*sy*sx + k];
-		ret[c] = cp;
-	}
-	return ret;
+    for (std::size_t c=0; c<sc; c++)
+    {
+        cube_p<T> cp = get_cube<T>(vec3i(sz,sy,sx));
+        for (std::size_t k=0; k< sz*sy*sx; k++)
+            cp->data()[k] = reinterpret_cast<T*>( vols.get_data() )[c*sz*sy*sx + k];
+        ret[c] = cp;
+    }
+    return ret;
 }
 
 template <typename T>
 std::map<std::string, std::vector<cube_p<T>>> pydict2sample( bp::dict pd)
 {
-	std::map<std::string, std::vector<cube_p<T>>> ret;
-	bp::list keys = pd.keys();
-	for (int i=0; i<bp::len(keys); i++ )
-	{
-		std::string key = bp::extract<std::string>( keys[i] );
-		np::ndarray value = bp::extract<np::ndarray>( pd[key] );
-		ret[key] = array2cubelist<T>( value );
-	}
-	return ret;
+    std::map<std::string, std::vector<cube_p<T>>> ret;
+    bp::list keys = pd.keys();
+    for (int i=0; i<bp::len(keys); i++ )
+    {
+        std::string key = bp::extract<std::string>( keys[i] );
+        np::ndarray value = bp::extract<np::ndarray>( pd[key] );
+        ret[key] = array2cubelist<T>( value );
+    }
+    return ret;
 }
 
 template <typename T>
-np::ndarray cubelist2array( bp::object const & self, std::vector<cube_p< T >> clist )
+inline np::ndarray
+cubelist2array( bp::object const & self, std::vector<cube_p< T >> clist )
 {
-	// number of output cubes
-	std::size_t sc = clist.size();
-	std::size_t sz = clist[0]->shape()[0];
-	std::size_t sy = clist[0]->shape()[1];
-	std::size_t sx = clist[0]->shape()[2];
+    // number of output cubes
+    std::size_t sc = clist.size();
+    std::size_t sz = clist[0]->shape()[0];
+    std::size_t sy = clist[0]->shape()[1];
+    std::size_t sx = clist[0]->shape()[2];
 
-	// temporal 4D qube pointer
-	qube_p<T> tqp = get_qube<T>( vec4i(sc,sz,sy,sx) );
-	for (std::size_t c=0; c<sc; c++)
-	{
-		for (std::size_t k=0; k<sz*sy*sx; k++)
-			tqp->data()[c*sz*sy*sx+k] = clist[c]->data()[k];
-	}
-	// return ndarray
-	return 	np::from_data(
-				tqp->data(),
-				np::dtype::get_builtin<T>(),
-				bp::make_tuple(sc,sz,sy,sx),
-				bp::make_tuple(sx*sy*sz*sizeof(T), sx*sy*sizeof(T), sx*sizeof(T), sizeof(T)),
-				self
-			);
+    // temporal 4D qube pointer
+    qube_p<T> tqp = get_qube<T>( vec4i(sc,sz,sy,sx) );
+    for (std::size_t c=0; c<sc; c++)
+    {
+        for (std::size_t k=0; k<sz*sy*sx; k++)
+            tqp->data()[c*sz*sy*sx+k] = clist[c]->data()[k];
+    }
+
+    // return ndarray
+    return np::from_data(
+        tqp->data(),
+        np::dtype::get_builtin<T>(),
+        bp::make_tuple(sc,sz,sy,sx),
+        bp::make_tuple(sx*sy*sz*sizeof(T), sx*sy*sizeof(T),
+                       sx*sizeof(T), sizeof(T)),
+        self );
 }
 
+
 template <typename T>
-bp::dict sample2pydict( bp::object const & self,  std::map<std::string, std::vector<cube_p<T>>> sample)
+bp::dict sample2pydict( bp::object const & self,
+                        std::map<std::string,
+                        std::vector<cube_p<T>>> sample)
 {
-	bp::dict ret;
-	for (auto & am: sample )
-	{
-		ret[am.first] = cubelist2array<T>( self,  am.second);
-	}
-	return ret;
+    bp::dict ret;
+    for (auto & am: sample )
+    {
+        ret[am.first] = cubelist2array<T>( self, am.second);
+    }
+    return ret;
 }
 
 

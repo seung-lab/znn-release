@@ -23,6 +23,15 @@
 #include <sstream>
 
 
+#define DIE(message)                                                    \
+    {                                                                   \
+        std::cout << message << std::endl                               \
+                  << "file: " << __FILE__ << " line: "                  \
+                  << __LINE__ << std::endl;                             \
+        abort();                                                        \
+    }                                                                   \
+    static_cast<void>(0)
+
 #define UNIMPLEMENTED()                                                 \
     {                                                                   \
         std::cout << "unimplemented function" << std::endl              \

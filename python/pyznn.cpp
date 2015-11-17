@@ -86,6 +86,7 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 #include "network/parallel/network.hpp"
 #include "cube/cube.hpp"
 #include <zi/zargs/zargs.hpp>
+#include "computation_graph/computation/zalis.hpp"
 
 //utils
 #include "pyznn_utils.hpp"
@@ -258,7 +259,7 @@ bp::dict CNet_forward( bp::object const & self, bp::dict& ins )
 
     // run forward and get output
     auto prop = net.forward( std::move( pydict2sample<real>( ins ) ) );
-    return sample2pydict<real>(self, prop);
+    return sample2pydict<real>( self, prop);
 }
 
 //Computes the backward-pass and updates network parameters
@@ -304,46 +305,71 @@ std::size_t CNet_get_output_num( bp::object const & self )
 
 bp::dict CNet_get_inputs_setsz( bp::object const & self )
 {
-	network& net = bp::extract<network&>(self)();
-	std::map<std::string, std::pair<vec3i,size_t>> inputs = net.inputs();
+    network& net = bp::extract<network&>(self)();
+    std::map<std::string, std::pair<vec3i,size_t>> inputs = net.inputs();
 
-	bp::dict ret;
-	for (auto &in: inputs)
-	{
-		np::ndarray arr = np::empty(bp::make_tuple(4), np::dtype::get_builtin<unsigned int>());
-		arr[0] = in.second.second;
-		arr[1] = in.second.first[0];
-		arr[2] = in.second.first[1];
-		arr[3] = in.second.first[2];
-		ret[in.first] = arr;
-	}
-	return ret;
+    bp::dict ret;
+    for (auto &in: inputs)
+    {
+        np::ndarray arr = np::empty(bp::make_tuple(4), np::dtype::get_builtin<unsigned int>());
+        arr[0] = in.second.second;
+        arr[1] = in.second.first[0];
+        arr[2] = in.second.first[1];
+        arr[3] = in.second.first[2];
+        ret[in.first] = arr;
+    }
+    return ret;
 }
 
 bp::dict CNet_get_outputs_setsz( bp::object const & self )
 {
-	network& net = bp::extract<network&>(self)();
-	std::map<std::string, std::pair<vec3i,size_t>> outputs = net.outputs();
+    network& net = bp::extract<network&>(self)();
+    std::map<std::string, std::pair<vec3i,size_t>> outputs = net.outputs();
 
-	bp::dict ret;
-	for (auto &out: outputs)
-	{
-		np::ndarray arr = np::empty(bp::make_tuple(4), np::dtype::get_builtin<unsigned int>());
-		arr[0] = out.second.second;
-		arr[1] = out.second.first(0);
-		arr[2] = out.second.first(1);
-		arr[3] = out.second.first(2);
-		ret[out.first] = arr;
-	}
-	return ret;
+    bp::dict ret;
+    for (auto &out: outputs)
+    {
+        np::ndarray arr = np::empty(bp::make_tuple(4), np::dtype::get_builtin<unsigned int>());
+        arr[0] = out.second.second;
+        arr[1] = out.second.first(0);
+        arr[2] = out.second.first(1);
+        arr[3] = out.second.first(2);
+        ret[out.first] = arr;
+    }
+    return ret;
 }
 //===========================================================================
 void CNet_set_phase(bp::object const & self, std::uint8_t const phs = 0)
 {
-	network& net = bp::extract<network&>(self)();
-	net.set_phase( static_cast<phase>(phs) );
-	return;
+    network& net = bp::extract<network&>(self)();
+    net.set_phase( static_cast<phase>(phs) );
+    return;
 }
+
+bp::tuple pyzalis( bp::object const & self,
+                 np::ndarray& pyaffs,
+                 np::ndarray& pytrue_affs,
+                 float high,
+                 float low,
+                 int is_frac_norm)
+{
+    // python data structure to c++ data structure
+    std::vector< cube_p<real> > true_affs = array2cubelist<real>( pytrue_affs );
+    std::vector< cube_p<real> > affs = array2cubelist<real>( pyaffs );
+
+    // zalis computation
+    auto weights = zalis(true_affs, affs, high, low, is_frac_norm);
+
+    // transform to python data structure
+    // bp::tuple shape = bp::make_tuple( pyaffs.shape(0), pyaffs.shape(1), pyaffs.shape(2), pyaffs.shape(3) );
+    // np::ndarray pymerger   = np::empty( shape, pyaffs.get_dtype() );
+    // np::ndarray pysplitter = np::empty( shape, pyaffs.get_dtype() );
+    np::ndarray pymerger   = cubelist2array<real>(  self, weights.merger);
+    np::ndarray pysplitter = cubelist2array<real>(  self, weights.splitter );
+
+    return bp::make_tuple( pymerger, pysplitter );
+}
+
 
 //===========================================================================
 //BOOST PYTHON INTERFACE DEFINITION
@@ -352,7 +378,7 @@ BOOST_PYTHON_MODULE(pyznn)
     Py_Initialize();
     np::initialize();
 
-    bp::class_<network, std::shared_ptr<network>, boost::noncopyable>("CNet",bp::no_init)
+    bp::class_<network, boost::shared_ptr<network>, boost::noncopyable>("CNet",bp::no_init)
         .def("__init__", bp::make_constructor(&CNet_Init))
         .def("__init__", bp::make_constructor(&CNet_loadopts))
         .def("get_fov",     		&CNet_fov)
@@ -368,4 +394,5 @@ BOOST_PYTHON_MODULE(pyznn)
         .def("get_output_num", 		&CNet_get_output_num)
         .def("get_opts",			&CNet_getopts)
         ;
+    def("zalis", pyzalis);
 }

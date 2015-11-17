@@ -18,6 +18,7 @@
 #pragma once
 
 #include "../../types.hpp"
+#include "../../assert.hpp"
 
 namespace znn { namespace v4 {
 
@@ -48,7 +49,7 @@ public:
 
     ~cube()
     {
-        znn_free(this);
+        DIE("should never be called");
     }
 
     cube& operator=(const cube& x)
@@ -69,6 +70,10 @@ public:
 
 template <typename T> struct qube: boost::multi_array_ref<T,4>
 {
+private:
+    using base_type =  boost::multi_array_ref<T,3>;
+
+public:
     explicit qube(const vec4i& s, T* data)
         : boost::multi_array_ref<T,4>(data,extents[s[0]][s[1]][s[2]][s[3]])
     {
@@ -76,7 +81,20 @@ template <typename T> struct qube: boost::multi_array_ref<T,4>
 
     ~qube()
     {
-        znn_free(this);
+        DIE("should never be called");
+    }
+
+    qube& operator=(const qube& x)
+    {
+        base_type::operator=(static_cast<base_type>(x));
+        return *this;
+    }
+
+    template< class Array >
+    qube& operator=(const Array& x)
+    {
+        base_type::operator=(x);
+        return *this;
     }
 };
 
