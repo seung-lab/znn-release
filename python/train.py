@@ -118,7 +118,7 @@ def main( conf_file='config.cfg', logfile=None ):
             elapsed = (time.time() - start) / pars['Num_iter_per_show']
 
             if pars['is_malis']:
-                re = re / vn / pars['Num_iter_per_show']
+                re = re / pars['Num_iter_per_show']
                 lc.append_train_rand_error( re )
                 show_string = "iteration %d,    err: %.3f,    cls: %.3f, re: %.6f, elapsed: %.1f s/iter, learning rate: %.6f"\
                               %(i, err, cls, re, elapsed, eta )

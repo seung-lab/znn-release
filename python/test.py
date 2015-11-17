@@ -56,7 +56,8 @@ def znn_test(net, pars, samples, vn, it, lc):
     # normalize
     err = err / vn / test_num
     cls = cls / vn / test_num
-    re  = re  / vn / test_num
+    # rand error only need to be normalized by testing time
+    re  = re  / test_num
     # update the learning curve
     lc.append_test( it, err, cls )
     lc.append_test_rand_error( re )
