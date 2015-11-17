@@ -19,10 +19,11 @@ namespace np = boost::numpy;
 using namespace znn::v4;
 
 template <typename T>
-np::ndarray weights2array( zalis_weight weights )
+bp::tuple weights2tuple( zalis_weight weights )
 {
     std::vector<cube_p<T>>   merger   = weights.merger;
     std::vector<cube_p<T>>   splitter = weights.splitter;
+    T re = weights.rand_error;
 
     // number of output cubes
     std::size_t sc = merger.size();
@@ -46,16 +47,18 @@ np::ndarray weights2array( zalis_weight weights )
     }
 
     // return ndarray
-    return np::from_data(
-        tqp->data(),
-        np::dtype::get_builtin<T>(),
-        bp::make_tuple(2*sc,sz,sy,sx),
-        bp::make_tuple(sx*sy*sz*sizeof(T), sx*sy*sizeof(T),
-                       sx*sizeof(T), sizeof(T)),
-        bp::object() );
+    np::ndarray arr = np::from_data( tqp->data(),
+                                     np::dtype::get_builtin<T>(),
+                                     bp::make_tuple(2*sc,sz,sy,sx),
+                                     bp::make_tuple(sx*sy*sz*sizeof(T),
+                                                    sx*sy*sizeof(T),
+                                                    sx*sizeof(T),
+                                                    sizeof(T)),
+                                     bp::object() );
+    return bp::make_tuple( arr, re );
 }
 
-np::ndarray pyzalis( np::ndarray& pyaffs,
+bp::tuple pyzalis( np::ndarray& pyaffs,
                      np::ndarray& pytrue_affs,
                      float high,
                      float low,
@@ -75,7 +78,7 @@ np::ndarray pyzalis( np::ndarray& pyaffs,
     //np::ndarray pymerger   = cubelist2array<real>(  self, weights.merger);
     //np::ndarray pysplitter = cubelist2array<real>(  self, weights.splitter );
 
-    return weights2array<real>( weights );
+    return weights2tuple<real>( weights );
 }
 
 BOOST_PYTHON_MODULE(pymalis)

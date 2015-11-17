@@ -80,6 +80,9 @@ zalis( std::vector<cube_p<real>> true_affs,
     cube_p<int> ids_ptr = get_cube<int>(s);
     cube<int> & ids = *ids_ptr;
 
+    // initialize the counting
+    real TP=0, TN=0, FP=0, FN=0;
+
     for ( size_t i = 0; i < n; ++i )
     {
         ids.data()[i] = i+1;
@@ -188,6 +191,7 @@ zalis( std::vector<cube_p<real>> true_affs,
 
     for ( auto& e: edges )
     {
+        real affinity = e.get<0>();                // edge affinity
         uint32_t set1 = sets.find_set(e.get<1>()); // watershed domain A
         uint32_t set2 = sets.find_set(e.get<2>()); // watershed domain B
 
@@ -224,10 +228,22 @@ zalis( std::vector<cube_p<real>> true_affs,
                     if ( segID1 == segID2 )
                     {
                         n_same_pair += segsize1 * segsize2;
+                        if (affinity > 0.5)
+                            // this is a true positive
+                            TP += segsize1 * segsize2;
+                        else
+                            // this is a False Negative
+                            FN += segsize1 * segsize2;
                     }
                     else
                     {
                         n_diff_pair += segsize1 * segsize2;
+                        if (affinity >0.5)
+                            // this is a False Positive
+                            FP += segsize1 * segsize2;
+                        else
+                            // this is a True Negative
+                            TN += segsize1 * segsize2;
                     }
                 }
             }
@@ -287,7 +303,10 @@ zalis( std::vector<cube_p<real>> true_affs,
         }
     }
 
-    zalis_weight ret(mw,sw);
+    // rand error
+    real re = (FP + FN) / (FP + FN + TP + TN);
+
+    zalis_weight ret(mw, sw, re);
 #if defined( DEBUG )
     ret.ws_snapshots = ws_snapshots;
     ret.ws_timestamp = ws_timestamp;

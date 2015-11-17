@@ -64,8 +64,9 @@ def main( conf_file='config.cfg', logfile=None ):
 
     # initialization
     elapsed = 0
-    err = 0
-    cls = 0
+    err = 0 # cost energy
+    cls = 0 # pixel classification error
+    re = 0  # rand error
 
     # interactive visualization
     if pars['is_visual']:
@@ -87,8 +88,8 @@ def main( conf_file='config.cfg', logfile=None ):
 
         # cost function and accumulate errors
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs )
-        err = err + cerr
-        cls = cls + cost_fn.get_cls(props, lbl_outs)
+        err += cerr
+        cls += cost_fn.get_cls(props, lbl_outs)
 
         # mask process the gradient
         grdts = utils.dict_mul(grdts, msks)
@@ -98,8 +99,10 @@ def main( conf_file='config.cfg', logfile=None ):
         net.backward( grdts )
 
         if pars['is_malis'] :
-            malis_weights = cost_fn.malis_weight(props, lbl_outs)
+            malis_weights, rand_errors = cost_fn.malis_weight(props, lbl_outs)
             grdts = utils.dict_mul(grdts, malis_weights)
+            # accumulate the rand error
+            re += rand_errors.values()[0]
 
         # test the net
         if i%pars['Num_iter_per_test']==0:
@@ -110,6 +113,9 @@ def main( conf_file='config.cfg', logfile=None ):
             err = err / vn / pars['Num_iter_per_show']
             cls = cls / vn / pars['Num_iter_per_show']
             lc.append_train(i, err, cls)
+            if pars['is_malis']:
+                re = re / vn / pars['Num_iter_per_show']
+                lc.append_tran_rand_error( i, re )
 
             # time
             elapsed = (time.time() - start) / pars['Num_iter_per_show']
@@ -138,6 +144,7 @@ def main( conf_file='config.cfg', logfile=None ):
             # reset err and cls
             err = 0
             cls = 0
+            re = 0
             # reset time
             start = time.time()
 

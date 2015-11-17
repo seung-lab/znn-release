@@ -404,7 +404,8 @@ def malis_weight(props, lbls):
     """
     compute the malis weight including boundary map and affinity cases
     """
-    ret = dict()
+    malis_weights = dict()
+    rand_errors = dict()
     for name, prop in props.iteritems():
         assert prop.ndim==4
         lbl = lbls[name]
@@ -413,17 +414,18 @@ def malis_weight(props, lbls):
             # ret[name], merr, serr = malis_weight_aff(prop, lbl)
             from malis.pymalis import zalis
             #true_affs = emirt.volume_util.seg2aff( lbl )
-            weights = zalis( prop, lbl, 1.0, 0.0, 0)
+            weights, re = zalis( prop, lbl, 1.0, 0.0, 0)
             merr = weights[:3, :,:,:]
             serr = weights[3:, :,:,:]
             w = merr + serr
             # normalization by N
             w = w / float(merr.size / 3)
-            ret[name] = w
+            malis_weights[name] = w
+            rand_errors[name] = re
         else:
             # take it as boundary map
-            ret[name], merr, serr = malis_weight_bdm(prop, lbl)
-    return ret
+            malis_weights[name], merr, serr = malis_weight_bdm(prop, lbl)
+    return (malis_weights, rand_errors)
 
 def sparse_cost(outputs, labels, cost_fn):
     """
