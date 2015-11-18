@@ -64,9 +64,9 @@ def main( conf_file='config.cfg', logfile=None ):
 
     # initialization
     elapsed = 0
-    err = 0 # cost energy
-    cls = 0 # pixel classification error
-    re = 0  # rand error
+    err = 0.0 # cost energy
+    cls = 0.0 # pixel classification error
+    re = 0.0  # rand error
 
     # interactive visualization
     if pars['is_visual']:

@@ -36,7 +36,7 @@ zalis( std::vector<cube_p<real>> true_affs,
        std::vector<cube_p<real>> affs,
        real high = 0.99,
        real low  = 0.01,
-       bool frac_norm = false )
+       size_t norm_mode = 0 )
 {
     ZI_ASSERT(affs.size()==3);
     ZI_ASSERT(true_affs.size()==affs.size());
@@ -210,7 +210,7 @@ zalis( std::vector<cube_p<real>> true_affs,
                 real     segsize1 = seg1.second;
 
                 // fraction normalize
-                if ( frac_norm ) segsize1 /= seg_sizes[segID1];
+                if ( norm_mode==1 ) segsize1 /= seg_sizes[segID1];
 
                 // skip boundary
                 if ( segID1 == 0 ) continue;
@@ -222,7 +222,7 @@ zalis( std::vector<cube_p<real>> true_affs,
                     real     segsize2 = seg2.second;
 
                     // fraction normalize
-                    if ( frac_norm ) segsize2 /= seg_sizes[segID2];
+                    if ( norm_mode==1 ) segsize2 /= seg_sizes[segID2];
 
                     // skip boundary
                     if ( segID2 == 0 ) continue;
@@ -246,8 +246,21 @@ zalis( std::vector<cube_p<real>> true_affs,
             real* pmw = e.get<3>(); // merger weight
             real* psw = e.get<4>(); // splitter weight
 
-            *pmw += n_diff_pair;
-            *psw += n_same_pair;
+            if (norm_mode == 2 )
+            {   // normalize by number of non-boundary edges
+                *pmw += n_diff_pair / num_non_bdr;
+                *psw += n_same_pair / num_non_bdr;
+            }
+            else if ( norm_mode == 3 )
+            {   // normalize by number of voxel pair of non boundary voxels
+                *pmw += n_diff_pair / (num_non_bdr * (num_non_bdr-1));
+                *psw += n_diff_pair / (num_non_bdr * (num_non_bdr-1));
+            }
+            else
+            {   // no normalization
+                *pmw += n_diff_pair;
+                *psw += n_same_pair;
+            }
 
 #if defined( DEBUG )
             bool is_singleton = (sizes[set1] == 1) || (sizes[set2] == 1);

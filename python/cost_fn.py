@@ -431,12 +431,10 @@ def malis_weight(props, lbls):
             # ret[name], merr, serr = malis_weight_aff(prop, lbl)
             from malis.pymalis import zalis
             #true_affs = emirt.volume_util.seg2aff( lbl )
-            weights, re = zalis( prop, lbl, 1.0, 0.0, 0)
+            weights, re = zalis( prop, lbl, 1.0, 0.0, 2)
             merr = weights[:3, :,:,:]
             serr = weights[3:, :,:,:]
             w = merr + serr
-            # normalization by N
-            w = w / float(merr.size / 3)
             malis_weights[name] = w
             rand_errors[name] = re
         else:

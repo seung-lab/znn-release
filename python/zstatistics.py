@@ -40,7 +40,7 @@ class CLearnCurve:
         self.tt_it  = list( f['/test/it'].value )
         self.tt_err = list( f['/test/err'].value )
         self.tt_cls = list( f['/test/cls'].value )
-        if '/test/re' in f.keys():
+        if '/test/re' in f:
             self.tt_re = list( f['test/re'].value )
         else:
             self.tt_re = list()
@@ -48,7 +48,7 @@ class CLearnCurve:
         self.tn_it  = list( f['/train/it'].value )
         self.tn_err = list( f['/train/err'].value )
         self.tn_cls = list( f['/train/cls'].value )
-        if '/train/re' in f.keys():
+        if '/train/re' in f:
             self.tn_re = list( f['/train/re'].value )
         else:
             self.tn_re = list()
@@ -177,15 +177,16 @@ class CLearnCurve:
         plt.plot(xtc, ytc, 'r', label='test')
         plt.xlabel('iteration'), plt.ylabel( 'classification error' )
 
-        plt.subplot(133)
-        plt.plot(self.tn_it, self.tn_re, 'b.', alpha=0.2)
-        plt.plot(self.tt_it, self.tt_re, 'r.', alpha=0.2)
-        # plot smoothed line
-        xnr, ynr = self._smooth( self.tn_it, self.tn_cls, w )
-        xtr, ytr = self._smooth( self.tt_it, self.tt_cls, w )
-        plt.plot(xnr, ynr, 'b', label='train')
-        plt.plot(xtr, ytr, 'r', label='test')
-        plt.xlabel('iteration'), plt.ylabel( 'rand error' )
+        if len(self.tn_it) == len( self.tn_re ):
+            plt.subplot(133)
+            plt.plot(self.tn_it, self.tn_re, 'b.', alpha=0.2)
+            plt.plot(self.tt_it, self.tt_re, 'r.', alpha=0.2)
+            # plot smoothed line
+            xnr, ynr = self._smooth( self.tn_it, self.tn_re, w )
+            xtr, ytr = self._smooth( self.tt_it, self.tt_re, w )
+            plt.plot(xnr, ynr, 'b', label='train')
+            plt.plot(xtr, ytr, 'r', label='test')
+            plt.xlabel('iteration'), plt.ylabel( 'rand error' )
 
         plt.legend()
         plt.show()
@@ -226,7 +227,7 @@ class CLearnCurve:
 def find_statistics_file_within_dir(seed_filename):
     '''
     Looks for the stats file amongst the directory where
-     the loaded network is stored
+    the loaded network is stored
     '''
     import glob
 
@@ -248,7 +249,17 @@ def find_statistics_file_within_dir(seed_filename):
     search_expression_head = containing_directory + "/" + first_field
 
     candidate_files = glob.glob( search_expression_head + "_statistics_" + filename_fields.pop() )
-    assert len( candidate_files ) == 1
+    if len( candidate_files ) == 1:
+        # have one statistics file matches exactly!
+        return candidate_files[0]
+
+    while len(candidate_files) > 1:
+        candidate_files = glob.glob( search_expression_head + "*statistics*" )
+
+        stats_search_found_a_file = len(candidate_files) > 0
+        assert(stats_search_found_a_file)
+
+    search_expression_head += '_' + filename_fields.pop()
 
     return candidate_files[0]
 
