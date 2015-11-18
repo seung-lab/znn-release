@@ -252,7 +252,7 @@ def find_statistics_file_within_dir(seed_filename):
     import os
     if os.path.exists( exact_file ):
         # have one statistics file matches exactly!
-        return exact_files[0]
+        return exact_file
 
     while len(candidate_files) > 1:
         candidate_files = glob.glob( search_expression_head + "*statistics*" )
