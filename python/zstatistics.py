@@ -248,10 +248,11 @@ def find_statistics_file_within_dir(seed_filename):
     first_field = filename_fields.pop()
     search_expression_head = containing_directory + "/" + first_field
 
-    candidate_files = glob.glob( search_expression_head + "_statistics_" + filename_fields.pop() )
-    if len( candidate_files ) == 1:
+    exact_file = search_expression_head + "_statistics_" + filename_fields.pop()
+    import os
+    if os.path.exists( exact_file ):
         # have one statistics file matches exactly!
-        return candidate_files[0]
+        return exact_files[0]
 
     while len(candidate_files) > 1:
         candidate_files = glob.glob( search_expression_head + "*statistics*" )
@@ -259,7 +260,7 @@ def find_statistics_file_within_dir(seed_filename):
         stats_search_found_a_file = len(candidate_files) > 0
         assert(stats_search_found_a_file)
 
-    search_expression_head += '_' + filename_fields.pop()
+        search_expression_head += '_' + filename_fields.pop()
 
     return candidate_files[0]
 
