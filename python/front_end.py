@@ -229,6 +229,13 @@ def check_config(config, pars):
                 pp_types = pp_types.replace("auto", "affinity")
             config.set(sec, 'pp_types', value=pp_types)
 
+
+    # check malis normalization type
+    if pars['is_malis']:
+        assert 'none' in pars['malis_norm_type'] \
+            or 'frac' in pars['malis_norm_type'] \
+            or 'num'  in pars['malis_norm_type'] \
+            or 'pair' in pars['malis_norm_type']
     return config, pars
 
 def inter_show(start, lc, eta, vol_ins, props, lbl_outs, grdts, pars):
