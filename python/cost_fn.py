@@ -49,10 +49,27 @@ def square_loss(props, lbls):
         lbl = lbls[name]
         grdt = prop - lbl
         # cost and classification error
-        err = err + np.sum( grdt * grdt )
+        err = err + np.sum( np.square(grdt) )
         grdts[name] = grdt * 2
 
     return (props, err, grdts)
+
+def square_square_loss(props, lbls, margin=0.2):
+    """
+    square-square loss (square loss with a margin)
+    """
+    gradients = dict()
+    error = 0
+
+    for name, propagation in props.iteritems():
+        lbl = lbls[name]
+        gradient = propagation - lbl
+        gradient[np.abs(gradient) <= margin] = 0
+
+        error += np.sum( np.square(gradient) )
+        gradients[name] = gradient * 2
+
+    return (props, error, gradients)
 
 #@jit(nopython=True)
 def binomial_cross_entropy(props, lbls):
@@ -400,11 +417,25 @@ def malis_weight_bdm(bdm, lbl, threshold=0.5):
     serr = serr.reshape( original_shape )
     return weights, merr, serr
 
-def malis_weight(props, lbls):
+def malis_weight(pars, props, lbls):
     """
     compute the malis weight including boundary map and affinity cases
     """
-    ret = dict()
+    malis_weights = dict()
+    rand_errors = dict()
+
+    # malis normalization type
+    if 'none' in pars['malis_norm_type']:
+        malis_norm_mode = 0
+    elif 'frac' in pars['malis_norm_type']:
+        malis_norm_mode = 1
+    elif 'num' in pars['malis_norm_type']:
+        malis_norm_mode = 2
+    elif 'pair' in pars['malis_norm_type']:
+        malis_norm_mode = 3
+    else:
+        raise NameError('invalid malis normalization type!')
+
     for name, prop in props.iteritems():
         assert prop.ndim==4
         lbl = lbls[name]
@@ -413,17 +444,15 @@ def malis_weight(props, lbls):
             # ret[name], merr, serr = malis_weight_aff(prop, lbl)
             from malis.pymalis import zalis
             #true_affs = emirt.volume_util.seg2aff( lbl )
-            weights = zalis( prop, lbl, 1.0, 0.0, 0)
+            weights, re = zalis( prop, lbl, 1.0, 0.0, 2)
             merr = weights[:3, :,:,:]
             serr = weights[3:, :,:,:]
-            w = merr + serr
-            # normalization by N
-            w = w / float(merr.size / 3)
-            ret[name] = w
+            malis_weights[name] = merr + serr
+            rand_errors[name] = re
         else:
             # take it as boundary map
-            ret[name], merr, serr = malis_weight_bdm(prop, lbl)
-    return ret
+            malis_weights[name], merr, serr = malis_weight_bdm(prop, lbl)
+    return (malis_weights, rand_errors)
 
 def sparse_cost(outputs, labels, cost_fn):
     """

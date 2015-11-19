@@ -14,6 +14,8 @@ import cost_fn
 from ZNN_Dataset import CSamples, ConfigSample, ZNN_Dataset, ConfigSampleOutput
 import utils
 
+from emirt import volume_util
+
 def parseIntSet(nputstr=""):
     """
     Allows users to specify a comma-delimited list of number ranges as sample selections.
@@ -125,6 +127,8 @@ def parser( conf_fname ):
     pars['is_patch_rebalance']=config.getboolean('parameters', 'is_patch_rebalance')
     #Whether to use malis cost
     pars['is_malis']    = config.getboolean('parameters', 'is_malis')
+    # malis normalization type
+    pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
     #Whether to display progress plots
     pars['is_visual']   = config.getboolean('parameters', 'is_visual')
 
@@ -184,6 +188,8 @@ def check_config(config, pars):
         elif 'affin' in pars['out_type']:
             pars['cost_fn_str'] = 'binomial_cross_entropy'
             pars['cost_fn'] = cost_fn.binomial_cross_entropy
+    elif "square-square" == pars['cost_fn_str']:
+        pars['cost_fn'] = cost_fn.square_square_loss
     elif "square" in pars['cost_fn_str']:
         pars['cost_fn'] = cost_fn.square_loss
     elif  "binomial" in pars['cost_fn_str']:
@@ -223,6 +229,13 @@ def check_config(config, pars):
                 pp_types = pp_types.replace("auto", "affinity")
             config.set(sec, 'pp_types', value=pp_types)
 
+
+    # check malis normalization type
+    if pars['is_malis']:
+        assert 'none' in pars['malis_norm_type'] \
+            or 'frac' in pars['malis_norm_type'] \
+            or 'num'  in pars['malis_norm_type'] \
+            or 'pair' in pars['malis_norm_type']
     return config, pars
 
 def inter_show(start, lc, eta, vol_ins, props, lbl_outs, grdts, pars):
@@ -235,21 +248,25 @@ def inter_show(start, lc, eta, vol_ins, props, lbl_outs, grdts, pars):
     name_l,  lbl  = lbl_outs.popitem()
     name_g,  grdt = grdts.popitem()
 
+    m_input = volume_util.crop(vol[0,:,:,:], prop.shape[-3:]) #good enough for now
+
     # real time visualization
-    plt.subplot(241),   plt.imshow(vol[0,0,:,:],    interpolation='nearest', cmap='gray')
+    plt.subplot(251),   plt.imshow(vol[0,0,:,:],    interpolation='nearest', cmap='gray')
     plt.xlabel('input')
-    plt.subplot(242),   plt.imshow(prop[0,0,:,:],   interpolation='nearest', cmap='gray')
+    plt.subplot(252),   plt.imshow(m_input[0,:,:],    interpolation='nearest', cmap='gray')
+    plt.xlabel('matched input')
+    plt.subplot(253),   plt.imshow(prop[0,0,:,:],   interpolation='nearest', cmap='gray')
     plt.xlabel('output')
-    plt.subplot(243),   plt.imshow(lbl[0,0,:,:],    interpolation='nearest', cmap='gray')
+    plt.subplot(254),   plt.imshow(lbl[0,0,:,:],    interpolation='nearest', cmap='gray')
     plt.xlabel('label')
-    plt.subplot(244),   plt.imshow(grdt[0,0,:,:],   interpolation='nearest', cmap='gray')
+    plt.subplot(255),   plt.imshow(grdt[0,0,:,:],   interpolation='nearest', cmap='gray')
     plt.xlabel('gradient')
 
-    plt.subplot(245)
+    plt.subplot(256)
     plt.plot(lc.tn_it, lc.tn_err, 'b', label='train')
     plt.plot(lc.tt_it, lc.tt_err, 'r', label='test')
     plt.xlabel('iteration'), plt.ylabel('cost energy')
-    plt.subplot(246)
+    plt.subplot(257)
     plt.plot( lc.tn_it, lc.tn_cls, 'b', lc.tt_it, lc.tt_cls, 'r')
     plt.xlabel('iteration'), plt.ylabel( 'classification error' )
     return

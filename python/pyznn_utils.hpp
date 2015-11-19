@@ -438,8 +438,7 @@ cubelist2array( bp::object const & self, std::vector<cube_p< T >> clist )
 
 template <typename T>
 bp::dict sample2pydict( bp::object const & self,
-                        std::map<std::string,
-                        std::vector<cube_p<T>>> sample)
+                        std::map<std::string, std::vector<cube_p<T>>> sample)
 {
     bp::dict ret;
     for (auto & am: sample )

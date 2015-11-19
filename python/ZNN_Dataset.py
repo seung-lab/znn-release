@@ -663,15 +663,17 @@ class ConfigOutputLabel(ConfigImage):
                 for x in xrange(X-1):
                     #Current affinity convention
                     if msk[0,z+1,y+1,x+1]>0:
+                        ret[:,z,y,x] = 1
 
-                        if msk[0,z,y+1,x+1]>0:
-                            ret[0,z,y,x] = 1
+                    if msk[0,z,y+1,x+1]>0:
+                        ret[0,z,y,x] = 1
 
-                        if msk[0,z+1,y,x+1]>0:
-                            ret[1,z,y,x] = 1
+                    if msk[0,z+1,y,x+1]>0:
+                        ret[1,z,y,x] = 1
 
-                        if msk[0,z+1,y+1,x]>0:
-                            ret[2,z,y,x] = 1
+                    if msk[0,z+1,y+1,x]>0:
+                        ret[2,z,y,x] = 1
+
                     #Current watershed convention
                     # if msk[0,z,y,x]>0:
                     #     if msk[0,z+1,y,x]>0:

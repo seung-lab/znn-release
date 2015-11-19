@@ -191,7 +191,7 @@ def fill_boundary_holes( lbl ):
     original_shape = lbl.shape
     if lbl.ndim==2:
         lbl = np.reshape(lbl, newshape = (1,)+lbl.shape)
-    
+
     for z in xrange( lbl.shape[0] ):
         for y in xrange( lbl.shape[1]-1 ):
             for x in xrange( lbl.shape[2] ):
@@ -200,7 +200,7 @@ def fill_boundary_holes( lbl ):
                     lbl[z,y+1,x]>0:
                         lbl[z, y,   x] = 0
                         lbl[z, y+1, x] = 0
-    
+
         for y in xrange( lbl.shape[1] ):
             for x in xrange( lbl.shape[2]-1 ):
                     if lbl[z,y,x]>0 and \
@@ -240,6 +240,9 @@ def get_total_num(outputs):
     return n
 
 def dict_mul(das,dbs):
+    """
+    multiplication of two dictionary
+    """
     ret = dict()
     for name, a in das.iteritems():
         b = dbs[name]
@@ -248,3 +251,31 @@ def dict_mul(das,dbs):
         elif np.size(b)==0:
             ret[name] = a
     return ret
+
+def dict_save( d, fname ):
+    """
+    save a dictionary as a hdf5 file
+    """
+    import h5py
+
+    f = h5py.File( fname, 'w' )
+    for key, value in d.iteritems():
+        f.create_dateset(key, data=value)
+    f.close()
+
+def save_malis( mws, fname_save_net, num_iters ):
+    """
+    save malis weights
+    the weights was stored in a dictionary
+    """
+    import os
+    root, ext = os.path.splitext( fname_save_net )
+    fname = root + "_malis_weights_{}.h5".format( num_iters )
+    dict_save( mws, fname )
+
+    # current file name
+    current_fname = root + "_malis_weights_current.h5"
+    if os.path.exists( current_fname ):
+        os.remove( current_fname )
+        import shutil
+        shutil.copy( fname, current_fname )

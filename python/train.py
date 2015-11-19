@@ -64,8 +64,9 @@ def main( conf_file='config.cfg', logfile=None ):
 
     # initialization
     elapsed = 0
-    err = 0
-    cls = 0
+    err = 0.0 # cost energy
+    cls = 0.0 # pixel classification error
+    re = 0.0  # rand error
 
     # interactive visualization
     if pars['is_visual']:
@@ -87,8 +88,8 @@ def main( conf_file='config.cfg', logfile=None ):
 
         # cost function and accumulate errors
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs )
-        err = err + cerr
-        cls = cls + cost_fn.get_cls(props, lbl_outs)
+        err += cerr
+        cls += cost_fn.get_cls(props, lbl_outs)
 
         # mask process the gradient
         grdts = utils.dict_mul(grdts, msks)
@@ -98,8 +99,10 @@ def main( conf_file='config.cfg', logfile=None ):
         net.backward( grdts )
 
         if pars['is_malis'] :
-            malis_weights = cost_fn.malis_weight(props, lbl_outs)
+            malis_weights, rand_errors = cost_fn.malis_weight(pars, props, lbl_outs)
             grdts = utils.dict_mul(grdts, malis_weights)
+            # accumulate the rand error
+            re += rand_errors.values()[0]
 
         # test the net
         if i%pars['Num_iter_per_test']==0:
@@ -114,8 +117,15 @@ def main( conf_file='config.cfg', logfile=None ):
             # time
             elapsed = (time.time() - start) / pars['Num_iter_per_show']
 
-            show_string = "iteration %d,    err: %.3f,    cls: %.3f,   elapsed: %.1f s/iter, learning rate: %.6f"\
+            if pars['is_malis']:
+                re = re / pars['Num_iter_per_show']
+                lc.append_train_rand_error( re )
+                show_string = "iteration %d,    err: %.3f, cls: %.3f, re: %.6f, elapsed: %.1f s/iter, learning rate: %.6f"\
+                              %(i, err, cls, re, elapsed, eta )
+            else:
+                show_string = "iteration %d,    err: %.3f, cls: %.3f, elapsed: %.1f s/iter, learning rate: %.6f"\
                     %(i, err, cls, elapsed, eta )
+
             if pars.has_key('logging') and pars['logging']:
                 utils.write_to_log(logfile, show_string)
             print show_string
@@ -138,6 +148,7 @@ def main( conf_file='config.cfg', logfile=None ):
             # reset err and cls
             err = 0
             cls = 0
+            re = 0
             # reset time
             start = time.time()
 
@@ -150,10 +161,12 @@ def main( conf_file='config.cfg', logfile=None ):
             # save network
             netio.save_network(net, pars['train_save_net'], num_iters=i)
             lc.save( pars, elapsed )
+            if pars['is_malis']:
+                utils.save_malis(malis_weights,  pars['train_save_net'], num_iters=i)
 
 if __name__ == '__main__':
     """
-    usage:
+    usage
     ------
     python train.py path/to/config.cfg
     """
