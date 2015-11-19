@@ -59,10 +59,10 @@ bp::tuple weights2tuple( zalis_weight weights )
 }
 
 bp::tuple pyzalis( np::ndarray& pyaffs,
-                     np::ndarray& pytrue_affs,
-                     float high,
-                     float low,
-                     int is_frac_norm)
+                   np::ndarray& pytrue_affs,
+                   float high,
+                   float low,
+                   std::size_t is_frac_norm)
 {
     // python data structure to c++ data structure
     std::vector< cube_p<real> > true_affs = array2cubelist<real>( pytrue_affs );
@@ -70,13 +70,6 @@ bp::tuple pyzalis( np::ndarray& pyaffs,
 
     // zalis computation
     auto weights = zalis(true_affs, affs, high, low, is_frac_norm);
-
-    // transform to python data structure
-    // bp::tuple shape = bp::make_tuple( pyaffs.shape(0), pyaffs.shape(1), pyaffs.shape(2), pyaffs.shape(3) );
-    // np::ndarray pymerger   = np::empty( shape, pyaffs.get_dtype() );
-    // np::ndarray pysplitter = np::empty( shape, pyaffs.get_dtype() );
-    //np::ndarray pymerger   = cubelist2array<real>(  self, weights.merger);
-    //np::ndarray pysplitter = cubelist2array<real>(  self, weights.splitter );
 
     return weights2tuple<real>( weights );
 }

@@ -20,7 +20,7 @@ def _single_test(net, pars, sample):
 
     re = np.nan
     if pars['is_malis']:
-        malis_weights, rand_errors = cost_fn.malis_weight( props, lbl_outs )
+        malis_weights, rand_errors = cost_fn.malis_weight( pars, props, lbl_outs )
         re = rand_errors.values()[0]
 
     return props, err, cls, re

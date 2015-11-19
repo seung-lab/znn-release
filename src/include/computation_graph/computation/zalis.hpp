@@ -256,10 +256,15 @@ zalis( std::vector<cube_p<real>> true_affs,
                 *pmw += n_diff_pair / (num_non_bdr * (num_non_bdr-1));
                 *psw += n_diff_pair / (num_non_bdr * (num_non_bdr-1));
             }
-            else
+            else if ( norm_mode == 0 )
             {   // no normalization
                 *pmw += n_diff_pair;
                 *psw += n_same_pair;
+            }
+            else
+            {
+                // can only be fractional normalization mode
+                assert( norm_mode==1 );
             }
 
 #if defined( DEBUG )

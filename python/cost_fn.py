@@ -417,12 +417,25 @@ def malis_weight_bdm(bdm, lbl, threshold=0.5):
     serr = serr.reshape( original_shape )
     return weights, merr, serr
 
-def malis_weight(props, lbls):
+def malis_weight(pars, props, lbls):
     """
     compute the malis weight including boundary map and affinity cases
     """
     malis_weights = dict()
     rand_errors = dict()
+
+    # malis normalization type
+    if 'none' in pars['malis_norm_type']:
+        malis_norm_mode = 0
+    elif 'frac' in pars['malis_norm_type']:
+        malis_norm_mode = 1
+    elif 'num' in pars['malis_norm_type']:
+        malis_norm_mode = 2
+    elif 'pair' in pars['malis_norm_type']:
+        malis_norm_mode = 3
+    else:
+        raise NameError('invalid malis normalization type!')
+
     for name, prop in props.iteritems():
         assert prop.ndim==4
         lbl = lbls[name]
@@ -434,8 +447,7 @@ def malis_weight(props, lbls):
             weights, re = zalis( prop, lbl, 1.0, 0.0, 2)
             merr = weights[:3, :,:,:]
             serr = weights[3:, :,:,:]
-            w = merr + serr
-            malis_weights[name] = w
+            malis_weights[name] = merr + serr
             rand_errors[name] = re
         else:
             # take it as boundary map
