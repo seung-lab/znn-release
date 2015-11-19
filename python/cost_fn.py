@@ -24,7 +24,7 @@ def get_cls(props, lbls):
     c = 0.0
     for name, prop in props.iteritems():
         lbl = lbls[name]
-        c = c + np.count_nonzero( (prop>0.5)!= lbl )
+        c = c + np.count_nonzero( (prop>0.5)!= (lbl>0.5) )
 
     return c
 
@@ -185,7 +185,7 @@ def softmax_loss2(props, lbls):
 # TO-DO
 
 
-def malis_weight_aff(affs, true_affs, Dim = 3):
+def malis_weight_aff(affs, true_affs):
     """
     compute malis tree_size
 
@@ -200,9 +200,16 @@ def malis_weight_aff(affs, true_affs, Dim = 3):
     ------
     weights : 4D array of weights
     """
-    print "affinity shape: ", affs.shape
     # segment the true affinity graph
-    tseg = emirt.volume_util.aff2seg(true_affs)
+    if true_affs.shape[0]==3:
+        tseg = emirt.volume_util.aff2seg(true_affs)
+    elif true_affs.ndim==3 or (true_affs.ndim==4 and true_affs.shape[0]==1):
+        tseg = true_affs
+    elif true_affs.ndim==2:
+        tseg = np.reshape( true_affs, (1,)+true_affs.shape )
+    else:
+        print "ground truth shape: ", true_affs.shape
+        raise NameError( 'invalid true_affs shape' )
 
     print "true segmentation: ", tseg
 
@@ -226,13 +233,12 @@ def malis_weight_aff(affs, true_affs, Dim = 3):
         for y in xrange( 1, yaff.shape[1] ):
             for x in xrange( yaff.shape[2] ):
                 edges.append( (yaff[z,y,x], vids[z,y,x], vids[z,y-1,x], 1,z,y,x) )
-    # do not include z affinity edge for 2D affinity
-    if Dim==3:
-        # z affinity edge
-        for z in xrange( 1, zaff.shape[0] ):
-            for y in xrange( zaff.shape[1] ):
-                for x in xrange( zaff.shape[2] ):
-                    edges.append( (zaff[z,y,x], vids[z,y,x], vids[z-1,y,x], 0,z,y,x) )
+
+    # z affinity edge
+    for z in xrange( 1, zaff.shape[0] ):
+        for y in xrange( zaff.shape[1] ):
+            for x in xrange( zaff.shape[2] ):
+                edges.append( (zaff[z,y,x], vids[z,y,x], vids[z-1,y,x], 0,z,y,x) )
     # descending sort
     edges.sort(reverse=True)
 

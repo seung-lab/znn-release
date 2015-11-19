@@ -174,9 +174,11 @@ def save_sample_outputs(sample_outputs, prefix):
 
 			#Consolidated 4d volume
             # hdf5 output for watershed
-			emio.imsave(dataset.data,
-				"{}_sample{}_{}.h5".format(prefix, sample_num,
-								dataset_name))
+            h5name = "{}_sample{}_{}.h5".format(prefix, sample_num,	dataset_name)
+            import os
+            if os.path.exists( h5name ):
+                os.remove( h5name )
+			emio.imsave(dataset.data, h5name)
 
 			#Constitutent 3d volumes
             # tif file for easy visualization
