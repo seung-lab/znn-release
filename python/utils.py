@@ -280,12 +280,22 @@ def save_malis( mws, fname_save_net, num_iters ):
         import shutil
         shutil.copy( fname, current_fname )
 
-def get_malis_cls( props, lbl_outs, malis_weights ):
-    ret = dict()
+def get_malis_cost( props, lbl_outs, malis_weights ):
+    assert( len(props.keys()) == 1 )
+
+    # dictionary of malis weighted pixel classification error
+    dmc = dict()
+    # dictionary of malis weighted binomial cross entropy energy
+    dme = dict()
     for key, mw in malis_weights.iteritems():
         prop = props[key]
         lbl = lbl_outs[key]
         cls = ( (prop>0.5)!=(lbl>0.5) )
         cls = cls.astype('float32')
-        ret[key] = np.nansum(cls*mw) / np.nansum(mw)
-    return ret
+
+        # cost energy
+        eng = -lbl*np.log(prop) - (1-lbl)*np.log(1-prop)
+
+        dmc[key] = np.nansum( cls*mw ) / np.nansum(mw)
+        dme[key] = np.nansum( eng*mw ) / np.nansum(mw)
+    return dmc, dme

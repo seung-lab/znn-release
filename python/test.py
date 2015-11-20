@@ -20,13 +20,15 @@ def _single_test(net, pars, sample):
 
     re = 0.0
     malis_cls = 0.0
+    malis_eng = 0.0
     if pars['is_malis']:
         malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight( pars, props, lbl_outs )
         re = rand_errors.values()[0]
         # dictionary of malis classification error
-        mcd = utils.get_malis_cls( props, lbl_outs, malis_weights )
-        malis_cls = mcd.values()[0]
-    return props, err, cls, re, malis_cls
+        dmc, dme = utils.get_malis_cost( props, lbl_outs, malis_weights )
+        malis_cls = dmc.values()[0]
+        malis_eng = dme.values()[0]
+    return props, err, cls, re, malis_cls, malis_eng
 
 def znn_test(net, pars, samples, vn, it, lc):
     """
@@ -50,15 +52,17 @@ def znn_test(net, pars, samples, vn, it, lc):
     re = 0.0
     # malis classification error
     mc = 0.0
+    me = 0.0
 
     net.set_phase(1)
     test_num = pars['test_num']
     for i in xrange( test_num ):
-        props, cerr, ccls, cre, cmc = _single_test(net, pars, samples)
+        props, cerr, ccls, cre, cmc, cme = _single_test(net, pars, samples)
         err += cerr
         cls += ccls
         re  += cre
         mc  += cmc
+        me  += cme
     net.set_phase(0)
     # normalize
     err = err / vn / test_num
@@ -66,13 +70,16 @@ def znn_test(net, pars, samples, vn, it, lc):
     # rand error only need to be normalized by testing time
     re  = re  / test_num
     mc  = mc  / test_num
+    me  = me  / test_num
     # update the learning curve
     lc.append_test( it, err, cls )
     lc.append_test_rand_error( re )
     lc.append_test_malis_cls( mc )
+    lc.append_test_malis_eng( me )
+
     if pars['is_malis']:
-        print "test iter: %d,     err: %.3f, cls: %.3f, re: %.6f, mc: %.3f"\
-                %(it, err, cls, re, mc)
+        print "test iter: %d,     err: %.3f, cls: %.3f, re: %.6f, me: %.3f, mc: %.3f"\
+                %(it, err, cls, re, me, mc)
     else:
         print "test iter: %d,     err: %.3f, cls: %.3f" \
                 %(it, err, cls)

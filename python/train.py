@@ -70,6 +70,7 @@ def main( conf_file='config.cfg', logfile=None ):
     re = 0.0  # rand error
     if pars['is_malis']:
         malis_cls = 0.0
+        malis_eng = 0.0
 
     # interactive visualization
     if pars['is_visual']:
@@ -112,8 +113,9 @@ def main( conf_file='config.cfg', logfile=None ):
             grdts = utils.dict_mul(grdts, malis_weights)
             # accumulate the rand error
             re += rand_errors.values()[0]
-            malis_cls_dict = utils.get_malis_cls( props, lbl_outs, malis_weights )
-            malis_cls += malis_cls_dict.values()[0]
+            dmc, dme = utils.get_malis_cost( props, lbl_outs, malis_weights )
+            malis_cls += dmc.values()[0]
+            malis_eng += dme.values()[0]
 
 
         total_time += time.time() - start
@@ -134,9 +136,11 @@ def main( conf_file='config.cfg', logfile=None ):
 
             if pars['is_malis']:
                 re = re / pars['Num_iter_per_show']
-                lc.append_train_rand_error( re )
                 malis_cls = malis_cls / pars['Num_iter_per_show']
+                malis_eng = malis_eng / pars['Num_iter_per_show']
+                lc.append_train_rand_error( re )
                 lc.append_train_malis_cls( malis_cls )
+                lc.append_train_malis_eng( malis_eng )
 
                 show_string = "iteration %d,    err: %.3f, cls: %.3f, re: %.6f, mc: %.3f, elapsed: %.1f s/iter, learning rate: %.6f"\
                               %(i, err, cls, re, malis_cls, elapsed, eta )
