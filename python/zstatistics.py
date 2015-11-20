@@ -69,6 +69,7 @@ class CLearnCurve:
             self.tn_mc = list( f['/train/mc'].value )
         else:
             self.tn_mc = list()
+
         if '/train/me' in f:
             self.tn_me = list( f['/train/me'].value )
         else:
