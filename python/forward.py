@@ -168,11 +168,11 @@ def save_sample_outputs(sample_outputs, prefix):
 
 	for sample_num, output in sample_outputs.iteritems():
 
-		for dataset_name, dataset in output.output_volumes.iteritems():
+        for dataset_name, dataset in output.output_volumes.iteritems():
 
-			num_volumes = dataset.data.shape[0]
+            num_volumes = dataset.data.shape[0]
 
-			#Consolidated 4d volume
+            #Consolidated 4d volume
             # hdf5 output for watershed
             h5name = "{}_sample{}_{}.h5".format(prefix, sample_num,	dataset_name)
             import os
@@ -183,8 +183,8 @@ def save_sample_outputs(sample_outputs, prefix):
 			#Constitutent 3d volumes
             # tif file for easy visualization
 			for i in range( num_volumes ):
-				emio.imsave(dataset.data[i,:,:,:],
-					"{}_sample{}_{}_{}.tif".format(prefix, sample_num,
+				emio.imsave(dataset.data[i,:,:,:],\
+					"{}_sample{}_{}_{}.tif".format(prefix, sample_num,\
 									dataset_name, i))
 
 def main( config_filename, sample_ids=None ):
