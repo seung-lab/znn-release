@@ -260,7 +260,7 @@ def dict_save( d, fname ):
 
     f = h5py.File( fname, 'w' )
     for key, value in d.iteritems():
-        f.create_dateset(key, data=value)
+        f.create_dataset(key, data=value)
     f.close()
 
 def save_malis( mws, fname_save_net, num_iters ):
