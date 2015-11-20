@@ -287,5 +287,5 @@ def get_malis_cls( props, lbl_outs, malis_weights ):
         lbl = lbl_outs[key]
         cls = ( (prop>0.5)!=(lbl>0.5) )
         cls = cls.astype('float32')
-        ret[key] = 1 - np.nansum(cls*mw) / np.nansum(mw)
+        ret[key] = np.nansum(cls*mw) / np.nansum(mw)
     return ret
