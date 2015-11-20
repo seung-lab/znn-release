@@ -142,8 +142,8 @@ def main( conf_file='config.cfg', logfile=None ):
                 lc.append_train_malis_cls( malis_cls )
                 lc.append_train_malis_eng( malis_eng )
 
-                show_string = "iteration %d,    err: %.3f, cls: %.3f, re: %.6f, mc: %.3f, elapsed: %.1f s/iter, learning rate: %.6f"\
-                              %(i, err, cls, re, malis_cls, elapsed, eta )
+                show_string = "iteration %d,    err: %.3f, cls: %.3f, re: %.6f, me: %.3f, mc: %.3f, elapsed: %.1f s/iter, learning rate: %.6f"\
+                              %(i, err, cls, re, malis_eng, malis_cls, elapsed, eta )
             else:
                 show_string = "iteration %d,    err: %.3f, cls: %.3f, elapsed: %.1f s/iter, learning rate: %.6f"\
                     %(i, err, cls, elapsed, eta )

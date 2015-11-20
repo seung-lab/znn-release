@@ -94,6 +94,7 @@ def binomial_cross_entropy(props, lbls):
         err = err + np.sum(  -lbl*np.log(prop) - (1-lbl)*np.log(1-prop) )
     return (props, err, grdts)
 
+
 #@jit(nopython=True)
 def softmax(props):
     """
