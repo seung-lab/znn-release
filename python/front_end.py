@@ -129,6 +129,8 @@ def parser( conf_fname ):
     pars['is_malis']    = config.getboolean('parameters', 'is_malis')
     # malis normalization type
     pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
+    # renormalize the malis weight to make the sum to be N
+    pars['is_malis_renorm'] = config.getboolean( 'parameters', 'is_malis_renorm' )
     #Whether to display progress plots
     pars['is_visual']   = config.getboolean('parameters', 'is_visual')
 

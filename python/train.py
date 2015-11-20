@@ -99,16 +99,13 @@ def main( conf_file='config.cfg', logfile=None ):
         # mask process the gradient
         grdts = utils.dict_mul(grdts, msks)
 
-        # run backward pass
-        grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
-        net.backward( grdts )
 
         if pars['is_malis'] :
             malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
 
-            print "malis weights: ",  malis_weights
-            print "malis weight sum: ", np.sum( malis_weights.values()[0] )
-            print "number of non-boundary voxels: ", num_non_bdr
+            # print "malis weights: ",  malis_weights
+            # print "malis weight sum: ", np.sum( malis_weights.values()[0] )
+            # print "number of non-boundary voxels: ", num_non_bdr
 
             grdts = utils.dict_mul(grdts, malis_weights)
             # accumulate the rand error
@@ -117,6 +114,9 @@ def main( conf_file='config.cfg', logfile=None ):
             malis_cls += dmc.values()[0]
             malis_eng += dme.values()[0]
 
+        # run backward pass
+        grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
+        net.backward( grdts )
 
         total_time += time.time() - start
         start = time.time()
