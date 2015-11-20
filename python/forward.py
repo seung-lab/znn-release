@@ -178,12 +178,11 @@ def save_sample_outputs(sample_outputs, prefix):
                 os.remove( h5name )
             emio.imsave(dataset.data, h5name)
 
-			#Constitutent 3d volumes
+            #Constitutent 3d volumes
             # tif file for easy visualization
-			for i in range( num_volumes ):
-				emio.imsave(dataset.data[i,:,:,:],\
-					"{}_sample{}_{}_{}.tif".format(prefix, sample_num,\
-									dataset_name, i))
+            for i in range( num_volumes ):
+                emio.imsave(dataset.data[i,:,:,:],\
+                    "{}_sample{}_{}_{}.tif".format(prefix, sample_num, dataset_name, i))
 
 def main( config_filename, sample_ids=None ):
     '''
