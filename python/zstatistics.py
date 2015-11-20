@@ -47,7 +47,7 @@ class CLearnCurve:
         else:
             self.tt_re = list()
         if '/test/mc' in f:
-            self.tt_mc = list( f['/test/mc'].value )
+            self.tt_mc = list( 1-f['/test/mc'].value )
         else:
             self.tt_mc = list()
 
@@ -60,7 +60,9 @@ class CLearnCurve:
             self.tn_re = list()
 
         if '/train/mc' in f:
-            self.tn_mc = list( f['/train/mc'].value )
+            self.tn_mc = list( 1-f['/train/mc'].value )
+        else:
+            self.tn_mc = list()
         f.close()
 
         # crop the values
@@ -177,9 +179,13 @@ class CLearnCurve:
         ----------
         w : int, window size for smoothing the curve
         """
-
+        if len(self.tn_mc) > 0:
+            # malis training, increase number of subplots
+            nsp = 4
+        else:
+            nsp = 3
         # plot data
-        plt.subplot(131)
+        plt.subplot(1,nsp, 1)
         plt.plot(self.tn_it, self.tn_err, 'b.', alpha=0.2)
         plt.plot(self.tt_it, self.tt_err, 'r.', alpha=0.2)
         # plot smoothed line
@@ -189,7 +195,7 @@ class CLearnCurve:
         plt.plot(xte, yte, 'r')
         plt.xlabel('iteration'), plt.ylabel('cost energy')
 
-        plt.subplot(132)
+        plt.subplot(1,nsp,2)
         plt.plot(self.tn_it, self.tn_cls, 'b.', alpha=0.2)
         plt.plot(self.tt_it, self.tt_cls, 'r.', alpha=0.2)
         # plot smoothed line
@@ -200,7 +206,7 @@ class CLearnCurve:
         plt.xlabel('iteration'), plt.ylabel( 'classification error' )
 
         if len(self.tn_it) == len( self.tn_re ):
-            plt.subplot(133)
+            plt.subplot(1, nsp, 3)
             plt.plot(self.tn_it, self.tn_re, 'b.', alpha=0.2)
             plt.plot(self.tt_it, self.tt_re, 'r.', alpha=0.2)
             # plot smoothed line
@@ -209,6 +215,17 @@ class CLearnCurve:
             plt.plot(xnr, ynr, 'b', label='train')
             plt.plot(xtr, ytr, 'r', label='test')
             plt.xlabel('iteration'), plt.ylabel( 'rand error' )
+
+        if len(self.tn_it) == len( self.tn_mc ):
+            plt.subplot(1, nsp, 4)
+            plt.plot(self.tn_it, self.tn_mc, 'b.', alpha=0.2)
+            plt.plot(self.tt_it, self.tt_mc, 'r.', alpha=0.2)
+            # plot smoothed line
+            xnm, ynm = self._smooth( self.tn_it, self.tn_mc, w )
+            xtm, ytm = self._smooth( self.tt_it, self.tt_mc, w )
+            plt.plot(xnm, ynm, 'b', label='train')
+            plt.plot(xtm, ytm, 'r', label='test')
+            plt.xlabel('iteration'), plt.ylabel( 'malis weighted pixel \n classification error' )
 
         plt.legend()
         plt.show()

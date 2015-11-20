@@ -21,7 +21,7 @@ def _single_test(net, pars, sample):
     re = 0.0
     malis_cls = 0.0
     if pars['is_malis']:
-        malis_weights, rand_errors = cost_fn.malis_weight( pars, props, lbl_outs )
+        malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight( pars, props, lbl_outs )
         re = rand_errors.values()[0]
         # dictionary of malis classification error
         mcd = utils.get_malis_cls( props, lbl_outs, malis_weights )

@@ -459,7 +459,7 @@ def malis_weight(pars, props, lbls):
             # take it as boundary map
             malis_weights[name], merr, serr = malis_weight_bdm(prop, lbl)
 
-    return (malis_weights, rand_errors)
+    return (malis_weights, rand_errors, num_non_bdr)
 
 def sparse_cost(outputs, labels, cost_fn):
     """
