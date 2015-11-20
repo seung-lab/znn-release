@@ -61,6 +61,8 @@ class CLearnCurve:
 
         if '/train/mc' in f:
             self.tn_mc = list( f['/train/mc'].value )
+        else:
+            self.tn_mc = lis()
         f.close()
 
         # crop the values
