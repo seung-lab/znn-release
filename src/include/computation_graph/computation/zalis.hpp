@@ -246,26 +246,8 @@ zalis( std::vector<cube_p<real>> true_affs,
             real* pmw = e.get<3>(); // merger weight
             real* psw = e.get<4>(); // splitter weight
 
-            if (norm_mode == 2 )
-            {   // normalize by number of non-boundary edges
-                *pmw += n_diff_pair / num_non_bdr;
-                *psw += n_same_pair / num_non_bdr;
-            }
-            else if ( norm_mode == 3 )
-            {   // normalize by number of voxel pair of non boundary voxels
-                *pmw += n_diff_pair / (num_non_bdr * (num_non_bdr-1));
-                *psw += n_diff_pair / (num_non_bdr * (num_non_bdr-1));
-            }
-            else if ( norm_mode == 0 )
-            {   // no normalization
-                *pmw += n_diff_pair;
-                *psw += n_same_pair;
-            }
-            else
-            {
-                // can only be fractional normalization mode
-                assert( norm_mode==1 );
-            }
+            *pmw += n_diff_pair;
+            *psw += n_same_pair;
 
 #if defined( DEBUG )
             bool is_singleton = (sizes[set1] == 1) || (sizes[set2] == 1);
@@ -318,7 +300,7 @@ zalis( std::vector<cube_p<real>> true_affs,
 
     // rand error
     real re = (FP+FN) / (num_non_bdr*(num_non_bdr-1)/2);
-    zalis_weight ret(mw, sw, re);
+    zalis_weight ret(mw, sw, re, num_non_bdr);
 #if defined( DEBUG )
     ret.ws_snapshots = ws_snapshots;
     ret.ws_timestamp = ws_timestamp;

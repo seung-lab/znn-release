@@ -431,33 +431,34 @@ def malis_weight(pars, props, lbls):
     rand_errors = dict()
 
     # malis normalization type
-    if 'none' in pars['malis_norm_type']:
-        malis_norm_mode = 0
-    elif 'frac' in pars['malis_norm_type']:
-        malis_norm_mode = 1
-    elif 'num' in pars['malis_norm_type']:
-        malis_norm_mode = 2
-    elif 'pair' in pars['malis_norm_type']:
-        malis_norm_mode = 3
+    if 'frac' in pars['malis_norm_type']:
+        is_fract_norm = 1
     else:
-        raise NameError('invalid malis normalization type!')
+        is_fract_norm = 0
 
     for name, prop in props.iteritems():
         assert prop.ndim==4
         lbl = lbls[name]
         if prop.shape[0]==3:
             # affinity output
-            # ret[name], merr, serr = malis_weight_aff(prop, lbl)
             from malis.pymalis import zalis
-            #true_affs = emirt.volume_util.seg2aff( lbl )
-            weights, re = zalis( prop, lbl, 1.0, 0.0, 2)
+            weights, re, num_non_bdr = zalis( prop, lbl, 1.0, 0.0, is_fract_norm)
             merr = weights[:3, :,:,:]
             serr = weights[3:, :,:,:]
-            malis_weights[name] = merr + serr
+            mw = merr + serr
+
+            # normalization
+            if 'num' in pars['malis_norm_type']:
+                mw = mw / num_non_bdr
+            elif 'pair' in pars['malis_norm_type']:
+                mw = mw / (num_non_bdr * (num_non_bdr-1))
+
+            malis_weights[name] = mw
             rand_errors[name] = re
         else:
             # take it as boundary map
             malis_weights[name], merr, serr = malis_weight_bdm(prop, lbl)
+
     return (malis_weights, rand_errors)
 
 def sparse_cost(outputs, labels, cost_fn):

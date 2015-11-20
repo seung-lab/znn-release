@@ -279,3 +279,13 @@ def save_malis( mws, fname_save_net, num_iters ):
         os.remove( current_fname )
         import shutil
         shutil.copy( fname, current_fname )
+
+def get_malis_cls( props, lbl_outs, malis_weights ):
+    ret = dict()
+    for key, mw in malis_weights.iteritems():
+        prop = props[key]
+        lbl = lbl_outs[key]
+        cls = ( (prop>0.5)!=(lbl>0.5) )
+        cls = cls.astype('float32')
+        ret[key] = np.sum(cls*mw) / np.sum(mw)
+    return ret

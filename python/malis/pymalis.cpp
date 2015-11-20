@@ -24,6 +24,7 @@ bp::tuple weights2tuple( zalis_weight weights )
     std::vector<cube_p<T>>   merger   = weights.merger;
     std::vector<cube_p<T>>   splitter = weights.splitter;
     T re = weights.rand_error;
+    T num = weights.num_non_bdr;
 
     // number of output cubes
     std::size_t sc = merger.size();
@@ -55,7 +56,7 @@ bp::tuple weights2tuple( zalis_weight weights )
                                                     sx*sizeof(T),
                                                     sizeof(T)),
                                      bp::object() );
-    return bp::make_tuple( arr, re );
+    return bp::make_tuple( arr, re, num );
 }
 
 bp::tuple pyzalis( np::ndarray& pyaffs,
