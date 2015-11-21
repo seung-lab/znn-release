@@ -19,10 +19,12 @@ namespace np = boost::numpy;
 using namespace znn::v4;
 
 template <typename T>
-np::ndarray weights2array( zalis_weight weights )
+bp::tuple weights2tuple( zalis_weight weights )
 {
     std::vector<cube_p<T>>   merger   = weights.merger;
     std::vector<cube_p<T>>   splitter = weights.splitter;
+    T re = weights.rand_error;
+    T num = weights.num_non_bdr;
 
     // number of output cubes
     std::size_t sc = merger.size();
@@ -46,20 +48,22 @@ np::ndarray weights2array( zalis_weight weights )
     }
 
     // return ndarray
-    return np::from_data(
-        tqp->data(),
-        np::dtype::get_builtin<T>(),
-        bp::make_tuple(2*sc,sz,sy,sx),
-        bp::make_tuple(sx*sy*sz*sizeof(T), sx*sy*sizeof(T),
-                       sx*sizeof(T), sizeof(T)),
-        bp::object() );
+    np::ndarray arr = np::from_data( tqp->data(),
+                                     np::dtype::get_builtin<T>(),
+                                     bp::make_tuple(2*sc,sz,sy,sx),
+                                     bp::make_tuple(sx*sy*sz*sizeof(T),
+                                                    sx*sy*sizeof(T),
+                                                    sx*sizeof(T),
+                                                    sizeof(T)),
+                                     bp::object() );
+    return bp::make_tuple( arr, re, num );
 }
 
-np::ndarray pyzalis( np::ndarray& pyaffs,
-                     np::ndarray& pytrue_affs,
-                     float high,
-                     float low,
-                     int is_frac_norm)
+bp::tuple pyzalis( np::ndarray& pyaffs,
+                   np::ndarray& pytrue_affs,
+                   float high,
+                   float low,
+                   std::size_t is_frac_norm)
 {
     // python data structure to c++ data structure
     std::vector< cube_p<real> > true_affs = array2cubelist<real>( pytrue_affs );
@@ -68,14 +72,7 @@ np::ndarray pyzalis( np::ndarray& pyaffs,
     // zalis computation
     auto weights = zalis(true_affs, affs, high, low, is_frac_norm);
 
-    // transform to python data structure
-    // bp::tuple shape = bp::make_tuple( pyaffs.shape(0), pyaffs.shape(1), pyaffs.shape(2), pyaffs.shape(3) );
-    // np::ndarray pymerger   = np::empty( shape, pyaffs.get_dtype() );
-    // np::ndarray pysplitter = np::empty( shape, pyaffs.get_dtype() );
-    //np::ndarray pymerger   = cubelist2array<real>(  self, weights.merger);
-    //np::ndarray pysplitter = cubelist2array<real>(  self, weights.splitter );
-
-    return weights2array<real>( weights );
+    return weights2tuple<real>( weights );
 }
 
 BOOST_PYTHON_MODULE(pymalis)

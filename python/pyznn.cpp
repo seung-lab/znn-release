@@ -346,31 +346,6 @@ void CNet_set_phase(bp::object const & self, std::uint8_t const phs = 0)
     return;
 }
 
-bp::tuple pyzalis( bp::object const & self,
-                 np::ndarray& pyaffs,
-                 np::ndarray& pytrue_affs,
-                 float high,
-                 float low,
-                 int is_frac_norm)
-{
-    // python data structure to c++ data structure
-    std::vector< cube_p<real> > true_affs = array2cubelist<real>( pytrue_affs );
-    std::vector< cube_p<real> > affs = array2cubelist<real>( pyaffs );
-
-    // zalis computation
-    auto weights = zalis(true_affs, affs, high, low, is_frac_norm);
-
-    // transform to python data structure
-    // bp::tuple shape = bp::make_tuple( pyaffs.shape(0), pyaffs.shape(1), pyaffs.shape(2), pyaffs.shape(3) );
-    // np::ndarray pymerger   = np::empty( shape, pyaffs.get_dtype() );
-    // np::ndarray pysplitter = np::empty( shape, pyaffs.get_dtype() );
-    np::ndarray pymerger   = cubelist2array<real>(  self, weights.merger);
-    np::ndarray pysplitter = cubelist2array<real>(  self, weights.splitter );
-
-    return bp::make_tuple( pymerger, pysplitter );
-}
-
-
 //===========================================================================
 //BOOST PYTHON INTERFACE DEFINITION
 BOOST_PYTHON_MODULE(pyznn)
@@ -394,5 +369,4 @@ BOOST_PYTHON_MODULE(pyznn)
         .def("get_output_num", 		&CNet_get_output_num)
         .def("get_opts",			&CNet_getopts)
         ;
-    def("zalis", pyzalis);
 }

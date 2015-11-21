@@ -14,10 +14,14 @@ class CLearnCurve:
             self.tt_it  = list()
             self.tt_err = list()
             self.tt_cls = list()
+            self.tt_re  = list()
+            self.tt_mc  = list()
 
             self.tn_it  = list()
             self.tn_err = list()
             self.tn_cls = list()
+            self.tn_re  = list()
+            self.tn_mc  = list()
         else:
             self._read_curve( fname )
         return
@@ -38,10 +42,27 @@ class CLearnCurve:
         self.tt_it  = list( f['/test/it'].value )
         self.tt_err = list( f['/test/err'].value )
         self.tt_cls = list( f['/test/cls'].value )
+        if '/test/re' in f:
+            self.tt_re = list( f['/test/re'].value )
+        else:
+            self.tt_re = list()
+        if '/test/mc' in f:
+            self.tt_mc = list( f['/test/mc'].value )
+        else:
+            self.tt_mc = list()
 
         self.tn_it  = list( f['/train/it'].value )
         self.tn_err = list( f['/train/err'].value )
         self.tn_cls = list( f['/train/cls'].value )
+        if '/train/re' in f:
+            self.tn_re = list( f['/train/re'].value )
+        else:
+            self.tn_re = list()
+
+        if '/train/mc' in f:
+            self.tn_mc = list( f['/train/mc'].value )
+        else:
+            self.tn_mc = list()
         f.close()
 
         # crop the values
@@ -96,6 +117,32 @@ class CLearnCurve:
         self.tn_err.append(err)
         self.tn_cls.append(cls)
 
+    def append_train_rand_error( self, re ):
+        while len( self.tn_re ) < len(self.tn_it)-1:
+            # fill with nan
+            self.tn_re.append( np.nan )
+        self.tn_re.append( re )
+        assert len(self.tn_it) == len(self.tn_re)
+
+    def append_train_malis_cls( self, mc ):
+        while len( self.tn_mc ) < len(self.tn_it)-1:
+            # fill with nan
+            self.tn_mc.append( np.nan )
+        self.tn_mc.append( mc )
+        assert len(self.tn_it) == len(self.tn_mc)
+
+    def append_test_rand_error( self, re ):
+        while len( self.tt_re ) < len(self.tt_it)-1:
+            self.tt_re.append( np.nan )
+        self.tt_re.append( re )
+        assert len(self.tt_it) == len(self.tt_re)
+
+    def append_test_malis_cls( self, mc ):
+        while len( self.tt_mc ) < len(self.tt_it)-1:
+            self.tt_mc.append( np.nan )
+        self.tt_mc.append( mc )
+        assert len(self.tt_it) == len(self.tt_mc)
+
     def get_last_it(self):
         # return the last iteration number
         if len(self.tt_it)>0 and len(self.tn_it)>0:
@@ -134,7 +181,7 @@ class CLearnCurve:
         """
 
         # plot data
-        plt.subplot(121)
+        plt.subplot(131)
         plt.plot(self.tn_it, self.tn_err, 'b.', alpha=0.2)
         plt.plot(self.tt_it, self.tt_err, 'r.', alpha=0.2)
         # plot smoothed line
@@ -144,7 +191,7 @@ class CLearnCurve:
         plt.plot(xte, yte, 'r')
         plt.xlabel('iteration'), plt.ylabel('cost energy')
 
-        plt.subplot(122)
+        plt.subplot(132)
         plt.plot(self.tn_it, self.tn_cls, 'b.', alpha=0.2)
         plt.plot(self.tt_it, self.tt_cls, 'r.', alpha=0.2)
         # plot smoothed line
@@ -153,6 +200,18 @@ class CLearnCurve:
         plt.plot(xnc, ync, 'b', label='train')
         plt.plot(xtc, ytc, 'r', label='test')
         plt.xlabel('iteration'), plt.ylabel( 'classification error' )
+
+        if len(self.tn_it) == len( self.tn_re ):
+            plt.subplot(133)
+            plt.plot(self.tn_it, self.tn_re, 'b.', alpha=0.2)
+            plt.plot(self.tt_it, self.tt_re, 'r.', alpha=0.2)
+            # plot smoothed line
+            xnr, ynr = self._smooth( self.tn_it, self.tn_re, w )
+            xtr, ytr = self._smooth( self.tt_it, self.tt_re, w )
+            plt.plot(xnr, ynr, 'b', label='train')
+            plt.plot(xtr, ytr, 'r', label='test')
+            plt.xlabel('iteration'), plt.ylabel( 'rand error' )
+
         plt.legend()
         plt.show()
         return
@@ -161,31 +220,40 @@ class CLearnCurve:
         # get filename
         fname = pars['train_save_net']
         import os
+        import shutil
         root, ext = os.path.splitext(fname)
-        fname = root + '_statistics_current.h5'
-        if os.path.exists( fname ):
+        fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
+        if os.path.exists(fname):
             os.remove( fname )
 
         # save variables
         import h5py
         f = h5py.File( fname )
-        f.create_dataset('train/it',  data=self.tn_it)
-        f.create_dataset('train/err', data=self.tn_err)
-        f.create_dataset('train/cls', data=self.tn_cls)
-        f.create_dataset('test/it',   data=self.tt_it)
-        f.create_dataset('test/err',  data=self.tt_err)
-        f.create_dataset('test/cls',  data=self.tt_cls)
-        f.create_dataset('elapsed',   data=elapsed)
+        f.create_dataset('/train/it',  data=self.tn_it )
+        f.create_dataset('/train/err', data=self.tn_err)
+        f.create_dataset('/train/cls', data=self.tn_cls)
+        f.create_dataset('/train/re',  data=self.tn_re )
+        f.create_dataset('/train/mc',  data=self.tn_mc )
+
+        f.create_dataset('/test/it',   data=self.tt_it )
+        f.create_dataset('/test/err',  data=self.tt_err)
+        f.create_dataset('/test/cls',  data=self.tt_cls)
+        f.create_dataset('/test/re',   data=self.tt_re )
+        f.create_dataset('/test/mc',   data=self.tt_mc )
+
+        f.create_dataset('/elapsed',   data=elapsed)
         f.close()
 
         # move to new name
-        fname2 = root + '_statistics.h5'
-        os.rename(fname, fname2)
+        fname2 = root + '_statistics_current.h5'
+        if os.path.exists( fname2 ):
+            os.remove( fname2 )
+        shutil.copyfile(fname, fname2)
 
 def find_statistics_file_within_dir(seed_filename):
     '''
     Looks for the stats file amongst the directory where
-     the loaded network is stored
+    the loaded network is stored
     '''
     import glob
 
@@ -205,6 +273,13 @@ def find_statistics_file_within_dir(seed_filename):
 
     first_field = filename_fields.pop()
     search_expression_head = containing_directory + "/" + first_field
+
+    exact_file = search_expression_head + "_statistics_" + filename_fields.pop()
+    import os
+    if os.path.exists( exact_file ):
+        # have one statistics file matches exactly!
+        return exact_file
+
     while len(candidate_files) > 1:
         candidate_files = glob.glob( search_expression_head + "*statistics*" )
 

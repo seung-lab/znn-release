@@ -36,7 +36,7 @@ zalis( std::vector<cube_p<real>> true_affs,
        std::vector<cube_p<real>> affs,
        real high = 0.99,
        real low  = 0.01,
-       bool frac_norm = false )
+       size_t norm_mode = 0 )
 {
     ZI_ASSERT(affs.size()==3);
     ZI_ASSERT(true_affs.size()==affs.size());
@@ -80,6 +80,11 @@ zalis( std::vector<cube_p<real>> true_affs,
     cube_p<int> ids_ptr = get_cube<int>(s);
     cube<int> & ids = *ids_ptr;
 
+    // initialize the counting
+    real FP=0;
+    real FN=0;
+    real num_non_bdr=0;
+
     for ( size_t i = 0; i < n; ++i )
     {
         ids.data()[i] = i+1;
@@ -89,6 +94,7 @@ zalis( std::vector<cube_p<real>> true_affs,
         // non-boundary
         if ( seg.data()[i] > 0 )
         {
+	    ++num_non_bdr;
             ++seg_sizes[seg.data()[i]];
         }
     }
@@ -188,6 +194,7 @@ zalis( std::vector<cube_p<real>> true_affs,
 
     for ( auto& e: edges )
     {
+        real affinity = e.get<0>();                // edge affinity
         uint32_t set1 = sets.find_set(e.get<1>()); // watershed domain A
         uint32_t set2 = sets.find_set(e.get<2>()); // watershed domain B
 
@@ -203,7 +210,7 @@ zalis( std::vector<cube_p<real>> true_affs,
                 real     segsize1 = seg1.second;
 
                 // fraction normalize
-                if ( frac_norm ) segsize1 /= seg_sizes[segID1];
+                if ( norm_mode==1 ) segsize1 /= seg_sizes[segID1];
 
                 // skip boundary
                 if ( segID1 == 0 ) continue;
@@ -215,7 +222,7 @@ zalis( std::vector<cube_p<real>> true_affs,
                     real     segsize2 = seg2.second;
 
                     // fraction normalize
-                    if ( frac_norm ) segsize2 /= seg_sizes[segID2];
+                    if ( norm_mode==1 ) segsize2 /= seg_sizes[segID2];
 
                     // skip boundary
                     if ( segID2 == 0 ) continue;
@@ -224,10 +231,14 @@ zalis( std::vector<cube_p<real>> true_affs,
                     if ( segID1 == segID2 )
                     {
                         n_same_pair += segsize1 * segsize2;
+                        if (affinity < 0.5)
+                            FN += segsize1 * segsize2;
                     }
                     else
                     {
                         n_diff_pair += segsize1 * segsize2;
+                        if (affinity >0.5)
+                            FP += segsize1 * segsize2;
                     }
                 }
             }
@@ -287,7 +298,9 @@ zalis( std::vector<cube_p<real>> true_affs,
         }
     }
 
-    zalis_weight ret(mw,sw);
+    // rand error
+    real re = (FP+FN) / (num_non_bdr*(num_non_bdr-1)/2);
+    zalis_weight ret(mw, sw, re, num_non_bdr);
 #if defined( DEBUG )
     ret.ws_snapshots = ws_snapshots;
     ret.ws_timestamp = ws_timestamp;

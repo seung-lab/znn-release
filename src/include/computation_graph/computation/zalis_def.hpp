@@ -28,6 +28,8 @@ struct zalis_weight
 {
     std::vector<cube_p<real>>   merger;
     std::vector<cube_p<real>>   splitter;
+    real rand_error;  // rand error
+    real num_non_bdr; // number of non-boundary voxels
 
 #if defined( DEBUG )
     std::vector<cube_p<int>>    ws_snapshots;
@@ -35,9 +37,14 @@ struct zalis_weight
     std::vector<cube_p<int>>    timestamp;
 #endif
 
-    zalis_weight(std::vector<cube_p<real>> m, std::vector<cube_p<real>> s)
+    zalis_weight(std::vector<cube_p<real>> m,
+                 std::vector<cube_p<real>> s,
+                 real re,
+                 real n)
         : merger(m)
         , splitter(s)
+        , rand_error( re )
+        , num_non_bdr( n )
 #if defined( DEBUG )
         , ws_snapshots()
         , ws_timestamp()

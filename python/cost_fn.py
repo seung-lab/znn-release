@@ -24,7 +24,7 @@ def get_cls(props, lbls):
     c = 0.0
     for name, prop in props.iteritems():
         lbl = lbls[name]
-        c = c + np.count_nonzero( (prop>0.5)!= lbl )
+        c = c + np.count_nonzero( (prop>0.5)!= (lbl>0.5) )
 
     return c
 
@@ -185,7 +185,7 @@ def softmax_loss2(props, lbls):
 # TO-DO
 
 
-def malis_weight_aff(affs, true_affs, Dim = 3):
+def malis_weight_aff(affs, true_affs):
     """
     compute malis tree_size
 
@@ -200,9 +200,16 @@ def malis_weight_aff(affs, true_affs, Dim = 3):
     ------
     weights : 4D array of weights
     """
-    print "affinity shape: ", affs.shape
     # segment the true affinity graph
-    tseg = emirt.volume_util.aff2seg(true_affs)
+    if true_affs.shape[0]==3:
+        tseg = emirt.volume_util.aff2seg(true_affs)
+    elif true_affs.ndim==3 or (true_affs.ndim==4 and true_affs.shape[0]==1):
+        tseg = true_affs
+    elif true_affs.ndim==2:
+        tseg = np.reshape( true_affs, (1,)+true_affs.shape )
+    else:
+        print "ground truth shape: ", true_affs.shape
+        raise NameError( 'invalid true_affs shape' )
 
     print "true segmentation: ", tseg
 
@@ -226,13 +233,12 @@ def malis_weight_aff(affs, true_affs, Dim = 3):
         for y in xrange( 1, yaff.shape[1] ):
             for x in xrange( yaff.shape[2] ):
                 edges.append( (yaff[z,y,x], vids[z,y,x], vids[z,y-1,x], 1,z,y,x) )
-    # do not include z affinity edge for 2D affinity
-    if Dim==3:
-        # z affinity edge
-        for z in xrange( 1, zaff.shape[0] ):
-            for y in xrange( zaff.shape[1] ):
-                for x in xrange( zaff.shape[2] ):
-                    edges.append( (zaff[z,y,x], vids[z,y,x], vids[z-1,y,x], 0,z,y,x) )
+
+    # z affinity edge
+    for z in xrange( 1, zaff.shape[0] ):
+        for y in xrange( zaff.shape[1] ):
+            for x in xrange( zaff.shape[2] ):
+                edges.append( (zaff[z,y,x], vids[z,y,x], vids[z-1,y,x], 0,z,y,x) )
     # descending sort
     edges.sort(reverse=True)
 
@@ -417,30 +423,43 @@ def malis_weight_bdm(bdm, lbl, threshold=0.5):
     serr = serr.reshape( original_shape )
     return weights, merr, serr
 
-def malis_weight(props, lbls):
+def malis_weight(pars, props, lbls):
     """
     compute the malis weight including boundary map and affinity cases
     """
-    ret = dict()
+    malis_weights = dict()
+    rand_errors = dict()
+
+    # malis normalization type
+    if 'frac' in pars['malis_norm_type']:
+        is_fract_norm = 1
+    else:
+        is_fract_norm = 0
+
     for name, prop in props.iteritems():
         assert prop.ndim==4
         lbl = lbls[name]
         if prop.shape[0]==3:
             # affinity output
-            # ret[name], merr, serr = malis_weight_aff(prop, lbl)
             from malis.pymalis import zalis
-            #true_affs = emirt.volume_util.seg2aff( lbl )
-            weights = zalis( prop, lbl, 1.0, 0.0, 0)
+            weights, re, num_non_bdr = zalis( prop, lbl, 1.0, 0.0, is_fract_norm)
             merr = weights[:3, :,:,:]
             serr = weights[3:, :,:,:]
-            w = merr + serr
-            # normalization by N
-            w = w / float(merr.size / 3)
-            ret[name] = w
+            mw = merr + serr
+
+            # normalization
+            if 'num' in pars['malis_norm_type']:
+                mw = mw / num_non_bdr
+            elif 'pair' in pars['malis_norm_type']:
+                mw = mw / (num_non_bdr * (num_non_bdr-1))
+
+            malis_weights[name] = mw
+            rand_errors[name] = re
         else:
             # take it as boundary map
-            ret[name], merr, serr = malis_weight_bdm(prop, lbl)
-    return ret
+            malis_weights[name], merr, serr = malis_weight_bdm(prop, lbl)
+
+    return (malis_weights, rand_errors)
 
 def sparse_cost(outputs, labels, cost_fn):
     """

@@ -127,6 +127,8 @@ def parser( conf_fname ):
     pars['is_patch_rebalance']=config.getboolean('parameters', 'is_patch_rebalance')
     #Whether to use malis cost
     pars['is_malis']    = config.getboolean('parameters', 'is_malis')
+    # malis normalization type
+    pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
     #Whether to display progress plots
     pars['is_visual']   = config.getboolean('parameters', 'is_visual')
 
@@ -227,6 +229,13 @@ def check_config(config, pars):
                 pp_types = pp_types.replace("auto", "affinity")
             config.set(sec, 'pp_types', value=pp_types)
 
+
+    # check malis normalization type
+    if pars['is_malis']:
+        assert 'none' in pars['malis_norm_type'] \
+            or 'frac' in pars['malis_norm_type'] \
+            or 'num'  in pars['malis_norm_type'] \
+            or 'pair' in pars['malis_norm_type']
     return config, pars
 
 def inter_show(start, lc, eta, vol_ins, props, lbl_outs, grdts, pars):
