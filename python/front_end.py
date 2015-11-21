@@ -186,7 +186,7 @@ def check_config(config, pars):
         elif 'affin' in pars['out_type']:
             pars['cost_fn_str'] = 'binomial_cross_entropy'
             pars['cost_fn'] = cost_fn.binomial_cross_entropy
-    elif "square-square" == pars['cost_fn_str']:
+    elif "square-square" in pars['cost_fn_str']:
         pars['cost_fn'] = cost_fn.square_square_loss
     elif "square" in pars['cost_fn_str']:
         pars['cost_fn'] = cost_fn.square_loss
