@@ -161,29 +161,28 @@ def num_patches_consistent( input_patch_count, output_patch_count ):
 	return all( [count == input_counts[0] for count in input_counts + output_counts])
 
 def save_sample_outputs(sample_outputs, prefix):
-	'''
-	Writes the resulting output volumes to disk according to the
-	output_prefix
-	'''
+    '''
+    Writes the resulting output volumes to disk according to the
+    output_prefix
+    '''
 
-	for sample_num, output in sample_outputs.iteritems():
+    for sample_num, output in sample_outputs.iteritems():
+        for dataset_name, dataset in output.output_volumes.iteritems():
+            num_volumes = dataset.data.shape[0]
 
-		for dataset_name, dataset in output.output_volumes.iteritems():
-
-			num_volumes = dataset.data.shape[0]
-
-			#Consolidated 4d volume
+            #Consolidated 4d volume
             # hdf5 output for watershed
-			emio.imsave(dataset.data,
-				"{}_sample{}_{}.h5".format(prefix, sample_num,
-								dataset_name))
+            h5name = "{}_sample{}_{}.h5".format(prefix, sample_num,	dataset_name)
+            import os
+            if os.path.exists( h5name ):
+                os.remove( h5name )
+            emio.imsave(dataset.data, h5name)
 
-			#Constitutent 3d volumes
+            #Constitutent 3d volumes
             # tif file for easy visualization
-			for i in range( num_volumes ):
-				emio.imsave(dataset.data[i,:,:,:],
-					"{}_sample{}_{}_{}.tif".format(prefix, sample_num,
-									dataset_name, i))
+            for i in range( num_volumes ):
+                emio.imsave(dataset.data[i,:,:,:],\
+                    "{}_sample{}_{}_{}.tif".format(prefix, sample_num, dataset_name, i))
 
 def main( config_filename, sample_ids=None ):
     '''

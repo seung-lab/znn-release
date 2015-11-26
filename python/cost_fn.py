@@ -5,10 +5,12 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
 import emirt
+import utils
 # numba accelaration
 #from numba import jit
 
-def get_cls(props, lbls):
+
+def get_cls(props, lbls, mask=None):
     """
     compute classification error.
 
@@ -21,15 +23,22 @@ def get_cls(props, lbls):
     -------
     c : number of classification error
     """
+    errors = dict()
     c = 0.0
+
+    #Applying mask if it exists
+    props = utils.mask_dict_vol(props, mask)
+    lbls = utils.mask_dict_vol(lbls, mask)
+
     for name, prop in props.iteritems():
         lbl = lbls[name]
-        c = c + np.count_nonzero( (prop>0.5)!= lbl )
+
+        c += np.count_nonzero( (prop>0.5) != (lbl>0.5) )
 
     return c
 
 #@jit(nopython=True)
-def square_loss(props, lbls):
+def square_loss(props, lbls, mask=None):
     """
     compute square loss
 
@@ -45,34 +54,46 @@ def square_loss(props, lbls):
     """
     grdts = dict()
     err = 0
+
+    #Applying mask if it exists
+    props = utils.mask_dict_vol(props, mask)
+    lbls = utils.mask_dict_vol(lbls, mask)    
+
     for name, prop in props.iteritems():
         lbl = lbls[name]
+
         grdt = prop - lbl
-        # cost and classification error
-        err = err + np.sum( np.square(grdt) )
         grdts[name] = grdt * 2
+
+        err += np.sum(np.square( grdt ))
 
     return (props, err, grdts)
 
-def square_square_loss(props, lbls, margin=0.2):
+def square_square_loss(props, lbls, mask=None, margin=0.2):
     """
     square-square loss (square loss with a margin)
     """
     gradients = dict()
     error = 0
 
+    #Applying mask if it exists
+    props = utils.mask_dict_vol(props, mask)
+    lbls = utils.mask_dict_vol(lbls, mask)
+
     for name, propagation in props.iteritems():
         lbl = lbls[name]
+
         gradient = propagation - lbl
         gradient[np.abs(gradient) <= margin] = 0
-
-        error += np.sum( np.square(gradient) )
         gradients[name] = gradient * 2
+
+        error += np.sum(np.square( gradient ))
+
 
     return (props, error, gradients)
 
 #@jit(nopython=True)
-def binomial_cross_entropy(props, lbls):
+def binomial_cross_entropy(props, lbls, mask=None):
     """
     compute binomial cost
 
@@ -88,10 +109,26 @@ def binomial_cross_entropy(props, lbls):
     """
     grdts = dict()
     err = 0
+
+    #Taking a slightly different strategy with masking 
+    # to improve the numerical stability of the error output
+    entropy = dict()
+
+    #Finding Gradients
     for name, prop in props.iteritems():
         lbl = lbls[name]
+
         grdts[name] = prop - lbl
-        err = err + np.sum(  -lbl*np.log(prop) - (1-lbl)*np.log(1-prop) )
+
+        entropy[name] = -lbl*np.log(prop) - (1-lbl)*np.log(1-prop)
+
+    #Applying mask if it exists
+    grdts = utils.mask_dict_vol(grdts, mask)
+    entropy = utils.mask_dict_vol(entropy, mask)
+
+    for name, vol in entropy.iteritems():
+        err += np.sum( vol )
+
     return (props, err, grdts)
 
 #@jit(nopython=True)
@@ -108,7 +145,7 @@ def softmax(props):
     ret = dict()
     for name, prop in props.iteritems():
         # make sure that it is the output of binary class
-        assert(prop.shape[0]==2)
+        # assert(prop.shape[0]==2)
 
         # rebase the prop for numerical stability
         # mathematically, this does not affect the softmax result!
@@ -123,7 +160,7 @@ def softmax(props):
             ret[name][c,:,:,:] = prop[c,:,:,:] / pesum
     return ret
 
-def multinomial_cross_entropy(props, lbls):
+def multinomial_cross_entropy(props, lbls, mask=None):
     """
     compute multinomial cross entropy
 
@@ -140,17 +177,32 @@ def multinomial_cross_entropy(props, lbls):
     """
     grdts = dict()
     err = 0
+
+    #Taking a slightly different strategy with masking 
+    # to improve the numerical stability of the error output
+    entropy = dict()
+
     for name, prop in props.iteritems():
         lbl = lbls[name]
+
         grdts[name] = prop - lbl
-        err = err + np.sum( -lbl * np.log(prop) )
+
+        entropy[name] = -lbl * np.log(prop)
+
+    #Applying mask if it exists
+    grdts = utils.mask_dict_vol(grdts, mask)
+    entropy = utils.mask_dict_vol(entropy, mask)
+
+    for name, vol in entropy.iteritems():
+        err += np.sum( vol )
+
     return (props, err, grdts)
 
-def softmax_loss(props, lbls):
+def softmax_loss(props, lbls, mask=None):
     props = softmax(props)
-    return multinomial_cross_entropy(props, lbls)
+    return multinomial_cross_entropy(props, lbls, mask)
 
-def softmax_loss2(props, lbls):
+def softmax_loss2(props, lbls, mask=None):
     grdts = dict()
     err = 0
 
@@ -160,7 +212,7 @@ def softmax_loss2(props, lbls):
 
         print "original prop: ", prop
 
-        # rebase the prop for numerical stabiligy
+        # rebase the prop for numerical stability
         # mathimatically, this do not affect the softmax result!
         # http://ufldl.stanford.edu/tutorial/supervised/SoftmaxRegression/
 #        prop = prop - np.max(prop)
@@ -185,7 +237,7 @@ def softmax_loss2(props, lbls):
 # TO-DO
 
 
-def malis_weight_aff(affs, true_affs, Dim = 3):
+def malis_weight_aff(affs, true_affs):
     """
     compute malis tree_size
 
@@ -200,9 +252,16 @@ def malis_weight_aff(affs, true_affs, Dim = 3):
     ------
     weights : 4D array of weights
     """
-    print "affinity shape: ", affs.shape
     # segment the true affinity graph
-    tseg = emirt.volume_util.aff2seg(true_affs)
+    if true_affs.shape[0]==3:
+        tseg = emirt.volume_util.aff2seg(true_affs)
+    elif true_affs.ndim==3 or (true_affs.ndim==4 and true_affs.shape[0]==1):
+        tseg = true_affs
+    elif true_affs.ndim==2:
+        tseg = np.reshape( true_affs, (1,)+true_affs.shape )
+    else:
+        print "ground truth shape: ", true_affs.shape
+        raise NameError( 'invalid true_affs shape' )
 
     print "true segmentation: ", tseg
 
@@ -226,13 +285,12 @@ def malis_weight_aff(affs, true_affs, Dim = 3):
         for y in xrange( 1, yaff.shape[1] ):
             for x in xrange( yaff.shape[2] ):
                 edges.append( (yaff[z,y,x], vids[z,y,x], vids[z,y-1,x], 1,z,y,x) )
-    # do not include z affinity edge for 2D affinity
-    if Dim==3:
-        # z affinity edge
-        for z in xrange( 1, zaff.shape[0] ):
-            for y in xrange( zaff.shape[1] ):
-                for x in xrange( zaff.shape[2] ):
-                    edges.append( (zaff[z,y,x], vids[z,y,x], vids[z-1,y,x], 0,z,y,x) )
+
+    # z affinity edge
+    for z in xrange( 1, zaff.shape[0] ):
+        for y in xrange( zaff.shape[1] ):
+            for x in xrange( zaff.shape[2] ):
+                edges.append( (zaff[z,y,x], vids[z,y,x], vids[z-1,y,x], 0,z,y,x) )
     # descending sort
     edges.sort(reverse=True)
 
@@ -425,60 +483,33 @@ def malis_weight(pars, props, lbls):
     rand_errors = dict()
 
     # malis normalization type
-    if 'none' in pars['malis_norm_type']:
-        malis_norm_mode = 0
-    elif 'frac' in pars['malis_norm_type']:
-        malis_norm_mode = 1
-    elif 'num' in pars['malis_norm_type']:
-        malis_norm_mode = 2
-    elif 'pair' in pars['malis_norm_type']:
-        malis_norm_mode = 3
+    if 'frac' in pars['malis_norm_type']:
+        is_fract_norm = 1
     else:
-        raise NameError('invalid malis normalization type!')
+        is_fract_norm = 0
 
     for name, prop in props.iteritems():
         assert prop.ndim==4
         lbl = lbls[name]
         if prop.shape[0]==3:
             # affinity output
-            # ret[name], merr, serr = malis_weight_aff(prop, lbl)
             from malis.pymalis import zalis
-            #true_affs = emirt.volume_util.seg2aff( lbl )
-            weights, re = zalis( prop, lbl, 1.0, 0.0, 2)
+            weights, re, num_non_bdr = zalis( prop, lbl, 1.0, 0.0, is_fract_norm)
             merr = weights[:3, :,:,:]
             serr = weights[3:, :,:,:]
-            malis_weights[name] = merr + serr
+            mw = merr + serr
+
+            # normalization
+            if 'num' in pars['malis_norm_type']:
+                mw = mw / num_non_bdr
+            elif 'pair' in pars['malis_norm_type']:
+                mw = mw / (num_non_bdr * (num_non_bdr-1))
+
+            malis_weights[name] = mw
             rand_errors[name] = re
         else:
             # take it as boundary map
             malis_weights[name], merr, serr = malis_weight_bdm(prop, lbl)
+
     return (malis_weights, rand_errors)
 
-def sparse_cost(outputs, labels, cost_fn):
-    """
-    Sparse Versions of Pixel-Wise Cost Functions
-
-    Parameters
-    ----------
-    outputs: numpy array, forward pass output
-    labels:  numpy array, ground truth labeling
-    cost_fn: function to make sparse
-
-    Return
-    ------
-    err:   cost energy
-    grdts: numpy array, gradient volumes
-    """
-
-    flat_outputs = outputs[labels != 0]
-    flat_labels = labels[labels != 0]
-
-    errors, gradients = cost_fn(flat_outputs, flat_labels)
-
-    # full_errors = np.zeros(labels.shape)
-    full_gradients = np.zeros(labels.shape)
-
-    # full_errors[labels != 0] = errors
-    full_gradients[labels != 0] = gradients
-
-    return (errors, full_gradients)

@@ -231,6 +231,7 @@ def get_vox_num( d ):
     for name, arr in d.iteritems():
         n = n + arr.shape[0]*arr.shape[1]*arr.shape[2]*arr.shape[3]
     return n
+
 def get_total_num(outputs):
     """
     """
@@ -238,6 +239,16 @@ def get_total_num(outputs):
     for name, sz in outputs.iteritems():
         n = n + np.prod(sz)
     return n
+
+def sum_over_dict(dict_vol):
+    s = 0
+    for name, vol in dict_vol.iteritems():
+        s += vol.sum()
+    return s
+
+def dict_mask_empty(mask):
+    vals = mask.values()
+    return all([val.size == 0 for val in vals])
 
 def dict_mul(das,dbs):
     """
@@ -260,7 +271,7 @@ def dict_save( d, fname ):
 
     f = h5py.File( fname, 'w' )
     for key, value in d.iteritems():
-        f.create_dateset(key, data=value)
+        f.create_dataset(key, data=value)
     f.close()
 
 def save_malis( mws, fname_save_net, num_iters ):
@@ -279,3 +290,23 @@ def save_malis( mws, fname_save_net, num_iters ):
         os.remove( current_fname )
         import shutil
         shutil.copy( fname, current_fname )
+
+def get_malis_cls( props, lbl_outs, malis_weights ):
+    ret = dict()
+    for key, mw in malis_weights.iteritems():
+        prop = props[key]
+        lbl = lbl_outs[key]
+        cls = ( (prop>0.5)!=(lbl>0.5) )
+        cls = cls.astype('float32')
+        ret[key] = np.nansum(cls*mw) / np.nansum(mw)
+    return ret
+
+def mask_dict_vol(dict_vol, mask=None):
+    """
+    Masks out values within the gradient value volumes
+    which are not selected within the passed mask
+    """
+    if mask is not None:
+        return dict_mul(dict_vol, mask)
+    else:
+        return dict_vol

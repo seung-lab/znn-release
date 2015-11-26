@@ -38,7 +38,8 @@ def get_params():
     return pars
 
 
-def exchange_x_z( affs ):
+def exchange_x_z( affs_in ):
+    affs = np.copy( affs_in )
     tmp = np.copy( affs[0,:,:,:] )
     affs[0,:,:,:] = np.copy( affs[2,:,:,:] )
     affs[2,:,:,:] = np.copy( tmp )
@@ -145,9 +146,7 @@ if __name__ == "__main__":
         print "transformed lable: ", lbl2
         if pars['is_fake']:
             data = make_edge_unique( data )
-    # recompile and use cost_fn
-    #print "compile the cost function..."
-    #os.system('python compile.py cost_fn')
+
     import cost_fn
     start = time.time()
     if pars['is_constrained']:
@@ -155,37 +154,35 @@ if __name__ == "__main__":
             w, me, se = constrained_aleks_malis(data, lbl)
         else:
             print "compute the constrained malis weight..."
-            w, me, se = cost_fn.constrained_malis_weight_bdm_2D(data, lbl, is_affinity = pars['is_affinity'])
+            w, me, se = cost_fn.constrained_malis_weight_bdm_2D(data, lbl, \
+                                                                is_affinity = pars['is_affinity'])
     else:
-        if pars['is_aleks']:
-            print "normal malis with aleks version..."
-            w, me, se = aleks_bin_malis(data, lbl)
+        print "normal malis with aleks version..."
+        w, me, se = aleks_bin_malis(data, lbl)
 
-            # python interface of malis
-            w2, me2, se2 = aleks_malis( data, lbl )
+        # python interface of malis
+        w2, me2, se2 = aleks_malis( data, lbl )
 
-            print "me: ", me
-            print "me2: ", me2
+        print "me: ", me
+        print "me2: ", me2
 
-            print "se: ", se
-            print "se2: ", se2
+        print "se: ", se
+        print "se2: ", se2
 
-            assert( np.all(se2==se) )
-            assert( np.all(me2==me) )
+        assert( np.all(se2==se) )
+        assert( np.all(me2==me) )
 
-            me = exchange_x_z( me )
-            se = exchange_x_z( se )
-        else:
-            print "normal malis weight with python version..."
-            print "true_affs: ", true_affs
-            print "affs: ", data
-            w, me, se = cost_fn.malis_weight_aff(data, true_affs, Dim=2)
+        me = exchange_x_z( me )
+        se = exchange_x_z( se )
+
+        w, me3, se3 = cost_fn.malis_weight_aff(data, lbl)
+        print "python me: ", me3
+        print "python se: ", se3
+        assert ( np.all( me==me3 ) )
+        assert ( np.all( se==se3 ) )
 
     elapsed = time.time() - start
     print "elapsed time is {} sec".format(elapsed)
-
-#    print "merger error: ", me
- #   print "splitter error: ", se
 
     import malis_show
     malis_show.plot(pars, data, lbl, me, se)

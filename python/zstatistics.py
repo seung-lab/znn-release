@@ -15,11 +15,13 @@ class CLearnCurve:
             self.tt_err = list()
             self.tt_cls = list()
             self.tt_re  = list()
+            self.tt_mc  = list()
 
             self.tn_it  = list()
             self.tn_err = list()
             self.tn_cls = list()
             self.tn_re  = list()
+            self.tn_mc  = list()
         else:
             self._read_curve( fname )
         return
@@ -41,9 +43,13 @@ class CLearnCurve:
         self.tt_err = list( f['/test/err'].value )
         self.tt_cls = list( f['/test/cls'].value )
         if '/test/re' in f:
-            self.tt_re = list( f['test/re'].value )
+            self.tt_re = list( f['/test/re'].value )
         else:
             self.tt_re = list()
+        if '/test/mc' in f:
+            self.tt_mc = list( f['/test/mc'].value )
+        else:
+            self.tt_mc = list()
 
         self.tn_it  = list( f['/train/it'].value )
         self.tn_err = list( f['/train/err'].value )
@@ -52,6 +58,11 @@ class CLearnCurve:
             self.tn_re = list( f['/train/re'].value )
         else:
             self.tn_re = list()
+
+        if '/train/mc' in f:
+            self.tn_mc = list( f['/train/mc'].value )
+        else:
+            self.tn_mc = list()
         f.close()
 
         # crop the values
@@ -113,11 +124,24 @@ class CLearnCurve:
         self.tn_re.append( re )
         assert len(self.tn_it) == len(self.tn_re)
 
+    def append_train_malis_cls( self, mc ):
+        while len( self.tn_mc ) < len(self.tn_it)-1:
+            # fill with nan
+            self.tn_mc.append( np.nan )
+        self.tn_mc.append( mc )
+        assert len(self.tn_it) == len(self.tn_mc)
+
     def append_test_rand_error( self, re ):
         while len( self.tt_re ) < len(self.tt_it)-1:
             self.tt_re.append( np.nan )
         self.tt_re.append( re )
         assert len(self.tt_it) == len(self.tt_re)
+
+    def append_test_malis_cls( self, mc ):
+        while len( self.tt_mc ) < len(self.tt_it)-1:
+            self.tt_mc.append( np.nan )
+        self.tt_mc.append( mc )
+        assert len(self.tt_it) == len(self.tt_mc)
 
     def get_last_it(self):
         # return the last iteration number
@@ -205,17 +229,21 @@ class CLearnCurve:
         # save variables
         import h5py
         f = h5py.File( fname )
-        f.create_dataset('train/it',  data=self.tn_it)
-        f.create_dataset('train/err', data=self.tn_err)
-        f.create_dataset('train/cls', data=self.tn_cls)
-        f.create_dataset('train/re',  data=self.tn_re )
+        f.create_dataset('/train/it',  data=self.tn_it )
+        f.create_dataset('/train/err', data=self.tn_err)
+        f.create_dataset('/train/cls', data=self.tn_cls)
+        if pars['is_malis'] :
+            f.create_dataset('/train/re',  data=self.tn_re )
+            f.create_dataset('/train/mc',  data=self.tn_mc )
 
-        f.create_dataset('test/it',   data=self.tt_it)
-        f.create_dataset('test/err',  data=self.tt_err)
-        f.create_dataset('test/cls',  data=self.tt_cls)
-        f.create_dataset('test/re',   data=self.tt_re )
+        f.create_dataset('/test/it',   data=self.tt_it )
+        f.create_dataset('/test/err',  data=self.tt_err)
+        f.create_dataset('/test/cls',  data=self.tt_cls)
+        if pars['is_malis'] :
+            f.create_dataset('/test/re',   data=self.tt_re )
+            f.create_dataset('/test/mc',   data=self.tt_mc )
 
-        f.create_dataset('elapsed',   data=elapsed)
+        f.create_dataset('/elapsed',   data=elapsed)
         f.close()
 
         # move to new name
