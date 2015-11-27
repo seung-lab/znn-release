@@ -463,6 +463,8 @@ class ConfigOutputLabel(ConfigImage):
         self.pp_types = config.get(sec_name, 'pp_types').split(',')
         self._preprocess()
 
+        # weight mask for rebalancing
+        self.wmsk = np.array([])
         if pars['is_rebalance'] and 'aff' not in pars['out_type']:
             self._rebalance()
 
@@ -560,8 +562,9 @@ class ConfigOutputLabel(ConfigImage):
 
         Return
         ------
-        sublbl : 4D array, could be affinity or binary class
-        submsk : 4D array, mask could contain rebalance weight
+        sublbl  : 4D array, could be affinity or binary class
+        submsk  : 4D array, label mask
+        subwmsk : 4D array, weight mask for rebalancing
         """
 
         sublbl = super(ConfigOutputLabel, self).get_subvolume(dev, rft)
@@ -570,6 +573,12 @@ class ConfigOutputLabel(ConfigImage):
             submsk = super(ConfigOutputLabel, self).get_subvolume(dev, rft, data=self.msk)
         else:
             submsk = np.array([])
+
+        # weight mask for rebalancing
+        if np.size(self.wmsk)>0:
+            subwmsk = super(ConfigOutputLabel, self).get_subvolume(dev, rft, data=self.wmsk)
+        else:
+            subwmsk = np.array([])
 
         if 'aff' in self.pp_types[0]:
             # transform the output volumes to affinity array
@@ -580,13 +589,13 @@ class ConfigOutputLabel(ConfigImage):
                 # transform the boundary mask (Z,Y,X) to affinity mask (3,Z-1,Y-1,X-1)
                 submsk = self._msk2affmsk( submsk )
 
-        # rebalance of output patch
+        # output patch-based rebalancing
         if self.pars['is_patch_rebalance']:
-            submsk = self._patch_rebalance(sublbl, submsk)
+            subwmsk = self._patch_rebalance(sublbl)
 
-        return sublbl, submsk
+        return sublbl, submsk, subwmsk
 
-    def _patch_rebalance(self, lbl, msk):
+    def _patch_rebalance(self, lbl):
         """
         rebalance based on output patch
         """
@@ -596,11 +605,10 @@ class ConfigOutputLabel(ConfigImage):
             wp, wz = self._get_balance_weight_v1( lbl[c,:,:,:] )
             weight[c,:,:,:][lbl[c,:,:,:] > 0] = wp
             weight[c,:,:,:][lbl[c,:,:,:] ==0] = wz
-        if msk is None or msk.shape == (0,):
-            msk = weight
-        else:
-            msk = msk * weight
-        return msk
+
+        # keep the weight mask separately
+        # (from the label mask [self.msk])
+        return weight
 
     def _get_balance_weight(self, arr):
         # number of nonzero elements
@@ -702,10 +710,10 @@ class ConfigOutputLabel(ConfigImage):
         wts[0,:,:,:][true_affs[0,:,:,:]==0] = self.zwz
         wts[1,:,:,:][true_affs[1,:,:,:]==0] = self.ywz
         wts[2,:,:,:][true_affs[2,:,:,:]==0] = self.xwz
-        if np.size(self.msk)==0:
-            self.msk = wts
-        else:
-            self.msk = msk*wts
+
+        # keep the weight mask separately
+        # (from the label mask [self.msk])
+        self.wmsk = wts
         return
 
     def _rebalance( self ):
@@ -730,10 +738,9 @@ class ConfigOutputLabel(ConfigImage):
                 weight[c,:,:,:][self.data[c,:,:,:]> 0] = wp
                 weight[c,:,:,:][self.data[c,:,:,:]==0] = wz
 
-            if np.size(self.msk)==0:
-                self.msk = weight
-            else:
-                self.msk = self.msk * weight
+            # keep the weight mask separately
+            # (from the label mask [self.msk])
+            self.wmsk = weight;
 
     def get_candidate_loc( self, low, high ):
         """
@@ -867,12 +874,13 @@ class ConfigSample(object):
             inputs[name] = img.get_subvolume(dev, rft)
 
         outputs = dict()
-        msks = dict()
+        msks    = dict()
+        wmsks   = dict()
         for name, lbl in self.outputs.iteritems():
-            outputs[name], msks[name] = lbl.get_subvolume(dev, rft)
+            outputs[name], msks[name], wmsks[name] = lbl.get_subvolume(dev, rft)
 
 
-        return ( inputs, outputs, msks )
+        return ( inputs, outputs, msks, wmsks )
 
     def get_next_patch(self):
 
