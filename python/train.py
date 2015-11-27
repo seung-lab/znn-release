@@ -104,6 +104,9 @@ def main( conf_file='config.cfg', logfile=None ):
         cls += cost_fn.get_cls(props, lbl_outs)
         num_mask_voxels += utils.sum_over_dict(msks)
 
+        # gradient reweighting
+        grdts = utils.dict_mul(grdts, wmsks)
+
         # run backward pass
         grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
         net.backward( grdts )
