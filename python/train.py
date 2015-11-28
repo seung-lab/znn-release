@@ -104,10 +104,6 @@ def main( conf_file='config.cfg', logfile=None ):
         cls += cost_fn.get_cls(props, lbl_outs)
         num_mask_voxels += utils.sum_over_dict(msks)
 
-        # run backward pass
-        grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
-        net.backward( grdts )
-
         if pars['is_malis'] :
             malis_weights, rand_errors = cost_fn.malis_weight(pars, props, lbl_outs)
             grdts = utils.dict_mul(grdts, malis_weights)
@@ -130,8 +126,8 @@ def main( conf_file='config.cfg', logfile=None ):
                 err = err / vn / pars['Num_iter_per_show']
                 cls = cls / vn / pars['Num_iter_per_show']
             else:
-                err = err / num_mask_voxels
-                cls = cls / num_mask_voxels
+                err = err / num_mask_voxels / pars['Num_iter_per_show']
+                cls = cls / num_mask_voxels / pars['Num_iter_per_show']
 
             lc.append_train(i, err, cls)
 
@@ -193,6 +189,11 @@ def main( conf_file='config.cfg', logfile=None ):
             lc.save( pars, elapsed )
             if pars['is_malis']:
                 utils.save_malis(malis_weights,  pars['train_save_net'], num_iters=i)
+
+        # run backward pass
+        grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
+        net.backward( grdts )
+
 
 if __name__ == '__main__':
     """

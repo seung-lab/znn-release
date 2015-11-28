@@ -463,7 +463,7 @@ class ConfigOutputLabel(ConfigImage):
         self.pp_types = config.get(sec_name, 'pp_types').split(',')
         self._preprocess()
 
-        if pars['is_rebalance'] and 'aff' not in pars['out_type']:
+        if pars['is_rebalance']:
             self._rebalance()
 
     def _preprocess( self ):
