@@ -162,7 +162,7 @@ def softmax_loss2(props, lbls):
         print "original prop: ", prop
 
         # rebase the prop for numerical stabiligy
-        # mathimatically, this do not affect the softmax result!
+        # mathematically, this do not affect the softmax result!
         # http://ufldl.stanford.edu/tutorial/supervised/SoftmaxRegression/
 #        prop = prop - np.max(prop)
         propmax = np.max(prop, axis=0)
