@@ -127,10 +127,12 @@ def parser( conf_fname ):
     pars['is_patch_rebalance']=config.getboolean('parameters', 'is_patch_rebalance')
     #Whether to use malis cost
     pars['is_malis']    = config.getboolean('parameters', 'is_malis')
-    # malis normalization type
-    pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
-    # renormalize the malis weight to make the sum to be N
-    pars['is_malis_renorm'] = config.getboolean( 'parameters', 'is_malis_renorm' )
+    if pars['is_malis']:
+        # malis normalization type
+        pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
+        # renormalize the malis weight to make the sum to be N
+        pars['is_malis_renorm'] = config.getboolean( 'parameters', 'is_malis_renorm' )
+
     #Whether to display progress plots
     pars['is_visual']   = config.getboolean('parameters', 'is_visual')
 
@@ -190,7 +192,7 @@ def check_config(config, pars):
         elif 'affin' in pars['out_type']:
             pars['cost_fn_str'] = 'binomial_cross_entropy'
             pars['cost_fn'] = cost_fn.binomial_cross_entropy
-    elif "square-square" == pars['cost_fn_str']:
+    elif "square-square" in pars['cost_fn_str']:
         pars['cost_fn'] = cost_fn.square_square_loss
     elif "square" in pars['cost_fn_str']:
         pars['cost_fn'] = cost_fn.square_loss

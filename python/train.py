@@ -68,6 +68,10 @@ def main( conf_file='config.cfg', logfile=None ):
     err = 0.0 # cost energy
     cls = 0.0 # pixel classification error
     re = 0.0  # rand error
+    # number of voxels which accumulate error
+    # (if a mask exists)
+    num_mask_voxels = 0
+
     if pars['is_malis']:
         malis_cls = 0.0
         malis_eng = 0.0
@@ -82,9 +86,14 @@ def main( conf_file='config.cfg', logfile=None ):
     start = time.time()
     total_time = 0.0
     print "start from ", iter_last+1
+
+    #Saving initialized network
+    if iter_last+1 == 1:
+        netio.save_network(net, pars['train_save_net'], num_iters=0)
+
     for i in xrange(iter_last+1, pars['Max_iter']+1):
         # get random sub volume from sample
-        vol_ins, lbl_outs, msks = smp_trn.get_random_sample()
+        vol_ins, lbl_outs, msks, wmsks = smp_trn.get_random_sample()
 
         # forward pass
         # apply the transformations in memory rather than array view
@@ -92,12 +101,13 @@ def main( conf_file='config.cfg', logfile=None ):
         props = net.forward( vol_ins )
 
         # cost function and accumulate errors
-        props, cerr, grdts = pars['cost_fn']( props, lbl_outs )
+        props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
         err += cerr
         cls += cost_fn.get_cls(props, lbl_outs)
+        num_mask_voxels += utils.sum_over_dict(msks)
 
-        # mask process the gradient
-        grdts = utils.dict_mul(grdts, msks)
+        # gradient reweighting
+        grdts = utils.dict_mul(grdts, wmsks)
 
         if pars['is_malis'] :
             malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
@@ -124,8 +134,13 @@ def main( conf_file='config.cfg', logfile=None ):
 
         if i%pars['Num_iter_per_show']==0:
             # normalize
-            err = err / vn / pars['Num_iter_per_show']
-            cls = cls / vn / pars['Num_iter_per_show']
+            if utils.dict_mask_empty(msks):
+                err = err / vn / pars['Num_iter_per_show']
+                cls = cls / vn / pars['Num_iter_per_show']
+            else:
+                err = err / num_mask_voxels / pars['Num_iter_per_show']
+                cls = cls / num_mask_voxels / pars['Num_iter_per_show']
+
             lc.append_train(i, err, cls)
 
             # time
@@ -168,6 +183,8 @@ def main( conf_file='config.cfg', logfile=None ):
             err = 0
             cls = 0
             re = 0
+            num_mask_voxels = 0
+
             if pars['is_malis']:
                 malis_cls = 0
 
@@ -186,6 +203,11 @@ def main( conf_file='config.cfg', logfile=None ):
             lc.save( pars, elapsed )
             if pars['is_malis']:
                 utils.save_malis(malis_weights,  pars['train_save_net'], num_iters=i)
+
+        # run backward pass
+        grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
+        net.backward( grdts )
+
 
 if __name__ == '__main__':
     """

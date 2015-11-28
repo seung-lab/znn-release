@@ -280,16 +280,20 @@ class CLearnCurve:
         f.create_dataset('/train/it',  data=self.tn_it )
         f.create_dataset('/train/err', data=self.tn_err)
         f.create_dataset('/train/cls', data=self.tn_cls)
-        f.create_dataset('/train/re',  data=self.tn_re )
-        f.create_dataset('/train/mc',  data=self.tn_mc )
-        f.create_dataset('/train/me',  data=self.tn_me )
+
+        if pars['is_malis'] :
+            f.create_dataset('/train/re',  data=self.tn_re )
+            f.create_dataset('/train/mc',  data=self.tn_mc )
+            f.create_dataset('/train/me')
 
         f.create_dataset('/test/it',   data=self.tt_it )
         f.create_dataset('/test/err',  data=self.tt_err)
         f.create_dataset('/test/cls',  data=self.tt_cls)
-        f.create_dataset('/test/re',   data=self.tt_re )
-        f.create_dataset('/test/mc',   data=self.tt_mc )
-        f.create_dataset('/test/me',   data=self.tt_me )
+
+        if pars['is_malis'] :
+            f.create_dataset('/test/re',   data=self.tt_re )
+            f.create_dataset('/test/mc',   data=self.tt_mc )
+            f.create_dataset('/test/me')
 
         f.create_dataset('/elapsed',   data=elapsed)
         f.close()
