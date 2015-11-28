@@ -1,7 +1,7 @@
-#include "computation_graph/computation/make_affinity.hpp"
-#include "computation_graph/computation/get_segmentation.hpp"
-#include "computation_graph/computation/zalis.hpp"
-#include "computation_graph/computation/constrain_affinity.hpp"
+#include "flow_graph/computation/make_affinity.hpp"
+#include "flow_graph/computation/get_segmentation.hpp"
+#include "flow_graph/computation/zalis.hpp"
+#include "flow_graph/computation/constrain_affinity.hpp"
 #include "options/options.hpp"
 #include "cube/cube_io.hpp"
 #include "network/parallel/nodes.hpp"
@@ -164,7 +164,7 @@ int main(int argc, char** argv)
     // ---------------------------------------------------------------
     wt.reset();
 
-    auto weight = zalis(true_affs, affs, high, low, is_frac_norm);
+    auto weight = zalis(true_affs, affs, is_frac_norm, high, low);
 
     std::cout << "\n[zalis] done, elapsed: "
               << wt.elapsed<double>() << std::endl;

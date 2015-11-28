@@ -8,7 +8,7 @@ import cost_fn
 import numpy as np
 
 def _single_test(net, pars, sample):
-    vol_ins, lbl_outs, msks = sample.get_random_sample()
+    vol_ins, lbl_outs, msks, wmsks = sample.get_random_sample()
 
     # forward pass
     vol_ins = utils.make_continuous(vol_ins, dtype=pars['dtype'])

@@ -34,6 +34,7 @@ namespace znn { namespace v4 {
 inline zalis_weight
 zalis( std::vector<cube_p<real>> true_affs,
        std::vector<cube_p<real>> affs,
+       bool frac_norm = false,
        real high = 0.99,
        real low  = 0.01,
        size_t norm_mode = 0 )

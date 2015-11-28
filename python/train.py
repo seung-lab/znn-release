@@ -69,7 +69,7 @@ def main( conf_file='config.cfg', logfile=None ):
     re = 0.0  # rand error
     # number of voxels which accumulate error
     # (if a mask exists)
-    num_mask_voxels = 0 
+    num_mask_voxels = 0
 
     if pars['is_malis']:
         malis_cls = 0.0
@@ -91,7 +91,7 @@ def main( conf_file='config.cfg', logfile=None ):
 
     for i in xrange(iter_last+1, pars['Max_iter']+1):
         # get random sub volume from sample
-        vol_ins, lbl_outs, msks = smp_trn.get_random_sample()
+        vol_ins, lbl_outs, msks, wmsks = smp_trn.get_random_sample()
 
         # forward pass
         # apply the transformations in memory rather than array view
@@ -103,6 +103,9 @@ def main( conf_file='config.cfg', logfile=None ):
         err += cerr
         cls += cost_fn.get_cls(props, lbl_outs)
         num_mask_voxels += utils.sum_over_dict(msks)
+
+        # gradient reweighting
+        grdts = utils.dict_mul(grdts, wmsks)
 
         if pars['is_malis'] :
             malis_weights, rand_errors = cost_fn.malis_weight(pars, props, lbl_outs)
