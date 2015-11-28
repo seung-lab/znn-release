@@ -574,6 +574,7 @@ class ConfigOutputLabel(ConfigImage):
 
         # weight mask for rebalancing
         if np.size(self.wmsk)>0:
+            assert pars['is_rebalance'] and "bound" in pars['out_type']
             subwmsk = super(ConfigOutputLabel, self).get_subvolume(dev, rft, data=self.wmsk)
         else:
             subwmsk = np.array([])
@@ -590,6 +591,9 @@ class ConfigOutputLabel(ConfigImage):
         # output patch-based rebalancing
         if self.pars['is_patch_rebalance']:
             subwmsk = self._patch_rebalance(sublbl)
+        elif self.pars['is_rebalance'] and 'aff' in self.pars['out_type']:
+            # global rebalance
+            subwmsk = self._rebalance_aff( sublbl )
 
         return sublbl, submsk, subwmsk
 
@@ -687,20 +691,20 @@ class ConfigOutputLabel(ConfigImage):
                     #         ret[2,z,y,x] = 1
         return ret
 
-    def _rebalance_aff(self):
+    def _rebalance_aff(self, sublbl):
         """
         rebalance the affinity labeling with size of (3,Z,Y,X)
         """
-        if self.data.ndim==4 and self.data.shape[0]==1:
+        if sublbl.ndim==4 and sublbl.shape[0]==1:
             # true affinity
-            true_affs = emirt.volume_util.seg2aff( self.data )
-        elif self.data.ndim==4 and self.data.shape[0]==3:
-            true_affs = self.data
+            true_affs = emirt.volume_util.seg2aff( sublbl )
+        elif sublbl.ndim==4 and sublbl.shape[0]==3:
+            true_affs = sublbl
         else:
-            print self.data.shape
+            print "sublbl shape: ",sublbl.shape
             raise NameError('invalid data!')
 
-        wts = np.zeros(lbl.shape, dtype=self.pars['dtype'])
+        wts = np.zeros(true_affs.shape, dtype=self.pars['dtype'])
         wts[0,:,:,:][true_affs[0,:,:,:] >0] = self.zwp
         wts[1,:,:,:][true_affs[1,:,:,:] >0] = self.ywp
         wts[2,:,:,:][true_affs[2,:,:,:] >0] = self.xwp
@@ -709,10 +713,7 @@ class ConfigOutputLabel(ConfigImage):
         wts[1,:,:,:][true_affs[1,:,:,:]==0] = self.ywz
         wts[2,:,:,:][true_affs[2,:,:,:]==0] = self.xwz
 
-        # keep the weight mask separately
-        # (from the label mask [self.msk])
-        self.wmsk = wts
-        return
+        return wts
 
     def _rebalance( self ):
         """
@@ -726,6 +727,9 @@ class ConfigOutputLabel(ConfigImage):
             self.zwp, self.zwz = self._get_balance_weight(zlbl)
             self.ywp, self.ywz = self._get_balance_weight(ylbl)
             self.xwp, self.xwz = self._get_balance_weight(xlbl)
+            # do not make affinity weight mask first
+            # reweight the affinity after data augmentation
+            self.wmsk = np.array([])
         else:
             weight = np.empty( self.data.shape, dtype=self.data.dtype )
             for c in xrange( self.data.shape[0] ):
