@@ -127,8 +127,9 @@ def parser( conf_fname ):
     pars['is_patch_rebalance']=config.getboolean('parameters', 'is_patch_rebalance')
     #Whether to use malis cost
     pars['is_malis']    = config.getboolean('parameters', 'is_malis')
-    # malis normalization type
-    pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
+    if pars['is_malis']:
+        # malis normalization type
+        pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
     #Whether to display progress plots
     pars['is_visual']   = config.getboolean('parameters', 'is_visual')
 
