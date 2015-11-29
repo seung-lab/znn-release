@@ -574,7 +574,7 @@ class ConfigOutputLabel(ConfigImage):
 
         # weight mask for rebalancing
         if np.size(self.wmsk)>0:
-            assert pars['is_rebalance'] and "bound" in pars['out_type']
+            assert self.pars['is_rebalance'] and "bound" in self.pars['out_type']
             subwmsk = super(ConfigOutputLabel, self).get_subvolume(dev, rft, data=self.wmsk)
         else:
             subwmsk = np.array([])
