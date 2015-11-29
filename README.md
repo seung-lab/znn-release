@@ -36,6 +36,9 @@ Compile icc
 -----------
     icc -std=c++1y training_test.cpp -I../../ -I../include -lpthread -lrt -static-intel -DNDEBUG -O3 -mkl=sequential -o training_test
 
+Python Interface
+----------------
+To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python` folder for further information.
 
 Contact
 -------
