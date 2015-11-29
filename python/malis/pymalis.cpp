@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <assert.h>
 
-#include "computation_graph/computation/zalis.hpp"
+#include "flow_graph/computation/zalis.hpp"
 
 #include "pyznn_utils.hpp"
 

@@ -86,7 +86,6 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 #include "network/parallel/network.hpp"
 #include "cube/cube.hpp"
 #include <zi/zargs/zargs.hpp>
-#include "computation_graph/computation/zalis.hpp"
 
 //utils
 #include "pyznn_utils.hpp"
