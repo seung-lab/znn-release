@@ -17,7 +17,7 @@ Supports Linux and MacOS.
 Compile
 ---------------------
 
-* conifgure ompile paths. Modify the pathes in `INC_FLAGS` and `LIB_FLAGS` according to your system library path.
+* conifgure compile paths in `Makefile`. Modify the pathes in `INC_FLAGS` and `LIB_FLAGS` according to your system library path.
 * gcc : `make`
 * icc with mkl : `make mkl`
 

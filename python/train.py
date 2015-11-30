@@ -107,7 +107,8 @@ def main( conf_file='config.cfg', logfile=None ):
         num_mask_voxels += utils.sum_over_dict(msks)
 
         # gradient reweighting
-        grdts = utils.dict_mul(grdts, wmsks)
+        grdts = utils.dict_mul( grdts, msks  )
+        grdts = utils.dict_mul( grdts, wmsks )
 
         if pars['is_malis'] :
             malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
