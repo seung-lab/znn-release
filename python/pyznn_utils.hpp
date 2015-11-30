@@ -426,13 +426,14 @@ cubelist2array( bp::object const & self, std::vector<cube_p< T >> clist )
     }
 
     // return ndarray
-    return np::from_data(
+    np::ndarray arr = np::from_data(
         tqp->data(),
         np::dtype::get_builtin<T>(),
         bp::make_tuple(sc,sz,sy,sx),
         bp::make_tuple(sx*sy*sz*sizeof(T), sx*sy*sizeof(T),
                        sx*sizeof(T), sizeof(T)),
         self );
+    return arr.copy();
 }
 
 
