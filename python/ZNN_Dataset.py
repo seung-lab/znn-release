@@ -445,7 +445,6 @@ class ConfigOutputLabel(ConfigImage):
         # record and use parameters
         self.pars = pars
 
-
         # deal with mask
         self.msk = np.array([])
         if config.has_option(sec_name, 'fmasks'):
@@ -465,6 +464,35 @@ class ConfigOutputLabel(ConfigImage):
 
         if pars['is_rebalance']:
             self._rebalance()
+
+    def _rebalance( self ):
+        """
+        get rebalance tree_size of gradient.
+        make the nonboundary and boundary region have same contribution of training.
+        """
+        if 'aff' in self.pp_types[0]:
+            zlbl = (self.data[0,1:,1:,1:] == self.data[0, :-1, 1:,  1:])
+            ylbl = (self.data[0,1:,1:,1:] == self.data[0, 1:,  :-1, 1:])
+            xlbl = (self.data[0,1:,1:,1:] == self.data[0, 1:,  1:,  :-1])
+            self.zwp, self.zwz = self._get_balance_weight(zlbl)
+            self.ywp, self.ywz = self._get_balance_weight(ylbl)
+            self.xwp, self.xwz = self._get_balance_weight(xlbl)
+            # do not make affinity weight mask first
+            # reweight the affinity after data augmentation
+            self.wmsk = np.array([])
+        else:
+            weight = np.zeros( self.data.shape, dtype=self.data.dtype )
+            for c in xrange( self.data.shape[0] ):
+                # positive is non-boundary, zero is boundary
+                wp, wz = self._get_balance_weight(self.data[c,:,:,:])
+                print "reblance weights: ", wp, ", ", wz
+                # give value
+                weight[c,:,:,:][self.data[c,:,:,:]> 0] = wp
+                weight[c,:,:,:][self.data[c,:,:,:]==0] = wz
+
+            # keep the weight mask separately
+            # (from the label mask [self.msk])
+            self.wmsk = weight;
 
     def _preprocess( self ):
         """
@@ -533,7 +561,7 @@ class ConfigOutputLabel(ConfigImage):
         aff : 4D float array, affinity graph.
         """
         # the 3D volume number should be one
-        assert( lbl.shape[0] == 1 )
+        assert( lbl.shape[0] == 1  and lbl.ndim==4 )
 
         aff_size = np.asarray(lbl.shape)-1
         aff_size[0] = 3
@@ -574,26 +602,25 @@ class ConfigOutputLabel(ConfigImage):
 
         # weight mask for rebalancing
         if np.size(self.wmsk)>0:
-            assert self.pars['is_rebalance'] and "bound" in self.pars['out_type']
+            assert self.pars['is_rebalance']
             subwmsk = super(ConfigOutputLabel, self).get_subvolume(dev, rft, data=self.wmsk)
         else:
             subwmsk = np.array([])
 
-        if 'aff' in self.pp_types[0]:
+        if 'aff' in self.pp_types[0] and 'aff' in self.pars['out_type']:
             # transform the output volumes to affinity array
+            # Note that this transformation will shrink the size
             sublbl = self.seg2aff( sublbl )
 
             # get the affinity mask
             if submsk.size >0:
                 # transform the boundary mask (Z,Y,X) to affinity mask (3,Z-1,Y-1,X-1)
                 submsk = self._msk2affmsk( submsk )
+                subwmsk = self._rebalance_aff( sublbl )
 
         # output patch-based rebalancing
         if self.pars['is_patch_rebalance']:
             subwmsk = self._patch_rebalance(sublbl)
-        elif self.pars['is_rebalance'] and 'aff' in self.pars['out_type']:
-            # global rebalance
-            subwmsk = self._rebalance_aff( sublbl )
 
         return sublbl, submsk, subwmsk
 
@@ -617,12 +644,14 @@ class ConfigOutputLabel(ConfigImage):
         pn = float( np.count_nonzero(arr) )
         # total number of elements
         num = float( np.size(arr) )
+        # number of zero elements
         zn = num - pn
 
-        # weight of positive and zero
+
         if pn==0 or zn==0:
             return 1,1
         else:
+            # weight of positive and zero
             wp = 0.5 * num / pn
             wz = 0.5 * num / zn
             return wp, wz
@@ -697,7 +726,7 @@ class ConfigOutputLabel(ConfigImage):
         """
         if sublbl.ndim==4 and sublbl.shape[0]==1:
             # true affinity
-            true_affs = emirt.volume_util.seg2aff( sublbl )
+            true_affs = self.seg2aff( sublbl )
         elif sublbl.ndim==4 and sublbl.shape[0]==3:
             true_affs = sublbl
         else:
@@ -715,34 +744,6 @@ class ConfigOutputLabel(ConfigImage):
 
         return wts
 
-    def _rebalance( self ):
-        """
-        get rebalance tree_size of gradient.
-        make the nonboundary and boundary region have same contribution of training.
-        """
-        if 'aff' in self.pp_types[0]:
-            zlbl = (self.data[0,1:,1:,1:] == self.data[0, :-1, 1:,  1:])
-            ylbl = (self.data[0,1:,1:,1:] == self.data[0, 1:,  :-1, 1:])
-            xlbl = (self.data[0,1:,1:,1:] == self.data[0, 1:,  1:,  :-1])
-            self.zwp, self.zwz = self._get_balance_weight(zlbl)
-            self.ywp, self.ywz = self._get_balance_weight(ylbl)
-            self.xwp, self.xwz = self._get_balance_weight(xlbl)
-            # do not make affinity weight mask first
-            # reweight the affinity after data augmentation
-            self.wmsk = np.array([])
-        else:
-            weight = np.empty( self.data.shape, dtype=self.data.dtype )
-            for c in xrange( self.data.shape[0] ):
-                # positive is non-boundary, zero is boundary
-                wp, wz = self._get_balance_weight(self.data[c,:,:,:])
-                print "reblance weights: ", wp, ", ", wz
-                # give value
-                weight[c,:,:,:][self.data[c,:,:,:]> 0] = wp
-                weight[c,:,:,:][self.data[c,:,:,:]==0] = wz
-
-            # keep the weight mask separately
-            # (from the label mask [self.msk])
-            self.wmsk = weight;
 
     def get_candidate_loc( self, low, high ):
         """
