@@ -4,8 +4,7 @@ __doc__ = """
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import time
-import front_end
-import netio
+from front_end import *
 import cost_fn
 import test
 import utils
@@ -15,18 +14,18 @@ import os
 def main( conf_file='config.cfg', logfile=None ):
     #%% parameters
     print "reading config parameters..."
-    config, pars = front_end.parser( conf_file )
+    config, pars = zconfig.parser( conf_file )
 
     if pars.has_key('logging') and pars['logging']:
         print "recording configuration file..."
-        front_end.record_config_file( pars )
+        zconfig.record_config_file( pars )
 
-        logfile = front_end.make_logfile_name( pars )
+        logfile = zlog.make_logfile_name( pars )
 
     #%% create and initialize the network
     if pars['train_load_net'] and os.path.exists(pars['train_load_net']):
         print "loading network..."
-        net = netio.load_network( pars )
+        net = znetio.load_network( pars )
         # load existing learning curve
         lc = zstatistics.CLearnCurve( pars['train_load_net'] )
         # the last iteration we want to continue training
@@ -34,10 +33,10 @@ def main( conf_file='config.cfg', logfile=None ):
     else:
         if pars['train_seed_net'] and os.path.exists(pars['train_seed_net']):
             print "seeding network..."
-            net = netio.load_network( pars, is_seed=True )
+            net = znetio.load_network( pars, is_seed=True )
         else:
             print "initializing network..."
-            net = netio.init_network( pars )
+            net = znetio.init_network( pars )
         # initalize a learning curve
         lc = zstatistics.CLearnCurve()
         iter_last = lc.get_last_it()
@@ -58,9 +57,9 @@ def main( conf_file='config.cfg', logfile=None ):
     # initialize samples
     outsz = pars['train_outsz']
     print "\n\ncreate train samples..."
-    smp_trn = front_end.CSamples(config, pars, pars['train_range'], net, outsz, logfile)
+    smp_trn = zsample.CSamples(config, pars, pars['train_range'], net, outsz, logfile)
     print "\n\ncreate test samples..."
-    smp_tst = front_end.CSamples(config, pars, pars['test_range'],  net, outsz, logfile)
+    smp_tst = zsample.CSamples(config, pars, pars['test_range'],  net, outsz, logfile)
 
     # initialization
     elapsed = 0
@@ -74,12 +73,6 @@ def main( conf_file='config.cfg', logfile=None ):
     if pars['is_malis']:
         malis_cls = 0.0
 
-    # interactive visualization
-    if pars['is_visual']:
-        import matplotlib.pylab as plt
-        plt.ion()
-        plt.show()
-
     print "start training..."
     start = time.time()
     total_time = 0.0
@@ -87,7 +80,7 @@ def main( conf_file='config.cfg', logfile=None ):
 
     #Saving initialized network
     if iter_last+1 == 1:
-        netio.save_network(net, pars['train_save_net'], num_iters=0)
+        znetio.save_network(net, pars['train_save_net'], num_iters=0)
 
     for i in xrange(iter_last+1, pars['Max_iter']+1):
         # get random sub volume from sample
@@ -154,21 +147,6 @@ def main( conf_file='config.cfg', logfile=None ):
                 utils.write_to_log(logfile, show_string)
             print show_string
 
-            if pars['is_visual']:
-                # show results To-do: run in a separate thread
-                front_end.inter_show(start, lc, eta, vol_ins, props, lbl_outs, grdts, pars)
-                if pars['is_rebalance'] and 'aff' not in pars['out_type']:
-                    plt.subplot(247)
-                    plt.imshow(msks.values()[0][0,0,:,:], \
-                               interpolation='nearest', cmap='gray')
-                    plt.xlabel('rebalance weight')
-                if pars['is_malis']:
-                    plt.subplot(248)
-                    plt.imshow(malis_weights.values()[0][0,0,:,:], \
-                               interpolation='nearest', cmap='gray')
-                    plt.xlabel('malis weight (log)')
-                plt.pause(2)
-                plt.show()
             # reset err and cls
             err = 0
             cls = 0
