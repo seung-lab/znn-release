@@ -90,6 +90,7 @@ def main( conf_file='config.cfg', logfile=None ):
     #Saving initialized network
     if iter_last+1 == 1:
         netio.save_network(net, pars['train_save_net'], num_iters=0)
+        lc.save( pars, 0.0 )
 
     for i in xrange(iter_last+1, pars['Max_iter']+1):
         # get random sub volume from sample
@@ -112,9 +113,9 @@ def main( conf_file='config.cfg', logfile=None ):
 
         if pars['is_malis'] :
             malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
-            # print "malis weights: ",  malis_weights
-            # print "malis weight sum: ", np.sum( malis_weights.values()[0] )
-            # print "number of non-boundary voxels: ", num_non_bdr
+            print "malis weights: ",  malis_weights
+            print "malis weight sum: ", np.sum( malis_weights.values()[0] )
+            print "number of non-boundary voxels: ", num_non_bdr
             grdts = utils.dict_mul(grdts, malis_weights)
             # accumulate the rand error
             re += rand_errors.values()[0]

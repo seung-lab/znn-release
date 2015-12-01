@@ -270,7 +270,10 @@ class CLearnCurve:
         import os
         import shutil
         root, ext = os.path.splitext(fname)
-        fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
+        if len(self.tn_it)>0:
+            fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
+        else:
+            fname = root + '_statistics_0.h5'
         if os.path.exists(fname):
             os.remove( fname )
 
@@ -284,16 +287,16 @@ class CLearnCurve:
         if pars['is_malis'] :
             f.create_dataset('/train/re',  data=self.tn_re )
             f.create_dataset('/train/mc',  data=self.tn_mc )
-            f.create_dataset('/train/me')
+            f.create_dataset('/train/me',  data=self.tn_me )
 
         f.create_dataset('/test/it',   data=self.tt_it )
         f.create_dataset('/test/err',  data=self.tt_err)
         f.create_dataset('/test/cls',  data=self.tt_cls)
 
         if pars['is_malis'] :
-            f.create_dataset('/test/re',   data=self.tt_re )
-            f.create_dataset('/test/mc',   data=self.tt_mc )
-            f.create_dataset('/test/me')
+            f.create_dataset('/test/re',   data = self.tt_re )
+            f.create_dataset('/test/mc',   data = self.tt_mc )
+            f.create_dataset('/test/me',   data = self.tt_me )
 
         f.create_dataset('/elapsed',   data=elapsed)
         f.close()

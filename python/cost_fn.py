@@ -32,7 +32,6 @@ def get_cls(props, lbls, mask=None):
 
     for name, prop in props.iteritems():
         lbl = lbls[name]
-
         c += np.count_nonzero( (prop>0.5) != (lbl>0.5) )
 
     return c
@@ -499,6 +498,12 @@ def malis_weight(pars, props, lbls):
             merr = weights[:3, :,:,:]
             serr = weights[3:, :,:,:]
             mw = merr + serr
+
+            print "ground truth labeling: ", lbl
+            print "malis mergers: ", merr
+            print "malis splitters: ", serr
+            print "number of nonboundary voxels: ", num_non_bdr
+            assert( np.any(weights>0) )
 
             # normalization
             if 'num' in pars['malis_norm_type']:
