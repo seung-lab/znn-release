@@ -40,16 +40,18 @@ class CSample(object):
 
         # Loading input images
         print "\ncreate input image class..."
-        self.inputs = dict()
+        self.imgs = dict()
+        self.ins = dict()
         for name,setsz in setsz_ins.iteritems():
 
             #Finding the section of the config file
             imid = config.getint(self.sec_name, name)
             imsec_name = "image%d" % (imid,)
 
-            self.inputs[name] = ConfigInputImage( config, pars, imsec_name, \
-                                                  setsz, outsz, is_forward=is_forward )
-            low, high = self.inputs[name].get_dev_range()
+            self.ins[name] = ConfigInputImage( config, pars, imsec_name, \
+                                      setsz, outsz, is_forward=is_forward )
+            self.imgs[name] = self.ins[name].data
+            low, high = self.ins[name].get_dev_range()
 
             # Deviation bookkeeping
             dev_high = np.minimum( dev_high, high )
@@ -57,7 +59,9 @@ class CSample(object):
 
         # define output images
         print "\ncreate label image class..."
-        self.outputs = dict()
+        self.lbls = dict()
+        self.msks = dict()
+        self.outs = dict()
         for name, setsz in setsz_outs.iteritems():
 
             #Allowing for users to abstain from specifying labels
@@ -68,17 +72,18 @@ class CSample(object):
             imid = config.getint(self.sec_name, name)
             imsec_name = "label%d" % (imid,)
 
-            self.outputs[name] = ConfigOutputLabel( config, pars, imsec_name, setsz, outsz)
-            low, high = self.outputs[name].get_dev_range()
+            self.outs[name] = ConfigOutputLabel( config, pars, imsec_name, setsz, outsz)
+            self.lbls[name] = self.outs[name].data
+            self.msks[name] = self.outs[name].msk
+            low, high = self.outs[name].get_dev_range()
 
             # Deviation bookkeeping
             dev_high = np.minimum( dev_high, high )
             dev_low  = np.maximum( dev_low , low  )
 
         # find the candidate central locations of sample
-        if len(self.outputs) > 0:
-            lbl = self.outputs.values()[0] # this seems like a hack, don't quite understand
-            self.locs = lbl.get_candidate_loc( dev_low, dev_high )
+        if len(self.outs) > 0:
+            self.locs = self.outs.values()[0].get_candidate_loc( dev_low, dev_high )
         else:
             print "\nWARNING: No output volumes defined!\n"
             self.locs = None
@@ -106,19 +111,19 @@ class CSample(object):
         loc[0] = self.locs[0][ind]
         loc[1] = self.locs[1][ind]
         loc[2] = self.locs[2][ind]
-        dev = loc - self.outputs.values()[0].center
+        dev = loc - self.outs.values()[0].center
 
         self.write_request_to_log(dev)
 
         # get input and output 4D sub arrays
         subinputs = dict()
-        for key, img in self.inputs.iteritems():
-            subinputs[key] = img.get_subvolume(dev)
+        for key, img in self.ins.iteritems():
+            subinputs[key] = self.ins[key].get_subvolume(dev)
 
         subtlbls = dict()
         submsks  = dict()
-        for key, lbl in self.outputs.iteritems():
-            subtlbls[key], submsks[key] = lbl.get_subvolume(dev)
+        for key, lbl in self.outs.iteritems():
+            subtlbls[key], submsks[key] = self.outs[key].get_subvolume(dev)
 
         # data augmentation
         subinputs, subtlbls, submsks = self._data_aug( subinputs, subtlbls, submsks )
@@ -165,9 +170,9 @@ class CSample(object):
 
         inputs, outputs = {}, {}
 
-        for name, img in self.inputs.iteritems():
+        for name, img in self.ins.iteritems():
             inputs[name] = img.get_next_patch()
-        for name, img in self.outputs.iteritems():
+        for name, img in self.outs.iteritems():
             outputs[name] = img.get_next_patch()
 
         return ( inputs, outputs )
@@ -176,7 +181,7 @@ class CSample(object):
 
         shapes = {}
 
-        for name, img in self.inputs.iteritems():
+        for name, img in self.ins.iteritems():
             shapes[name] = img.output_volume_shape()
 
         return shapes
@@ -185,7 +190,7 @@ class CSample(object):
 
         patch_counts = {}
 
-        for name, img in self.inputs.iteritems():
+        for name, img in self.ins.iteritems():
             patch_counts[name] = img.num_patches()
 
         return patch_counts
@@ -219,8 +224,8 @@ class CAffinitySample(CSample):
 
         # precompute the global rebalance weights
         self.taffs = dict()
-        for k, tlbl in self.outputs.iteritems():
-            self.taffs[k] = self._seg2aff( tlbl )
+        for k, lbl in self.lbls.iteritems():
+            self.taffs[k] = self._seg2aff( lbl )
             self._prepare_rebalance_weights( self.taffs[k] )
         return
 
@@ -301,7 +306,7 @@ class CAffinitySample(CSample):
         self.xwps = self.xwzs = dict()
 
         if self.pars['is_rebalance']:
-            for k, lbl in self.outputs.iteritems():
+            for k, lbl in self.lbls.iteritems():
                 self.zwps[k], self.zwzs[k] = self._get_balance_weight(taffs[k][0,:,:,:])
                 self.ywps[k], self.ywzs[k] = self._get_balance_weight(taffs[k][1,:,:,:])
                 self.xwps[k], self.xwzs[k] = self._get_balance_weight(taffs[k][2,:,:,:])
@@ -338,7 +343,7 @@ class CAffinitySample(CSample):
         return
 
     def get_random_sample(self):
-        subinputs, subtlbls, submsks = super(CAffinitySample, self).get_random_sample( self )
+        subinputs, sublbls, submsks = super(CAffinitySample, self).get_random_sample( self )
 
         # shrink the inputs
         for key, subinput in subinputs.iteritems():
@@ -347,8 +352,8 @@ class CAffinitySample(CSample):
         # transform the label to affinity
         # this operation will shrink the volume size
         subtaffs = dict()
-        for key, subtlbl in subtlbls.iteritems():
-            subtaffs[key] = self.seg2aff( subtlbl )
+        for key, sublbl in sublbls.iteritems():
+            subtaffs[key] = self.seg2aff( sublbl )
             # make affinity mask
             submsks[key]  = self._msk2affmsk( submsks[key] )
 
@@ -378,7 +383,7 @@ class CBoundarySample(CSample):
         # rebalance weights
         self.wps = dict()
         self.wzs = dict()
-        for key, lbl in self.outputs.iteritems():
+        for key, lbl in self.lbls.iteritems():
             self.wps[key], self.wzs[key] = self._get_balance_weight( lbl )
 
     def _binary_class(self, lbl):
@@ -418,22 +423,22 @@ class CBoundarySample(CSample):
 
 
     def get_random_sample(self):
-        subinputs, subtlbls, submsks = super(CBoundarySample, self).get_random_sample()
+        subimgs, sublbls, submsks = super(CBoundarySample, self).get_random_sample()
 
         # boudary map rebalance
         subwmsks = dict()
-        for key, sublbl in subtlbls.iteritems():
+        for key, sublbl in sublbls.iteritems():
             subwmsks[key] = self._rebalance_bdr(  sublbl, self.wps[key], self.wzs[key] )
 
-        for key,sublbl in subtlbls.iteritems():
+        for key,sublbl in sublbls.iteritems():
             assert sublbl.ndim==3 or (sublbl.ndim==4 and sublbl.shape[0]==1)
             # binarize the true lable
-            subtlbls[key] = self._binary_class( sublbl )
+            sublbls[key] = self._binary_class( sublbl )
             # duplicate the maskes
             submsks[key]  = np.tile(submsks[key], (2,1,1,1))
             subwmsks[key] = np.tile(subwmsks[key], (2,1,1,1))
 
-        return subinputs, subtlbls, submsks, subwmsks
+        return subimgs, sublbls, submsks, subwmsks
 
 class ConfigSampleOutput(object):
     '''Documentation coming soon...'''
@@ -451,7 +456,7 @@ class ConfigSampleOutput(object):
 
             empty_bin = np.zeros(volume_shape, dtype=dtype)
 
-            self.output_volumes[name] = ZNN_Dataset(pars, empty_bin, shape[-3:], shape[-3:])
+            self.output_volumes[name] = CDataset(pars, empty_bin, shape[-3:], shape[-3:])
 
     def set_next_patch(self, output):
 
