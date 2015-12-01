@@ -1,6 +1,10 @@
-# emirt
+### emirt
 EM Image Reconstruction Toolbox
 
+EMIRT is a python library for 3D image processing and analysis. It was built for general usage in [Seunglab](http://seunglab.org/) for EM image segmentation and neuron reconstruction.
+
+Required libraries
+---------
 
 |Library|Ubuntu package name|
 |:-----:|-------------------|
@@ -10,11 +14,8 @@ EM Image Reconstruction Toolbox
 |matplotlib|python-matplotlib|
 |scipy|python-scipy|
 
-
-use emirt
----------
-add the following line to the end of ~/.bashrc (~/.bashprofile in Mac OS)
-
-`export PYTHONPATH=$PYTHONPATH:"folder/of/emirt"`
-
-and then run: `source ~/.bashrc`
+Install
+--------
+* `cd` to a library folder and download `emirt`. git clone https://github.com/seung-lab/emirt.git
+* add the following line to the end of ~/.bashrc (~/.bashprofile in Mac OS) `export PYTHONPATH=$PYTHONPATH:"folder/of/emirt"`
+* run: `source ~/.bashrc`
