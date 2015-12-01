@@ -383,7 +383,6 @@ class ConfigInputImage(ConfigImage):
         if 'standard2D' == pp_type:
             for z in xrange( vol3d.shape[0] ):
                 vol3d[z,:,:] = (vol3d[z,:,:] - np.mean(vol3d[z,:,:])) / np.std(vol3d[z,:,:])
-
         elif 'standard3D' == pp_type:
             vol3d = (vol3d - np.mean(vol3d)) / np.std(vol3d)
         elif 'symetric_rescale' == pp_type:
@@ -393,7 +392,6 @@ class ConfigInputImage(ConfigImage):
             vol3d = vol3d * 2 - 1
         elif 'none' == pp_type or "None" in pp_type:
             return vol3d
-
         else:
             raise NameError( 'invalid preprocessing type' )
 

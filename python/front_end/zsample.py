@@ -83,6 +83,7 @@ class CSample(object):
 
         # find the candidate central locations of sample
         if len(self.outs) > 0:
+            # this will not work with multiple output layers!!
             self.locs = self.outs.values()[0].get_candidate_loc( dev_low, dev_high )
         else:
             print "\nWARNING: No output volumes defined!\n"
@@ -226,7 +227,8 @@ class CAffinitySample(CSample):
         self.taffs = dict()
         for k, lbl in self.lbls.iteritems():
             self.taffs[k] = self._seg2aff( lbl )
-            self._prepare_rebalance_weights( self.taffs[k] )
+
+        self._prepare_rebalance_weights( self.taffs )
         return
 
     def _seg2aff( self, lbl ):
@@ -300,16 +302,17 @@ class CAffinitySample(CSample):
         """
         get rebalance tree_size of gradient.
         make the nonboundary and boundary region have same contribution of training.
+        taffs: dict, key is layer name, value is true affinity output
         """
         self.zwps = self.zwzs = dict()
         self.ywps = self.ywzs = dict()
         self.xwps = self.xwzs = dict()
 
         if self.pars['is_rebalance']:
-            for k, lbl in self.lbls.iteritems():
-                self.zwps[k], self.zwzs[k] = self._get_balance_weight(taffs[k][0,:,:,:])
-                self.ywps[k], self.ywzs[k] = self._get_balance_weight(taffs[k][1,:,:,:])
-                self.xwps[k], self.xwzs[k] = self._get_balance_weight(taffs[k][2,:,:,:])
+            for k, aff in taffs.iteritems():
+                self.zwps[k], self.zwzs[k] = self._get_balance_weight(aff[0,:,:,:])
+                self.ywps[k], self.ywzs[k] = self._get_balance_weight(aff[1,:,:,:])
+                self.xwps[k], self.xwzs[k] = self._get_balance_weight(aff[2,:,:,:])
         return
 
     def _rebalance_aff(self, subtaffs):
@@ -333,7 +336,7 @@ class CAffinitySample(CSample):
             w[1,:,:,:][subtaff[1,:,:,:]==0] = self.ywzs[k]
             w[2,:,:,:][subtaff[2,:,:,:]==0] = self.xwzs[k]
             subwmsks[k] = w
-        return submsks
+        return subwmsks
 
     def _increase_setsz(self):
         for key, setsz in self.setsz_ins.iteritems():
@@ -343,24 +346,24 @@ class CAffinitySample(CSample):
         return
 
     def get_random_sample(self):
-        subinputs, sublbls, submsks = super(CAffinitySample, self).get_random_sample( self )
+        subimgs, sublbls, submsks = super(CAffinitySample, self).get_random_sample()
 
         # shrink the inputs
-        for key, subinput in subinputs.iteritems():
-            subinputs[key] = subinput[0,1:,1:,1:]
+        for key, subimg in subimgs.iteritems():
+            subimgs[key] = subimg[:,1:,1:,1:]
 
         # transform the label to affinity
         # this operation will shrink the volume size
         subtaffs = dict()
         for key, sublbl in sublbls.iteritems():
-            subtaffs[key] = self.seg2aff( sublbl )
+            subtaffs[key] = self._seg2aff( sublbl )
             # make affinity mask
             submsks[key]  = self._msk2affmsk( submsks[key] )
 
         # affinity map rebalance
         subwmsks = self._rebalance_aff(  subtaffs )
 
-        return subinputs, subtaffs, submsks, subwmsks
+        return subimgs, subtaffs, submsks, subwmsks
 
 class CBoundarySample(CSample):
     """
