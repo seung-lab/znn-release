@@ -1,4 +1,8 @@
 
+# prepare path for core
+import sys
+sys.path.append("core/")
+
 import numpy as np
 import h5py
 import pyznn
