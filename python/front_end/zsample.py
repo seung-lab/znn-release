@@ -23,7 +23,7 @@ class CSample(object):
 
     """
     def __init__(self, config, pars, sample_id, net, \
-                 setsz_ins, setsz_outs, outsz, \
+                 outsz, setsz_ins=None, setsz_outs=None,\
                  log=None, is_forward=False):
 
         # Parameter object (dict)
@@ -33,50 +33,62 @@ class CSample(object):
         # Also used for logging
         self.sec_name = "sample%d" % sample_id
 
-        # init deviation range
-        # we need to consolidate this over all input and output volumes
-        dev_high = np.array([sys.maxsize, sys.maxsize, sys.maxsize])
-        dev_low  = np.array([-sys.maxint-1, -sys.maxint-1, -sys.maxint-1])
+        # temporary layer names
+        if is_forward and setsz_ins is None and setsz_outs is None:
+            self.setsz_ins  = net.get_inputs_setsz()
+            self.setsz_outs = net.get_outputs_setsz()
 
         # Loading input images
         print "\ncreate input image class..."
         self.imgs = dict()
         self.ins = dict()
-        for name,setsz in setsz_ins.iteritems():
-
+        for name,setsz in self.setsz_ins.iteritems():
             #Finding the section of the config file
             imid = config.getint(self.sec_name, name)
             imsec_name = "image%d" % (imid,)
-
             self.ins[name] = ConfigInputImage( config, pars, imsec_name, \
                                       setsz, outsz, is_forward=is_forward )
             self.imgs[name] = self.ins[name].data
-            low, high = self.ins[name].get_dev_range()
 
+        print "\ncreate label image class..."
+        self.lbls = dict()
+        self.msks = dict()
+        self.outs = dict()
+        for name,setsz in self.setsz_outs.iteritems():
+            #Allowing for users to abstain from specifying labels
+            if not config.has_option(self.sec_name, name):
+                continue
+            #Finding the section of the config file
+            imid = config.getint(self.sec_name, name)
+            imsec_name = "label%d" % (imid,)
+            self.outs[name] = ConfigOutputLabel( config, pars, imsec_name, setsz, outsz)
+            self.lbls[name] = self.outs[name].data
+            self.msks[name] = self.outs[name].msk
+
+        if not is_forward:
+            # setsz
+            self.setsz_ins  = setsz_ins
+            self.setsz_outs = setsz_outs
+            self._prepare_training()
+
+    def _prepare_training(self):
+        """
+        prepare data for training
+        """
+        # init deviation range
+        # we need to consolidate this over all input and output volumes
+        dev_high = np.array([sys.maxsize, sys.maxsize, sys.maxsize])
+        dev_low  = np.array([-sys.maxint-1, -sys.maxint-1, -sys.maxint-1])
+
+        for name,setsz in self.setsz_ins.iteritems():
+            low, high = self.ins[name].get_dev_range()
             # Deviation bookkeeping
             dev_high = np.minimum( dev_high, high )
             dev_low  = np.maximum( dev_low , low  )
 
         # define output images
-        print "\ncreate label image class..."
-        self.lbls = dict()
-        self.msks = dict()
-        self.outs = dict()
-        for name, setsz in setsz_outs.iteritems():
-
-            #Allowing for users to abstain from specifying labels
-            if not config.has_option(self.sec_name, name):
-                continue
-
-            #Finding the section of the config file
-            imid = config.getint(self.sec_name, name)
-            imsec_name = "label%d" % (imid,)
-
-            self.outs[name] = ConfigOutputLabel( config, pars, imsec_name, setsz, outsz)
-            self.lbls[name] = self.outs[name].data
-            self.msks[name] = self.outs[name].msk
+        for name, setsz in self.setsz_outs.iteritems():
             low, high = self.outs[name].get_dev_range()
-
             # Deviation bookkeeping
             dev_high = np.minimum( dev_high, high )
             dev_low  = np.maximum( dev_low , low  )
