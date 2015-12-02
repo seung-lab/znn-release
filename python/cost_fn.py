@@ -484,9 +484,9 @@ def malis_weight(pars, props, lbls):
 
     # malis normalization type
     if 'frac' in pars['malis_norm_type']:
-        is_fract_norm = 1
+        is_frac_norm = 1
     else:
-        is_fract_norm = 0
+        is_frac_norm = 0
 
     for name, prop in props.iteritems():
         assert prop.ndim==4
@@ -494,16 +494,14 @@ def malis_weight(pars, props, lbls):
         if prop.shape[0]==3:
             # affinity output
             from malis.pymalis import zalis
-            weights, re, num_non_bdr = zalis( prop, lbl, 1.0, 0.0, is_fract_norm)
-            merr = weights[:3, :,:,:]
-            serr = weights[3:, :,:,:]
+            merr, serr, re, num_non_bdr = zalis( prop, lbl, 1.0, 0.0, is_frac_norm)
             mw = merr + serr
 
             print "ground truth labeling: ", lbl
             print "malis mergers: ", merr
             print "malis splitters: ", serr
             print "number of nonboundary voxels: ", num_non_bdr
-            assert( np.any(weights>0) )
+            assert( np.any(merr>0) )
 
             # normalization
             if 'num' in pars['malis_norm_type']:

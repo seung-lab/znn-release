@@ -33,7 +33,8 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 
 import numpy as np
 
-import front_end, netio, utils
+from front_end import *
+import utils
 
 from emirt import emio
 
@@ -56,7 +57,7 @@ def config_forward_pass( config, params, verbose=True, sample_ids=None ):
         params[range_optionname] = sample_ids
 
     # load network
-    net = netio.load_network( params, train=False )
+    net = znetio.load_network( params, train=False )
     output_patch_shape = params[outsz_optionname]
     sample_outputs = {}
     #Loop over sample range
@@ -66,8 +67,8 @@ def config_forward_pass( config, params, verbose=True, sample_ids=None ):
         # read image stacks
         # Note: preprocessing included within CSamples
         # See CONSTANTS section above for optionname values
-        Dataset = front_end.ConfigSample(config, params,
-                                         sample, net, output_patch_shape, is_forward=True )
+        Dataset = zsample.CSample(config, params, sample, net, \
+                                  outsz = output_patch_shape, is_forward=True )
 
         sample_outputs[sample] = generate_full_output(Dataset, net,
 						      params, params['dtype'],
@@ -107,7 +108,7 @@ def generate_full_output( Dataset, network, params,
 	assert output_volume_shape_consistent(output_vol_shapes)
 	output_vol_shape = output_vol_shapes.values()[0]
 
-	Output = front_end.ConfigSampleOutput( params, network,
+	Output = zsample.ConfigSampleOutput( params, network,
                                                output_vol_shape, dtype )
 
 	input_num_patches = Dataset.num_patches()
@@ -189,7 +190,7 @@ def main( config_filename, sample_ids=None ):
     Script functionality - runs config_forward_pass and saves the
     output volumes
     '''
-    config, params = front_end.parser( config_filename )
+    config, params = zconfig.parser( config_filename )
 
     if sample_ids is None:
     	sample_ids = params[range_optionname]
@@ -212,7 +213,7 @@ if __name__ == '__main__':
     if len(argv)==2:
         main( argv[1] )
     elif len(argv) > 2:
-        sample_ids = front_end.parseIntSet(argv[2])
+        sample_ids = zconfig.parseIntSet(argv[2])
         main( argv[1], sample_ids )
     else:
         main('config.cfg')

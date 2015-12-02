@@ -34,10 +34,9 @@ namespace znn { namespace v4 {
 inline zalis_weight
 zalis( std::vector<cube_p<real>> true_affs,
        std::vector<cube_p<real>> affs,
-       bool frac_norm = false,
        real high = 0.99,
        real low  = 0.01,
-       size_t norm_mode = 0 )
+       size_t is_frac_norm = 0 )
 {
     ZI_ASSERT(affs.size()==3);
     ZI_ASSERT(true_affs.size()==affs.size());
@@ -211,7 +210,7 @@ zalis( std::vector<cube_p<real>> true_affs,
                 real     segsize1 = seg1.second;
 
                 // fraction normalize
-                if ( norm_mode==1 ) segsize1 /= seg_sizes[segID1];
+                if ( is_frac_norm==1 ) segsize1 /= seg_sizes[segID1];
 
                 // skip boundary
                 if ( segID1 == 0 ) continue;
@@ -223,7 +222,7 @@ zalis( std::vector<cube_p<real>> true_affs,
                     real     segsize2 = seg2.second;
 
                     // fraction normalize
-                    if ( norm_mode==1 ) segsize2 /= seg_sizes[segID2];
+                    if ( is_frac_norm==1 ) segsize2 /= seg_sizes[segID2];
 
                     // skip boundary
                     if ( segID2 == 0 ) continue;
