@@ -428,7 +428,7 @@ class CBoundarySample(CSample):
 
         # recompute weight for patch rebalance
         if self.pars['is_patch_rebalance']:
-            wp, wz = self.get_balance_weight( sublbl )
+            wp, wz = self._get_balance_weight( sublbl )
 
         if self.pars['is_patch_rebalance'] or self.pars['is_rebalance']:
             weight[0,:,:,:][sublbl[0,:,:,:]> 0] = wp
