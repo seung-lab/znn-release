@@ -35,41 +35,45 @@ class CSample(object):
 
         # temporary layer names
         if is_forward and setsz_ins is None and setsz_outs is None:
+            print "forward pass, get setsz from network"
             self.setsz_ins  = net.get_inputs_setsz()
             self.setsz_outs = net.get_outputs_setsz()
+        else:
+            self.setsz_ins  = setsz_ins
+            self.setsz_outs = setsz_outs
 
         # Loading input images
         print "\ncreate input image class..."
         self.imgs = dict()
         self.ins = dict()
-        for name,setsz in self.setsz_ins.iteritems():
+        for name,setsz_in in self.setsz_ins.iteritems():
             #Finding the section of the config file
             imid = config.getint(self.sec_name, name)
             imsec_name = "image%d" % (imid,)
             self.ins[name] = ConfigInputImage( config, pars, imsec_name, \
-                                      setsz, outsz, is_forward=is_forward )
+                                      outsz, setsz_in, is_forward=is_forward )
             self.imgs[name] = self.ins[name].data
 
         print "\ncreate label image class..."
         self.lbls = dict()
         self.msks = dict()
         self.outs = dict()
-        for name,setsz in self.setsz_outs.iteritems():
+        for name,setsz_out in self.setsz_outs.iteritems():
             #Allowing for users to abstain from specifying labels
             if not config.has_option(self.sec_name, name):
                 continue
             #Finding the section of the config file
             imid = config.getint(self.sec_name, name)
             imsec_name = "label%d" % (imid,)
-            self.outs[name] = ConfigOutputLabel( config, pars, imsec_name, setsz, outsz)
+            self.outs[name] = ConfigOutputLabel( config, pars, imsec_name, outsz, setsz_out)
             self.lbls[name] = self.outs[name].data
             self.msks[name] = self.outs[name].msk
 
         if not is_forward:
-            # setsz
-            self.setsz_ins  = setsz_ins
-            self.setsz_outs = setsz_outs
             self._prepare_training()
+
+        #Filename for log
+        self.log = log
 
     def _prepare_training(self):
         """
@@ -100,9 +104,6 @@ class CSample(object):
         else:
             print "\nWARNING: No output volumes defined!\n"
             self.locs = None
-
-        #Filename for log
-        self.log = log
 
     def _data_aug(self, subinputs, subtlbls, submsks):
         # random transformation roll
@@ -228,11 +229,15 @@ class CAffinitySample(CSample):
         if not is_forward:
             # increase the shape by 1 for affinity sample
             # this will be shrinked later
-            self._increase_setsz()
+            print "increase set size..."
+            for key, setsz in self.setsz_ins.iteritems():
+                self.setsz_ins[key][-3:] += 1
+            for key, setsz in self.setsz_outs.iteritems():
+                self.setsz_outs[key][-3:] += 1
 
         # initialize the general sample
         CSample.__init__(self, config, pars, sample_id, net, \
-                         self.setsz_ins, self.setsz_outs, outsz, \
+                         outsz, setsz_ins = self.setsz_ins, setsz_outs = self.setsz_outs, \
                          log=log, is_forward=is_forward)
 
         # precompute the global rebalance weights
@@ -276,6 +281,7 @@ class CAffinitySample(CSample):
         aff[2,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , 1:  ,:-1]) & (lbl[0,1:,1:,1:]>0)
 
         return aff
+
     def _msk2affmsk( self, msk ):
         """
         transform binary mask to affinity mask
@@ -350,13 +356,6 @@ class CAffinitySample(CSample):
             subwmsks[k] = w
         return subwmsks
 
-    def _increase_setsz(self):
-        for key, setsz in self.setsz_ins.iteritems():
-            self.setsz_ins[key] += 1
-        for key, setsz in self.setsz_outs.iteritems():
-            self.setsz_outs[key] += 1
-        return
-
     def get_random_sample(self):
         subimgs, sublbls, submsks = super(CAffinitySample, self).get_random_sample()
 
@@ -368,6 +367,7 @@ class CAffinitySample(CSample):
         # this operation will shrink the volume size
         subtaffs = dict()
         for key, sublbl in sublbls.iteritems():
+            assert sublbl.shape[0]==1 and sublbl.ndim==4
             subtaffs[key] = self._seg2aff( sublbl )
             # make affinity mask
             submsks[key]  = self._msk2affmsk( submsks[key] )
@@ -388,7 +388,7 @@ class CBoundarySample(CSample):
 
         # initialize the general sample
         CSample.__init__(self, config, pars, sample_id, net, \
-                         self.setsz_ins, self.setsz_outs, outsz, \
+                         outsz, self.setsz_ins, self.setsz_outs, \
                          log=log, is_forward=is_forward)
 
         # precompute the global rebalance weights
