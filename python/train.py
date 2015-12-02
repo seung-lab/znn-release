@@ -167,7 +167,7 @@ def main( conf_file='config.cfg', logfile=None ):
 
         if i%pars['Num_iter_per_save']==0:
             # save network
-            netio.save_network(net, pars['train_save_net'], num_iters=i)
+            znetio.save_network(net, pars['train_save_net'], num_iters=i)
             lc.save( pars, elapsed )
             if pars['is_malis']:
                 utils.save_malis(malis_weights,  pars['train_save_net'], num_iters=i)
