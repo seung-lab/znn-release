@@ -326,7 +326,7 @@ class CAffinitySample(CSample):
         self.ywps = self.ywzs = dict()
         self.xwps = self.xwzs = dict()
 
-        if self.pars['is_rebalance']:
+        if self.pars['is_rebalance'] or self.pars['is_patch_rebalance']:
             for k, aff in taffs.iteritems():
                 self.zwps[k], self.zwzs[k] = self._get_balance_weight(aff[0,:,:,:])
                 self.ywps[k], self.ywzs[k] = self._get_balance_weight(aff[1,:,:,:])
