@@ -243,10 +243,15 @@ class CLearnCurve:
         for i in xrange(len(tt_it)):
             tt_it[i] = tt_it[i] / float(1000)
 
+        # tailor the window to the number of plots
+        if len(self.tn_it) == len( self.tn_re ):
+            plot_base = 130
+        else:
+            plot_base = 120
         # plot data
-        plt.subplot(1,nsp, 1)
-        plt.plot(tn_it, self.tn_err, 'b.', alpha=0.2)
-        plt.plot(tt_it, self.tt_err, 'r.', alpha=0.2)
+        plt.subplot(plot_base + 1)
+        plt.plot(self.tn_it, self.tn_err, 'b.', alpha=0.2)
+        plt.plot(self.tt_it, self.tt_err, 'r.', alpha=0.2)
         # plot smoothed line
         xne,yne = self._smooth( tn_it, self.tn_err, w )
         xte,yte = self._smooth( tt_it, self.tt_err, w )
@@ -254,9 +259,9 @@ class CLearnCurve:
         plt.plot(xte, yte, 'r')
         plt.xlabel('iteration (K)'), plt.ylabel('cost energy')
 
-        plt.subplot(1,nsp,2)
-        plt.plot(tn_it, self.tn_cls, 'b.', alpha=0.2)
-        plt.plot(tt_it, self.tt_cls, 'r.', alpha=0.2)
+        plt.subplot(plot_base + 2)
+        plt.plot(self.tn_it, self.tn_cls, 'b.', alpha=0.2)
+        plt.plot(self.tt_it, self.tt_cls, 'r.', alpha=0.2)
         # plot smoothed line
         xnc, ync = self._smooth( tn_it, self.tn_cls, w )
         xtc, ytc = self._smooth( tt_it, self.tt_cls, w )
@@ -264,10 +269,10 @@ class CLearnCurve:
         plt.plot(xtc, ytc, 'r', label='test')
         plt.xlabel('iteration (K)'), plt.ylabel( 'classification error' )
 
-        if len(tn_it) == len( self.tn_re ):
-            plt.subplot(1, nsp, 3)
-            plt.plot(tn_it, self.tn_re, 'b.', alpha=0.2)
-            plt.plot(tt_it, self.tt_re, 'r.', alpha=0.2)
+        if len(self.tn_it) == len( self.tn_re ):
+            plt.subplot(plot_base + 3)
+            plt.plot(self.tn_it, self.tn_re, 'b.', alpha=0.2)
+            plt.plot(self.tt_it, self.tt_re, 'r.', alpha=0.2)
             # plot smoothed line
             xnr, ynr = self._smooth( tn_it, self.tn_re, w )
             xtr, ytr = self._smooth( tt_it, self.tt_re, w )
