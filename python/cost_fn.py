@@ -6,8 +6,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 import emirt
 import utils
-# numba accelaration
-#from numba import jit
+from malis.pymalis import zalis
 
 
 def get_cls(props, lbls, mask=None):
@@ -406,16 +405,42 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
 
     return (w, merr, serr)
 
-def constrain_label(bdm, lbl):
+def constrain_label(prp, lbl):
+    """
+    parameters:
+    -----------
+    prp: 4D array, forward propagation result, could be boundary or aff map
+    lbl: 4D array, ground truth labeling
+    """
+    assert prp.shape == lbl.shape
     # merging error boundary map filled with intracellular ground truth
-    mbdm = np.copy(bdm)
-    mbdm[lbl>0] = 1
+    mprp = np.copy(prp)
+    mprp[lbl>0] = 1
 
     # splitting error boundary map filled with boundary ground truth
-    sbdm = np.copy(bdm)
-    sbdm[lbl==0] = 0
+    sprp = np.copy(prp)
+    sprp[lbl==0] = 0
+    return mprp, sprp
 
-    return mbdm, sbdm
+def constrained_malis(prp, lbl, threshold=0.5):
+    """
+    adding constraints for malis weight
+    fill the intracellular space with ground truth when computing merging error
+    fill the boundary with ground truth when computing spliting error
+    """
+    mprp, sprp = constrain_label(prp, lbl)
+    # get the merger weights
+    mme, mse, re, num, mtp, mtn, mfp, mfn = zalis(mprp, lbl, 0.5, 0.0, 0)
+    # normalization
+    mme = mme / (mfp + mtn)
+
+    # get the splitter weights
+    sme, sse, re, num, stp, stn, sfp, sfn = zalis(sprp, lbl, 0.0, 0.5, 0)
+    # normalization
+    sse = sse / (stp + sfn)
+
+    w = mme + sse
+    return (w, mme, sse)
 
 def constrained_malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     """
@@ -492,11 +517,14 @@ def malis_weight(pars, props, lbls):
         assert prop.ndim==4
         lbl = lbls[name]
         if prop.shape[0]==3:
-            # affinity output
-            from malis.pymalis import zalis
-            merr, serr, re, num_non_bdr = zalis( prop, lbl, 1.0, 0.0, is_frac_norm)
+            if 'constrain' in pars['malis_norm_type']:
+                mw, merr, serr = constrained_malis(prop, lbl)
+            else:
+                # affinity output
+                merr, serr, re, num_non_bdr, \
+                    tp, tn, fp, fn = zalis( prop, lbl, \
+                                            1.0, 0.0, is_frac_norm)
             mw = merr + serr
-
             # normalization
             if 'num' in pars['malis_norm_type']:
                 mw = mw / float(num_non_bdr)

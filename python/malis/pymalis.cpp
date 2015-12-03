@@ -25,6 +25,10 @@ bp::tuple weights2tuple( zalis_weight weights )
     std::vector<cube_p<T>>   splitter = weights.splitter;
     T re = weights.rand_error;
     T num = weights.num_non_bdr;
+    T tp = weights.TP;
+    T tn = weights.TN;
+    T fp = weights.FP;
+    T fn = weights.FN;
 
     // number of output cubes
     std::size_t sc = merger.size();
@@ -74,7 +78,8 @@ bp::tuple weights2tuple( zalis_weight weights )
                                                     sizeof(T)),
                                      bp::object() );
 
-    return bp::make_tuple( arrm.copy(), arrs.copy(), re, num );
+    return bp::make_tuple( arrm.copy(), arrs.copy(),
+                           re, num, tp, tn, fp, fn );
 }
 
 void show_cubelist( std::vector< cube_p<real> > cl )

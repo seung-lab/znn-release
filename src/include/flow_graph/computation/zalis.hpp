@@ -83,6 +83,8 @@ zalis( std::vector<cube_p<real>> true_affs,
     // initialize the counting
     real FP=0;
     real FN=0;
+    real TP=0;
+    real TN=0;
     real num_non_bdr=0;
 
     for ( size_t i = 0; i < n; ++i )
@@ -233,12 +235,16 @@ zalis( std::vector<cube_p<real>> true_affs,
                         n_same_pair += segsize1 * segsize2;
                         if (affinity < 0.5)
                             FN += segsize1 * segsize2;
+                        else
+                            TP += segsize1 * segsize2;
                     }
                     else
                     {
                         n_diff_pair += segsize1 * segsize2;
                         if (affinity >0.5)
                             FP += segsize1 * segsize2;
+                        else
+                            TN += segsize1 * segsize2;
                     }
                 }
             }
@@ -300,7 +306,8 @@ zalis( std::vector<cube_p<real>> true_affs,
 
     // rand error
     real re = (FP+FN) / (num_non_bdr*(num_non_bdr-1)/2);
-    zalis_weight ret(mw, sw, re, num_non_bdr);
+    zalis_weight ret(mw, sw, re, num_non_bdr, TP, TN, FP, FN);
+    ZI_ASSERT( num_non_bdr==TP+FN+TN+FP );
 #if defined( DEBUG )
     ret.ws_snapshots = ws_snapshots;
     ret.ws_timestamp = ws_timestamp;
