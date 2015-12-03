@@ -450,8 +450,8 @@ def constrained_malis(prp, lbl, threshold=0.5):
     re = (mfp + sfn)/(mtp+mtn+mfp+mfn)
     w = mme + sse
 
-    print "mtp: ",mtp, "  mfn: ",mfn, "  mtn: ",mtn,"  mfp: ",mfp
-    print "stp: ",stp, "  sfn: ",sfn, "  stn: ",stn,"  sfp: ",sfp
+    #print "mtp: ",mtp, "  mfn: ",mfn, "  mtn: ",mtn,"  mfp: ",mfp
+    #print "stp: ",stp, "  sfn: ",sfn, "  stn: ",stn,"  sfp: ",sfp
 
     #print "mprp: ",mprp
     #print "sprp: ",sprp
