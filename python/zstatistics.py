@@ -180,8 +180,13 @@ class CLearnCurve:
         w : int, window size for smoothing the curve
         """
 
+        # tailor the window to the number of plots
+        if len(self.tn_it) == len( self.tn_re ):
+            plot_base = 130
+        else:
+            plot_base = 120
         # plot data
-        plt.subplot(131)
+        plt.subplot(plot_base + 1)
         plt.plot(self.tn_it, self.tn_err, 'b.', alpha=0.2)
         plt.plot(self.tt_it, self.tt_err, 'r.', alpha=0.2)
         # plot smoothed line
@@ -191,7 +196,7 @@ class CLearnCurve:
         plt.plot(xte, yte, 'r')
         plt.xlabel('iteration'), plt.ylabel('cost energy')
 
-        plt.subplot(132)
+        plt.subplot(plot_base + 2)
         plt.plot(self.tn_it, self.tn_cls, 'b.', alpha=0.2)
         plt.plot(self.tt_it, self.tt_cls, 'r.', alpha=0.2)
         # plot smoothed line
@@ -202,7 +207,7 @@ class CLearnCurve:
         plt.xlabel('iteration'), plt.ylabel( 'classification error' )
 
         if len(self.tn_it) == len( self.tn_re ):
-            plt.subplot(133)
+            plt.subplot(plot_base + 3)
             plt.plot(self.tn_it, self.tn_re, 'b.', alpha=0.2)
             plt.plot(self.tt_it, self.tt_re, 'r.', alpha=0.2)
             # plot smoothed line
