@@ -137,7 +137,6 @@ def main( conf_file='config.cfg', logfile=None ):
             if pars['is_malis']:
                 re = re / pars['Num_iter_per_show']
                 malis_cls = malis_cls / pars['Num_iter_per_show']
-MKL_FLAGS	=
                 malis_eng = malis_eng / pars['Num_iter_per_show']
                 lc.append_train_rand_error( re )
                 lc.append_train_malis_cls( malis_cls )

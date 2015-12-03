@@ -432,20 +432,27 @@ def constrained_malis(prp, lbl, threshold=0.5):
     # get the merger weights
     mme, mse, mre, num, mtp, mtn, mfp, mfn = zalis(mprp, lbl, 1.0, 0.5, 0)
     # normalization
-    mme = mme / (mfp + mtn)
+    if mfp + mtn > 0:
+        mme = mme / (mfp + mtn)
+    else:
+        mme = mme * 0
 
 
 
     # get the splitter weights
     sme, sse, sre, num, stp, stn, sfp, sfn = zalis(sprp, lbl, 0.5, 0.0, 0)
     # normalization
-    sse = sse / (stp + sfn)
+    if stp + sfn > 0:
+        sse = sse / (stp + sfn)
+    else:
+        sse = sse * 0
 
     re = (mfp + sfn)/(mtp+mtn+mfp+mfn)
     w = mme + sse
 
-    #print "stp: ",stp, "  sfn: ",sfn, "  stn: ",stn,"  sfp: ",sfp
-    #print "mfp: ",mfp, "  mtn: ",mtn, "  mtp: ",mtp,"  mfn: ",mfn
+    print "mtp: ",mtp, "  mfn: ",mfn, "  mtn: ",mtn,"  mfp: ",mfp
+    print "stp: ",stp, "  sfn: ",sfn, "  stn: ",stn,"  sfp: ",sfp
+
     #print "mprp: ",mprp
     #print "sprp: ",sprp
     #print "prp: ",prp
