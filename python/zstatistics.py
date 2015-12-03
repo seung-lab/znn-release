@@ -192,6 +192,21 @@ class CLearnCurve:
             y2.append( np.mean( y[i-lw:i+rw+1] ) )
         return x2, y2
 
+    def _find_max_update(self, it, vec):
+        """
+        find the maximum iteration without nan
+        """
+        i = len(vec)-1
+        # traverse from end to start
+        for v in vec[::-1]:
+            if v is not np.nan:
+                return it[i]
+            i -= 1
+        return 0
+
+    def print_max_update(self):
+        print "max iter: ", self._find_max_update( self.tn_it, self.tn_cls )
+
     def show(self, w):
         """
         illustrate the learning curve
@@ -205,6 +220,13 @@ class CLearnCurve:
             nsp = 5
         else:
             nsp = 3
+
+        # print the maximum iteration
+        self.print_max_update()
+
+        # start iter
+        s = 100000-500
+
         # plot data
         plt.subplot(1,nsp, 1)
         plt.plot(self.tn_it, self.tn_err, 'b.', alpha=0.2)
