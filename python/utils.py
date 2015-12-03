@@ -306,6 +306,23 @@ def mask_dict_vol(dict_vol, mask=None):
     which are not selected within the passed mask
     """
     if mask is not None:
-        return dict_mul(dict_vol, mask)
+
+        #old implementation used multiplication to mask
+        # nan values, but seemingly forall x, nan*x = nan
+        res = dict()
+        for name, vol in dict_vol.iteritems():
+            mask_vol = mask[name]
+
+            if mask_vol.shape == vol.shape:
+                masked_indices = np.where(mask_vol == 0)
+                
+                #using explicit assignment instead of mult
+                res[name] = np.copy(vol)
+                res[name][masked_indices] = 0
+
+            elif mask_vol.size == 0:
+                res[name] = np.copy(vol)
+
+        return res
     else:
         return dict_vol
