@@ -237,5 +237,6 @@ def check_config(config, pars):
         assert 'none' in pars['malis_norm_type'] \
             or 'frac' in pars['malis_norm_type'] \
             or 'num'  in pars['malis_norm_type'] \
-            or 'pair' in pars['malis_norm_type']
+            or 'pair' in pars['malis_norm_type'] \
+            or 'constrain' in pars['malis_norm_type']
     return config, pars
