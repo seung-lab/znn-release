@@ -430,17 +430,18 @@ def constrained_malis(prp, lbl, threshold=0.5):
     """
     mprp, sprp = constrain_label(prp, lbl)
     # get the merger weights
-    mme, mse, re, num, mtp, mtn, mfp, mfn = zalis(mprp, lbl, 0.5, 0.0, 0)
+    mme, mse, mre, num, mtp, mtn, mfp, mfn = zalis(mprp, lbl, 0.5, 0.0, 0)
     # normalization
     mme = mme / (mfp + mtn)
 
     # get the splitter weights
-    sme, sse, re, num, stp, stn, sfp, sfn = zalis(sprp, lbl, 0.0, 0.5, 0)
+    sme, sse, sre, num, stp, stn, sfp, sfn = zalis(sprp, lbl, 0.0, 0.5, 0)
     # normalization
     sse = sse / (stp + sfn)
 
+    re = (mfp + sfn)/(mtp+mtn+mfp+mfn)
     w = mme + sse
-    return (w, mme, sse)
+    return (w, mme, sse, re, num)
 
 def constrained_malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     """
@@ -518,7 +519,7 @@ def malis_weight(pars, props, lbls):
         lbl = lbls[name]
         if prop.shape[0]==3:
             if 'constrain' in pars['malis_norm_type']:
-                mw, merr, serr = constrained_malis(prop, lbl)
+                mw, merr, serr, re, num_non_bdr = constrained_malis(prop, lbl)
             else:
                 # affinity output
                 merr, serr, re, num_non_bdr, \

@@ -307,7 +307,7 @@ zalis( std::vector<cube_p<real>> true_affs,
     // rand error
     real re = (FP+FN) / (num_non_bdr*(num_non_bdr-1)/2);
     zalis_weight ret(mw, sw, re, num_non_bdr, TP, TN, FP, FN);
-    ZI_ASSERT( num_non_bdr==TP+FN+TN+FP );
+    ZI_ASSERT( num_non_bdr*(num_non_bdr-1)/2==TP+FN+TN+FP );
 #if defined( DEBUG )
     ret.ws_snapshots = ws_snapshots;
     ret.ws_timestamp = ws_timestamp;
