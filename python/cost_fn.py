@@ -430,17 +430,26 @@ def constrained_malis(prp, lbl, threshold=0.5):
     """
     mprp, sprp = constrain_label(prp, lbl)
     # get the merger weights
-    mme, mse, mre, num, mtp, mtn, mfp, mfn = zalis(mprp, lbl, 0.5, 0.0, 0)
+    mme, mse, mre, num, mtp, mtn, mfp, mfn = zalis(mprp, lbl, 1.0, 0.0, 0)
     # normalization
     mme = mme / (mfp + mtn)
 
+    
+
     # get the splitter weights
-    sme, sse, sre, num, stp, stn, sfp, sfn = zalis(sprp, lbl, 0.0, 0.5, 0)
+    sme, sse, sre, num, stp, stn, sfp, sfn = zalis(sprp, lbl, 1.0, 0.0, 0)
     # normalization
     sse = sse / (stp + sfn)
 
     re = (mfp + sfn)/(mtp+mtn+mfp+mfn)
     w = mme + sse
+
+    #print "stp: ",stp, "  sfn: ",sfn, "  stn: ",stn,"  sfp: ",sfp
+    #print "mfp: ",mfp, "  mtn: ",mtn, "  mtp: ",mtp,"  mfn: ",mfn
+    #print "mprp: ",mprp
+    #print "sprp: ",sprp
+    #print "prp: ",prp
+
     return (w, mme, sse, re, num)
 
 def constrained_malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
@@ -525,6 +534,7 @@ def malis_weight(pars, props, lbls):
                 merr, serr, re, num_non_bdr, \
                     tp, tn, fp, fn = zalis( prop, lbl, \
                                             1.0, 0.0, is_frac_norm)
+                print "tp: ",tp," tn: ",tn, "  fp:",fp,"  fn:",fn
             mw = merr + serr
             # normalization
             if 'num' in pars['malis_norm_type']:

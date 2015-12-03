@@ -233,6 +233,7 @@ zalis( std::vector<cube_p<real>> true_affs,
                     if ( segID1 == segID2 )
                     {
                         n_same_pair += segsize1 * segsize2;
+			//std::cout<< affinity << ", ";
                         if (affinity < 0.5)
                             FN += segsize1 * segsize2;
                         else
@@ -241,6 +242,7 @@ zalis( std::vector<cube_p<real>> true_affs,
                     else
                     {
                         n_diff_pair += segsize1 * segsize2;
+			//std::cout<<affinity << ", ";
                         if (affinity >0.5)
                             FP += segsize1 * segsize2;
                         else
