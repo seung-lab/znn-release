@@ -271,7 +271,7 @@ class CLearnCurve:
             plt.xlabel('iteration'), plt.ylabel( 'malis weighted pixel \n classification error' )
 
         if len(self.tn_it) == len( self.tn_me ):
-            plt.subplot(1, nsp, 4)
+            plt.subplot(1, nsp, 5)
             plt.plot(self.tn_it, self.tn_me, 'b.', alpha=0.2)
             plt.plot(self.tt_it, self.tt_me, 'r.', alpha=0.2)
             # plot smoothed line
