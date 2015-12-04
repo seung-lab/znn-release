@@ -20,13 +20,21 @@ def _single_test(net, pars, sample):
 
     re = 0.0
     malis_cls = 0.0
+
+    num_voxels = 0
+    if utils.dict_mask_empty(msks):
+        num_voxels = utils.get_total_num(net.get_outputs_setsz())
+    else:
+        num_voxels = utils.sum_over_dict(msks)
+
     if pars['is_malis']:
         malis_weights, rand_errors = cost_fn.malis_weight( pars, props, lbl_outs )
         re = rand_errors.values()[0]
         # dictionary of malis classification error
         mcd = utils.get_malis_cls( props, lbl_outs, malis_weights )
         malis_cls = mcd.values()[0]
-    return props, err, cls, re, malis_cls
+
+    return props, err, cls, re, malis_cls, num_voxels
 
 def znn_test(net, pars, samples, vn, it, lc):
     """
@@ -54,15 +62,16 @@ def znn_test(net, pars, samples, vn, it, lc):
     net.set_phase(1)
     test_num = pars['test_num']
     for i in xrange( test_num ):
-        props, cerr, ccls, cre, cmc = _single_test(net, pars, samples)
+        props, cerr, ccls, cre, cmc, num_voxels = _single_test(net, pars, samples)
         err += cerr
         cls += ccls
         re  += cre
         mc  += cmc
+        total_voxels += num_voxels
     net.set_phase(0)
     # normalize
-    err = err / vn / test_num
-    cls = cls / vn / test_num
+    err = err / total_voxels
+    cls = cls / total_voxels
     # rand error only need to be normalized by testing time
     re  = re  / test_num
     mc  = mc  / test_num
