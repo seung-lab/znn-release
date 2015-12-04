@@ -447,16 +447,16 @@ class CBoundarySample(CSample):
     def get_random_sample(self):
         subimgs, sublbls, submsks = super(CBoundarySample, self).get_random_sample()
 
-        # boudary map rebalance
+        # boundary map rebalance
         subwmsks = dict()
         for key, sublbl in sublbls.iteritems():
             subwmsks[key] = self._rebalance_bdr(  sublbl, self.wps[key], self.wzs[key] )
 
         for key,sublbl in sublbls.iteritems():
             assert sublbl.ndim==3 or (sublbl.ndim==4 and sublbl.shape[0]==1)
-            # binarize the true lable
+            # binarize the true label
             sublbls[key] = self._binary_class( sublbl )
-            # duplicate the maskes
+            # duplicate the masks
             submsks[key]  = np.tile(submsks[key], (2,1,1,1))
             subwmsks[key] = np.tile(subwmsks[key], (2,1,1,1))
 
