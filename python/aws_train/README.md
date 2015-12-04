@@ -16,11 +16,11 @@ this script can create a cluster including an on-demand master node and several 
   * setup all the parameters with a mark of `XXX`
 * copy the `train_example.cfg` file as `train.cfg`
 * set some additional parameters in the `train.cfg`.
-        * cluster name
-        * node name (Note that do not use `_`!)
-        * instance type
-        * biding for the spot instance
-        * commands for each spot instance
+    * cluster name
+    * node name (Note that do not use `_`!)
+    * instance type
+    * biding for the spot instance
+    * commands for each spot instance
 
 ##Tutorial
 now, you are almost ready.
