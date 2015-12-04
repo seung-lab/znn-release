@@ -59,6 +59,8 @@ def znn_test(net, pars, samples, vn, it, lc):
     err = 0.0
     cls = 0.0
     re = 0.0
+    #total non-masked voxels
+    total_voxels = 0.0 
     # malis classification error
     mc = 0.0
     me = 0.0
