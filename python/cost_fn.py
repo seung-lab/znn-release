@@ -88,6 +88,12 @@ def square_square_loss(props, lbls, mask=None, margin=0.2):
 
     return (props, error, gradients)
 
+def cross_entropy(lbl, prop):
+
+    log_prop = np.log(prop)
+    log_prop[ lbl == 0 ] = 0
+    return -lbl * log_prop
+
 #@jit(nopython=True)
 def binomial_cross_entropy(props, lbls, mask=None):
     """
@@ -116,7 +122,48 @@ def binomial_cross_entropy(props, lbls, mask=None):
 
         grdts[name] = prop - lbl
 
-        entropy[name] = -lbl*np.log(prop) - (1-lbl)*np.log(1-prop)
+        entropy[name] = cross_entropy(lbl, prop) + cross_entropy(1-lbl, 1-prop)
+
+    #Applying mask if it exists
+    grdts = utils.mask_dict_vol(grdts, mask)
+    entropy = utils.mask_dict_vol(entropy, mask)
+
+    for name, vol in entropy.iteritems():
+        err += np.sum( vol )
+
+    return (props, err, grdts)
+
+#@jit(nopython=True)
+def margin_binomial_cross_entropy(props, lbls, mask=None, margin=0.1):
+    """
+    compute binomial cost
+
+    Parameters
+    ----------
+    props:  dict of network output arrays
+    lbls:   dict of ground truth arrays
+
+    Return
+    ------
+    err:    cost energy
+    grdts:  dict of gradient volumes
+    """
+    grdts = dict()
+    err = 0
+
+    #Taking a slightly different strategy with masking 
+    # to improve the numerical stability of the error output
+    entropy = dict()
+
+    #Finding Gradients
+    for name, prop in props.iteritems():
+        lbl = lbls[name]
+
+        gradient = prop - lbl
+        gradient[ gradient < margin ] = 0
+        grdts[name] = gradient
+
+        entropy[name] = cross_entropy(lbl, prop) + cross_entropy(1-lbl, 1-prop)
 
     #Applying mask if it exists
     grdts = utils.mask_dict_vol(grdts, mask)
@@ -184,7 +231,7 @@ def multinomial_cross_entropy(props, lbls, mask=None):
 
         grdts[name] = prop - lbl
 
-        entropy[name] = -lbl * np.log(prop)
+        entropy[name] = cross_entropy(lbl, prop)
 
     #Applying mask if it exists
     grdts = utils.mask_dict_vol(grdts, mask)
