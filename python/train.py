@@ -98,6 +98,8 @@ def main( conf_file='config.cfg', logfile=None ):
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
         err += cerr
         cls += cost_fn.get_cls(props, lbl_outs)
+        # compute rand error
+        re  += pyznn.get_rand_error(props.values()[0], lbl_outs.values()[0])
         num_mask_voxels += utils.sum_over_dict(msks)
 
         # gradient reweighting
@@ -107,8 +109,6 @@ def main( conf_file='config.cfg', logfile=None ):
         if pars['is_malis'] :
             malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
             grdts = utils.dict_mul(grdts, malis_weights)
-            # accumulate the rand error
-            re += rand_errors.values()[0]
             dmc, dme = utils.get_malis_cost( props, lbl_outs, malis_weights )
             malis_cls += dmc.values()[0]
             malis_eng += dme.values()[0]
@@ -129,7 +129,7 @@ def main( conf_file='config.cfg', logfile=None ):
                 err = err / num_mask_voxels / pars['Num_iter_per_show']
                 cls = cls / num_mask_voxels / pars['Num_iter_per_show']
 
-            lc.append_train(i, err, cls)
+            lc.append_train(i, err, cls, re)
 
             # time
             elapsed = total_time / pars['Num_iter_per_show']
@@ -138,7 +138,6 @@ def main( conf_file='config.cfg', logfile=None ):
                 re = re / pars['Num_iter_per_show']
                 malis_cls = malis_cls / pars['Num_iter_per_show']
                 malis_eng = malis_eng / pars['Num_iter_per_show']
-                lc.append_train_rand_error( re )
                 lc.append_train_malis_cls( malis_cls )
                 lc.append_train_malis_eng( malis_eng )
 
