@@ -370,6 +370,7 @@ class ConfigInputImage(ConfigImage):
 
         # preprocessing
         pp_types = config.get(sec_name, 'pp_types').split(',')
+        assert self.data.shape[0]==1 and self.data.ndim==4
         for c in xrange( self.data.shape[0] ):
             self.data[c,:,:,:] = self._preprocess(self.data[c,:,:,:], pp_types[c])
 
@@ -390,7 +391,7 @@ class ConfigInputImage(ConfigImage):
             vol3d -= vol3d.min()
             vol3d = vol3d / vol3d.max()
             vol3d = vol3d * 2 - 1
-        elif 'none' == pp_type or "None" in pp_type:
+        elif 'none' in pp_type or "None" in pp_type:
             return vol3d
         else:
             raise NameError( 'invalid preprocessing type' )

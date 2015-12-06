@@ -181,34 +181,6 @@ def boundary_mirror( arr, fov ):
             bf[c,z,:,:] = _mirror2d(bf[c, z, l[1]:b[1], l[2]:b[2]], bf[c,z,:,:], fov[1:])
     return bf
 
-#@autojit(nopython=True)
-def fill_boundary_holes( lbl ):
-    """
-    separate the contacting segments with boundaries.
-    """
-    assert(lbl.ndim==3 or lbl.ndim==2)
-    original_shape = lbl.shape
-    if lbl.ndim==2:
-        lbl = np.reshape(lbl, newshape = (1,)+lbl.shape)
-
-    for z in xrange( lbl.shape[0] ):
-        for y in xrange( lbl.shape[1]-1 ):
-            for x in xrange( lbl.shape[2] ):
-                if lbl[z,y,x]>0 and \
-                    lbl[z,y,x]!=lbl[z,y+1,x] and \
-                    lbl[z,y+1,x]>0:
-                        lbl[z, y,   x] = 0
-                        lbl[z, y+1, x] = 0
-
-        for y in xrange( lbl.shape[1] ):
-            for x in xrange( lbl.shape[2]-1 ):
-                    if lbl[z,y,x]>0 and \
-                        lbl[z,y,x]!=lbl[z,y,x+1] and \
-                        lbl[z,y,x+1]>0:
-                        lbl[z, y, x  ] = 0
-                        lbl[z, y, x+1] = 0
-    lbl = lbl.reshape( original_shape )
-
 def make_continuous( d , dtype='float32'):
     """
     make the dictionary arrays continuous.
