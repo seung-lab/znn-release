@@ -122,14 +122,16 @@ class CLearnCurve:
         self.tt_it.append(it)
         self.tt_err.append(err)
         self.tt_cls.append(cls)
+        self._append_test_rand_error( re )
 
-    def append_train(self, it, err, cls):
+    def append_train(self, it, err, cls, re):
         # add a training result
         self.tn_it.append(it)
         self.tn_err.append(err)
         self.tn_cls.append(cls)
+        self._append_train_rand_error( re )
 
-    def append_train_rand_error( self, re ):
+    def _append_train_rand_error( self, re ):
         while len( self.tn_re ) < len(self.tn_it)-1:
             # fill with nan
             self.tn_re.append( np.nan )
@@ -147,7 +149,7 @@ class CLearnCurve:
             self.tn_me.append( np.nan )
         self.tn_me.append( me )
 
-    def append_test_rand_error( self, re ):
+    def _append_test_rand_error( self, re ):
         while len( self.tt_re ) < len(self.tt_it)-1:
             self.tt_re.append( np.nan )
         self.tt_re.append( re )
@@ -305,18 +307,18 @@ class CLearnCurve:
         f.create_dataset('/train/it',  data=self.tn_it )
         f.create_dataset('/train/err', data=self.tn_err)
         f.create_dataset('/train/cls', data=self.tn_cls)
+        f.create_dataset('/train/re',  data=self.tn_re )
 
         if pars['is_malis'] :
-            f.create_dataset('/train/re',  data=self.tn_re )
             f.create_dataset('/train/mc',  data=self.tn_mc )
             f.create_dataset('/train/me',  data=self.tn_me )
 
         f.create_dataset('/test/it',   data=self.tt_it )
         f.create_dataset('/test/err',  data=self.tt_err)
         f.create_dataset('/test/cls',  data=self.tt_cls)
+        f.create_dataset('/test/re',   data = self.tt_re )
 
         if pars['is_malis'] :
-            f.create_dataset('/test/re',   data = self.tt_re )
             f.create_dataset('/test/mc',   data = self.tt_mc )
             f.create_dataset('/test/me',   data = self.tt_me )
 

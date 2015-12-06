@@ -16,14 +16,16 @@ def _single_test(net, pars, sample):
 
     # cost function and accumulate errors
     props, err, grdts = pars['cost_fn']( props, lbl_outs )
+    # pixel classification error
     cls = cost_fn.get_cls(props, lbl_outs)
+    # rand error
+    re = pyznn.get_rand_error(props.values()[0], lbl_outs.values()[0])
 
-    re = 0.0
     malis_cls = 0.0
     malis_eng = 0.0
+
     if pars['is_malis']:
         malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight( pars, props, lbl_outs )
-        re = rand_errors.values()[0]
         # dictionary of malis classification error
         dmc, dme = utils.get_malis_cost( props, lbl_outs, malis_weights )
         malis_cls = dmc.values()[0]
@@ -72,8 +74,7 @@ def znn_test(net, pars, samples, vn, it, lc):
     mc  = mc  / test_num
     me  = me  / test_num
     # update the learning curve
-    lc.append_test( it, err, cls )
-    lc.append_test_rand_error( re )
+    lc.append_test( it, err, cls, re )
     lc.append_test_malis_cls( mc )
     lc.append_test_malis_eng( me )
 
