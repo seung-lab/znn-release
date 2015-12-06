@@ -11,6 +11,7 @@ import utils
 import zstatistics
 import os
 import numpy as np
+from core import pyznn
 
 def main( conf_file='config.cfg', logfile=None ):
     #%% parameters

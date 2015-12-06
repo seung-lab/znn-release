@@ -541,7 +541,7 @@ def malis_weight(pars, props, lbls):
                 merr, serr, re, num_non_bdr, \
                     tp, tn, fp, fn = zalis( prop, lbl, \
                                             1.0, 0.0, is_frac_norm)
-                print "tp: ",tp," tn: ",tn, "  fp:",fp,"  fn:",fn
+                #print "tp: ",tp," tn: ",tn, "  fp:",fp,"  fn:",fn
             mw = merr + serr
             # normalization
             if 'num' in pars['malis_norm_type']:

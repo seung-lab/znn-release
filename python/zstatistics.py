@@ -117,7 +117,7 @@ class CLearnCurve:
         else:
             return int(str_num)
 
-    def append_test(self, it, err, cls):
+    def append_test(self, it, err, cls, re):
         # add a test result
         self.tt_it.append(it)
         self.tt_err.append(err)

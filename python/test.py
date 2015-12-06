@@ -6,6 +6,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import utils
 import cost_fn
 import numpy as np
+from core import pyznn
 
 def _single_test(net, pars, sample):
     vol_ins, lbl_outs, msks, wmsks = sample.get_random_sample()
