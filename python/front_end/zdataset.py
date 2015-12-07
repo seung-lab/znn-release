@@ -99,10 +99,10 @@ class CDataset(object):
         loc = self.center + dev
 
         # extract volume
-        subvol  = data[ :,
-            loc[0]-self.patch_margin_low[0]  : loc[0] + self.patch_margin_high[0]+1,\
-            loc[1]-self.patch_margin_low[1]  : loc[1] + self.patch_margin_high[1]+1,\
-            loc[2]-self.patch_margin_low[2]  : loc[2] + self.patch_margin_high[2]+1]
+        subvol  = np.copy(data[ :,
+                                loc[0]-self.patch_margin_low[0]  : loc[0] + self.patch_margin_high[0]+1,\
+                                loc[1]-self.patch_margin_low[1]  : loc[1] + self.patch_margin_high[1]+1,\
+                                loc[2]-self.patch_margin_low[2]  : loc[2] + self.patch_margin_high[2]+1])
 
         return subvol
 
@@ -417,6 +417,11 @@ class ConfigInputImage(ConfigImage):
         assert(subvol.ndim==4)
         return subvol
 
+    def get_dataset(self):
+        """
+        return complete volume for examination
+        """
+        return self.data
 
 class ConfigOutputLabel(ConfigImage):
     '''
@@ -473,6 +478,12 @@ class ConfigOutputLabel(ConfigImage):
             submsk = np.array([])
 
         return sublbl, submsk
+
+    def get_dataset(self):
+        """
+        return the whole label for examination
+        """
+        return self.data
 
     def _patch_rebalance(self, lbl):
         """

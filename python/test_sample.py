@@ -56,6 +56,10 @@ def main( conf_file='config.cfg', logfile=None ):
     print "\n\ncreate test samples..."
     smp_tst = zsample.CSamples(config, pars, pars['test_range'],  net, outsz, logfile)
 
+    # save samples raw and label data for examination
+    smp_trn.save_dataset()
+    smp_tst.save_dataset()
+
     # initialization
     elapsed = 0
     err = 0.0 # cost energy
@@ -72,10 +76,6 @@ def main( conf_file='config.cfg', logfile=None ):
     start = time.time()
     total_time = 0.0
     print "start from ", iter_last+1
-
-    #Saving initialized network
-    if iter_last+1 == 1:
-        znetio.save_network(net, pars['train_save_net'], num_iters=0)
 
     for i in xrange(iter_last+1, pars['Max_iter']+1):
         # iteration id

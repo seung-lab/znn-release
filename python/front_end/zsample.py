@@ -29,6 +29,7 @@ class CSample(object):
         # Parameter object (dict)
         self.pars = pars
 
+        self.sid = sample_id
         # Name of the sample within the configuration file
         # Also used for logging
         self.sec_name = "sample%d" % sample_id
@@ -77,6 +78,11 @@ class CSample(object):
 
         #Filename for log
         self.log = log
+
+    def get_dataset(self):
+        raw = self.ins.values()[0].get_dataset()
+        lbl = self.outs.values()[0].get_dataset()
+        return raw, lbl
 
     def _prepare_training(self):
         """
@@ -520,6 +526,14 @@ class CSamples(object):
             else:
                 raise NameError('invalid output type')
             self.samples.append( sample )
+
+    def save_dataset(self):
+        from emirt.emio import imsave
+        for sample in self.samples:
+            # save sample images
+            raw, lbl = sample.get_dataset()
+            imsave(raw, '../testsuit/sample/sample_{}_raw.h5'.format(sample.sid))
+            imsave(lbl, '../testsuit/sample/sample_{}_lbl.h5'.format(sample.sid))
 
     def get_random_sample(self):
         '''Fetches a random sample from a random CSample object'''
