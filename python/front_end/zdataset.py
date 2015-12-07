@@ -14,10 +14,12 @@ import utils
 
 class CDataset(object):
 
-    def __init__(self, pars, data, outsz, setsz ):
+    def __init__(self, pars, data, outsz, setsz, fov ):
 
         # main data
         self.data = data
+        # field of view
+        self.fov = fov
         # Desired size of subvolumes returned by this instance
         self.patch_shape = np.asarray(setsz[-3:])
 
@@ -44,8 +46,6 @@ class CDataset(object):
         # center coordinate
         # -1 accounts for python indexing
         self.center = (self.volume_shape-1) / 2
-        # field of view
-        self.fov = self.patch_shape[-3:] - self.net_output_patch_shape[-3:] + 1
 
         #Number of voxels with index lower than the center
         # within a subvolume (used within get_dev_range, and
@@ -99,10 +99,10 @@ class CDataset(object):
         loc = self.center + dev
 
         # extract volume
-        subvol  = data[ :,
+        subvol  = np.copy(data[ :,
             loc[0]-self.patch_margin_low[0]  : loc[0] + self.patch_margin_high[0]+1,\
             loc[1]-self.patch_margin_low[1]  : loc[1] + self.patch_margin_high[1]+1,\
-            loc[2]-self.patch_margin_low[2]  : loc[2] + self.patch_margin_high[2]+1]
+            loc[2]-self.patch_margin_low[2]  : loc[2] + self.patch_margin_high[2]+1])
 
         return subvol
 
@@ -255,7 +255,8 @@ class ConfigImage(CDataset):
     (in voxels) from the center.
     """
 
-    def __init__(self, config, pars, sec_name, outsz, setsz, is_forward=False):
+    def __init__(self, config, pars, sec_name, \
+                 outsz, setsz, fov, is_forward=False):
         """
         Parameters
         ----------
@@ -284,7 +285,7 @@ class ConfigImage(CDataset):
             arr = arr.reshape( (1,) + arr.shape )
 
         # initialize the dataset
-        CDataset.__init__(self, pars, arr, outsz, setsz)
+        CDataset.__init__(self, pars, arr, outsz, setsz, fov)
 
 
     def _center_crop(self, vol, shape):
@@ -364,9 +365,10 @@ class ConfigInputImage(ConfigImage):
     by ZNN neural networks
     '''
 
-    def __init__(self, config, pars, sec_name, outsz, setsz, is_forward=False ):
+    def __init__(self, config, pars, sec_name, \
+                 outsz, setsz, fov, is_forward=False ):
         ConfigImage.__init__(self, config, pars, sec_name, \
-                             outsz, setsz, is_forward=is_forward )
+                             outsz, setsz, fov, is_forward=is_forward )
 
         # preprocessing
         pp_types = config.get(sec_name, 'pp_types').split(',')
@@ -424,8 +426,9 @@ class ConfigOutputLabel(ConfigImage):
     contain masks for sparsely-labelled training
     '''
 
-    def __init__(self, config, pars, sec_name, outsz, setsz ):
-        ConfigImage.__init__(self, config, pars, sec_name, outsz, setsz)
+    def __init__(self, config, pars, sec_name, outsz, setsz, fov ):
+        ConfigImage.__init__(self, config, pars, sec_name, \
+                             outsz, setsz, fov)
 
         # record and use parameters
         self.pars = pars
