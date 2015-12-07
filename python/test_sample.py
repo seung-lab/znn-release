@@ -7,6 +7,8 @@ from front_end import *
 import utils
 import os
 import emirt
+import time
+import numpy as np
 
 def main( conf_file='config.cfg', logfile=None ):
     #%% parameters
@@ -20,20 +22,22 @@ def main( conf_file='config.cfg', logfile=None ):
         logfile = zlog.make_logfile_name( pars )
 
     #%% create and initialize the network
+    iter_last = 0
     if pars['train_load_net'] and os.path.exists(pars['train_load_net']):
         print "loading network..."
         net = znetio.load_network( pars )
     else:
-        if pars['train_seed_net'] and os.path.exists(pars['train_seed_net']):
-            print "seeding network..."
-            net = znetio.load_network( pars, is_seed=True )
-        else:
-            print "initializing network..."
-            net = znetio.init_network( pars )
-        iter_last = lc.get_last_it()
+        print "initializing network..."
+        net = znetio.init_network( pars )
 
     # show field of view
-    print "field of view: ", net.get_fov()
+    fov = np.asarray(net.get_fov(), dtype='uint32')
+    margin_low = (fov-1)/2
+    margin_high = fov/2
+
+    print "field of view: ", fov
+    print "low margin: ", margin_low
+    print "high margin: ", margin_high
 
     # total voxel number of output volumes
     vn = utils.get_total_num(net.get_outputs_setsz())
@@ -81,15 +85,27 @@ def main( conf_file='config.cfg', logfile=None ):
         vol_ins, lbl_outs, msks, wmsks = smp_trn.get_random_sample()
 
         # get the input and output image
-        inimg = vol_ins.values()[2,0,:,:]
-        oulbl = vol_outs.values()[2,0,:,:]
+        inimg = vol_ins.values()[0][0,0,:,:]
+        oulbl = lbl_outs.values()[0][2,0,:,:]
 
         # combine them to a RGB image
-        rgb = np.tile(inimg, (3,1,1), dtype='uint8')
-        rgb[0,:,:][oulbl==0] = 128
-        # save the images
-        emirt.emio.imsave(inimg, "../experiments/testsample/rgb_raw_lbl_{}.tif".format(i))
+        # rgb = np.tile(inimg, (3,1,1))
+        rgb = np.zeros((3,)+oulbl.shape, dtype='uint8')
+        # transform to 0-255
+        inimg -= inimg.min()
+        inimg = (inimg / inimg.max()) * 255
+        inimg = 255 - inimg
+        inimg = inimg.astype( 'uint8')
+        inimg = inimg[47:-47, 47:-47]
 
+        oulbl = ((1-oulbl)*255).astype('uint8')
+
+        #rgb[0,:,:] = inimg[margin_low[1]:-margin_high[1], margin_low[2]:-margin_high[2]]
+        rgb[0,:,:] = inimg
+        rgb[1,:,:] = oulbl
+        # save the images
+        emirt.emio.imsave(rgb, "../testsuit/sample/rgb_{}.tif".format(i))
+        emirt.emio.imsave(inimg, "../testsuit/sample/rgb_{}_raw.tif".format(i))
 if __name__ == '__main__':
     """
     usage

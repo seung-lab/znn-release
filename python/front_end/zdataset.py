@@ -45,7 +45,10 @@ class CDataset(object):
         # -1 accounts for python indexing
         self.center = (self.volume_shape-1) / 2
         # field of view
-        self.fov = self.patch_shape[-3:] - self.net_output_patch_shape[-3:] + 1
+        if 'aff' in self.pars['out_type']:
+            self.fov = self.patch_shape[-3:]-1 - self.net_output_patch_shape[-3:] + 1
+        else:
+            self.fov = self.patch_shape[-3:] - self.net_output_patch_shape[-3:] + 1
 
         #Number of voxels with index lower than the center
         # within a subvolume (used within get_dev_range, and
