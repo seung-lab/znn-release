@@ -23,10 +23,6 @@ def main( conf_file='config.cfg', logfile=None ):
     if pars['train_load_net'] and os.path.exists(pars['train_load_net']):
         print "loading network..."
         net = znetio.load_network( pars )
-        # load existing learning curve
-        lc = zstatistics.CLearnCurve( pars['train_load_net'] )
-        # the last iteration we want to continue training
-        iter_last = lc.get_last_it()
     else:
         if pars['train_seed_net'] and os.path.exists(pars['train_seed_net']):
             print "seeding network..."
@@ -34,8 +30,6 @@ def main( conf_file='config.cfg', logfile=None ):
         else:
             print "initializing network..."
             net = znetio.init_network( pars )
-        # initalize a learning curve
-        lc = zstatistics.CLearnCurve()
         iter_last = lc.get_last_it()
 
     # show field of view
