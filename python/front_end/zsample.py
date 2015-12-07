@@ -42,6 +42,8 @@ class CSample(object):
             self.setsz_ins  = setsz_ins
             self.setsz_outs = setsz_outs
 
+        fov = np.asarray(net.get_fov(), dtype='uint32')
+
         # Loading input images
         print "\ncreate input image class..."
         self.imgs = dict()
@@ -51,7 +53,7 @@ class CSample(object):
             imid = config.getint(self.sec_name, name)
             imsec_name = "image%d" % (imid,)
             self.ins[name] = ConfigInputImage( config, pars, imsec_name, \
-                                      outsz, setsz_in, is_forward=is_forward )
+                                      outsz, setsz_in, fov, is_forward=is_forward )
             self.imgs[name] = self.ins[name].data
 
         print "\ncreate label image class..."
@@ -65,7 +67,8 @@ class CSample(object):
             #Finding the section of the config file
             imid = config.getint(self.sec_name, name)
             imsec_name = "label%d" % (imid,)
-            self.outs[name] = ConfigOutputLabel( config, pars, imsec_name, outsz, setsz_out)
+            self.outs[name] = ConfigOutputLabel( config, pars, imsec_name, \
+                                                 outsz, setsz_out, fov)
             self.lbls[name] = self.outs[name].data
             self.msks[name] = self.outs[name].msk
 
