@@ -485,21 +485,6 @@ class ConfigOutputLabel(ConfigImage):
         """
         return self.data
 
-    def _patch_rebalance(self, lbl):
-        """
-        rebalance based on output patch
-        """
-        weight = np.empty(lbl.shape, self.pars['dtype'])
-        for c in xrange(lbl.shape[0]):
-            # wp, wz = self._get_balance_weight( lbl[c,:,:,:] )
-            wp, wz = self._get_balance_weight_v1( lbl[c,:,:,:] )
-            weight[c,:,:,:][lbl[c,:,:,:] > 0] = wp
-            weight[c,:,:,:][lbl[c,:,:,:] ==0] = wz
-
-        # keep the weight mask separately
-        # (from the label mask [self.msk])
-        return weight
-
     def get_candidate_loc( self, low, high ):
         """
         find the candidate location of subvolume
