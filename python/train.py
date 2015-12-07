@@ -129,14 +129,13 @@ def main( conf_file='config.cfg', logfile=None ):
             else:
                 err = err / num_mask_voxels / pars['Num_iter_per_show']
                 cls = cls / num_mask_voxels / pars['Num_iter_per_show']
-
+            re = re / pars['Num_iter_per_show']
             lc.append_train(i, err, cls, re)
 
             # time
             elapsed = total_time / pars['Num_iter_per_show']
 
             if pars['is_malis']:
-                re = re / pars['Num_iter_per_show']
                 malis_cls = malis_cls / pars['Num_iter_per_show']
                 malis_eng = malis_eng / pars['Num_iter_per_show']
                 lc.append_train_malis_cls( malis_cls )
