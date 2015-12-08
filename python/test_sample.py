@@ -88,6 +88,7 @@ def main( conf_file='config.cfg', logfile=None ):
         inimg = vol_ins.values()[0][0,0,:,:]
         oulbl = lbl_outs.values()[0][2,0,:,:]
 
+        inimg = np.copy(inimg)
         # combine them to a RGB image
         # rgb = np.tile(inimg, (3,1,1))
         rgb = np.zeros((3,)+oulbl.shape, dtype='uint8')

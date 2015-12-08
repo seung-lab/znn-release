@@ -12,6 +12,7 @@ import numpy as np
 import emirt
 import utils
 from zdataset import *
+import os
 
 class CSample(object):
     """
@@ -532,8 +533,14 @@ class CSamples(object):
         for sample in self.samples:
             # save sample images
             raw, lbl = sample.get_dataset()
-            imsave(raw, '../testsuit/sample/sample_{}_raw.h5'.format(sample.sid))
-            imsave(lbl, '../testsuit/sample/sample_{}_lbl.h5'.format(sample.sid))
+            fname = '../testsuit/sample/sample_{}_raw.h5'.format(sample.sid)
+            if os.path.exists( fname ):
+                os.remove( fname )
+            imsave(raw, fname)
+            fname = '../testsuit/sample/sample_{}_lbl.h5'.format(sample.sid)
+            if os.path.exists( fname ):
+                os.remove( fname )
+            imsave(lbl, fname )
 
     def get_random_sample(self):
         '''Fetches a random sample from a random CSample object'''
