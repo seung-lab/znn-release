@@ -221,7 +221,13 @@ class CLearnCurve:
         import os
         import shutil
         root, ext = os.path.splitext(fname)
-        fname = root + '_{}.h5'.format( self.tn_it[-1] )
+
+        if len(self.tn_it) > 0:
+            fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
+        else:
+            fname = root + '_statistics_0.h5'
+        if os.path.exists(fname):
+            os.remove( fname )
 
         # save variables
         import h5py

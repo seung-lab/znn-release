@@ -84,9 +84,8 @@ def data_aug_transform(data, rft):
         data : the transformed array
         """
 
-        if np.size(rft)==0:
+        if np.size(data)==0 or np.size(rft)==0:
             return data
-        # transform every pair of input and label volume
 
         #z-reflection
         if rft[0]:
