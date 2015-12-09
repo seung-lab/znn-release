@@ -13,6 +13,7 @@ import emirt
 import utils
 from zdataset import *
 import os
+import h5py
 
 class CSample(object):
     """
@@ -168,6 +169,9 @@ class CSample(object):
             # weight of positive and zero
             wp = 0.5 * num / pn
             wz = 0.5 * num / zn
+
+            print "wp: ", wp
+            print "wz: ", wz
             return wp, wz
 
     # ZNNv1 uses different normalization
@@ -332,9 +336,12 @@ class CAffinitySample(CSample):
         make the nonboundary and boundary region have same contribution of training.
         taffs: dict, key is layer name, value is true affinity output
         """
-        self.zwps = self.zwzs = dict()
-        self.ywps = self.ywzs = dict()
-        self.xwps = self.xwzs = dict()
+        self.zwps = dict()
+        self.zwzs = dict()
+        self.ywps = dict()
+        self.ywzs = dict()
+        self.xwps = dict()
+        self.xwzs = dict()
 
         if self.pars['is_rebalance'] or self.pars['is_patch_rebalance']:
             for k, aff in taffs.iteritems():
@@ -364,6 +371,12 @@ class CAffinitySample(CSample):
             w[1,:,:,:][subtaff[1,:,:,:]==0] = self.ywzs[k]
             w[2,:,:,:][subtaff[2,:,:,:]==0] = self.xwzs[k]
             subwmsks[k] = w
+
+            if self.pars['is_debug']:
+                print "rebalance weight: ", w
+                print "subtaff: ", subtaff
+                print "positive weight: ", self.xwps[k]
+                print "zero weight: ", self.xwzs[k]
         return subwmsks
 
     def get_random_sample(self):
@@ -528,7 +541,21 @@ class CSamples(object):
                 raise NameError('invalid output type')
             self.samples.append( sample )
 
-    def save_dataset(self):
+        if self.pars['is_debug']:
+            # save the candidate locations
+            self._save_dataset
+            self._save_candidate_locs()
+
+    def _save_candidate_locs(self):
+        for sample in self.samples:
+            fname = '../testsuit/sample/candidate_locs_{}.h5'.format(sample.sid)
+            if os.path.exists( fname ):
+                os.remove(fname)
+            f = h5py.File( fname, 'w' )
+            f.create_dataset('locs', data=sample.locs)
+            f.close()
+
+    def _save_dataset(self):
         from emirt.emio import imsave
         for sample in self.samples:
             # save sample images

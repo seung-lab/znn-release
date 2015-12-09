@@ -10,10 +10,15 @@ import emirt
 import time
 import numpy as np
 
-def main( conf_file='config.cfg', logfile=None ):
+def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
     #%% parameters
     print "reading config parameters..."
     config, pars = zconfig.parser( conf_file )
+
+    # random seed
+    if pars['is_debug']:
+        # use fixed index
+        np.random.seed(1)
 
     if pars.has_key('logging') and pars['logging']:
         print "recording configuration file..."
@@ -56,10 +61,6 @@ def main( conf_file='config.cfg', logfile=None ):
     print "\n\ncreate test samples..."
     smp_tst = zsample.CSamples(config, pars, pars['test_range'],  net, outsz, logfile)
 
-    # save samples raw and label data for examination
-    smp_trn.save_dataset()
-    smp_tst.save_dataset()
-
     # initialization
     elapsed = 0
     err = 0.0 # cost energy
@@ -87,8 +88,8 @@ def main( conf_file='config.cfg', logfile=None ):
         # get the input and output image
         inimg = vol_ins.values()[0][0,0,:,:]
         oulbl = lbl_outs.values()[0][2,0,:,:]
+        wmsk  = wmsks.values()[0][2,0,:,:]
 
-        inimg = np.copy(inimg)
         # combine them to a RGB image
         # rgb = np.tile(inimg, (3,1,1))
         rgb = np.zeros((3,)+oulbl.shape, dtype='uint8')
@@ -100,13 +101,20 @@ def main( conf_file='config.cfg', logfile=None ):
         inimg = inimg[47:-47, 47:-47]
 
         oulbl = ((1-oulbl)*255).astype('uint8')
-
         #rgb[0,:,:] = inimg[margin_low[1]:-margin_high[1], margin_low[2]:-margin_high[2]]
         rgb[0,:,:] = inimg
         rgb[1,:,:] = oulbl
+
+        # rebalance weight
+        print "rebalance weight: ", wmsk
+        wmsk -= wmsk.min()
+        wmsk = (wmsk / wmsk.max()) *255
+        wmsk = wmsk.astype('uint8')
         # save the images
-        emirt.emio.imsave(rgb, "../testsuit/sample/rgb_{}.tif".format(i))
-        emirt.emio.imsave(inimg, "../testsuit/sample/rgb_{}_raw.tif".format(i))
+        fdir = "../testsuit/sample/"
+        emirt.emio.imsave(rgb, fdir + "iter_{}_rgb.tif".format(i))
+        emirt.emio.imsave(inimg, fdir + "iter_{}_raw.tif".format(i))
+        emirt.emio.imsave(wmsk, fdir + "iter_{}_msk.tif".format(i))
 if __name__ == '__main__':
     """
     usage

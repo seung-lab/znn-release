@@ -17,6 +17,11 @@ def main( conf_file='config.cfg', logfile=None ):
     print "reading config parameters..."
     config, pars = zconfig.parser( conf_file )
 
+    # random seed
+    if pars['is_debug']:
+        # use fixed index
+        np.random.seed(1)
+
     if pars.has_key('logging') and pars['logging']:
         print "recording configuration file..."
         zlog.record_config_file( pars )

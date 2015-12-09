@@ -143,6 +143,11 @@ def parser( conf_fname ):
         pars['is_stdio'] = config.getboolean('parameters', 'is_stdio')
     else:
         pars['is_stdio'] = False
+    # debug mode
+    if config.has_option('parameters', 'is_debug'):
+        pars['is_debug'] = config.getboolean('parameters', 'is_debug')
+    else:
+        pars['is_debug'] = False
 
     #Which Cost Function to Use (as a string)
     pars['cost_fn_str'] = config.get('parameters', 'cost_fn')

@@ -22,6 +22,8 @@ class CDataset(object):
         self.fov = fov
         # Desired size of subvolumes returned by this instance
         self.patch_shape = np.asarray(setsz[-3:])
+        if pars['is_debug']:
+            print "patch shape: ", self.patch_shape
 
         # (see check_patch_bounds, or _calculate_patch_bounds)
         self.net_output_patch_shape = outsz
@@ -55,55 +57,6 @@ class CDataset(object):
         # within a subvolume (used within get_dev_range, and
         # get_sub_volume)
         self.patch_margin_high = self.patch_shape / 2
-
-    def get_dev_range(self):
-        """
-        Subvolumes can be specified in terms of 'deviation' from the center voxel
-        (see get_subvolume below)
-
-        This function specifies the valid range of those deviations in terms of
-        xyz coordinates
-        """
-
-        # Number of voxels within index lower than the center
-        volume_margin_low  = (self.volume_shape - 1) / 2
-        # Number of voxels within index higher than the center
-        volume_margin_high = self.volume_shape / 2
-
-        lower_bound  = -( volume_margin_low - self.patch_margin_low )
-        upper_bound  =   volume_margin_high - self.patch_margin_high
-
-        print "deviation range:     ", lower_bound, "--", upper_bound
-
-        return lower_bound, upper_bound
-
-    def get_subvolume(self, dev, data=None):
-        """
-        Returns a 4d subvolume of the data volume, specified
-        by deviation from the center voxel.
-
-        Can also retrieve subvolume of a passed 4d array
-
-        Parameters
-        ----------
-        dev : the deviation from the whole volume center
-
-        Return
-        -------
-        subvol : the transformed sub volume.
-        """
-
-        if data is None:
-            data = self.data
-
-        loc = self.center + dev
-
-        # extract volume
-        subvol  = np.copy(data[ :,
-            loc[0]-self.patch_margin_low[0]  : loc[0] + self.patch_margin_high[0]+1,\
-            loc[1]-self.patch_margin_low[1]  : loc[1] + self.patch_margin_high[1]+1,\
-            loc[2]-self.patch_margin_low[2]  : loc[2] + self.patch_margin_high[2]+1])
-        return subvol
 
     def _check_patch_bounds(self):
         if self.patch_bounds is None:
@@ -358,6 +311,58 @@ class ConfigImage(CDataset):
             ret.append( vol )
         return ret
 
+    def get_dev_range(self):
+        """
+        Subvolumes can be specified in terms of 'deviation' from the center voxel
+        (see get_subvolume below)
+
+        This function specifies the valid range of those deviations in terms of
+        xyz coordinates
+        """
+
+        # Number of voxels within index lower than the center
+        volume_margin_low  = (self.volume_shape - 1) / 2
+        # Number of voxels within index higher than the center
+        volume_margin_high = self.volume_shape / 2
+
+        lower_bound  = -( volume_margin_low - self.patch_margin_low )
+        upper_bound  =   volume_margin_high - self.patch_margin_high
+
+        if self.pars['is_debug']:
+            print "vlome margin low: ", volume_margin_low
+            print "patch_margin_low: ", self.patch_margin_low
+            print "deviation range:     ", lower_bound, "--", upper_bound
+
+        return lower_bound, upper_bound
+
+    def get_subvolume(self, dev, data=None):
+        """
+        Returns a 4d subvolume of the data volume, specified
+        by deviation from the center voxel.
+
+        Can also retrieve subvolume of a passed 4d array
+
+        Parameters
+        ----------
+        dev : the deviation from the whole volume center
+
+        Return
+        -------
+        subvol : the transformed sub volume.
+        """
+
+        if data is None:
+            data = self.data
+
+        loc = self.center + dev
+
+        # extract volume
+        subvol  = np.copy(data[ :,
+            loc[0]-self.patch_margin_low[0]  : loc[0] + self.patch_margin_high[0]+1,\
+            loc[1]-self.patch_margin_low[1]  : loc[1] + self.patch_margin_high[1]+1,\
+            loc[2]-self.patch_margin_low[2]  : loc[2] + self.patch_margin_high[2]+1])
+        return subvol
+
 class ConfigInputImage(ConfigImage):
     '''
     Subclass of ConfigImage which represents the type of input data seen
@@ -376,9 +381,13 @@ class ConfigInputImage(ConfigImage):
             self.data[c,:,:,:] = self._preprocess(self.data[c,:,:,:], pp_types[c])
 
         if pars['is_bd_mirror']:
+            if self.pars['is_debug']:
+                print "data shape before mirror: ", self.data.shape
             self.data = utils.boundary_mirror(self.data, self.fov)
             #Modifying the deviation boundaries for the modified dataset
             self.calculate_sizes( )
+            if self.pars['is_debug']:
+                print "data shape after mirror: ", self.data.shape
 
     def _preprocess( self, vol3d , pp_type ):
 
