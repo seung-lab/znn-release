@@ -99,11 +99,10 @@ class CDataset(object):
         loc = self.center + dev
 
         # extract volume
-        subvol  = data[ :,
-                        loc[0]-self.patch_margin_low[0]  : loc[0] + self.patch_margin_high[0]+1,\
-                        loc[1]-self.patch_margin_low[1]  : loc[1] + self.patch_margin_high[1]+1,\
-                        loc[2]-self.patch_margin_low[2]  : loc[2] + self.patch_margin_high[2]+1]
-
+        subvol  = np.copy(data[ :,
+            loc[0]-self.patch_margin_low[0]  : loc[0] + self.patch_margin_high[0]+1,\
+            loc[1]-self.patch_margin_low[1]  : loc[1] + self.patch_margin_high[1]+1,\
+            loc[2]-self.patch_margin_low[2]  : loc[2] + self.patch_margin_high[2]+1])
         return subvol
 
     def _check_patch_bounds(self):

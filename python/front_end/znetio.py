@@ -10,6 +10,7 @@ import os.path, shutil
 from utils import assert_arglist
 
 np_array_fields = ("filters","biases","size","stride")
+
 def save_opts(opts, filename):
     #Note: opts is a tuple of lists of dictionaries
     f = h5py.File(filename, 'w')
@@ -70,11 +71,7 @@ def save_opts(opts, filename):
 
     f.close()
 
-def save_network(network, filename, num_iters=None):
-    '''Saves a network under an h5 file. Appends the number
-    of iterations if passed, and updates a "current" file with
-    the most recent (uncorrupted) information'''
-
+def get_net_fname( filename, num_iters=None ):
     # get directory name from file name
     archive_directory_name = os.path.dirname( filename )
 #    filename = os.path.basename( filename )
@@ -89,12 +86,15 @@ def save_network(network, filename, num_iters=None):
 
     if num_iters is not None:
         filename = "{}{}{}{}".format(root, '_', num_iters, ext)
+    return filename, filename_current
+
+def save_network(network, filename):
+    '''Saves a network under an h5 file. Appends the number
+    of iterations if passed, and updates a "current" file with
+    the most recent (uncorrupted) information'''
 
     print "save as ", filename
     save_opts(network.get_opts(), filename)
-
-    # Overwriting most current file with completely saved version
-    shutil.copyfile(filename, filename_current)
 
 def load_opts(filename):
     '''Loads a pyopt structure (tuple of list of dicts) from a stored h5 file'''

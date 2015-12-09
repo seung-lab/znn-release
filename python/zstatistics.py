@@ -222,7 +222,7 @@ class CLearnCurve:
         import os
         import shutil
         root, ext = os.path.splitext(fname)
-        if len(self.tn_it)>0:
+        if len(self.tn_it) > 0:
             fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
         else:
             fname = root + '_statistics_0.h5'
