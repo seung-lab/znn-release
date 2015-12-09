@@ -234,33 +234,29 @@ def dict_mul(das,dbs):
             ret[name] = a
     return ret
 
-def dict_save( d, fname ):
-    """
-    save a dictionary as a hdf5 file
-    """
-    import h5py
-
-    f = h5py.File( fname, 'w' )
-    for key, value in d.iteritems():
-        f.create_dataset(key, data=value)
-    f.close()
-
-def save_malis( mws, fname_save_net, num_iters ):
+def save_malis( mws, fname ):
     """
     save malis weights
     the weights was stored in a dictionary
     """
-    import os
-    root, ext = os.path.splitext( fname_save_net )
-    fname = root + "_malis_weights_{}.h5".format( num_iters )
-    dict_save( mws, fname )
+    assert len(mws.keys()) == 1
+    import h5py
+    f = h5py.File( fname, 'a' )
+    f.create_dataset('/processing/znn/train/gradient/malis_weight', \
+                     data=mws.values()[0])
+    f.close()
 
-    # current file name
-    current_fname = root + "_malis_weights_current.h5"
-    if os.path.exists( current_fname ):
-        os.remove( current_fname )
-        import shutil
-        shutil.copy( fname, current_fname )
+def save_rebalance( rws, fname ):
+    """
+    save rebalance weights
+    the weights was stored in a dictionary
+    """
+    assert len(rws.keys())==1
+    import h5py
+    f = h5py.File( fname, 'a' )
+    f.create_dataset('/processing/znn/train/gradient/rebalance_weight', \
+                     data=rws.values()[0])
+    f.close()
 
 def get_malis_cls( props, lbl_outs, malis_weights ):
     ret = dict()

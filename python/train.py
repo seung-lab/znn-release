@@ -10,6 +10,7 @@ import test
 import utils
 import zstatistics
 import os
+import shutil
 
 def main( conf_file='config.cfg', logfile=None ):
     #%% parameters
@@ -75,8 +76,10 @@ def main( conf_file='config.cfg', logfile=None ):
 
     #Saving initialized network
     if iter_last+1 == 1:
-        znetio.save_network(net, pars['train_save_net'], num_iters=0)
-        lc.save( pars, 0.0 )
+        # get file name
+        fname, fname_current = znetio.get_net_fname( pars['train_save_net'], 0 )
+        znetio.save_network(net, fname)
+        lc.save( pars, fname )
 
     print "start training..."
     start = time.time()
@@ -116,7 +119,10 @@ def main( conf_file='config.cfg', logfile=None ):
 
         # test the net
         if i%pars['Num_iter_per_test']==0:
+            # time accumulation should skip the test
+            total_time += time.time() - start
             lc = test.znn_test(net, pars, smp_tst, vn, i, lc)
+            start = time.time()
 
         if i%pars['Num_iter_per_show']==0:
             # time
@@ -168,12 +174,14 @@ def main( conf_file='config.cfg', logfile=None ):
 
         if i%pars['Num_iter_per_save']==0:
             # get file name
-            filename, filename_current = znetio.get_net_fname( filename, num_iters )
+            filename, filename_current = znetio.get_net_fname( pars['train_save_net'], i )
             # save network
-            znetio.save_network(net, filename, filename_current)
-            lc.save( pars, elapsed )
-            if pars['is_malis']:
-                utils.save_malis(malis_weights,  pars['train_save_net'], num_iters=i)
+            znetio.save_network(net, filename )
+            lc.save( pars, filename, elapsed )
+            if pars['is_malis'] and pars['is_stdio']:
+                utils.save_malis(malis_weights, filename)
+            if pars['is_rebalance'] or pars['is_patch_rebalance']:
+                utils.save_rebalance(wmsks, filename)
 
             # Overwriting most current file with completely saved version
             shutil.copyfile(filename, filename_current)

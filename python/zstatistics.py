@@ -7,6 +7,8 @@ import numpy as np
 from matplotlib.pylab import plt
 from os import path
 
+stdpre = "/processing/znn/train/statistics"
+
 class CLearnCurve:
     def __init__(self, fname=None):
         if fname is None:
@@ -31,36 +33,33 @@ class CLearnCurve:
         # get the iteration number
         iter_num = self._get_iter_num(fname)
 
-        if 'statistics' not in fname:
-            # it is the network file name
-            fname = find_statistics_file_within_dir(fname)
         assert( path.exists(fname) )
         # read data
         import h5py
         # read into memory
         f = h5py.File(fname, 'r', driver='core')
-        self.tt_it  = list( f['/test/it'].value )
-        self.tt_err = list( f['/test/err'].value )
-        self.tt_cls = list( f['/test/cls'].value )
-        if '/test/re' in f:
-            self.tt_re = list( f['/test/re'].value )
+        self.tt_it  = list( f[stdpre + '/test/it'].value )
+        self.tt_err = list( f[stdpre + '/test/err'].value )
+        self.tt_cls = list( f[stdpre + '/test/cls'].value )
+        if stdpre+'/test/re' in f:
+            self.tt_re = list( f[stdpre + '/test/re'].value )
         else:
             self.tt_re = list()
-        if '/test/mc' in f:
-            self.tt_mc = list( f['/test/mc'].value )
+        if stdpre + '/test/mc' in f:
+            self.tt_mc = list( f[stdpre + '/test/mc'].value )
         else:
             self.tt_mc = list()
 
-        self.tn_it  = list( f['/train/it'].value )
-        self.tn_err = list( f['/train/err'].value )
-        self.tn_cls = list( f['/train/cls'].value )
-        if '/train/re' in f:
-            self.tn_re = list( f['/train/re'].value )
+        self.tn_it  = list( f[stdpre + '/train/it'].value )
+        self.tn_err = list( f[stdpre + '/train/err'].value )
+        self.tn_cls = list( f[stdpre + '/train/cls'].value )
+        if stdpre + '/train/re' in f:
+            self.tn_re = list( f[stdpre + '/train/re'].value )
         else:
             self.tn_re = list()
 
-        if '/train/mc' in f:
-            self.tn_mc = list( f['/train/mc'].value )
+        if stdpre + '/train/mc' in f:
+            self.tn_mc = list( f[stdpre + '/train/mc'].value )
         else:
             self.tn_mc = list()
         f.close()
@@ -99,7 +98,7 @@ class CLearnCurve:
             return None
         root, ext = path.splitext(fname)
         str_num = root.split('_')[-1]
-        if 'current' in str_num or 'statistics' in str_num:
+        if 'current' in str_num :
             # the last network
             return None
         else:
@@ -216,44 +215,45 @@ class CLearnCurve:
         plt.show()
         return
 
-    def save(self, pars, elapsed):
-        # get filename
-        fname = pars['train_save_net']
-        import os
-        import shutil
-        root, ext = os.path.splitext(fname)
-        if len(self.tn_it) > 0:
-            fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
+    def save(self, pars, fname=None, elapsed=0):
+        if pars['is_stdio']:
+            stdpre = '/processing/znn/train/statistics'
         else:
-            fname = root + '_statistics_0.h5'
-        if os.path.exists(fname):
-            os.remove( fname )
+            # get filename
+            fname = pars['train_save_net']
+            import os
+            import shutil
+            root, ext = os.path.splitext(fname)
+
+            if len(self.tn_it) > 0:
+                fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
+            else:
+                fname = root + '_statistics_0.h5'
+            if os.path.exists(fname):
+                os.remove( fname )
+            stdpre = ''
 
         # save variables
         import h5py
-        f = h5py.File( fname )
-        f.create_dataset('/train/it',  data=self.tn_it )
-        f.create_dataset('/train/err', data=self.tn_err)
-        f.create_dataset('/train/cls', data=self.tn_cls)
+        f = h5py.File( fname, 'a' )
+        f.create_dataset(stdpre + '/train/it',  data=self.tn_it )
+        f.create_dataset(stdpre + '/train/err', data=self.tn_err)
+        f.create_dataset(stdpre + '/train/cls', data=self.tn_cls)
         if pars['is_malis'] :
-            f.create_dataset('/train/re',  data=self.tn_re )
-            f.create_dataset('/train/mc',  data=self.tn_mc )
+            f.create_dataset(stdpre + '/train/re',  data=self.tn_re )
+            f.create_dataset(stdpre + '/train/mc',  data=self.tn_mc )
+            f.create_dataset(stdpre + '/train/me',  data=self.tn_me )
 
-        f.create_dataset('/test/it',   data=self.tt_it )
-        f.create_dataset('/test/err',  data=self.tt_err)
-        f.create_dataset('/test/cls',  data=self.tt_cls)
+        f.create_dataset(stdpre + '/test/it',   data=self.tt_it )
+        f.create_dataset(stdpre + '/test/err',  data=self.tt_err)
+        f.create_dataset(stdpre + '/test/cls',  data=self.tt_cls)
         if pars['is_malis'] :
-            f.create_dataset('/test/re',   data=self.tt_re )
-            f.create_dataset('/test/mc',   data=self.tt_mc )
+            f.create_dataset(stdpre + '/test/re',   data=self.tt_re )
+            f.create_dataset(stdpre + '/test/mc',   data=self.tt_mc )
+            f.create_dataset(stdpre + '/test/me',   data=self.tt_me )
 
-        f.create_dataset('/elapsed',   data=elapsed)
+        f.create_dataset(stdpre + '/elapsed',   data=elapsed)
         f.close()
-
-        # move to new name
-        fname2 = root + '_statistics_current.h5'
-        if os.path.exists( fname2 ):
-            os.remove( fname2 )
-        shutil.copyfile(fname, fname2)
 
 def find_statistics_file_within_dir(seed_filename):
     '''
