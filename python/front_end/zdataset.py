@@ -103,7 +103,6 @@ class CDataset(object):
             loc[0]-self.patch_margin_low[0]  : loc[0] + self.patch_margin_high[0]+1,\
             loc[1]-self.patch_margin_low[1]  : loc[1] + self.patch_margin_high[1]+1,\
             loc[2]-self.patch_margin_low[2]  : loc[2] + self.patch_margin_high[2]+1])
-
         return subvol
 
     def _check_patch_bounds(self):
@@ -372,6 +371,7 @@ class ConfigInputImage(ConfigImage):
 
         # preprocessing
         pp_types = config.get(sec_name, 'pp_types').split(',')
+        assert self.data.shape[0]==1 and self.data.ndim==4
         for c in xrange( self.data.shape[0] ):
             self.data[c,:,:,:] = self._preprocess(self.data[c,:,:,:], pp_types[c])
 
@@ -392,7 +392,7 @@ class ConfigInputImage(ConfigImage):
             vol3d -= vol3d.min()
             vol3d = vol3d / vol3d.max()
             vol3d = vol3d * 2 - 1
-        elif 'none' == pp_type or "None" in pp_type:
+        elif 'none' in pp_type or "None" in pp_type:
             return vol3d
         else:
             raise NameError( 'invalid preprocessing type' )
@@ -416,6 +416,11 @@ class ConfigInputImage(ConfigImage):
         assert(subvol.ndim==4)
         return subvol
 
+    def get_dataset(self):
+        """
+        return complete volume for examination
+        """
+        return self.data
 
 class ConfigOutputLabel(ConfigImage):
     '''
@@ -473,20 +478,11 @@ class ConfigOutputLabel(ConfigImage):
 
         return sublbl, submsk
 
-    def _patch_rebalance(self, lbl):
+    def get_dataset(self):
         """
-        rebalance based on output patch
+        return the whole label for examination
         """
-        weight = np.empty(lbl.shape, self.pars['dtype'])
-        for c in xrange(lbl.shape[0]):
-            # wp, wz = self._get_balance_weight( lbl[c,:,:,:] )
-            wp, wz = self._get_balance_weight_v1( lbl[c,:,:,:] )
-            weight[c,:,:,:][lbl[c,:,:,:] > 0] = wp
-            weight[c,:,:,:][lbl[c,:,:,:] ==0] = wz
-
-        # keep the weight mask separately
-        # (from the label mask [self.msk])
-        return weight
+        return self.data
 
     def get_candidate_loc( self, low, high ):
         """

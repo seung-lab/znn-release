@@ -215,29 +215,34 @@ class CLearnCurve:
         plt.show()
         return
 
-    def save(self, pars, elapsed):
-        # get filename
-        fname = pars['train_save_net']
-        import os
-        import shutil
-        root, ext = os.path.splitext(fname)
-
-        if len(self.tn_it) > 0:
-            fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
+    def save(self, pars, fname=None, elapsed=0):
+        if pars['is_stdio']:
+            stdpre = '/processing/znn/train/statistics'
         else:
-            fname = root + '_statistics_0.h5'
-        if os.path.exists(fname):
-            os.remove( fname )
+            # get filename
+            fname = pars['train_save_net']
+            import os
+            import shutil
+            root, ext = os.path.splitext(fname)
+
+            if len(self.tn_it) > 0:
+                fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
+            else:
+                fname = root + '_statistics_0.h5'
+            if os.path.exists(fname):
+                os.remove( fname )
+            stdpre = ''
 
         # save variables
         import h5py
-        f = h5py.File( fname, 'r+' )
+        f = h5py.File( fname, 'a' )
         f.create_dataset(stdpre + '/train/it',  data=self.tn_it )
         f.create_dataset(stdpre + '/train/err', data=self.tn_err)
         f.create_dataset(stdpre + '/train/cls', data=self.tn_cls)
         if pars['is_malis'] :
             f.create_dataset(stdpre + '/train/re',  data=self.tn_re )
             f.create_dataset(stdpre + '/train/mc',  data=self.tn_mc )
+            f.create_dataset(stdpre + '/train/me',  data=self.tn_me )
 
         f.create_dataset(stdpre + '/test/it',   data=self.tt_it )
         f.create_dataset(stdpre + '/test/err',  data=self.tt_err)
@@ -245,15 +250,10 @@ class CLearnCurve:
         if pars['is_malis'] :
             f.create_dataset(stdpre + '/test/re',   data=self.tt_re )
             f.create_dataset(stdpre + '/test/mc',   data=self.tt_mc )
+            f.create_dataset(stdpre + '/test/me',   data=self.tt_me )
 
         f.create_dataset(stdpre + '/elapsed',   data=elapsed)
         f.close()
-
-        # move to new name
-        fname2 = root + '_current.h5'
-        if os.path.exists( fname2 ):
-            os.remove( fname2 )
-        shutil.copyfile(fname, fname2)
 
 def find_statistics_file_within_dir(seed_filename):
     '''

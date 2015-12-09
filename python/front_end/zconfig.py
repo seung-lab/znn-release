@@ -123,14 +123,26 @@ def parser( conf_fname ):
     #Whether to use rebalanced training
     pars['is_rebalance']= config.getboolean('parameters', 'is_rebalance')
     # whether to use rebalance of output patch
-    pars['is_patch_rebalance']=config.getboolean('parameters', 'is_patch_rebalance')
+    if config.has_option('parameters', 'is_patch_rebalance'):
+        pars['is_patch_rebalance'] = config.getboolean('parameters', 'is_patch_rebalance')
+    else:
+        pars['is_patch_rebalance'] = False
     #Whether to use malis cost
-    pars['is_malis']    = config.getboolean('parameters', 'is_malis')
-    if pars['is_malis']:
+    if config.has_option('parameters', 'is_malis'):
+        pars['is_malis'] = config.getboolean('parameters', 'is_malis')
+    else:
+        pars['is_malis'] = False
+    if pars['is_malis'] and config.has_option('parameters', 'malis_norm_type'):
         # malis normalization type
         pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
+    else:
+        pars['malis_norm_type'] = 'none'
     #Whether to display progress plots
     pars['is_visual']   = config.getboolean('parameters', 'is_visual')
+    if config.has_option('parameters', 'is_stdio'):
+        pars['is_stdio'] = config.getboolean('parameters', 'is_stdio')
+    else:
+        pars['is_stdio'] = False
 
     #Which Cost Function to Use (as a string)
     pars['cost_fn_str'] = config.get('parameters', 'cost_fn')

@@ -181,34 +181,6 @@ def boundary_mirror( arr, fov ):
             bf[c,z,:,:] = _mirror2d(bf[c, z, l[1]:b[1], l[2]:b[2]], bf[c,z,:,:], fov[1:])
     return bf
 
-#@autojit(nopython=True)
-def fill_boundary_holes( lbl ):
-    """
-    separate the contacting segments with boundaries.
-    """
-    assert(lbl.ndim==3 or lbl.ndim==2)
-    original_shape = lbl.shape
-    if lbl.ndim==2:
-        lbl = np.reshape(lbl, newshape = (1,)+lbl.shape)
-
-    for z in xrange( lbl.shape[0] ):
-        for y in xrange( lbl.shape[1]-1 ):
-            for x in xrange( lbl.shape[2] ):
-                if lbl[z,y,x]>0 and \
-                    lbl[z,y,x]!=lbl[z,y+1,x] and \
-                    lbl[z,y+1,x]>0:
-                        lbl[z, y,   x] = 0
-                        lbl[z, y+1, x] = 0
-
-        for y in xrange( lbl.shape[1] ):
-            for x in xrange( lbl.shape[2]-1 ):
-                    if lbl[z,y,x]>0 and \
-                        lbl[z,y,x]!=lbl[z,y,x+1] and \
-                        lbl[z,y,x+1]>0:
-                        lbl[z, y, x  ] = 0
-                        lbl[z, y, x+1] = 0
-    lbl = lbl.reshape( original_shape )
-
 def make_continuous( d , dtype='float32'):
     """
     make the dictionary arrays continuous.
@@ -262,33 +234,29 @@ def dict_mul(das,dbs):
             ret[name] = a
     return ret
 
-def dict_save( d, fname ):
-    """
-    save a dictionary as a hdf5 file
-    """
-    import h5py
-
-    f = h5py.File( fname, 'w' )
-    for key, value in d.iteritems():
-        f.create_dataset(key, data=value)
-    f.close()
-
-def save_malis( mws, fname_save_net, num_iters ):
+def save_malis( mws, fname ):
     """
     save malis weights
     the weights was stored in a dictionary
     """
-    import os
-    root, ext = os.path.splitext( fname_save_net )
-    fname = root + "_malis_weights_{}.h5".format( num_iters )
-    dict_save( mws, fname )
+    assert len(mws.keys()) == 1
+    import h5py
+    f = h5py.File( fname, 'a' )
+    f.create_dataset('/processing/znn/train/gradient/malis_weight', \
+                     data=mws.values()[0])
+    f.close()
 
-    # current file name
-    current_fname = root + "_malis_weights_current.h5"
-    if os.path.exists( current_fname ):
-        os.remove( current_fname )
-        import shutil
-        shutil.copy( fname, current_fname )
+def save_rebalance( rws, fname ):
+    """
+    save rebalance weights
+    the weights was stored in a dictionary
+    """
+    assert len(rws.keys())==1
+    import h5py
+    f = h5py.File( fname, 'a' )
+    f.create_dataset('/processing/znn/train/gradient/rebalance_weight', \
+                     data=rws.values()[0])
+    f.close()
 
 def get_malis_cls( props, lbl_outs, malis_weights ):
     ret = dict()

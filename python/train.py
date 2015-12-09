@@ -10,6 +10,7 @@ import test
 import utils
 import zstatistics
 import os
+import shutil
 
 def main( conf_file='config.cfg', logfile=None ):
     #%% parameters
@@ -73,17 +74,23 @@ def main( conf_file='config.cfg', logfile=None ):
     if pars['is_malis']:
         malis_cls = 0.0
 
+    #Saving initialized network
+    if iter_last+1 == 1:
+        # get file name
+        fname, fname_current = znetio.get_net_fname( pars['train_save_net'], 0 )
+        znetio.save_network(net, fname)
+        lc.save( pars, fname )
+
     print "start training..."
     start = time.time()
     total_time = 0.0
     print "start from ", iter_last+1
 
-    #Saving initialized network
-    if iter_last+1 == 1:
-        znetio.save_network(net, pars['train_save_net'], num_iters=0)
-        lc.save( pars, 0.0 )
-
     for i in xrange(iter_last+1, pars['Max_iter']+1):
+        # time cumulation
+        total_time += time.time() - start
+        start = time.time()
+
         # get random sub volume from sample
         vol_ins, lbl_outs, msks, wmsks = smp_trn.get_random_sample()
 
@@ -110,15 +117,17 @@ def main( conf_file='config.cfg', logfile=None ):
             malis_cls_dict = utils.get_malis_cls( props, lbl_outs, malis_weights )
             malis_cls += malis_cls_dict.values()[0]
 
-
-        total_time += time.time() - start
-        start = time.time()
-
         # test the net
         if i%pars['Num_iter_per_test']==0:
+            # time accumulation should skip the test
+            total_time += time.time() - start
             lc = test.znn_test(net, pars, smp_tst, vn, i, lc)
+            start = time.time()
 
         if i%pars['Num_iter_per_show']==0:
+            # time
+            elapsed = total_time / pars['Num_iter_per_show']
+
             # normalize
             if utils.dict_mask_empty(msks):
                 err = err / vn / pars['Num_iter_per_show']
@@ -128,9 +137,6 @@ def main( conf_file='config.cfg', logfile=None ):
                 cls = cls / num_mask_voxels / pars['Num_iter_per_show']
 
             lc.append_train(i, err, cls)
-
-            # time
-            elapsed = total_time / pars['Num_iter_per_show']
 
             if pars['is_malis']:
                 re = re / pars['Num_iter_per_show']
@@ -167,11 +173,18 @@ def main( conf_file='config.cfg', logfile=None ):
             net.set_eta(eta)
 
         if i%pars['Num_iter_per_save']==0:
+            # get file name
+            filename, filename_current = znetio.get_net_fname( pars['train_save_net'], i )
             # save network
-            znetio.save_network(net, pars['train_save_net'], num_iters=i)
-            lc.save( pars, elapsed )
-            if pars['is_malis']:
-                utils.save_malis(malis_weights,  pars['train_save_net'], num_iters=i)
+            znetio.save_network(net, filename )
+            lc.save( pars, filename, elapsed )
+            if pars['is_malis'] and pars['is_stdio']:
+                utils.save_malis(malis_weights, filename)
+            if pars['is_rebalance'] or pars['is_patch_rebalance']:
+                utils.save_rebalance(wmsks, filename)
+
+            # Overwriting most current file with completely saved version
+            shutil.copyfile(filename, filename_current)
 
         # run backward pass
         grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
