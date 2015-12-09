@@ -325,9 +325,12 @@ class CAffinitySample(CSample):
         make the nonboundary and boundary region have same contribution of training.
         taffs: dict, key is layer name, value is true affinity output
         """
-        self.zwps = self.zwzs = dict()
-        self.ywps = self.ywzs = dict()
-        self.xwps = self.xwzs = dict()
+        self.zwps = dict()
+        self.zwzs = dict()
+        self.ywps = dict()
+        self.ywzs = dict()
+        self.xwps = dict()
+        self.xwzs = dict()
 
         if self.pars['is_rebalance'] or self.pars['is_patch_rebalance']:
             for k, aff in taffs.iteritems():
