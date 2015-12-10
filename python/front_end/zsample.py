@@ -12,6 +12,8 @@ import numpy as np
 import emirt
 import utils
 from zdataset import *
+import os
+import h5py
 
 class CSample(object):
     """
@@ -29,6 +31,7 @@ class CSample(object):
         # Parameter object (dict)
         self.pars = pars
 
+        self.sid = sample_id
         # Name of the sample within the configuration file
         # Also used for logging
         self.sec_name = "sample%d" % sample_id
@@ -77,6 +80,11 @@ class CSample(object):
 
         #Filename for log
         self.log = log
+
+    def get_dataset(self):
+        raw = self.ins.values()[0].get_dataset()
+        lbl = self.outs.values()[0].get_dataset()
+        return raw, lbl
 
     def _prepare_training(self):
         """
@@ -161,6 +169,9 @@ class CSample(object):
             # weight of positive and zero
             wp = 0.5 * num / pn
             wz = 0.5 * num / zn
+
+            print "wp: ", wp
+            print "wz: ", wz
             return wp, wz
 
     # ZNNv1 uses different normalization
@@ -360,6 +371,9 @@ class CAffinitySample(CSample):
             w[1,:,:,:][subtaff[1,:,:,:]==0] = self.ywzs[k]
             w[2,:,:,:][subtaff[2,:,:,:]==0] = self.xwzs[k]
             subwmsks[k] = w
+
+            if self.pars['is_debug']:
+                print "rebalance weight: ", w
         return subwmsks
 
     def get_random_sample(self):
@@ -523,6 +537,34 @@ class CSamples(object):
             else:
                 raise NameError('invalid output type')
             self.samples.append( sample )
+
+        if self.pars['is_debug']:
+            # save the candidate locations
+            self._save_dataset
+            self._save_candidate_locs()
+
+    def _save_candidate_locs(self):
+        for sample in self.samples:
+            fname = '../testsuit/sample/candidate_locs_{}.h5'.format(sample.sid)
+            if os.path.exists( fname ):
+                os.remove(fname)
+            f = h5py.File( fname, 'w' )
+            f.create_dataset('locs', data=sample.locs)
+            f.close()
+
+    def _save_dataset(self):
+        from emirt.emio import imsave
+        for sample in self.samples:
+            # save sample images
+            raw, lbl = sample.get_dataset()
+            fname = '../testsuit/sample/sample_{}_raw.h5'.format(sample.sid)
+            if os.path.exists( fname ):
+                os.remove( fname )
+            imsave(raw, fname)
+            fname = '../testsuit/sample/sample_{}_lbl.h5'.format(sample.sid)
+            if os.path.exists( fname ):
+                os.remove( fname )
+            imsave(lbl, fname )
 
     def get_random_sample(self):
         '''Fetches a random sample from a random CSample object'''

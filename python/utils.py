@@ -181,34 +181,6 @@ def boundary_mirror( arr, fov ):
             bf[c,z,:,:] = _mirror2d(bf[c, z, l[1]:b[1], l[2]:b[2]], bf[c,z,:,:], fov[1:])
     return bf
 
-#@autojit(nopython=True)
-def fill_boundary_holes( lbl ):
-    """
-    separate the contacting segments with boundaries.
-    """
-    assert(lbl.ndim==3 or lbl.ndim==2)
-    original_shape = lbl.shape
-    if lbl.ndim==2:
-        lbl = np.reshape(lbl, newshape = (1,)+lbl.shape)
-
-    for z in xrange( lbl.shape[0] ):
-        for y in xrange( lbl.shape[1]-1 ):
-            for x in xrange( lbl.shape[2] ):
-                if lbl[z,y,x]>0 and \
-                    lbl[z,y,x]!=lbl[z,y+1,x] and \
-                    lbl[z,y+1,x]>0:
-                        lbl[z, y,   x] = 0
-                        lbl[z, y+1, x] = 0
-
-        for y in xrange( lbl.shape[1] ):
-            for x in xrange( lbl.shape[2]-1 ):
-                    if lbl[z,y,x]>0 and \
-                        lbl[z,y,x]!=lbl[z,y,x+1] and \
-                        lbl[z,y,x+1]>0:
-                        lbl[z, y, x  ] = 0
-                        lbl[z, y, x+1] = 0
-    lbl = lbl.reshape( original_shape )
-
 def make_continuous( d , dtype='float32'):
     """
     make the dictionary arrays continuous.
@@ -262,33 +234,29 @@ def dict_mul(das,dbs):
             ret[name] = a
     return ret
 
-def dict_save( d, fname ):
-    """
-    save a dictionary as a hdf5 file
-    """
-    import h5py
-
-    f = h5py.File( fname, 'w' )
-    for key, value in d.iteritems():
-        f.create_dataset(key, data=value)
-    f.close()
-
-def save_malis( mws, fname_save_net, num_iters ):
+def save_malis( mws, fname ):
     """
     save malis weights
     the weights was stored in a dictionary
     """
-    import os
-    root, ext = os.path.splitext( fname_save_net )
-    fname = root + "_malis_weights_{}.h5".format( num_iters )
-    dict_save( mws, fname )
+    assert len(mws.keys()) == 1
+    import h5py
+    f = h5py.File( fname, 'a' )
+    f.create_dataset('/processing/znn/train/gradient/malis_weight', \
+                     data=mws.values()[0])
+    f.close()
 
-    # current file name
-    current_fname = root + "_malis_weights_current.h5"
-    if os.path.exists( current_fname ):
-        os.remove( current_fname )
-        import shutil
-        shutil.copy( fname, current_fname )
+def save_rebalance( rws, fname ):
+    """
+    save rebalance weights
+    the weights was stored in a dictionary
+    """
+    assert len(rws.keys())==1
+    import h5py
+    f = h5py.File( fname, 'a' )
+    f.create_dataset('/processing/znn/train/gradient/rebalance_weight', \
+                     data=rws.values()[0])
+    f.close()
 
 def get_malis_cost( props, lbl_outs, malis_weights ):
     assert( len(props.keys()) == 1 )
@@ -318,3 +286,81 @@ def mask_dict_vol(dict_vol, mask=None):
         return dict_mul(dict_vol, mask)
     else:
         return dict_vol
+
+def check_patch(pars, fov, i, vol_ins, lbl_outs, \
+                msks, wmsks, is_save=False):
+    # margin of low and high
+    mlow = (fov-1)/2
+    mhigh = fov/2
+
+    # get the input and output image
+    inimg = vol_ins.values()[0][0,0,:,:]
+    if "bound" in pars['out_type']:
+        oulbl = lbl_outs.values()[0][0,0,:,:]
+        wmsk  = wmsks.values()[0][0,0,:,:]
+    else:
+        oulbl = lbl_outs.values()[0][2,0,:,:]
+        wmsk  = wmsks.values()[0][2,0,:,:]
+
+    # combine them to a RGB image
+    # rgb = np.tile(inimg, (3,1,1))
+    rgb = np.zeros((3,)+oulbl.shape, dtype='uint8')
+    # transform to 0-255
+    inimg -= inimg.min()
+    inimg = (inimg / inimg.max()) * 255
+    inimg = 255 - inimg
+    inimg = inimg.astype( 'uint8')
+    print "maregin low: ", mlow
+    print "margin high: ", mhigh
+    inimg = inimg[mlow[1]:-47, mlow[2]:-47]
+
+    oulbl = ((1-oulbl)*255).astype('uint8')
+    #rgb[0,:,:] = inimg[margin_low[1]:-margin_high[1], margin_low[2]:-margin_high[2]]
+    rgb[0,:,:] = inimg
+    rgb[1,:,:] = oulbl
+
+    # rebalance weight
+    print "rebalance weight: ", wmsk
+    wmsk -= wmsk.min()
+    wmsk = (wmsk / wmsk.max()) *255
+    wmsk = wmsk.astype('uint8')
+    # save the images
+    import emirt
+    if is_save:
+        if 'aff' in pars['out_type']:
+            fdir = "../testsuit/affinity/"
+        else:
+            fdir = "../testsuit/boundary/"
+        emirt.emio.imsave(rgb, fdir + "iter_{}_rgb.tif".format(i))
+        emirt.emio.imsave(inimg, fdir + "iter_{}_raw.tif".format(i))
+        emirt.emio.imsave(wmsk, fdir + "iter_{}_msk.tif".format(i))
+
+    # check the image with ground truth
+    fname = fdir + "gtruth/iter_{}_rgb.tif".format(i)
+    import os
+    if os.path.exists(fname):
+        print "find and check using "+ fname
+        trgb = emirt.emio.imread( fname )
+        assert np.all(trgb == rgb)
+
+def check_dict_nan( d ):
+    for v in d.values():
+        if np.isnan(v):
+            print "bad dict : ", d
+            raise NameError("the dict contains nan!")
+
+
+def inter_save(pars, net, lc, malis_weights, wmsks):
+    # get file name
+    filename, filename_current = znetio.get_net_fname( pars['train_save_net'], i )
+    # save network
+    znetio.save_network(net, filename )
+    lc.save( pars, filename, elapsed )
+    if pars['is_debug']:
+        if pars['is_malis'] and pars['is_stdio']:
+            utils.save_malis(malis_weights, filename)
+        if pars['is_rebalance'] or pars['is_patch_rebalance']:
+            utils.save_rebalance(wmsks, filename)
+
+    # Overwriting most current file with completely saved version
+    shutil.copyfile(filename, filename_current)

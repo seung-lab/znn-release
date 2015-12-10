@@ -10,6 +10,10 @@ import os.path, shutil
 from utils import assert_arglist
 
 np_array_fields = ("filters","biases","size","stride")
+
+# standard format folder prefix
+stdpre = "/processing/znn/train/network"
+
 def save_opts(opts, filename):
     #Note: opts is a tuple of lists of dictionaries
     f = h5py.File(filename, 'w')
@@ -27,30 +31,30 @@ def save_opts(opts, filename):
             fields = layer.keys()
             if "filters" in fields:
 
-                filters_dset_name = "/%s/%s" % (layer_name, "filters")
+                filters_dset_name = "%s/%s/%s" % (stdpre, layer_name, "filters")
                 f.create_dataset(filters_dset_name, data=layer["filters"][0])
 
-                momentum_dset_name = "/%s/%s" % (layer_name, "momentum_vol")
+                momentum_dset_name = "%s/%s/%s" % (stdpre, layer_name, "momentum_vol")
                 f.create_dataset(momentum_dset_name, data=layer["filters"][1])
 
             elif "biases" in fields:
 
-                biases_dset_name = "/%s/%s" % (layer_name, "biases")
+                biases_dset_name = "%s/%s/%s" % (stdpre, layer_name, "biases")
                 f.create_dataset(biases_dset_name, data=layer["biases"][0])
 
-                momentum_dset_name = "/%s/%s" % (layer_name, "momentum_vol")
+                momentum_dset_name =  "%s/%s/%s" % (stdpre, layer_name, "momentum_vol")
                 f.create_dataset(momentum_dset_name, data=layer["biases"][1])
 
             if "size" in fields:
 
-                dset_name = "/%s/%s" % (layer_name, "size")
+                dset_name = "%s/%s/%s" % (stdpre, layer_name, "size")
                 data = np.array(layer["size"])
 
                 f.create_dataset(dset_name, data=data)
 
             if "stride" in fields:
 
-                dset_name = "/%s/%s" % (layer_name, "stride")
+                dset_name = "%s/%s/%s" % (stdpre, layer_name, "stride")
                 data = np.array(layer["stride"])
 
                 f.create_dataset(dset_name, data=data)
@@ -61,20 +65,16 @@ def save_opts(opts, filename):
                 if field in np_array_fields:
                     continue #already taken care of
 
-                attr_name = "/%s/%s" % (layer_name, field)
+                attr_name = "%s/%s/%s" % (stdpre, layer_name, field)
                 f[attr_name] = layer[field]
 
             #Final flag for node_group type
-            group_type_name = "/%s/%s" % (layer_name, "group_type")
+            group_type_name = "%s/%s/%s" % (stdpre, layer_name, "group_type")
             f[group_type_name] = ("node","edge")[group_type]
 
     f.close()
 
-def save_network(network, filename, num_iters=None):
-    '''Saves a network under an h5 file. Appends the number
-    of iterations if passed, and updates a "current" file with
-    the most recent (uncorrupted) information'''
-
+def get_net_fname( filename, num_iters=None ):
     # get directory name from file name
     archive_directory_name = os.path.dirname( filename )
 #    filename = os.path.basename( filename )
@@ -89,16 +89,18 @@ def save_network(network, filename, num_iters=None):
 
     if num_iters is not None:
         filename = "{}{}{}{}".format(root, '_', num_iters, ext)
+    return filename, filename_current
+
+def save_network(network, filename):
+    '''Saves a network under an h5 file. Appends the number
+    of iterations if passed, and updates a "current" file with
+    the most recent (uncorrupted) information'''
 
     print "save as ", filename
     save_opts(network.get_opts(), filename)
 
-    # Overwriting most current file with completely saved version
-    shutil.copyfile(filename, filename_current)
-
 def load_opts(filename):
     '''Loads a pyopt structure (tuple of list of dicts) from a stored h5 file'''
-
     f = h5py.File(filename, 'r')
 
     node_opts = []
@@ -117,11 +119,11 @@ def load_opts(filename):
             # when passing to c++
             field = str(field)
 
-            dset_name = "/%s/%s" % (group, field)
+            dset_name = "%s/%s/%s" % (stdpre, group, field)
 
             if field == "filters":
 
-                momentum_dset_name = "/%s/%s" % (group, "momentum_vol")
+                momentum_dset_name = "%s/%s/%s" % (stdpre, group, "momentum_vol")
 
                 layer["filters"] = (
                     f[dset_name].value,
@@ -130,7 +132,7 @@ def load_opts(filename):
 
             elif field == "biases":
 
-                momentum_dset_name = "/%s/%s" % (group, "momentum_vol")
+                momentum_dset_name = "%s/%s/%s" % (stdpre, group, "momentum_vol")
 
                 layer["biases"] = (
                     f[dset_name].value,
@@ -161,7 +163,7 @@ def load_opts(filename):
                 layer[field] = f[dset_name].value
 
         #Figuring out where this layer belongs (group_type)
-        group_type_name = "/%s/%s" % (group, "group_type")
+        group_type_name = "%s/%s/%s" % (stdpre, group, "group_type")
         if f[group_type_name].value == "node":
             node_opts.append(layer)
         else:
