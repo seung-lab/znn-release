@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib.pylab import plt
 from os import path
 
-stdpre = "/processing/znn/train/statistics"
+stdpre = "/"
 
 class CLearnCurve:
     def __init__(self, fname=None):

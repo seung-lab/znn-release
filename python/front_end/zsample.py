@@ -374,9 +374,6 @@ class CAffinitySample(CSample):
 
             if self.pars['is_debug']:
                 print "rebalance weight: ", w
-                print "subtaff: ", subtaff
-                print "positive weight: ", self.xwps[k]
-                print "zero weight: ", self.xwzs[k]
         return subwmsks
 
     def get_random_sample(self):

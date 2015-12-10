@@ -37,12 +37,10 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
 
     # show field of view
     fov = np.asarray(net.get_fov(), dtype='uint32')
-    margin_low = (fov-1)/2
-    margin_high = fov/2
+    mlow = (fov-1)/2
+    mhigh = fov/2
 
     print "field of view: ", fov
-    print "low margin: ", margin_low
-    print "high margin: ", margin_high
 
     # total voxel number of output volumes
     vn = utils.get_total_num(net.get_outputs_setsz())
@@ -87,8 +85,12 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
 
         # get the input and output image
         inimg = vol_ins.values()[0][0,0,:,:]
-        oulbl = lbl_outs.values()[0][2,0,:,:]
-        wmsk  = wmsks.values()[0][2,0,:,:]
+        if "bound" in pars['out_type']:
+            oulbl = lbl_outs.values()[0][0,0,:,:]
+            wmsk  = wmsks.values()[0][0,0,:,:]
+        else:
+            oulbl = lbl_outs.values()[0][2,0,:,:]
+            wmsk  = wmsks.values()[0][2,0,:,:]
 
         # combine them to a RGB image
         # rgb = np.tile(inimg, (3,1,1))
@@ -98,7 +100,9 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
         inimg = (inimg / inimg.max()) * 255
         inimg = 255 - inimg
         inimg = inimg.astype( 'uint8')
-        inimg = inimg[47:-47, 47:-47]
+        print "maregin low: ", mlow
+        print "margin high: ", mhigh
+        inimg = inimg[mlow[1]:-47, mlow[2]:-47]
 
         oulbl = ((1-oulbl)*255).astype('uint8')
         #rgb[0,:,:] = inimg[margin_low[1]:-margin_high[1], margin_low[2]:-margin_high[2]]
