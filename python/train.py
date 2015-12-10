@@ -20,7 +20,7 @@ def main( conf_file='config.cfg', logfile=None ):
 
     if pars.has_key('logging') and pars['logging']:
         print "recording configuration file..."
-        zconfig.record_config_file( pars )
+        zlog.record_config_file( pars )
 
         logfile = zlog.make_logfile_name( pars )
 
