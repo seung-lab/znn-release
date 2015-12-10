@@ -37,8 +37,6 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
 
     # show field of view
     fov = np.asarray(net.get_fov(), dtype='uint32')
-    mlow = (fov-1)/2
-    mhigh = fov/2
 
     print "field of view: ", fov
 
@@ -83,42 +81,12 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
         # get random sub volume from sample
         vol_ins, lbl_outs, msks, wmsks = smp_trn.get_random_sample()
 
-        # get the input and output image
-        inimg = vol_ins.values()[0][0,0,:,:]
-        if "bound" in pars['out_type']:
-            oulbl = lbl_outs.values()[0][0,0,:,:]
-            wmsk  = wmsks.values()[0][0,0,:,:]
-        else:
-            oulbl = lbl_outs.values()[0][2,0,:,:]
-            wmsk  = wmsks.values()[0][2,0,:,:]
+        # check the patch
+        if pars['is_debug']:
+            utils.check_patch(pars, fov, i, vol_ins, lbl_outs, \
+                              msks, wmsks, is_save=True)
 
-        # combine them to a RGB image
-        # rgb = np.tile(inimg, (3,1,1))
-        rgb = np.zeros((3,)+oulbl.shape, dtype='uint8')
-        # transform to 0-255
-        inimg -= inimg.min()
-        inimg = (inimg / inimg.max()) * 255
-        inimg = 255 - inimg
-        inimg = inimg.astype( 'uint8')
-        print "maregin low: ", mlow
-        print "margin high: ", mhigh
-        inimg = inimg[mlow[1]:-47, mlow[2]:-47]
 
-        oulbl = ((1-oulbl)*255).astype('uint8')
-        #rgb[0,:,:] = inimg[margin_low[1]:-margin_high[1], margin_low[2]:-margin_high[2]]
-        rgb[0,:,:] = inimg
-        rgb[1,:,:] = oulbl
-
-        # rebalance weight
-        print "rebalance weight: ", wmsk
-        wmsk -= wmsk.min()
-        wmsk = (wmsk / wmsk.max()) *255
-        wmsk = wmsk.astype('uint8')
-        # save the images
-        fdir = "../testsuit/sample/"
-        emirt.emio.imsave(rgb, fdir + "iter_{}_rgb.tif".format(i))
-        emirt.emio.imsave(inimg, fdir + "iter_{}_raw.tif".format(i))
-        emirt.emio.imsave(wmsk, fdir + "iter_{}_msk.tif".format(i))
 if __name__ == '__main__':
     """
     usage
