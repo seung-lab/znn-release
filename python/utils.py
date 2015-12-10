@@ -347,8 +347,8 @@ def check_dict_nan( d ):
     for v in d.values():
         if np.isnan(v):
             print "bad dict : ", d
-            raise NameError("the dict contains nan!")
-
+            return False
+    return True
 
 def inter_save(pars, net, lc, malis_weights, wmsks):
     # get file name

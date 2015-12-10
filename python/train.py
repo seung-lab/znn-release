@@ -23,6 +23,7 @@ def main( conf_file='config.cfg', logfile=None ):
     if pars['is_debug']:
         # use fixed index
         np.random.seed(1)
+        nonan = True
 
     if pars.has_key('logging') and pars['logging']:
         print "recording configuration file..."
@@ -117,12 +118,12 @@ def main( conf_file='config.cfg', logfile=None ):
 
         # check whether there is a NaN here!
         if pars['is_debug']:
-            utils.check_dict_nan(vol_ins)
-            utils.check_dict_nan(lbl_outs)
-            utils.check_dict_nan(msks)
-            utils.check_dict_nan(wmsks)
-            utils.check_dict_nan(props)
-            utils.check_dict_nan(grdts)
+            nonan = nonan and utils.check_dict_nan(vol_ins)
+            nonan = nonan and utils.check_dict_nan(lbl_outs)
+            nonan = nonan and utils.check_dict_nan(msks)
+            nonan = nonan and utils.check_dict_nan(wmsks)
+            nonan = nonan and utils.check_dict_nan(props)
+            nonan = nonan and utils.check_dict_nan(grdts)
 
         # gradient reweighting
         grdts = utils.dict_mul( grdts, msks  )
@@ -193,7 +194,7 @@ def main( conf_file='config.cfg', logfile=None ):
             eta = eta * pars['anneal_factor']
             net.set_eta(eta)
 
-        if i%pars['Num_iter_per_save']==0:
+        if i%pars['Num_iter_per_save']==0 or (not nonan):
             utils.inter_save(pars, net, lc, malis_weights, wmsks)
 
         # run backward pass
