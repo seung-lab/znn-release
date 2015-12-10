@@ -170,8 +170,6 @@ class CSample(object):
             wp = 0.5 * num / pn
             wz = 0.5 * num / zn
 
-            print "wp: ", wp
-            print "wz: ", wz
             return wp, wz
 
     # ZNNv1 uses different normalization
@@ -372,8 +370,6 @@ class CAffinitySample(CSample):
             w[2,:,:,:][subtaff[2,:,:,:]==0] = self.xwzs[k]
             subwmsks[k] = w
 
-            if self.pars['is_debug']:
-                print "rebalance weight: ", w
         return subwmsks
 
     def get_random_sample(self):

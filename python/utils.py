@@ -345,7 +345,7 @@ def check_patch(pars, fov, i, vol_ins, lbl_outs, \
 
 def check_dict_nan( d ):
     for v in d.values():
-        if np.isnan(v):
+        if np.any(np.isnan(v)):
             print "bad dict : ", d
             return False
     return True
