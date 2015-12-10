@@ -14,12 +14,15 @@ import utils
 
 class CDataset(object):
 
-    def __init__(self, pars, data, outsz, setsz, fov ):
+    def __init__(self, pars, data, outsz, setsz, fov=None ):
 
         # main data
         self.data = data
         # field of view
-        self.fov = fov
+        if fov is None:
+            self.fov = setsz[-3:] - outsz[-3:] + 1
+        else:
+            self.fov = fov
         # Desired size of subvolumes returned by this instance
         self.patch_shape = np.asarray(setsz[-3:])
         if pars['is_debug']:
