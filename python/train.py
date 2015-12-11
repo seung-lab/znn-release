@@ -195,8 +195,13 @@ def main( conf_file='config.cfg', logfile=None ):
             eta = eta * pars['anneal_factor']
             net.set_eta(eta)
 
-        if i%pars['Num_iter_per_save']==0 or (not nonan):
+        if i%pars['Num_iter_per_save']==0:
             utils.inter_save(pars, net, lc, grdts, malis_weights, wmsks, elapsed, i)
+
+        if  not nonan:
+            utils.inter_save(pars, net, lc, grdts, malis_weights, wmsks, elapsed, i)
+            # stop training
+            return
 
         # run backward pass
         grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
