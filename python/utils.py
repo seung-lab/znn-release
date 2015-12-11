@@ -6,6 +6,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 
 import numpy as np
 from front_end import znetio
+import shutil
 
 def timestamp():
     import datetime
@@ -327,7 +328,7 @@ def check_dict_nan( d ):
             return False
     return True
 
-def inter_save(pars, net, lc, malis_weights, wmsks, it):
+def inter_save(pars, net, lc, malis_weights, wmsks, elapsed, it):
     # get file name
     filename, filename_current = znetio.get_net_fname( pars['train_save_net'], it )
     # save network
@@ -335,9 +336,9 @@ def inter_save(pars, net, lc, malis_weights, wmsks, it):
     lc.save( pars, filename, elapsed )
     if pars['is_debug']:
         if pars['is_malis'] and pars['is_stdio']:
-            utils.save_malis(malis_weights, filename)
+            save_malis(malis_weights, filename)
         if pars['is_rebalance'] or pars['is_patch_rebalance']:
-            utils.save_rebalance(wmsks, filename)
+            save_rebalance(wmsks, filename)
 
     # Overwriting most current file with completely saved version
     shutil.copyfile(filename, filename_current)
