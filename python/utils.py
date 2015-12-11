@@ -327,9 +327,9 @@ def check_dict_nan( d ):
             return False
     return True
 
-def inter_save(pars, net, lc, malis_weights, wmsks):
+def inter_save(pars, net, lc, malis_weights, wmsks, it):
     # get file name
-    filename, filename_current = znetio.get_net_fname( pars['train_save_net'], i )
+    filename, filename_current = znetio.get_net_fname( pars['train_save_net'], it )
     # save network
     znetio.save_network(net, filename )
     lc.save( pars, filename, elapsed )
