@@ -5,7 +5,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 
 import numpy as np
-#from numba import autojit
+from front_end import znetio
 
 def timestamp():
     import datetime
@@ -24,29 +24,6 @@ def write_to_log(filename, line):
         f.write(line)
         f.write('\n')
         f.close()
-
-def assert_arglist(single_arg_option, multi_arg_option):
-    '''
-    Several functions can be called using a composite (parameters/params) data structure or
-    by specifying the information from that structure individually. This
-    function asserts that one of these two options are properly defined
-
-    single_arg_option represents the value of the composite data structure argument
-    multi_arg_option should be a list of optional arguments
-    '''
-    multi_arg_is_list = isinstance(multi_arg_option, list)
-    assert(multi_arg_is_list)
-    multi_arg_contains_something = len(multi_arg_option) > 0
-    assert(multi_arg_contains_something)
-
-    params_defined = single_arg_option is not None
-
-    all_optional_args_defined = all([
-        arg is not None for arg in
-        multi_arg_option
-        ])
-
-    assert(params_defined or all_optional_args_defined)
 
 def rft_to_string(rft):
     '''Transforms an rft (bool array) into a string for logging'''

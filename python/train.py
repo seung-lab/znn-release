@@ -23,7 +23,8 @@ def main( conf_file='config.cfg', logfile=None ):
     if pars['is_debug']:
         # use fixed index
         np.random.seed(1)
-        nonan = True
+    # no nan detected
+    nonan = True
 
     if pars.has_key('logging') and pars['logging']:
         print "recording configuration file..."
