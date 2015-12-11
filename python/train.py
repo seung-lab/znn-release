@@ -196,7 +196,7 @@ def main( conf_file='config.cfg', logfile=None ):
             net.set_eta(eta)
 
         if i%pars['Num_iter_per_save']==0 or (not nonan):
-            utils.inter_save(pars, net, lc, malis_weights, wmsks, elapsed, i)
+            utils.inter_save(pars, net, lc, grdts, malis_weights, wmsks, elapsed, i)
 
         # run backward pass
         grdts = utils.make_continuous(grdts, dtype=pars['dtype'])

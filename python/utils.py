@@ -212,6 +212,18 @@ def dict_mul(das,dbs):
             ret[name] = a
     return ret
 
+def save_grdts( grdts, fname ):
+    """
+    save gradients
+    the gradient array was stored in a dictionary
+    """
+    assert len(grdts.keys()) == 1
+    import h5py
+    f = h5py.File( fname, 'a' )
+    f.create_dataset('/processing/znn/train/gradient/original_gradient', \
+                     data=grdts.values()[0])
+    f.close()
+
 def save_malis( mws, fname ):
     """
     save malis weights
@@ -328,13 +340,14 @@ def check_dict_nan( d ):
             return False
     return True
 
-def inter_save(pars, net, lc, malis_weights, wmsks, elapsed, it):
+def inter_save(pars, net, lc, grdts, malis_weights, wmsks, elapsed, it):
     # get file name
     filename, filename_current = znetio.get_net_fname( pars['train_save_net'], it )
     # save network
     znetio.save_network(net, filename )
     lc.save( pars, filename, elapsed )
     if pars['is_debug']:
+        save_grdts(grdts, filename)
         if pars['is_malis'] and pars['is_stdio']:
             save_malis(malis_weights, filename)
         if pars['is_rebalance'] or pars['is_patch_rebalance']:
