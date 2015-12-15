@@ -88,7 +88,10 @@ def parser( conf_fname ):
     #Filename under which we save the network
     pars['train_save_net'] = config.get('parameters', 'train_save_net')
     # initialize from a seed network
-    pars['train_seed_net'] = config.get('parameters', 'train_seed_net')
+    if config.has_option('parameters', 'train_seed_net'):
+        pars['train_seed_net'] = config.get('parameters', 'train_seed_net')
+    else:
+        pars['train_seed_net'] = None
     #Network filename to load
     pars['train_load_net'] = config.get('parameters', 'train_load_net')
     #Whether to write .log and .cfg files
@@ -103,7 +106,10 @@ def parser( conf_fname ):
     #Learning Rate
     pars['eta']         = config.getfloat('parameters', 'eta')
     #Learning Rate Annealing Factor
-    pars['anneal_factor']=config.getfloat('parameters', 'anneal_factor')
+    if config.has_option('parameters', 'anneal_factor'):
+        pars['anneal_factor'] = config.getfloat('parameters', 'anneal_factor')
+    else:
+        pars['anneal_factor'] = 1
     #Momentum Constant
     pars['momentum']    = config.getfloat('parameters', 'momentum')
     #Weight Decay
@@ -130,13 +136,11 @@ def parser( conf_fname ):
     #Whether to use malis cost
     if config.has_option('parameters', 'is_malis'):
         pars['is_malis'] = config.getboolean('parameters', 'is_malis')
-    else:
-        pars['is_malis'] = False
-    if pars['is_malis'] and config.has_option('parameters', 'malis_norm_type'):
         # malis normalization type
         pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
     else:
-        pars['malis_norm_type'] = 'none'
+        pars['is_malis'] = False
+
     #Whether to display progress plots
     pars['is_visual']   = config.getboolean('parameters', 'is_visual')
     if config.has_option('parameters', 'is_stdio'):
@@ -159,6 +163,8 @@ def parser( conf_fname ):
     #How often to change the learning rate
     if config.has_option('parameters','Num_iter_per_annealing'):
         pars['Num_iter_per_annealing'] = config.getint('parameters', 'Num_iter_per_annealing')
+    else:
+        pars['Num_iter_per_annealing'] = 100
     #Maximum training updates
     pars['Max_iter']    = config.getint('parameters', 'Max_iter')
 

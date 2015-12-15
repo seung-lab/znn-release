@@ -332,15 +332,18 @@ class CAffinitySample(CSample):
         make the nonboundary and boundary region have same contribution of training.
         taffs: dict, key is layer name, value is true affinity output
         """
-        self.zwps = self.zwzs = dict()
-        self.ywps = self.ywzs = dict()
-        self.xwps = self.xwzs = dict()
+        self.zwps = dict()
+        self.zwzs = dict()
+        self.ywps = dict()
+        self.ywzs = dict()
+        self.xwps = dict()
+        self.xwzs = dict()
 
         if self.pars['is_rebalance'] or self.pars['is_patch_rebalance']:
             for k, aff in taffs.iteritems():
-                self.zwps[k], self.zwzs[k] = self._get_balance_weight(aff[0,:,:,:])
-                self.ywps[k], self.ywzs[k] = self._get_balance_weight(aff[1,:,:,:])
-                self.xwps[k], self.xwzs[k] = self._get_balance_weight(aff[2,:,:,:])
+                self.zwps[k], self.zwzs[k] = self._get_balance_weight_v1(aff[0,:,:,:])
+                self.ywps[k], self.ywzs[k] = self._get_balance_weight_v1(aff[1,:,:,:])
+                self.xwps[k], self.xwzs[k] = self._get_balance_weight_v1(aff[2,:,:,:])
         return
 
     def _rebalance_aff(self, subtaffs):
@@ -438,7 +441,7 @@ class CBoundarySample(CSample):
 
         # recompute weight for patch rebalance
         if self.pars['is_patch_rebalance']:
-            wp, wz = self._get_balance_weight( sublbl )
+            wp, wz = self._get_balance_weight_v1( sublbl )
 
         if self.pars['is_patch_rebalance'] or self.pars['is_rebalance']:
             weight[0,:,:,:][sublbl[0,:,:,:]> 0] = wp
