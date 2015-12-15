@@ -133,12 +133,12 @@ def load_opts(filename):
 
     #each file has a collection of h5 groups which details a
     # network layer
-    for group in f:
+    for group in f[stdpre]:
 
         layer = {}
 
         #each network layer has a number of fields
-        for field in f[group]:
+        for field in f[stdpre + "/" + group]:
 
             #h5 file loads unicode strings, which causes issues later
             # when passing to c++
@@ -184,7 +184,7 @@ def load_opts(filename):
                 continue
 
             else:
-
+                print "field: ", field
                 layer[field] = f[dset_name].value
 
         #Figuring out where this layer belongs (group_type)

@@ -543,6 +543,8 @@ def malis_weight(pars, props, lbls):
                                             1.0, 0.0, is_frac_norm)
                 #print "tp: ",tp," tn: ",tn, "  fp:",fp,"  fn:",fn
             mw = merr + serr
+
+            assert num_non_bdr>1
             # normalization
             if 'num' in pars['malis_norm_type']:
                 mw = mw / float(num_non_bdr)
