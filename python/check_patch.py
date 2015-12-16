@@ -10,10 +10,15 @@ import emirt
 import time
 import numpy as np
 
-def main( conf_file='config.cfg', logfile=None ):
+def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
     #%% parameters
     print "reading config parameters..."
     config, pars = zconfig.parser( conf_file )
+
+    # random seed
+    if pars['is_debug']:
+        # use fixed index
+        np.random.seed(1)
 
     if pars.has_key('logging') and pars['logging']:
         print "recording configuration file..."
@@ -32,12 +37,8 @@ def main( conf_file='config.cfg', logfile=None ):
 
     # show field of view
     fov = np.asarray(net.get_fov(), dtype='uint32')
-    margin_low = (fov-1)/2
-    margin_high = fov/2
 
     print "field of view: ", fov
-    print "low margin: ", margin_low
-    print "high margin: ", margin_high
 
     # total voxel number of output volumes
     vn = utils.get_total_num(net.get_outputs_setsz())
@@ -55,10 +56,6 @@ def main( conf_file='config.cfg', logfile=None ):
     smp_trn = zsample.CSamples(config, pars, pars['train_range'], net, outsz, logfile)
     print "\n\ncreate test samples..."
     smp_tst = zsample.CSamples(config, pars, pars['test_range'],  net, outsz, logfile)
-
-    # save samples raw and label data for examination
-    smp_trn.save_dataset()
-    smp_tst.save_dataset()
 
     # initialization
     elapsed = 0
@@ -84,29 +81,12 @@ def main( conf_file='config.cfg', logfile=None ):
         # get random sub volume from sample
         vol_ins, lbl_outs, msks, wmsks = smp_trn.get_random_sample()
 
-        # get the input and output image
-        inimg = vol_ins.values()[0][0,0,:,:]
-        oulbl = lbl_outs.values()[0][2,0,:,:]
+        # check the patch
+        if pars['is_debug']:
+            utils.check_patch(pars, fov, i, vol_ins, lbl_outs, \
+                              msks, wmsks, is_save=True)
 
-        inimg = np.copy(inimg)
-        # combine them to a RGB image
-        # rgb = np.tile(inimg, (3,1,1))
-        rgb = np.zeros((3,)+oulbl.shape, dtype='uint8')
-        # transform to 0-255
-        inimg -= inimg.min()
-        inimg = (inimg / inimg.max()) * 255
-        inimg = 255 - inimg
-        inimg = inimg.astype( 'uint8')
-        inimg = inimg[47:-47, 47:-47]
 
-        oulbl = ((1-oulbl)*255).astype('uint8')
-
-        #rgb[0,:,:] = inimg[margin_low[1]:-margin_high[1], margin_low[2]:-margin_high[2]]
-        rgb[0,:,:] = inimg
-        rgb[1,:,:] = oulbl
-        # save the images
-        emirt.emio.imsave(rgb, "../testsuit/sample/rgb_{}.tif".format(i))
-        emirt.emio.imsave(inimg, "../testsuit/sample/rgb_{}_raw.tif".format(i))
 if __name__ == '__main__':
     """
     usage

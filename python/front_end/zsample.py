@@ -13,6 +13,7 @@ import emirt
 import utils
 from zdataset import *
 import os
+import h5py
 
 class CSample(object):
     """
@@ -168,6 +169,7 @@ class CSample(object):
             # weight of positive and zero
             wp = 0.5 * num / pn
             wz = 0.5 * num / zn
+
             return wp, wz
 
     # ZNNv1 uses different normalization
@@ -367,6 +369,7 @@ class CAffinitySample(CSample):
             w[1,:,:,:][subtaff[1,:,:,:]==0] = self.ywzs[k]
             w[2,:,:,:][subtaff[2,:,:,:]==0] = self.xwzs[k]
             subwmsks[k] = w
+
         return subwmsks
 
     def get_random_sample(self):
@@ -531,7 +534,21 @@ class CSamples(object):
                 raise NameError('invalid output type')
             self.samples.append( sample )
 
-    def save_dataset(self):
+        if self.pars['is_debug']:
+            # save the candidate locations
+            self._save_dataset
+            self._save_candidate_locs()
+
+    def _save_candidate_locs(self):
+        for sample in self.samples:
+            fname = '../testsuit/sample/candidate_locs_{}.h5'.format(sample.sid)
+            if os.path.exists( fname ):
+                os.remove(fname)
+            f = h5py.File( fname, 'w' )
+            f.create_dataset('locs', data=sample.locs)
+            f.close()
+
+    def _save_dataset(self):
         from emirt.emio import imsave
         for sample in self.samples:
             # save sample images

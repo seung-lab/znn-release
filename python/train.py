@@ -10,12 +10,21 @@ import test
 import utils
 import zstatistics
 import os
+import numpy as np
+from core import pyznn
 import shutil
 
 def main( conf_file='config.cfg', logfile=None ):
     #%% parameters
     print "reading config parameters..."
     config, pars = zconfig.parser( conf_file )
+
+    # random seed
+    if pars['is_debug']:
+        # use fixed index
+        np.random.seed(1)
+    # no nan detected
+    nonan = True
 
     if pars.has_key('logging') and pars['logging']:
         print "recording configuration file..."
@@ -73,6 +82,7 @@ def main( conf_file='config.cfg', logfile=None ):
 
     if pars['is_malis']:
         malis_cls = 0.0
+        malis_eng = 0.0
 
     #Saving initialized network
     if iter_last+1 == 1:
@@ -105,19 +115,32 @@ def main( conf_file='config.cfg', logfile=None ):
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
         err += cerr
         cls += cost_fn.get_cls(props, lbl_outs)
+        # compute rand error
+        re  += pyznn.get_rand_error(props.values()[0], lbl_outs.values()[0])
         num_mask_voxels += utils.sum_over_dict(msks)
+
+        # check whether there is a NaN here!
+        if pars['is_debug']:
+            nonan = nonan and utils.check_dict_nan(vol_ins)
+            nonan = nonan and utils.check_dict_nan(lbl_outs)
+            nonan = nonan and utils.check_dict_nan(msks)
+            nonan = nonan and utils.check_dict_nan(wmsks)
+            nonan = nonan and utils.check_dict_nan(props)
+            nonan = nonan and utils.check_dict_nan(grdts)
 
         # gradient reweighting
         grdts = utils.dict_mul( grdts, msks  )
         grdts = utils.dict_mul( grdts, wmsks )
 
         if pars['is_malis'] :
-            malis_weights, rand_errors = cost_fn.malis_weight(pars, props, lbl_outs)
+            malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
             grdts = utils.dict_mul(grdts, malis_weights)
-            # accumulate the rand error
-            re += rand_errors.values()[0]
-            malis_cls_dict = utils.get_malis_cls( props, lbl_outs, malis_weights )
-            malis_cls += malis_cls_dict.values()[0]
+            dmc, dme = utils.get_malis_cost( props, lbl_outs, malis_weights )
+            malis_cls += dmc.values()[0]
+            malis_eng += dme.values()[0]
+
+        total_time += time.time() - start
+        start = time.time()
 
         # test the net
         if i%pars['Num_iter_per_test']==0:
@@ -137,20 +160,20 @@ def main( conf_file='config.cfg', logfile=None ):
             else:
                 err = err / num_mask_voxels / pars['Num_iter_per_show']
                 cls = cls / num_mask_voxels / pars['Num_iter_per_show']
-
-            lc.append_train(i, err, cls)
+            re = re / pars['Num_iter_per_show']
+            lc.append_train(i, err, cls, re)
 
             if pars['is_malis']:
-                re = re / pars['Num_iter_per_show']
-                lc.append_train_rand_error( re )
                 malis_cls = malis_cls / pars['Num_iter_per_show']
+                malis_eng = malis_eng / pars['Num_iter_per_show']
                 lc.append_train_malis_cls( malis_cls )
+                lc.append_train_malis_eng( malis_eng )
 
-                show_string = "iteration %d,    err: %.3f, cls: %.3f, re: %.6f, mc: %.3f, elapsed: %.1f s/iter, learning rate: %.6f"\
-                              %(i, err, cls, re, malis_cls, elapsed, eta )
+                show_string = "iteration %d,    err: %.3f, cls: %.3f, re: %.3f, me: %.3f, mc: %.3f, elapsed: %.1f s/iter, learning rate: %.4f"\
+                              %(i, err, cls, re, malis_eng, malis_cls, elapsed, eta )
             else:
-                show_string = "iteration %d,    err: %.3f, cls: %.3f, elapsed: %.1f s/iter, learning rate: %.6f"\
-                    %(i, err, cls, elapsed, eta )
+                show_string = "iteration %d,    err: %.3f, cls: %.3f, re: %.3f, elapsed: %.1f s/iter, learning rate: %.4f"\
+                    %(i, err, cls, re, elapsed, eta )
 
             if pars.has_key('logging') and pars['logging']:
                 utils.write_to_log(logfile, show_string)
@@ -175,18 +198,14 @@ def main( conf_file='config.cfg', logfile=None ):
             net.set_eta(eta)
 
         if i%pars['Num_iter_per_save']==0:
-            # get file name
-            filename, filename_current = znetio.get_net_fname( pars['train_save_net'], i )
-            # save network
-            znetio.save_network(net, filename, pars['is_stdio'] )
-            lc.save( pars, filename, elapsed )
-            if pars['is_malis'] and pars['is_stdio']:
-                utils.save_malis(malis_weights, filename)
-            if pars['is_rebalance'] or pars['is_patch_rebalance']:
-                utils.save_rebalance(wmsks, filename)
+            utils.inter_save(pars, net, lc, props, lbl_outs, \
+                             grdts, malis_weights, wmsks, elapsed, i)
 
-            # Overwriting most current file with completely saved version
-            shutil.copyfile(filename, filename_current)
+        if  not nonan:
+            utils.inter_save(pars, net, lc, props, lbl_outs, \
+                             grdts, malis_weights, wmsks, elapsed, i)
+            # stop training
+            return
 
         # run backward pass
         grdts = utils.make_continuous(grdts, dtype=pars['dtype'])

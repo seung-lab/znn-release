@@ -18,12 +18,12 @@
 //
 #pragma once
 
-#include "../../assert.hpp"
-#include "../../types.hpp"
-#include "../../cube/cube.hpp"
-#include "../../cube/cube_operators.hpp"
-#include "zalis_def.hpp"
-#include "get_segmentation.hpp"
+#include "assert.hpp"
+#include "types.hpp"
+#include "cube/cube.hpp"
+#include "cube/cube_operators.hpp"
+#include "flow_graph/computation/zalis_def.hpp"
+#include "flow_graph/computation/get_segmentation.hpp"
 
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
@@ -31,12 +31,9 @@
 
 namespace znn { namespace v4 {
 
-inline zalis_weight
-zalis( std::vector<cube_p<real>> true_affs,
-       std::vector<cube_p<real>> affs,
-       real high = 0.99,
-       real low  = 0.01,
-       size_t is_frac_norm = 0 )
+inline real
+get_rand_error( std::vector<cube_p<real>> true_affs,
+       std::vector<cube_p<real>> affs)
 {
     ZI_ASSERT(affs.size()==3);
     ZI_ASSERT(true_affs.size()==affs.size());
@@ -118,59 +115,51 @@ zalis( std::vector<cube_p<real>> true_affs,
             {
                 if ( x > 0 )
                 {
-                    real affinity = std::min(xaff[z][y][x],high);
-
-                    if ( affinity > low )
-                    {
+                    real affinity = xaff[z][y][x];
 #if defined( DEBUG )
-                        edges.push_back(edge_type(affinity, ids[z][y][x-1],
+                    edges.push_back(edge_type(affinity, ids[z][y][x-1],
                                               ids[z][y][x], &((*xmw)[z][y][x]),
                                               &((*xsw)[z][y][x]),
                                               &((*xts)[z][y][x])));
 #else
-                        edges.push_back(edge_type(affinity, ids[z][y][x-1],
+                    edges.push_back(edge_type(affinity, ids[z][y][x-1],
                                               ids[z][y][x], &((*xmw)[z][y][x]),
                                               &((*xsw)[z][y][x])));
 #endif
-                    }
+
                 }
 
                 if ( y > 0 )
                 {
-                    real affinity = std::min(yaff[z][y][x],high);
+                    real affinity = yaff[z][y][x];
 
-                    if ( affinity > low )
-                    {
 #if defined( DEBUG )
-                        edges.push_back(edge_type(affinity, ids[z][y-1][x],
+                    edges.push_back(edge_type(affinity, ids[z][y-1][x],
                                               ids[z][y][x], &((*ymw)[z][y][x]),
                                               &((*ysw)[z][y][x]),
                                               &((*yts)[z][y][x])));
 #else
-                        edges.push_back(edge_type(affinity, ids[z][y-1][x],
+                    edges.push_back(edge_type(affinity, ids[z][y-1][x],
                                               ids[z][y][x], &((*ymw)[z][y][x]),
                                               &((*ysw)[z][y][x])));
 #endif
-                    }
                 }
 
                 if ( z > 0 )
                 {
-                    real affinity = std::min(zaff[z][y][x],high);
+                    real affinity = zaff[z][y][x];
 
-                    if ( affinity > low )
-                    {
+
 #if defined( DEBUG )
-                        edges.push_back(edge_type(affinity, ids[z-1][y][x],
+                    edges.push_back(edge_type(affinity, ids[z-1][y][x],
                                               ids[z][y][x], &((*zmw)[z][y][x]),
                                               &((*zsw)[z][y][x]),
                                               &((*zts)[z][y][x])));
 #else
-                        edges.push_back(edge_type(affinity, ids[z-1][y][x],
+                    edges.push_back(edge_type(affinity, ids[z-1][y][x],
                                               ids[z][y][x], &((*zmw)[z][y][x]),
                                               &((*zsw)[z][y][x])));
 #endif
-                    }
                 }
             }
 
@@ -211,9 +200,6 @@ zalis( std::vector<cube_p<real>> true_affs,
                 uint32_t segID1   = seg1.first;
                 real     segsize1 = seg1.second;
 
-                // fraction normalize
-                if ( is_frac_norm==1 ) segsize1 /= seg_sizes[segID1];
-
                 // skip boundary
                 if ( segID1 == 0 ) continue;
 
@@ -223,9 +209,6 @@ zalis( std::vector<cube_p<real>> true_affs,
                     uint32_t segID2   = seg2.first;
                     real     segsize2 = seg2.second;
 
-                    // fraction normalize
-                    if ( is_frac_norm==1 ) segsize2 /= seg_sizes[segID2];
-
                     // skip boundary
                     if ( segID2 == 0 ) continue;
 
@@ -233,7 +216,6 @@ zalis( std::vector<cube_p<real>> true_affs,
                     if ( segID1 == segID2 )
                     {
                         n_same_pair += segsize1 * segsize2;
-			//std::cout<< affinity << ", ";
                         if (affinity < 0.5)
                             FN += segsize1 * segsize2;
                         else
@@ -242,7 +224,6 @@ zalis( std::vector<cube_p<real>> true_affs,
                     else
                     {
                         n_diff_pair += segsize1 * segsize2;
-			//std::cout<<affinity << ", ";
                         if (affinity >0.5)
                             FP += segsize1 * segsize2;
                         else
@@ -308,16 +289,8 @@ zalis( std::vector<cube_p<real>> true_affs,
 
     // rand error
     real re = (FP+FN) / (num_non_bdr*(num_non_bdr-1)/2);
-    zalis_weight ret(mw, sw, re, num_non_bdr, TP, TN, FP, FN);
     ZI_ASSERT( num_non_bdr*(num_non_bdr-1)/2==TP+FN+TN+FP );
-#if defined( DEBUG )
-    ret.ws_snapshots = ws_snapshots;
-    ret.ws_timestamp = ws_timestamp;
-    ret.timestamp    = ts;
-    std::cout << "[ws_snapshots] = " << ws_snapshots.size() << std::endl;
-#endif
-
-    return ret;
+    return re;
 }
 
 

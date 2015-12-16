@@ -6,8 +6,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 import emirt
 import utils
-# numba accelaration
-#from numba import jit
+from malis.pymalis import zalis
 
 
 def get_cls(props, lbls, mask=None):
@@ -32,7 +31,6 @@ def get_cls(props, lbls, mask=None):
 
     for name, prop in props.iteritems():
         lbl = lbls[name]
-
         c += np.count_nonzero( (prop>0.5) != (lbl>0.5) )
 
     return c
@@ -57,7 +55,7 @@ def square_loss(props, lbls, mask=None):
 
     #Applying mask if it exists
     props = utils.mask_dict_vol(props, mask)
-    lbls = utils.mask_dict_vol(lbls, mask)    
+    lbls = utils.mask_dict_vol(lbls, mask)
 
     for name, prop in props.iteritems():
         lbl = lbls[name]
@@ -110,7 +108,7 @@ def binomial_cross_entropy(props, lbls, mask=None):
     grdts = dict()
     err = 0
 
-    #Taking a slightly different strategy with masking 
+    #Taking a slightly different strategy with masking
     # to improve the numerical stability of the error output
     entropy = dict()
 
@@ -130,6 +128,7 @@ def binomial_cross_entropy(props, lbls, mask=None):
         err += np.sum( vol )
 
     return (props, err, grdts)
+
 
 #@jit(nopython=True)
 def softmax(props):
@@ -178,7 +177,7 @@ def multinomial_cross_entropy(props, lbls, mask=None):
     grdts = dict()
     err = 0
 
-    #Taking a slightly different strategy with masking 
+    #Taking a slightly different strategy with masking
     # to improve the numerical stability of the error output
     entropy = dict()
 
@@ -406,16 +405,59 @@ def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
 
     return (w, merr, serr)
 
-def constrain_label(bdm, lbl):
+def constrain_label(prp, lbl):
+    """
+    parameters:
+    -----------
+    prp: 4D array, forward propagation result, could be boundary or aff map
+    lbl: 4D array, ground truth labeling
+    """
+    assert prp.shape == lbl.shape
     # merging error boundary map filled with intracellular ground truth
-    mbdm = np.copy(bdm)
-    mbdm[lbl>0] = 1
+    mprp = np.copy(prp)
+    mprp[lbl>0] = 1
 
     # splitting error boundary map filled with boundary ground truth
-    sbdm = np.copy(bdm)
-    sbdm[lbl==0] = 0
+    sprp = np.copy(prp)
+    sprp[lbl==0] = 0
+    return mprp, sprp
 
-    return mbdm, sbdm
+def constrained_malis(prp, lbl, threshold=0.5):
+    """
+    adding constraints for malis weight
+    fill the intracellular space with ground truth when computing merging error
+    fill the boundary with ground truth when computing spliting error
+    """
+    mprp, sprp = constrain_label(prp, lbl)
+    # get the merger weights
+    mme, mse, mre, num, mtp, mtn, mfp, mfn = zalis(mprp, lbl, 1.0, 0.5, 0)
+    # normalization
+    if mfp + mtn > 0:
+        mme = mme / (mfp + mtn)
+    else:
+        mme = mme * 0
+
+
+
+    # get the splitter weights
+    sme, sse, sre, num, stp, stn, sfp, sfn = zalis(sprp, lbl, 0.5, 0.0, 0)
+    # normalization
+    if stp + sfn > 0:
+        sse = sse / (stp + sfn)
+    else:
+        sse = sse * 0
+
+    re = (mfp + sfn)/(mtp+mtn+mfp+mfn)
+    w = mme + sse
+
+    #print "mtp: ",mtp, "  mfn: ",mfn, "  mtn: ",mtn,"  mfp: ",mfp
+    #print "stp: ",stp, "  sfn: ",sfn, "  stn: ",stn,"  sfp: ",sfp
+
+    #print "mprp: ",mprp
+    #print "sprp: ",sprp
+    #print "prp: ",prp
+
+    return (w, mme, sse, re, num)
 
 def constrained_malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     """
@@ -484,26 +526,30 @@ def malis_weight(pars, props, lbls):
 
     # malis normalization type
     if 'frac' in pars['malis_norm_type']:
-        is_fract_norm = 1
+        is_frac_norm = 1
     else:
-        is_fract_norm = 0
+        is_frac_norm = 0
 
     for name, prop in props.iteritems():
         assert prop.ndim==4
         lbl = lbls[name]
         if prop.shape[0]==3:
-            # affinity output
-            from malis.pymalis import zalis
-            weights, re, num_non_bdr = zalis( prop, lbl, 1.0, 0.0, is_fract_norm)
-            merr = weights[:3, :,:,:]
-            serr = weights[3:, :,:,:]
+            if 'constrain' in pars['malis_norm_type']:
+                mw, merr, serr, re, num_non_bdr = constrained_malis(prop, lbl)
+            else:
+                # affinity output
+                merr, serr, re, num_non_bdr, \
+                    tp, tn, fp, fn = zalis( prop, lbl, \
+                                            1.0, 0.0, is_frac_norm)
+                #print "tp: ",tp," tn: ",tn, "  fp:",fp,"  fn:",fn
             mw = merr + serr
 
+            assert num_non_bdr>1
             # normalization
             if 'num' in pars['malis_norm_type']:
-                mw = mw / num_non_bdr
+                mw = mw / float(num_non_bdr)
             elif 'pair' in pars['malis_norm_type']:
-                mw = mw / (num_non_bdr * (num_non_bdr-1))
+                mw = mw / float(num_non_bdr * (num_non_bdr-1))
 
             malis_weights[name] = mw
             rand_errors[name] = re
@@ -511,5 +557,4 @@ def malis_weight(pars, props, lbls):
             # take it as boundary map
             malis_weights[name], merr, serr = malis_weight_bdm(prop, lbl)
 
-    return (malis_weights, rand_errors)
-
+    return (malis_weights, rand_errors, num_non_bdr)
