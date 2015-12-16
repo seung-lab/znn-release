@@ -78,6 +78,8 @@ def main( conf_file='config.cfg', logfile=None ):
     if iter_last+1 == 1:
         # get file name
         fname, fname_current = znetio.get_net_fname( pars['train_save_net'], 0 )
+        if os.path.exists(fname):
+            os.remove(fname)
         znetio.save_network(net, fname)
         lc.save( pars, fname )
 
@@ -176,7 +178,7 @@ def main( conf_file='config.cfg', logfile=None ):
             # get file name
             filename, filename_current = znetio.get_net_fname( pars['train_save_net'], i )
             # save network
-            znetio.save_network(net, filename )
+            znetio.save_network(net, filename, pars['is_stdio'] )
             lc.save( pars, filename, elapsed )
             if pars['is_malis'] and pars['is_stdio']:
                 utils.save_malis(malis_weights, filename)

@@ -136,8 +136,9 @@ def parser( conf_fname ):
     #Whether to use malis cost
     if config.has_option('parameters', 'is_malis'):
         pars['is_malis'] = config.getboolean('parameters', 'is_malis')
-        # malis normalization type
-        pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
+        if pars['is_malis']:
+            # malis normalization type
+            pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
     else:
         pars['is_malis'] = False
 
