@@ -11,10 +11,6 @@ import os.path, shutil
 
 np_array_fields = ("filters","biases","size","stride")
 
-# standard format folder prefix
-stdpre = "/processing/znn/train/network"
-
-
 def assert_arglist(single_arg_option, multi_arg_option):
     '''
     Several functions can be called using a composite (parameters/params) data structure or
@@ -39,9 +35,15 @@ def assert_arglist(single_arg_option, multi_arg_option):
     assert(params_defined or all_optional_args_defined)
 
 
-def save_opts(opts, filename):
+def save_opts(opts, filename, is_stdio=False):
     #Note: opts is a tuple of lists of dictionaries
     f = h5py.File(filename, 'w')
+
+    # standard format folder prefix
+    if is_stdio:
+        stdpre = "/processing/znn/train/network"
+    else:
+        stdpre = ""
 
     for group_type in range(len(opts)): #nodes vs. edges
 
@@ -124,12 +126,18 @@ def save_network(network, filename):
     print "save as ", filename
     save_opts(network.get_opts(), filename)
 
-def load_opts(filename):
+def load_opts(filename, is_stdio=False):
     '''Loads a pyopt structure (tuple of list of dicts) from a stored h5 file'''
     f = h5py.File(filename, 'r')
 
     node_opts = []
     edge_opts = []
+
+    # standard format folder prefix
+    if is_stdio:
+        stdpre = "/processing/znn/train/network"
+    else:
+        stdpre = ""
 
     #each file has a collection of h5 groups which details a
     # network layer
