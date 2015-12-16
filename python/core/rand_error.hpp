@@ -44,6 +44,14 @@ get_rand_error( std::vector<cube_p<real>> true_affs,
     vec3i  s = size(*affs[0]);
     size_t n = s[0]*s[1]*s[2];
 
+    cube<real> const & taffx = *true_affs[0];
+    for(size_t i=0; i<n; i++)
+        std::cout<<taffx.data()[i]<<",";
+    std::cout<<"\n segmentation: "<<std::endl;
+    for(size_t i=0; i<n; i++)
+        std::cout<<seg.data()[i]<<",";
+
+
     cube<real> const & xaff = *affs[0];
     cube<real> const & yaff = *affs[1];
     cube<real> const & zaff = *affs[2];
@@ -288,6 +296,11 @@ get_rand_error( std::vector<cube_p<real>> true_affs,
     }
 
     // rand error
+    if(num_non_bdr<=1)
+    {
+        std::cout<<"\n num of non-boundary pixels: "<<num_non_bdr<<std::endl;
+        std::cout<<"FP: "<<FP<<", FN: "<<FN<<", TP: "<<TP<<", TN: "<<TN<<std::endl;
+    }
     real re = (FP+FN) / (num_non_bdr*(num_non_bdr-1)/2);
     ZI_ASSERT( num_non_bdr*(num_non_bdr-1)/2==TP+FN+TN+FP );
     return re;
