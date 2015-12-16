@@ -310,9 +310,9 @@ def inter_save(pars, net, lc, props, lbl_outs, \
     # get file name
     filename, filename_current = znetio.get_net_fname( pars['train_save_net'], it )
     # save network
-    znetio.save_network(net, filename )
+    znetio.save_network(net, filename, pars['is_stdio'] )
     lc.save( pars, filename, elapsed )
-    if pars['is_debug']:
+    if pars['is_debug'] and pars['is_stdio']:
         save_dataset_h5( props.values()[0],    filename, "/processing/znn/train/patch/prop" )
         save_dataset_h5( lbl_outs.values()[0], filename, "/processing/znn/train/patch/lbl")
         save_dataset_h5( grdts.values()[0],    filename, "/processing/znn/train/patch/grdt")

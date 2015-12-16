@@ -37,7 +37,15 @@ def main( conf_file='config.cfg', logfile=None ):
         print "loading network..."
         net = znetio.load_network( pars )
         # load existing learning curve
-        lc = zstatistics.CLearnCurve( pars['train_load_net'] )
+        if pars['is_stdio']:
+            flc = pars['train_load_net']
+        else:
+            # change file name for learning curve
+            root, ext = os.path.splitext( pars['train_load_net'] )
+            istr = root.split('_')[-1]
+            flc = os.path.dirname(root) + "/net_statistics_{}.h5".format(istr)
+            print "file name of lc: ", flc
+        lc = zstatistics.CLearnCurve( pars, flc)
         # the last iteration we want to continue training
         iter_last = lc.get_last_it()
     else:
@@ -48,7 +56,7 @@ def main( conf_file='config.cfg', logfile=None ):
             print "initializing network..."
             net = znetio.init_network( pars )
         # initalize a learning curve
-        lc = zstatistics.CLearnCurve()
+        lc = zstatistics.CLearnCurve(pars)
         iter_last = lc.get_last_it()
 
     # show field of view
@@ -83,6 +91,8 @@ def main( conf_file='config.cfg', logfile=None ):
     if pars['is_malis']:
         malis_cls = 0.0
         malis_eng = 0.0
+    else:
+        malis_weights = None
 
     #Saving initialized network
     if iter_last+1 == 1:
@@ -90,7 +100,7 @@ def main( conf_file='config.cfg', logfile=None ):
         fname, fname_current = znetio.get_net_fname( pars['train_save_net'], 0 )
         if os.path.exists(fname):
             os.remove(fname)
-        znetio.save_network(net, fname)
+        znetio.save_network(net, fname, pars['is_stdio'])
         lc.save( pars, fname )
 
     print "start training..."

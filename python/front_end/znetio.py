@@ -141,9 +141,9 @@ def load_opts(filename, is_stdio=False):
 
     # standard format folder prefix
     if is_stdio:
-        stdpre = "/processing/znn/train/network"
+        stdpre = "/processing/znn/train/network/"
     else:
-        stdpre = ""
+        stdpre = "/"
 
     #each file has a collection of h5 groups which details a
     # network layer
@@ -152,17 +152,17 @@ def load_opts(filename, is_stdio=False):
         layer = {}
 
         #each network layer has a number of fields
-        for field in f[stdpre + "/" + group]:
+        for field in f[stdpre + group]:
 
             #h5 file loads unicode strings, which causes issues later
             # when passing to c++
             field = str(field)
 
-            dset_name = "%s/%s/%s" % (stdpre, group, field)
+            dset_name = stdpre + "%s/%s" % ( group, field)
 
             if field == "filters":
 
-                momentum_dset_name = "%s/%s/%s" % (stdpre, group, "momentum_vol")
+                momentum_dset_name = stdpre + "%s/%s" % ( group, "momentum_vol")
 
                 layer["filters"] = (
                     f[dset_name].value,
@@ -171,7 +171,7 @@ def load_opts(filename, is_stdio=False):
 
             elif field == "biases":
 
-                momentum_dset_name = "%s/%s/%s" % (stdpre, group, "momentum_vol")
+                momentum_dset_name = stdpre + "%s/%s" % ( group, "momentum_vol")
 
                 layer["biases"] = (
                     f[dset_name].value,
@@ -196,13 +196,13 @@ def load_opts(filename, is_stdio=False):
 
                 #This should be loaded by the filters or biases option
                 continue
-
+            elif field == "znn":
+                print "invalid standard format!"
             else:
-                print "field: ", field
-                layer[field] = f[dset_name].value
+                 layer[field] = f[dset_name].value
 
         #Figuring out where this layer belongs (group_type)
-        group_type_name = "%s/%s/%s" % (stdpre, group, "group_type")
+        group_type_name = stdpre + "%s/%s" % ( group, "group_type")
         if f[group_type_name].value == "node":
             node_opts.append(layer)
         else:
