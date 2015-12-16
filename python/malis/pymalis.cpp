@@ -114,7 +114,7 @@ bp::tuple pyzalis( np::ndarray& pyaffs,
     show_cubelist( affs );
 */
     // zalis computation
-    auto weights = zalis(true_affs, affs, high, low, is_frac_norm);
+    auto weights = zalis(affs, true_affs, high, low, is_frac_norm);
     return weights2tuple<real>( weights );
 }
 

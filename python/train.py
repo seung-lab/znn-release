@@ -126,7 +126,7 @@ def main( conf_file='config.cfg', logfile=None ):
         err += cerr
         cls += cost_fn.get_cls(props, lbl_outs)
         # compute rand error
-        re  += pyznn.get_rand_error(lbl_outs.values()[0], props.values()[0] )
+        re  += pyznn.get_rand_error( props.values()[0], lbl_outs.values()[0] )
         num_mask_voxels += utils.sum_over_dict(msks)
 
         # check whether there is a NaN here!

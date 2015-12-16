@@ -32,8 +32,8 @@
 namespace znn { namespace v4 {
 
 inline real
-get_rand_error( std::vector<cube_p<real>> true_affs,
-       std::vector<cube_p<real>> affs)
+get_rand_error( std::vector<cube_p<real>> affs,
+                std::vector<cube_p<real>> true_affs )
 {
     ZI_ASSERT(affs.size()==3);
     ZI_ASSERT(true_affs.size()==affs.size());
@@ -44,11 +44,18 @@ get_rand_error( std::vector<cube_p<real>> true_affs,
     vec3i  s = size(*affs[0]);
     size_t n = s[0]*s[1]*s[2];
 
+
+    std::cout<<"\n \n \n prop affinity: "<<std::endl;
+    cube<real> const & affx = *affs[0];
+    for(size_t i=0; i<100; i++)
+        std::cout<<affx.data()[i]<<",";
+
+    std::cout<<"\n true affinity: "<<std::endl;
     cube<real> const & taffx = *true_affs[0];
-    for(size_t i=0; i<n; i++)
+    for(size_t i=0; i<100; i++)
         std::cout<<taffx.data()[i]<<",";
     std::cout<<"\n segmentation: "<<std::endl;
-    for(size_t i=0; i<n; i++)
+    for(size_t i=0; i<100; i++)
         std::cout<<seg.data()[i]<<",";
 
 
