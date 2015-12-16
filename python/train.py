@@ -18,7 +18,7 @@ def main( conf_file='config.cfg', logfile=None ):
 
     if pars.has_key('logging') and pars['logging']:
         print "recording configuration file..."
-        zconfig.record_config_file( pars )
+        zlog.record_config_file( pars )
 
         logfile = zlog.make_logfile_name( pars )
 
@@ -81,6 +81,7 @@ def main( conf_file='config.cfg', logfile=None ):
     #Saving initialized network
     if iter_last+1 == 1:
         znetio.save_network(net, pars['train_save_net'], num_iters=0)
+        lc.save( pars, 0.0 )
 
     for i in xrange(iter_last+1, pars['Max_iter']+1):
         # get random sub volume from sample
