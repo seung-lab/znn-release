@@ -10,7 +10,7 @@ from os import path
 class CLearnCurve:
     def __init__(self, pars, fname=None):
         if pars['is_stdio']:
-            self.stdpre = "/processing/znn/statistics/"
+            self.stdpre = "/processing/znn/train/statistics/"
         else:
             self.stdpre = "/"
 
@@ -43,19 +43,20 @@ class CLearnCurve:
         import h5py
         # read into memory
         f = h5py.File(fname, 'r', driver='core')
-        self.tt_it  = list( f[self.stdpre + '/test/it'].value )
-        self.tt_err = list( f[self.stdpre + '/test/err'].value )
-        self.tt_cls = list( f[self.stdpre + '/test/cls'].value )
+        print "stdpre: ", self.stdpre
+        self.tt_it  = list( f[self.stdpre + 'test/it'].value )
+        self.tt_err = list( f[self.stdpre + 'test/err'].value )
+        self.tt_cls = list( f[self.stdpre + 'test/cls'].value )
         if self.stdpre+'/test/re' in f:
-            self.tt_re = list( f[self.stdpre + '/test/re'].value )
+            self.tt_re = list( f[self.stdpre + 'test/re'].value )
         else:
             self.tt_re = list()
         if self.stdpre + '/test/mc' in f:
-            self.tt_mc = list( f[self.stdpre + '/test/mc'].value )
+            self.tt_mc = list( f[self.stdpre + 'test/mc'].value )
         else:
             self.tt_mc = list()
         if '/test/me' in f:
-            self.tt_me = list( f['/test/me'].value )
+            self.tt_me = list( f[self.stdpre + '/test/me'].value )
         else:
             self.tt_me = list()
 
@@ -73,7 +74,7 @@ class CLearnCurve:
             self.tn_mc = list()
 
         if '/train/me' in f:
-            self.tn_me = list( f['/train/me'].value )
+            self.tn_me = list( f[self.stdpre + '/train/me'].value )
         else:
             self.tn_me = list()
 
