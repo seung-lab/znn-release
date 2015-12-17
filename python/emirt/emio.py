@@ -6,11 +6,11 @@ Created on Wed Jan 28 14:27:31 2015
 """
 
 import numpy as np
+import h5py
 
 #%% read hdf5 volume
 def imread( fname ):
     if '.hdf5' in fname or '.h5' in fname:
-        import h5py
         f = h5py.File( fname )
         v = np.asarray( f['/main'] )
         f.close()
@@ -29,7 +29,6 @@ def imread( fname ):
 
 def imsave( vol, fname ):
     if '.hdf5' in fname or '.h5' in fname:
-        import h5py
         f = h5py.File( fname )
         f.create_dataset('/main', data=vol)
         f.close()
@@ -57,7 +56,7 @@ def load_variable( vname ):
     return var
 
 # load binary znn image
-def znn_img_read( fname ):
+def znn_img_read( fname, dtype='float64' ):
     if '.image' in fname:
         fname = fname.replace('.image', "")
         ext = ".image"
@@ -67,7 +66,7 @@ def znn_img_read( fname ):
     else:
         ext = ""
     sz = np.fromfile(fname+'.size', dtype='uint32')[::-1]
-    vol = np.fromfile(fname + ext, dtype='double').reshape(sz)
+    vol = np.fromfile(fname + ext, dtype=dtype).reshape(sz)
     return vol
 
 def znn_img_save(vol, fname):
@@ -114,3 +113,20 @@ def write_for_znn(Dir, vol, cid):
     f.write('ext=image\n')
     f.write('size='+str(sz[2])+','+str(sz[1])+','+str(sz[0])+'\n')
     f.write('pptype=standard2D\n\n')
+
+def save_dataset_h5( data, fname, data_path ):
+    """
+    save dataset in hdf5 file
+    """
+    f = h5py.File( fname, 'a' )
+    f.create_dataset(data_path, data=data)
+    f.close()
+
+def read_dataset_h5( fname, data_path ):
+    """
+    read dataset in hdf5 file
+    """
+    f = h5py.File( fname )
+    data = f[data_path].value
+    f.close()
+    return data

@@ -7,6 +7,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 from front_end import znetio
 import shutil
+from emirt.emio import save_dataset_h5
 
 def timestamp():
     import datetime
@@ -212,42 +213,6 @@ def dict_mul(das,dbs):
             ret[name] = a
     return ret
 
-def save_grdts( grdts, fname ):
-    """
-    save gradients
-    the gradient array was stored in a dictionary
-    """
-    assert len(grdts.keys()) == 1
-    import h5py
-    f = h5py.File( fname, 'a' )
-    f.create_dataset('/processing/znn/train/gradient/original_gradient', \
-                     data=grdts.values()[0])
-    f.close()
-
-def save_malis( mws, fname ):
-    """
-    save malis weights
-    the weights was stored in a dictionary
-    """
-    assert len(mws.keys()) == 1
-    import h5py
-    f = h5py.File( fname, 'a' )
-    f.create_dataset('/processing/znn/train/gradient/malis_weight', \
-                     data=mws.values()[0])
-    f.close()
-
-def save_rebalance( rws, fname ):
-    """
-    save rebalance weights
-    the weights was stored in a dictionary
-    """
-    assert len(rws.keys())==1
-    import h5py
-    f = h5py.File( fname, 'a' )
-    f.create_dataset('/processing/znn/train/gradient/rebalance_weight', \
-                     data=rws.values()[0])
-    f.close()
-
 def get_malis_cost( props, lbl_outs, malis_weights ):
     assert( len(props.keys()) == 1 )
 
@@ -285,18 +250,23 @@ def check_dict_nan( d ):
             return False
     return True
 
-def inter_save(pars, net, lc, grdts, malis_weights, wmsks, elapsed, it):
+def inter_save(pars, net, lc, props, lbl_outs, \
+               grdts, malis_weights, wmsks, elapsed, it):
     # get file name
     filename, filename_current = znetio.get_net_fname( pars['train_save_net'], it )
     # save network
-    znetio.save_network(net, filename )
+    znetio.save_network(net, filename, pars['is_stdio'] )
     lc.save( pars, filename, elapsed )
-    if pars['is_debug']:
-        save_grdts(grdts, filename)
+    if pars['is_debug'] and pars['is_stdio']:
+        save_dataset_h5( props.values()[0],    filename, "/processing/znn/train/patch/prop" )
+        save_dataset_h5( lbl_outs.values()[0], filename, "/processing/znn/train/patch/lbl")
+        save_dataset_h5( grdts.values()[0],    filename, "/processing/znn/train/patch/grdt")
         if pars['is_malis'] and pars['is_stdio']:
-            save_malis(malis_weights, filename)
+            save_dataset_h5( malis_weights.values()[0], filename, \
+                             "/processing/znn/train/patch/malis_weight")
         if pars['is_rebalance'] or pars['is_patch_rebalance']:
-            save_rebalance(wmsks, filename)
+            save_dataset_h5( wmsks.values()[0], filename, \
+                             "/processing/znn/train/patch/rebalance_weight")
 
     # Overwriting most current file with completely saved version
     shutil.copyfile(filename, filename_current)

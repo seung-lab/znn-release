@@ -346,12 +346,12 @@ void CNet_set_phase(bp::object const & self, std::uint8_t const phs = 0)
 }
 
 //===========================================================================
-real pyget_rand_error(np::ndarray& taffs_arr, np::ndarray& affs_arr)
+real pyget_rand_error(np::ndarray& affs_arr, np::ndarray& taffs_arr)
 {
     std::vector<cube_p<real>> taffs = array2cubelist<real>( taffs_arr );
     std::vector<cube_p<real>> affs  = array2cubelist<real>( affs_arr );
 
-    real re = get_rand_error( taffs, affs );
+    real re = get_rand_error( affs, taffs);
     return re;
 }
 

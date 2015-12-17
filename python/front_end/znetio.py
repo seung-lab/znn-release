@@ -11,10 +11,6 @@ import os.path, shutil
 
 np_array_fields = ("filters","biases","size","stride")
 
-# standard format folder prefix
-stdpre = "/processing/znn/train/network"
-
-
 def assert_arglist(single_arg_option, multi_arg_option):
     '''
     Several functions can be called using a composite (parameters/params) data structure or
@@ -39,9 +35,21 @@ def assert_arglist(single_arg_option, multi_arg_option):
     assert(params_defined or all_optional_args_defined)
 
 
-def save_opts(opts, filename):
+def save_opts(opts, filename, is_stdio=False):
+    # standard format folder prefix
+    if is_stdio:
+        stdpre = "/processing/znn/train/network"
+    else:
+        stdpre = ""
+
     #Note: opts is a tuple of lists of dictionaries
-    f = h5py.File(filename, 'w')
+    f = h5py.File(filename, 'a')
+
+    # standard format folder prefix
+    if is_stdio:
+        stdpre = "/processing/znn/train/network"
+    else:
+        stdpre = ""
 
     for group_type in range(len(opts)): #nodes vs. edges
 
@@ -116,39 +124,45 @@ def get_net_fname( filename, num_iters=None ):
         filename = "{}{}{}{}".format(root, '_', num_iters, ext)
     return filename, filename_current
 
-def save_network(network, filename):
+def save_network(network, filename, is_stdio=False):
     '''Saves a network under an h5 file. Appends the number
     of iterations if passed, and updates a "current" file with
     the most recent (uncorrupted) information'''
 
     print "save as ", filename
-    save_opts(network.get_opts(), filename)
+    save_opts(network.get_opts(), filename, is_stdio=is_stdio)
 
-def load_opts(filename):
+def load_opts(filename, is_stdio=False):
     '''Loads a pyopt structure (tuple of list of dicts) from a stored h5 file'''
     f = h5py.File(filename, 'r')
 
     node_opts = []
     edge_opts = []
 
+    # standard format folder prefix
+    if is_stdio:
+        stdpre = "/processing/znn/train/network/"
+    else:
+        stdpre = "/"
+
     #each file has a collection of h5 groups which details a
     # network layer
-    for group in f:
+    for group in f[stdpre]:
 
         layer = {}
 
         #each network layer has a number of fields
-        for field in f[group]:
+        for field in f[stdpre + group]:
 
             #h5 file loads unicode strings, which causes issues later
             # when passing to c++
             field = str(field)
 
-            dset_name = "%s/%s/%s" % (stdpre, group, field)
+            dset_name = stdpre + "%s/%s" % ( group, field)
 
             if field == "filters":
 
-                momentum_dset_name = "%s/%s/%s" % (stdpre, group, "momentum_vol")
+                momentum_dset_name = stdpre + "%s/%s" % ( group, "momentum_vol")
 
                 layer["filters"] = (
                     f[dset_name].value,
@@ -157,7 +171,7 @@ def load_opts(filename):
 
             elif field == "biases":
 
-                momentum_dset_name = "%s/%s/%s" % (stdpre, group, "momentum_vol")
+                momentum_dset_name = stdpre + "%s/%s" % ( group, "momentum_vol")
 
                 layer["biases"] = (
                     f[dset_name].value,
@@ -182,13 +196,13 @@ def load_opts(filename):
 
                 #This should be loaded by the filters or biases option
                 continue
-
+            elif field == "znn":
+                print "invalid standard format!"
             else:
-
-                layer[field] = f[dset_name].value
+                 layer[field] = f[dset_name].value
 
         #Figuring out where this layer belongs (group_type)
-        group_type_name = "%s/%s/%s" % (stdpre, group, "group_type")
+        group_type_name = stdpre + "%s/%s" % ( group, "group_type")
         if f[group_type_name].value == "node":
             node_opts.append(layer)
         else:
@@ -242,7 +256,7 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=F
 
 def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
     network_specfile=None, output_patch_shape=None, num_threads=None,
-    optimize=None, force_fft=None ):
+    optimize=None, force_fft=None, is_stdio=None ):
     '''
     Loads a network from an hdf5 file.
 
@@ -279,6 +293,7 @@ def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
         _force_fft = params['force_fft']
         _network_specfile = params['fnet_spec']
         _num_threads = params['num_threads']
+        _is_stdio = params['is_stdio']
 
     #Overwriting defaults with any other optional args
     if hdf5_filename is not None:
@@ -289,6 +304,8 @@ def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
         _output_patch_shape = output_patch_shape
     if num_threads is not None:
         _num_threads = num_threads
+    if is_stdio is not None:
+        _is_stdio = is_stdio
 
     #ACTUAL LOADING FUNCTIONALITY
     #This is a little strange to allow for "seeding" larger
@@ -306,7 +323,7 @@ def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
     #If the file doesn't exist, init a new network
     if os.path.isfile( _hdf5_filename ):
 
-        load_options = load_opts(_hdf5_filename)
+        load_options = load_opts(_hdf5_filename, _is_stdio)
         template_options = template.get_opts()
         del template
 

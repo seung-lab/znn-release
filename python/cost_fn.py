@@ -543,14 +543,13 @@ def malis_weight(pars, props, lbls):
                                             1.0, 0.0, is_frac_norm)
                 #print "tp: ",tp," tn: ",tn, "  fp:",fp,"  fn:",fn
             mw = merr + serr
+
+            assert num_non_bdr>1
             # normalization
             if 'num' in pars['malis_norm_type']:
                 mw = mw / float(num_non_bdr)
             elif 'pair' in pars['malis_norm_type']:
                 mw = mw / float(num_non_bdr * (num_non_bdr-1))
-            if pars['is_malis_renorm']:
-                # normalize the malis weight to make the sum to be N'
-                mw = mw * ( mw.size / np.sum(mw) )
 
             malis_weights[name] = mw
             rand_errors[name] = re

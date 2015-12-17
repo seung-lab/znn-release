@@ -7,10 +7,13 @@ import numpy as np
 from matplotlib.pylab import plt
 from os import path
 
-stdpre = "/"
-
 class CLearnCurve:
-    def __init__(self, fname=None):
+    def __init__(self, pars, fname=None):
+        if pars['is_stdio']:
+            self.stdpre = "/processing/znn/train/statistics/"
+        else:
+            self.stdpre = "/"
+
         if fname is None:
             # initialize with empty list
             self.tt_it  = list()
@@ -40,37 +43,38 @@ class CLearnCurve:
         import h5py
         # read into memory
         f = h5py.File(fname, 'r', driver='core')
-        self.tt_it  = list( f[stdpre + '/test/it'].value )
-        self.tt_err = list( f[stdpre + '/test/err'].value )
-        self.tt_cls = list( f[stdpre + '/test/cls'].value )
-        if stdpre+'/test/re' in f:
-            self.tt_re = list( f[stdpre + '/test/re'].value )
+        print "stdpre: ", self.stdpre
+        self.tt_it  = list( f[self.stdpre + 'test/it'].value )
+        self.tt_err = list( f[self.stdpre + 'test/err'].value )
+        self.tt_cls = list( f[self.stdpre + 'test/cls'].value )
+        if self.stdpre+'/test/re' in f:
+            self.tt_re = list( f[self.stdpre + 'test/re'].value )
         else:
             self.tt_re = list()
-        if stdpre + '/test/mc' in f:
-            self.tt_mc = list( f[stdpre + '/test/mc'].value )
+        if self.stdpre + '/test/mc' in f:
+            self.tt_mc = list( f[self.stdpre + 'test/mc'].value )
         else:
             self.tt_mc = list()
         if '/test/me' in f:
-            self.tt_me = list( f['/test/me'].value )
+            self.tt_me = list( f[self.stdpre + '/test/me'].value )
         else:
             self.tt_me = list()
 
-        self.tn_it  = list( f[stdpre + '/train/it'].value )
-        self.tn_err = list( f[stdpre + '/train/err'].value )
-        self.tn_cls = list( f[stdpre + '/train/cls'].value )
-        if stdpre + '/train/re' in f:
-            self.tn_re = list( f[stdpre + '/train/re'].value )
+        self.tn_it  = list( f[self.stdpre + '/train/it'].value )
+        self.tn_err = list( f[self.stdpre + '/train/err'].value )
+        self.tn_cls = list( f[self.stdpre + '/train/cls'].value )
+        if self.stdpre + '/train/re' in f:
+            self.tn_re = list( f[self.stdpre + '/train/re'].value )
         else:
             self.tn_re = list()
 
-        if stdpre + '/train/mc' in f:
-            self.tn_mc = list( f[stdpre + '/train/mc'].value )
+        if self.stdpre + '/train/mc' in f:
+            self.tn_mc = list( f[self.stdpre + '/train/mc'].value )
         else:
             self.tn_mc = list()
 
         if '/train/me' in f:
-            self.tn_me = list( f['/train/me'].value )
+            self.tn_me = list( f[self.stdpre + '/train/me'].value )
         else:
             self.tn_me = list()
 
@@ -288,10 +292,8 @@ class CLearnCurve:
         return
 
     def save(self, pars, fname=None, elapsed=0):
-        if pars['is_stdio']:
-            stdpre = '/processing/znn/train/statistics'
-        else:
-            # get filename
+        if not pars['is_stdio']:
+            # change filename
             fname = pars['train_save_net']
             import os
             import shutil
@@ -308,24 +310,31 @@ class CLearnCurve:
         # save variables
         import h5py
         f = h5py.File( fname, 'a' )
-        f.create_dataset(stdpre + '/train/it',  data=self.tn_it )
-        f.create_dataset(stdpre + '/train/err', data=self.tn_err)
-        f.create_dataset(stdpre + '/train/cls', data=self.tn_cls)
+        f.create_dataset(self.stdpre + '/train/it',  data=self.tn_it )
+        f.create_dataset(self.stdpre + '/train/err', data=self.tn_err)
+        f.create_dataset(self.stdpre + '/train/cls', data=self.tn_cls)
         if pars['is_malis'] :
-            f.create_dataset(stdpre + '/train/re',  data=self.tn_re )
-            f.create_dataset(stdpre + '/train/mc',  data=self.tn_mc )
-            f.create_dataset(stdpre + '/train/me',  data=self.tn_me )
+            f.create_dataset(self.stdpre + '/train/re',  data=self.tn_re )
+            f.create_dataset(self.stdpre + '/train/mc',  data=self.tn_mc )
+            f.create_dataset(self.stdpre + '/train/me',  data=self.tn_me )
 
-        f.create_dataset(stdpre + '/test/it',   data=self.tt_it )
-        f.create_dataset(stdpre + '/test/err',  data=self.tt_err)
-        f.create_dataset(stdpre + '/test/cls',  data=self.tt_cls)
+        f.create_dataset(self.stdpre + '/test/it',   data=self.tt_it )
+        f.create_dataset(self.stdpre + '/test/err',  data=self.tt_err)
+        f.create_dataset(self.stdpre + '/test/cls',  data=self.tt_cls)
         if pars['is_malis'] :
-            f.create_dataset(stdpre + '/test/re',   data=self.tt_re )
-            f.create_dataset(stdpre + '/test/mc',   data=self.tt_mc )
-            f.create_dataset(stdpre + '/test/me',   data=self.tt_me )
+            f.create_dataset(self.stdpre + '/test/re',   data=self.tt_re )
+            f.create_dataset(self.stdpre + '/test/mc',   data=self.tt_mc )
+            f.create_dataset(self.stdpre + '/test/me',   data=self.tt_me )
 
-        f.create_dataset(stdpre + '/elapsed',   data=elapsed)
+        f.create_dataset(self.stdpre + '/elapsed',   data=elapsed)
         f.close()
+
+        if not pars['is_stdio']:
+            # move to new name
+            fname2 = root + '_statistics_current.h5'
+            if os.path.exists( fname2 ):
+                os.remove( fname2 )
+            shutil.copyfile(fname, fname2)
 
 def find_statistics_file_within_dir(seed_filename):
     '''
