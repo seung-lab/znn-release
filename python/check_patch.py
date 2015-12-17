@@ -4,6 +4,7 @@ __doc__ = """
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 from front_end import *
+import cost_fn
 import utils
 import os
 import emirt
@@ -25,6 +26,7 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
         zlog.record_config_file( pars )
 
         logfile = zlog.make_logfile_name( pars )
+        print "log file name: ", logfile
 
     #%% create and initialize the network
     iter_last = 0
@@ -35,6 +37,7 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
         print "initializing network..."
         net = znetio.init_network( pars )
 
+    lc = None
     # show field of view
     fov = np.asarray(net.get_fov(), dtype='uint32')
 
@@ -83,11 +86,18 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
 
         # check the patch
         if pars['is_debug']:
-            check_patch(pars, fov, i, vol_ins, lbl_outs, \
-                              msks, wmsks, is_save=True)
+#            check_patch(pars, fov, i, vol_ins, lbl_outs, \
+ #                             msks, wmsks, is_save=True)
             if check_dict_all_zero( lbl_outs ):
+                # forward pass
+                # apply the transformations in memory rather than array view
+                vol_ins = utils.make_continuous(vol_ins, dtype=pars['dtype'])
+                props = net.forward( vol_ins )
+                props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
+                malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
+                utils.inter_save(pars, net, lc, props, lbl_outs, \
+                                 grdts, malis_weights, wmsks, elapsed, i)
                 raise NameError("all zero groundtruth!")
-
 
 
 def check_dict_all_zero( d ):
