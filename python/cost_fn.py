@@ -374,14 +374,10 @@ def malis_weight(pars, props, lbls):
             mw = merr + serr
 
             # normalization
-            if num_non_bdr<=1:
-                # avoid all background patch
-                mw = np.zeros(mw)
-            else:
-                if 'num' in pars['malis_norm_type']:
-                    mw = mw / float(num_non_bdr)
-                elif 'pair' in pars['malis_norm_type']:
-                    mw = mw / float(num_non_bdr * (num_non_bdr-1))
+            if 'num' in pars['malis_norm_type']:
+                mw = mw / float(num_non_bdr)
+            elif 'pair' in pars['malis_norm_type']:
+                mw = mw / float(num_non_bdr * (num_non_bdr-1))
 
             malis_weights[name] = mw
             rand_errors[name] = re
