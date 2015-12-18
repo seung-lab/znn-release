@@ -55,7 +55,7 @@ class CLearnCurve:
             self.tt_mc = list( f[self.stdpre + 'test/mc'].value )
         else:
             self.tt_mc = list()
-        if '/test/me' in f:
+        if self.stdpre + '/test/me' in f:
             self.tt_me = list( f[self.stdpre + '/test/me'].value )
         else:
             self.tt_me = list()
@@ -73,7 +73,7 @@ class CLearnCurve:
         else:
             self.tn_mc = list()
 
-        if '/train/me' in f:
+        if self.stdpre + '/train/me' in f:
             self.tn_me = list( f[self.stdpre + '/train/me'].value )
         else:
             self.tn_me = list()
@@ -229,9 +229,6 @@ class CLearnCurve:
         # print the maximum iteration
         self.print_max_update()
 
-        # start iter
-        s = 100000-500
-
         # plot data
         plt.subplot(1,nsp, 1)
         plt.plot(self.tn_it, self.tn_err, 'b.', alpha=0.2)
@@ -264,6 +261,7 @@ class CLearnCurve:
             plt.plot(xtr, ytr, 'r', label='test')
             plt.xlabel('iteration'), plt.ylabel( 'rand error' )
 
+
         if len(self.tn_it) == len( self.tn_mc ):
             plt.subplot(1, nsp, 4)
             plt.plot(self.tn_it, self.tn_mc, 'b.', alpha=0.2)
@@ -273,7 +271,10 @@ class CLearnCurve:
             xtm, ytm = self._smooth( self.tt_it, self.tt_mc, w )
             plt.plot(xnm, ynm, 'b', label='train')
             plt.plot(xtm, ytm, 'r', label='test')
-            plt.xlabel('iteration'), plt.ylabel( 'malis weighted pixel \n classification error' )
+            plt.xlabel('iteration'), plt.ylabel( 'malis weighted cost energy' )
+
+        print "tt_it: ", self.tn_it
+        print "tt_me: ", self.tn_me
 
         if len(self.tn_it) == len( self.tn_me ):
             plt.subplot(1, nsp, 5)
@@ -284,7 +285,7 @@ class CLearnCurve:
             xtg, ytg = self._smooth( self.tt_it, self.tt_me, w )
             plt.plot(xng, yng, 'b', label='train')
             plt.plot(xtg, ytg, 'r', label='test')
-            plt.xlabel('iteration'), plt.ylabel( 'malis weighted cost energy' )
+            plt.xlabel('iteration'), plt.ylabel( 'malis weighted pixel error' )
 
 
         plt.legend()
@@ -388,16 +389,16 @@ if __name__ == '__main__':
     import sys
     # default window size
     w = 3
+    assert len(sys.argv) > 1
+    fname = sys.argv[1]
 
-    if len(sys.argv)==2:
-        fname = sys.argv[1]
-        lc = CLearnCurve( fname )
-    elif len(sys.argv)==3:
-        fname = sys.argv[1]
-        lc = CLearnCurve( fname )
+    fconfig = path.dirname(fname) + "/config.cfg"
+    from front_end import zconfig
+    config, pars = zconfig.parser( fconfig )
+
+    lc = CLearnCurve( pars, fname )
+
+    if len(sys.argv)==3:
         w = int( sys.argv[2] )
         print "window size: ", w
-    else:
-        raise NameError("no input statistics h5 file!")
-
     lc.show( w )

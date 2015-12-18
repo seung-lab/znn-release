@@ -7,7 +7,6 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 from front_end import znetio
 import shutil
-from emirt.emio import save_dataset_h5
 
 def timestamp():
     import datetime
@@ -272,7 +271,7 @@ def check_dict_nan( d ):
             return False
     return True
 
-def inter_save(pars, net, lc, props, lbl_outs, \
+def inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
                grdts, malis_weights, wmsks, elapsed, it):
     # get file name
     filename, filename_current = znetio.get_net_fname( pars['train_save_net'], it )
@@ -281,15 +280,22 @@ def inter_save(pars, net, lc, props, lbl_outs, \
     if lc is not None:
         lc.save( pars, filename, elapsed )
     if pars['is_debug'] and pars['is_stdio']:
-        save_dataset_h5( props.values()[0],    filename, "/processing/znn/train/patch/prop" )
-        save_dataset_h5( lbl_outs.values()[0], filename, "/processing/znn/train/patch/lbl")
-        save_dataset_h5( grdts.values()[0],    filename, "/processing/znn/train/patch/grdt")
+        stdpre = "/processing/znn/train/patch/"
+        from emirt.emio import h5write
+        for key, val in vol_ins.iteritems():
+            h5write( filename, stdpre + "inputs/"+key, val )
+        for key, val in props.iteritems():
+            h5write( filename, stdpre + "props/"+key, val )
+        for key, val in lbl_outs.iteritems():
+            h5write( filename, stdpre + "lbls/"+key, val)
+        for key, val in grdts.iteritems():
+            h5write( filename, stdpre + "grdts/"+key, val )
         if pars['is_malis'] and pars['is_stdio']:
-            save_dataset_h5( malis_weights.values()[0], filename, \
-                             "/processing/znn/train/patch/malis_weight")
+            for key, val in malis_weights.iteritems():
+                h5write( filename, stdpre + "malis_weights/", val )
         if pars['is_rebalance'] or pars['is_patch_rebalance']:
-            save_dataset_h5( wmsks.values()[0], filename, \
-                             "/processing/znn/train/patch/rebalance_weight")
+            for key, val in wmsks.iteritems():
+                h5write( filename, stdpre + "weights/", val )
 
     # Overwriting most current file with completely saved version
     shutil.copyfile(filename, filename_current)

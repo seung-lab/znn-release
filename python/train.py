@@ -211,11 +211,11 @@ def main( conf_file='config.cfg', logfile=None ):
             net.set_eta(eta)
 
         if i%pars['Num_iter_per_save']==0:
-            utils.inter_save(pars, net, lc, props, lbl_outs, \
+            utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
                              grdts, malis_weights, wmsks, elapsed, i)
 
         if  not nonan:
-            utils.inter_save(pars, net, lc, props, lbl_outs, \
+            utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
                              grdts, malis_weights, wmsks, elapsed, i)
             # stop training
             return

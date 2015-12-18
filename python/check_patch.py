@@ -86,8 +86,9 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
 
         # check the patch
         if pars['is_debug']:
-#            check_patch(pars, fov, i, vol_ins, lbl_outs, \
- #                             msks, wmsks, is_save=True)
+            check_patch(pars, fov, i, vol_ins, lbl_outs, \
+                        msks, wmsks, is_save=True)
+
             if check_dict_all_zero( lbl_outs ):
                 # forward pass
                 # apply the transformations in memory rather than array view
@@ -95,7 +96,7 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
                 props = net.forward( vol_ins )
                 props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
                 malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
-                utils.inter_save(pars, net, lc, props, lbl_outs, \
+                utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
                                  grdts, malis_weights, wmsks, elapsed, i)
                 raise NameError("all zero groundtruth!")
 
