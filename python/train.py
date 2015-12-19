@@ -237,6 +237,12 @@ def main( args ):
             smp_trn.swap_samples()
             print "Active sample: %s" % smp_trn.get_active_sample_id()
 
+        if (pars.has_key('Num_iter_per_dset_swap') 
+            and 
+            i%pars['Num_iter_per_dset_swap'] == 0):
+            smp_trn.swap_samples()
+            print "Active sample: %s" % smp_trn.get_active_sample_id()
+
         # run backward pass
         grdts = utils.make_continuous(grdts)
         net.backward( grdts )
