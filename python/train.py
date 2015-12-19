@@ -57,7 +57,7 @@ def main( conf_file='config.cfg', logfile=None ):
     # initialize samples
     outsz = pars['train_outsz']
     print "\n\ncreate train samples..."
-    smp_trn = zsample.CSamples(config, pars, pars['train_range'], net, outsz, logfile)
+    smp_trn = zsample.CThreadedSamples(config, pars, pars['train_range'], net, outsz, logfile)
     print "\n\ncreate test samples..."
     smp_tst = zsample.CSamples(config, pars, pars['test_range'],  net, outsz, logfile)
 
@@ -171,6 +171,12 @@ def main( conf_file='config.cfg', logfile=None ):
             lc.save( pars, elapsed )
             if pars['is_malis']:
                 utils.save_malis(malis_weights,  pars['train_save_net'], num_iters=i)
+
+        if (pars.has_key('Num_iter_per_dset_swap') 
+            and 
+            i%pars['Num_iter_per_dset_swap'] == 0):
+            smp_trn.swap_samples()
+            print "Active sample: %s" % smp_trn.get_active_sample_id()
 
         # run backward pass
         grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
