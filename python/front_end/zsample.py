@@ -7,11 +7,13 @@ Jingpeng Wu <jingpeng.wu@gmail.com>,
 Nicholas Turner <nturner@cs.princeton.edu>, 2015
 """
 
-import sys
+import sys, random
+import os.path, subprocess
 import numpy as np
 import emirt
 import utils
 from zdataset import *
+from threading import Thread
 
 class CSample(object):
     """
@@ -256,7 +258,7 @@ class CAffinitySample(CSample):
         """
         transform labels to affinity.
         Note that this transformation will shrink the volume size
-        it is different with normal transformation keeping the size of lable
+        it is different with normal transformation keeping the size of label
         which is defined in emirt.volume_util.seg2aff
 
         Parameters
@@ -463,10 +465,16 @@ class CBoundarySample(CSample):
         return subimgs, sublbls, submsks, subwmsks
 
 class ConfigSampleOutput(object):
-    '''Documentation coming soon...'''
+    '''
+    Sample object for containing output (primarily from the
+    full forward pass). Mostly wraps a zdataset in the sample
+    interface, allowing us to use the patch structure
+    '''
 
     def __init__(self, pars, net, output_volume_shape3d, dtype):
 
+        #Finds how many output volumes there should be, and
+        # what their names are
         output_patch_shapes = net.get_outputs_setsz()
 
         fov = np.array([1,1,1], dtype='uint32')
@@ -484,11 +492,13 @@ class ConfigSampleOutput(object):
             self.output_volumes[name] = CDataset(pars, empty_bin, shape[-3:], shape[-3:] )
 
     def set_next_patch(self, output):
+        '''See CDataset.set_next_patch'''
 
         for name, data in output.iteritems():
             self.output_volumes[name].set_next_patch(data)
 
     def num_patches(self):
+        '''See CDataset.num_patches'''
 
         patch_counts = {}
 
@@ -532,3 +542,205 @@ class CSamples(object):
         '''Fetches a random sample from a random CSample object'''
         i = np.random.randint( len(self.samples) )
         return self.samples[i].get_random_sample()
+
+class S3Copy_LoaderThread(Thread):
+
+    def __init__(self, config, pars, sample_num, net, outsz, log, class_obj):
+        '''Same as above'''
+        Thread.__init__(self)
+
+        #storing stuff
+        self.config = config
+        self.pars = pars
+        self.sample_num = sample_num
+        self.net = net
+        self.outsz = outsz
+        self.log = log
+        self.class_obj = class_obj
+
+        self.sample = None
+
+    def run(self):
+        '''
+        Checks to see if sample is on disk
+        copy it from s3 if it's not, and then
+        start the loader thread
+
+        CURRENTLY INCOMPLETE
+        '''
+
+        pass
+
+
+class LoaderThread(Thread):
+    '''
+    Thread class used within CThreadedSamples below
+
+    Prepares a sample from disk using one of the CSample
+    classes above (either CBoundarySample or CAffinitySample),
+    and stores it within an attribute self.sample
+    '''
+
+    def __init__(self, config, pars, sample_num, net, outsz, log, class_obj):
+        '''Mostly just stores info for later use'''
+        Thread.__init__(self)
+
+        #storing stuff
+        self.config = config
+        self.pars = pars
+        self.sample_num = sample_num
+        self.net = net
+        self.outsz = outsz
+        self.log = log
+        self.class_obj = class_obj
+
+        self.sample = None
+
+    def run(self):
+        '''Actually doing work'''
+
+        self.sample = self.class_obj(
+            self.config,
+            self.pars,
+            self.sample_num,
+            self.net,
+            self.outsz,
+            self.log)
+
+
+class CThreadedSamples(object):
+    '''
+    Samples Class which allows for a group of datasets which is altogether too
+    large to fit in memory
+
+    Features the same get_random_sample interface as CSample[s], but only features
+    a single active dataset at once. The active dataset can be swapped with another
+    random set through the swap_samples function. This in turn triggers another
+    backup to be prepped from disk.
+
+    Does not currently feature copying from Amazon S3, though that's next
+    '''
+
+    def __init__(self, config, pars, ids, net, outsz, log=None):
+        '''
+        Stores parameters, and starts the first 
+        sample loading process in the foreground
+        '''
+
+        #Storing inputs for use within loading functions
+        self.config = config
+        self.pars = pars
+        #conversion to tuple allows for indexing
+        # within random.choice when we select a random sample
+        self.ids = tuple(ids) 
+        self.net = net
+        self.outsz = outsz
+        self.log = log
+
+        #Selecting which output sample class to load
+        self.sample_class = None
+        if 'bound' in pars['out_type']:
+            self.sample_class = CBoundarySample
+        elif 'aff' in pars['out_type']:
+            self.sample_class = CAffinitySample
+        else:
+            raise NameError('invalid output type')
+
+        #Loading initial dataset
+        self.active_sample = self.load_sample_direct()
+
+        #Starting loading of backup dataset
+        self.backup_thread = self.load_sample_thread()
+
+    def choose_random_sample_num(self):
+        '''Returns a random sample id'''
+        return random.choice( self.ids )
+
+    def load_sample_direct(self):
+        '''
+        Prepares a CSample object from disk in the foreground.
+        Returns the CSample object itself
+        '''
+        sample_num = self.choose_random_sample_num()
+
+        #Initialize an instance of the stored sample class
+        # using the stored info
+        return self.sample_class(
+                        self.config,
+                        self.pars,
+                        sample_num,
+                        self.net,
+                        self.outsz,
+                        self.log)
+
+    def load_sample_thread(self):
+        '''
+        Prepares a CSample object from disk within a LoaderThread.
+        Returns a thread which will (eventually) contain the CSample
+        object
+
+        self, config, pars, sample_num, net, outsz, log, class_obj)
+        '''
+        sample_num = self.choose_random_sample_num()
+
+        #Initializing the thread
+        thread = LoaderThread(
+            self.config,
+            self.pars,
+            sample_num,
+            self.net,
+            self.outsz,
+            self.log,
+            self.sample_class
+            )
+
+        #Starting the read from disk
+        thread.start()
+
+        #Returning the pointer
+        return thread
+
+    def backup_ready(self):
+        '''Returns whether the backup is ready to be swapped in'''
+        #If the backup thread is still running, it has more work to do,
+        # and the sample object should be None
+        return not self.backup_thread.is_alive()
+
+    def swap_samples(self):
+        '''
+        Swaps the backup sample to be active if it's ready,
+        and otherwise does nothing
+        '''
+        if self.backup_ready():
+            print "Swapping active dataset"
+            self.active_sample = self.backup_thread.sample
+            #Starting the next load
+            self.backup_thread = self.load_sample_thread()
+        else:
+            print "Swap not ready!"
+
+    def get_active_sample_id(self):
+        '''Returns the id of the active sample'''
+        return self.active_sample.sec_name
+
+    def get_random_sample(self):
+        '''
+        Fetches a random input and output patch from the active sample
+        '''
+        return self.active_sample.get_random_sample()
+
+
+class CThreadedSamples_S3(CThreadedSamples):
+
+    def __init__(self, config, pars, ids, net, outsz, log=None):
+        '''
+        Nothing new
+        '''
+        CThreadedSamples.__init__(self, config, pars,
+                                ids, net, outsz, log)
+
+    def load_sample_thread(self):
+
+        sample_num = self.choose_random_sample_num()
+
+
