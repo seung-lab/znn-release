@@ -118,7 +118,7 @@ def main( conf_file='config.cfg', logfile=None ):
 
         # forward pass
         # apply the transformations in memory rather than array view
-        vol_ins = utils.make_continuous(vol_ins, dtype=pars['dtype'])
+        vol_ins = utils.make_continuous(vol_ins)
         props = net.forward( vol_ins )
 
         # cost function and accumulate errors

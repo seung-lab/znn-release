@@ -86,20 +86,58 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
 
         # check the patch
         if pars['is_debug']:
-            check_patch(pars, fov, i, vol_ins, lbl_outs, \
-                        msks, wmsks, is_save=True)
+#            check_patch(pars, fov, i, vol_ins, lbl_outs, \
+ #                       msks, wmsks, is_save=True)
 
             if check_dict_all_zero( lbl_outs ):
                 # forward pass
                 # apply the transformations in memory rather than array view
-                vol_ins = utils.make_continuous(vol_ins, dtype=pars['dtype'])
+                vol_ins = utils.make_continuous(vol_ins)
                 props = net.forward( vol_ins )
                 props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
                 malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
                 utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
                                  grdts, malis_weights, wmsks, elapsed, i)
                 raise NameError("all zero groundtruth!")
+            # check gradient
+            check_gradient(pars, net, vol_ins, lbl_outs, msks )
 
+def check_gradient(pars, net, vol_ins, lbl_outs, msks):
+    """
+    gradient check method:
+    http://cs231n.github.io/neural-networks-3/
+    """
+    # a small shift
+    h = 0.000001
+
+    # numerical gradient
+    # apply the transformations in memory rather than array view
+    vol_ins = utils.make_continuous(vol_ins)
+    props = net.forward( vol_ins )
+    props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
+
+    # shift the input to compute the analytical gradient
+    vol_ins1 = dict()
+    vol_ins2 = dict()
+    for key, val in vol_ins.iteritems():
+        vol_ins1[key] = val + h
+        vol_ins2[key] = val - h
+    props1 = net.forward( vol_ins1 )
+    props2 = net.forward( vol_ins2 )
+    # compute the analytical gradient
+    for key, g in grdts.iteritems():
+        prop1 = props1[key]
+        prop2 = props2[key]
+        ag = (prop1 - prop2)/ (2 * h)
+        error = g-ag
+        # check the error range
+        print "gradient error: ", error
+
+        # check the relative error
+        rle = np.abs(ag-g) / (np.maximum(np.abs(ag),np.abs(g)))
+        print "relative gradient error: ", rle
+        assert error.max < 10*h*h
+        assert rle.max() < 0.01
 
 def check_dict_all_zero( d ):
     for v in d.values():
