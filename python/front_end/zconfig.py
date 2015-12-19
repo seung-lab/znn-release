@@ -219,6 +219,9 @@ def parser( conf_fname ):
         pars['Num_iter_per_annealing'] = 100
     #Maximum training updates
     pars['Max_iter']    = config.getint('parameters', 'Max_iter')
+    #Numer of Iterations between dataset swaps
+    if config.has_option('parameters','Num_iter_per_dset_swap'):
+        pars['Num_iter_per_dset_swap'] = config.getint('parameters', 'Num_iter_per_dset_swap')
 
     #FULL FORWARD PASS PARAMETERS
     #Which samples to use
@@ -298,6 +301,12 @@ def check_config(config, pars):
                 pp_types = pp_types.replace("auto", "affinity")
             config.set(sec, 'pp_types', value=pp_types)
 
+    #Remove fnames and fmasks options with ''
+    for sec in config.sections():
+        if config.has_option(sec, 'fnames') and len( config.get(sec, 'fnames') ) == 0:
+            config.remove_option(sec, 'fnames')
+        if config.has_option(sec, 'fmasks') and len( config.get(sec, 'fmasks') ) == 0:
+            config.remove_option(sec, 'fmasks')
 
     # check malis normalization type
     if pars['is_malis']:
