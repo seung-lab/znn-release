@@ -4,6 +4,7 @@ __doc__ = """
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 from front_end import *
+import cost_fn
 import utils
 import os
 import emirt
@@ -25,6 +26,7 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
         zlog.record_config_file( pars )
 
         logfile = zlog.make_logfile_name( pars )
+        print "log file name: ", logfile
 
     #%% create and initialize the network
     iter_last = 0
@@ -35,6 +37,7 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
         print "initializing network..."
         net = znetio.init_network( pars )
 
+    lc = None
     # show field of view
     fov = np.asarray(net.get_fov(), dtype='uint32')
 
@@ -83,8 +86,121 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
 
         # check the patch
         if pars['is_debug']:
-            utils.check_patch(pars, fov, i, vol_ins, lbl_outs, \
-                              msks, wmsks, is_save=True)
+#            check_patch(pars, fov, i, vol_ins, lbl_outs, \
+ #                       msks, wmsks, is_save=True)
+
+            if check_dict_all_zero( lbl_outs ):
+                # forward pass
+                # apply the transformations in memory rather than array view
+                vol_ins = utils.make_continuous(vol_ins)
+                props = net.forward( vol_ins )
+                props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
+                malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
+                utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
+                                 grdts, malis_weights, wmsks, elapsed, i)
+                raise NameError("all zero groundtruth!")
+            # check gradient
+            check_gradient(pars, net, vol_ins, lbl_outs, msks )
+
+def check_gradient(pars, net, vol_ins, lbl_outs, msks):
+    """
+    gradient check method:
+    http://cs231n.github.io/neural-networks-3/
+    """
+    # a small shift
+    h = 0.000001
+
+    # numerical gradient
+    # apply the transformations in memory rather than array view
+    vol_ins = utils.make_continuous(vol_ins)
+    props = net.forward( vol_ins )
+    props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
+
+    # shift the input to compute the analytical gradient
+    vol_ins1 = dict()
+    vol_ins2 = dict()
+    for key, val in vol_ins.iteritems():
+        vol_ins1[key] = val + h
+        vol_ins2[key] = val - h
+    props1 = net.forward( vol_ins1 )
+    props2 = net.forward( vol_ins2 )
+    # compute the analytical gradient
+    for key, g in grdts.iteritems():
+        prop1 = props1[key]
+        prop2 = props2[key]
+        ag = (prop1 - prop2)/ (2 * h)
+        error = g-ag
+        # check the error range
+        print "gradient error: ", error
+
+        # check the relative error
+        rle = np.abs(ag-g) / (np.maximum(np.abs(ag),np.abs(g)))
+        print "relative gradient error: ", rle
+        assert error.max < 10*h*h
+        assert rle.max() < 0.01
+
+def check_dict_all_zero( d ):
+    for v in d.values():
+        if np.all(v==0):
+            print "all zero!"
+            return True
+    return False
+
+def check_patch(pars, fov, i, vol_ins, lbl_outs, \
+                msks, wmsks, is_save=False):
+    # margin of low and high
+    mlow = (fov-1)/2
+    mhigh = fov/2
+
+    # get the input and output image
+    inimg = vol_ins.values()[0][0,0,:,:]
+    if "bound" in pars['out_type']:
+        oulbl = lbl_outs.values()[0][0,0,:,:]
+        wmsk  = wmsks.values()[0][0,0,:,:]
+    else:
+        oulbl = lbl_outs.values()[0][2,0,:,:]
+        wmsk  = wmsks.values()[0][2,0,:,:]
+
+    # combine them to a RGB image
+    # rgb = np.tile(inimg, (3,1,1))
+    rgb = np.zeros((3,)+oulbl.shape, dtype='uint8')
+    # transform to 0-255
+    inimg -= inimg.min()
+    inimg = (inimg / inimg.max()) * 255
+    inimg = 255 - inimg
+    inimg = inimg.astype( 'uint8')
+    print "maregin low: ", mlow
+    print "margin high: ", mhigh
+    inimg = inimg[mlow[1]:-47, mlow[2]:-47]
+
+    oulbl = ((1-oulbl)*255).astype('uint8')
+    #rgb[0,:,:] = inimg[margin_low[1]:-margin_high[1], margin_low[2]:-margin_high[2]]
+    rgb[0,:,:] = inimg
+    rgb[1,:,:] = oulbl
+
+    # rebalance weight
+    print "rebalance weight: ", wmsk
+    wmsk -= wmsk.min()
+    wmsk = (wmsk / wmsk.max()) *255
+    wmsk = wmsk.astype('uint8')
+    # save the images
+    import emirt
+    if is_save:
+        if 'aff' in pars['out_type']:
+            fdir = "../testsuit/affinity/"
+        else:
+            fdir = "../testsuit/boundary/"
+        emirt.emio.imsave(rgb, fdir + "iter_{}_rgb.tif".format(i))
+        emirt.emio.imsave(inimg, fdir + "iter_{}_raw.tif".format(i))
+        emirt.emio.imsave(wmsk, fdir + "iter_{}_msk.tif".format(i))
+
+    # check the image with ground truth
+    fname = fdir + "gtruth/iter_{}_rgb.tif".format(i)
+    import os
+    if os.path.exists(fname):
+        print "find and check using "+ fname
+        trgb = emirt.emio.imread( fname )
+        assert np.all(trgb == rgb)
 
 
 if __name__ == '__main__':

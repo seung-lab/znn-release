@@ -118,7 +118,7 @@ def main( conf_file='config.cfg', logfile=None ):
 
         # forward pass
         # apply the transformations in memory rather than array view
-        vol_ins = utils.make_continuous(vol_ins, dtype=pars['dtype'])
+        vol_ins = utils.make_continuous(vol_ins)
         props = net.forward( vol_ins )
 
         # cost function and accumulate errors
@@ -144,6 +144,9 @@ def main( conf_file='config.cfg', logfile=None ):
 
         if pars['is_malis'] :
             malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
+            if num_non_bdr<=1:
+                # skip this iteration
+                continue
             grdts = utils.dict_mul(grdts, malis_weights)
             dmc, dme = utils.get_malis_cost( props, lbl_outs, malis_weights )
             malis_cls += dmc.values()[0]
@@ -208,11 +211,11 @@ def main( conf_file='config.cfg', logfile=None ):
             net.set_eta(eta)
 
         if i%pars['Num_iter_per_save']==0:
-            utils.inter_save(pars, net, lc, props, lbl_outs, \
+            utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
                              grdts, malis_weights, wmsks, elapsed, i)
 
         if  not nonan:
-            utils.inter_save(pars, net, lc, props, lbl_outs, \
+            utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
                              grdts, malis_weights, wmsks, elapsed, i)
             # stop training
             return

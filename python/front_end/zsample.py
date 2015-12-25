@@ -138,7 +138,7 @@ class CSample(object):
         loc[2] = self.locs[2][ind]
         dev = loc - self.outs.values()[0].center
 
-        self.write_request_to_log(dev)
+        self.write_request_to_log(loc)
 
         # get input and output 4D sub arrays
         subinputs = dict()

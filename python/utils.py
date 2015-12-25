@@ -7,7 +7,6 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 from front_end import znetio
 import shutil
-from emirt.emio import save_dataset_h5
 
 def timestamp():
     import datetime
@@ -26,6 +25,28 @@ def write_to_log(filename, line):
         f.write(line)
         f.write('\n')
         f.close()
+
+def assert_arglist(single_arg_option, multi_arg_option):
+    '''
+    Several functions can be called using a composite (parameters/params) data structure or
+    by specifying the information from that structure individually. This
+    function asserts that one of these two options are properly defined
+    single_arg_option represents the value of the composite data structure argument
+    multi_arg_option should be a list of optional arguments
+    '''
+    multi_arg_is_list = isinstance(multi_arg_option, list)
+    assert(multi_arg_is_list)
+    multi_arg_contains_something = len(multi_arg_option) > 0
+    assert(multi_arg_contains_something)
+
+    params_defined = single_arg_option is not None
+
+    all_optional_args_defined = all([
+        arg is not None for arg in
+        multi_arg_option
+    ])
+
+    assert(params_defined or all_optional_args_defined)
 
 def rft_to_string(rft):
     '''Transforms an rft (bool array) into a string for logging'''
@@ -160,7 +181,7 @@ def boundary_mirror( arr, fov ):
             bf[c,z,:,:] = _mirror2d(bf[c, z, l[1]:b[1], l[2]:b[2]], bf[c,z,:,:], fov[1:])
     return bf
 
-def make_continuous( d , dtype='float32'):
+def make_continuous( d ):
     """
     make the dictionary arrays continuous.
 
@@ -173,7 +194,7 @@ def make_continuous( d , dtype='float32'):
     d : dict, the inner array are continuous.
     """
     for name, arr in d.iteritems():
-        d[name] = np.ascontiguousarray(arr, dtype=dtype)
+        d[name] = np.ascontiguousarray(arr)
     return d
 
 def get_vox_num( d ):
@@ -242,61 +263,6 @@ def mask_dict_vol(dict_vol, mask=None):
     else:
         return dict_vol
 
-def check_patch(pars, fov, i, vol_ins, lbl_outs, \
-                msks, wmsks, is_save=False):
-    # margin of low and high
-    mlow = (fov-1)/2
-    mhigh = fov/2
-
-    # get the input and output image
-    inimg = vol_ins.values()[0][0,0,:,:]
-    if "bound" in pars['out_type']:
-        oulbl = lbl_outs.values()[0][0,0,:,:]
-        wmsk  = wmsks.values()[0][0,0,:,:]
-    else:
-        oulbl = lbl_outs.values()[0][2,0,:,:]
-        wmsk  = wmsks.values()[0][2,0,:,:]
-
-    # combine them to a RGB image
-    # rgb = np.tile(inimg, (3,1,1))
-    rgb = np.zeros((3,)+oulbl.shape, dtype='uint8')
-    # transform to 0-255
-    inimg -= inimg.min()
-    inimg = (inimg / inimg.max()) * 255
-    inimg = 255 - inimg
-    inimg = inimg.astype( 'uint8')
-    print "maregin low: ", mlow
-    print "margin high: ", mhigh
-    inimg = inimg[mlow[1]:-47, mlow[2]:-47]
-
-    oulbl = ((1-oulbl)*255).astype('uint8')
-    #rgb[0,:,:] = inimg[margin_low[1]:-margin_high[1], margin_low[2]:-margin_high[2]]
-    rgb[0,:,:] = inimg
-    rgb[1,:,:] = oulbl
-
-    # rebalance weight
-    print "rebalance weight: ", wmsk
-    wmsk -= wmsk.min()
-    wmsk = (wmsk / wmsk.max()) *255
-    wmsk = wmsk.astype('uint8')
-    # save the images
-    import emirt
-    if is_save:
-        if 'aff' in pars['out_type']:
-            fdir = "../testsuit/affinity/"
-        else:
-            fdir = "../testsuit/boundary/"
-        emirt.emio.imsave(rgb, fdir + "iter_{}_rgb.tif".format(i))
-        emirt.emio.imsave(inimg, fdir + "iter_{}_raw.tif".format(i))
-        emirt.emio.imsave(wmsk, fdir + "iter_{}_msk.tif".format(i))
-
-    # check the image with ground truth
-    fname = fdir + "gtruth/iter_{}_rgb.tif".format(i)
-    import os
-    if os.path.exists(fname):
-        print "find and check using "+ fname
-        trgb = emirt.emio.imread( fname )
-        assert np.all(trgb == rgb)
 
 def check_dict_nan( d ):
     for v in d.values():
@@ -305,23 +271,31 @@ def check_dict_nan( d ):
             return False
     return True
 
-def inter_save(pars, net, lc, props, lbl_outs, \
+def inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
                grdts, malis_weights, wmsks, elapsed, it):
     # get file name
     filename, filename_current = znetio.get_net_fname( pars['train_save_net'], it )
     # save network
     znetio.save_network(net, filename, pars['is_stdio'] )
-    lc.save( pars, filename, elapsed )
+    if lc is not None:
+        lc.save( pars, filename, elapsed )
     if pars['is_debug'] and pars['is_stdio']:
-        save_dataset_h5( props.values()[0],    filename, "/processing/znn/train/patch/prop" )
-        save_dataset_h5( lbl_outs.values()[0], filename, "/processing/znn/train/patch/lbl")
-        save_dataset_h5( grdts.values()[0],    filename, "/processing/znn/train/patch/grdt")
+        stdpre = "/processing/znn/train/patch/"
+        from emirt.emio import h5write
+        for key, val in vol_ins.iteritems():
+            h5write( filename, stdpre + "inputs/"+key, val )
+        for key, val in props.iteritems():
+            h5write( filename, stdpre + "props/"+key, val )
+        for key, val in lbl_outs.iteritems():
+            h5write( filename, stdpre + "lbls/"+key, val)
+        for key, val in grdts.iteritems():
+            h5write( filename, stdpre + "grdts/"+key, val )
         if pars['is_malis'] and pars['is_stdio']:
-            save_dataset_h5( malis_weights.values()[0], filename, \
-                             "/processing/znn/train/patch/malis_weight")
+            for key, val in malis_weights.iteritems():
+                h5write( filename, stdpre + "malis_weights/", val )
         if pars['is_rebalance'] or pars['is_patch_rebalance']:
-            save_dataset_h5( wmsks.values()[0], filename, \
-                             "/processing/znn/train/patch/rebalance_weight")
+            for key, val in wmsks.iteritems():
+                h5write( filename, stdpre + "weights/", val )
 
     # Overwriting most current file with completely saved version
     shutil.copyfile(filename, filename_current)
