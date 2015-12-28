@@ -221,7 +221,7 @@ def main( conf_file='config.cfg', logfile=None ):
             return
 
         # run backward pass
-        grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
+        grdts = utils.make_continuous(grdts)
         net.backward( grdts )
 
 

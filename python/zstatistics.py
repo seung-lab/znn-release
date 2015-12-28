@@ -273,9 +273,6 @@ class CLearnCurve:
             plt.plot(xtm, ytm, 'r', label='test')
             plt.xlabel('iteration'), plt.ylabel( 'malis weighted cost energy' )
 
-        print "tt_it: ", self.tn_it
-        print "tt_me: ", self.tn_me
-
         if len(self.tn_it) == len( self.tn_me ):
             plt.subplot(1, nsp, 5)
             plt.plot(self.tn_it, self.tn_me, 'b.', alpha=0.2)

@@ -124,7 +124,7 @@ def generate_full_output( Dataset, network, params,
 
 		input_patches, junk = Dataset.get_next_patch()
 
-		vol_ins = utils.make_continuous(input_patches, dtype=dtype)
+		vol_ins = utils.make_continuous(input_patches)
 
 		output = network.forward( vol_ins )
 
