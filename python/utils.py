@@ -181,7 +181,7 @@ def boundary_mirror( arr, fov ):
             bf[c,z,:,:] = _mirror2d(bf[c, z, l[1]:b[1], l[2]:b[2]], bf[c,z,:,:], fov[1:])
     return bf
 
-def make_continuous( d ):
+def make_continuous( d, dtype='float32'):
     """
     make the dictionary arrays continuous.
 
@@ -194,7 +194,7 @@ def make_continuous( d ):
     d : dict, the inner array are continuous.
     """
     for name, arr in d.iteritems():
-        d[name] = np.ascontiguousarray(arr)
+        d[name] = np.ascontiguousarray(arr, dtype=dtype)
     return d
 
 def get_vox_num( d ):
