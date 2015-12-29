@@ -99,12 +99,12 @@ using namespace znn::v4::parallel_network;
 //IO FUNCTIONS
 //First constructor - generates a random network
 std::shared_ptr< network > CNet_Init(
-		std::string  const net_config_file,
-		np::ndarray  const & outsz_a,
-		std::size_t  tc  = 0,	// thread number
-		bool const is_optimize = true,
-        std::uint8_t const phs = 0, // 0:TRAIN, 1:TEST
-        bool const force_fft = false)
+    std::string  const net_config_file,
+    np::ndarray  const & outsz_a,
+    std::size_t  tc  = 0,	// thread number
+    bool const is_optimize = true,
+    std::uint8_t const phs = 0, // 0:TRAIN, 1:TEST
+    bool const force_fft = false)
 {
     std::vector<options> nodes;
     std::vector<options> edges;
@@ -113,7 +113,7 @@ std::shared_ptr< network > CNet_Init(
     vec3i out_sz(   reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
                     reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
                     reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
-					);
+        );
     if ( tc == 0 )
     	tc = std::thread::hardware_concurrency();
 
@@ -157,25 +157,25 @@ std::shared_ptr< network > CNet_Init(
 //Initializes a CNet instance based on
 // the passed options struct (tuple(list(dict)), see CNet_getopts)
 std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
-	std::string const net_config_file,
-	np::ndarray const & outsz_a,
-	std::size_t const tc,
-	bool const is_optimize = true,
-	std::uint8_t const phs = 0,
-    bool const force_fft = false )
+                                        std::string const net_config_file,
+                                        np::ndarray const & outsz_a,
+                                        std::size_t const tc,
+                                        bool const is_optimize = true,
+                                        std::uint8_t const phs = 0,
+                                        bool const force_fft = false )
 {
 
-	bp::list node_opts_list = bp::extract<bp::list>( opts[0] );
-	bp::list edge_opts_list = bp::extract<bp::list>( opts[1] );
+    bp::list node_opts_list = bp::extract<bp::list>( opts[0] );
+    bp::list edge_opts_list = bp::extract<bp::list>( opts[1] );
 
-	//See pyznn_utils.hpp
-	std::vector<options> node_opts = pyopt_to_znnopt(node_opts_list);
-	std::vector<options> edge_opts = pyopt_to_znnopt(edge_opts_list);
+    //See pyznn_utils.hpp
+    std::vector<options> node_opts = pyopt_to_znnopt(node_opts_list);
+    std::vector<options> edge_opts = pyopt_to_znnopt(edge_opts_list);
 
-	vec3i out_sz(	reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
-					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
-					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
-					);
+    vec3i out_sz( reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
+                  reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
+                  reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
+            );
 
      // force fft or optimize
     if ( force_fft )
@@ -203,10 +203,10 @@ std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
         }
     }
 
-	std::shared_ptr<network> net(
-		new network( node_opts,edge_opts,out_sz,tc,static_cast<phase>(phs) ));
+    std::shared_ptr<network> net(
+        new network( node_opts,edge_opts,out_sz,tc,static_cast<phase>(phs) ));
 
-	return net;
+    return net;
 }
 
 //Returns a tuple of list of dictionaries of the following form
@@ -216,34 +216,34 @@ std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
 // See pyznn_utils.hpp for helper functions
 bp::tuple CNet_getopts( bp::object const & self )
 {
-	network& net = bp::extract<network&>(self)();
-	//Grabbing "serialized" options
-	//opts.first => node options
-	//opts.second => edge options
-	std::pair<std::vector<options>,std::vector<options>> opts = net.serialize();
+    network& net = bp::extract<network&>(self)();
+    //Grabbing "serialized" options
+    //opts.first => node options
+    //opts.second => edge options
+    std::pair<std::vector<options>,std::vector<options>> opts = net.serialize();
 
-	//Init
-	bp::list node_opts;
-	bp::list edge_opts;
+    //Init
+    bp::list node_opts;
+    bp::list edge_opts;
 
-	//Node options
-	for ( std::size_t i=0; i < opts.first.size(); i++ )
-	{
-		//Convert the map to a python dict, and append it
-		node_opts.append( node_opt_to_dict(opts.first[i], self) );
-	}
+    //Node options
+    for ( std::size_t i=0; i < opts.first.size(); i++ )
+    {
+        //Convert the map to a python dict, and append it
+        node_opts.append( node_opt_to_dict(opts.first[i], self) );
+    }
 
-	//Derive size layer dictionary from node opts
-	std::map<std::string, std::size_t> layer_sizes = extract_layer_sizes( opts.first );
+    //Derive size layer dictionary from node opts
+    std::map<std::string, std::size_t> layer_sizes = extract_layer_sizes( opts.first );
 
-	//Edge opts
-	for ( std::size_t i=0; i < opts.second.size(); i++ )
-	{
-		//Convert the map to a python dict, and append it
-		edge_opts.append( edge_opt_to_dict(opts.second[i], layer_sizes, self) );
-	}
+    //Edge opts
+    for ( std::size_t i=0; i < opts.second.size(); i++ )
+    {
+        //Convert the map to a python dict, and append it
+        edge_opts.append( edge_opt_to_dict(opts.second[i], layer_sizes, self) );
+    }
 
-	return bp::make_tuple(node_opts, edge_opts);
+    return bp::make_tuple(node_opts, edge_opts);
 }
 
 //===========================================================================
@@ -252,8 +252,8 @@ bp::tuple CNet_getopts( bp::object const & self )
 //Computes the forward-pass
 bp::dict CNet_forward( bp::object const & self, bp::dict& ins )
 {
-	// extract the class from self
-	network& net = bp::extract<network&>(self)();
+    // extract the class from self
+    network& net = bp::extract<network&>(self)();
 
     // run forward and get output
     auto prop = net.forward( std::move( pydict2sample<real>( ins ) ) );
@@ -263,14 +263,14 @@ bp::dict CNet_forward( bp::object const & self, bp::dict& ins )
 //Computes the backward-pass and updates network parameters
 void CNet_backward( bp::object & self, bp::dict& grdts )
 {
-	// extract the class from self
-	network& net = bp::extract<network&>(self)();
+    // extract the class from self
+    network& net = bp::extract<network&>(self)();
 
-	// setting up output sample
-	std::map<std::string, std::vector<cube_p<real>>> gsample;
-	gsample = pydict2sample<real>( grdts );
+    // setting up output sample
+    std::map<std::string, std::vector<cube_p<real>>> gsample;
+    gsample = pydict2sample<real>( grdts );
 
-	// backward
+    // backward
     net.backward( std::move(gsample) );
 }
 
@@ -282,7 +282,7 @@ bp::tuple CNet_fov( bp::object const & self )
 {
     network& net = bp::extract<network&>(self)();
     vec3i fov_vec =  net.fov();
-    return 	bp::make_tuple(fov_vec[0], fov_vec[1], fov_vec[2]);
+    return bp::make_tuple(fov_vec[0], fov_vec[1], fov_vec[2]);
 }
 
 //Returns the number of 3d input volumes for the network
@@ -354,17 +354,17 @@ BOOST_PYTHON_MODULE(pyznn)
     bp::class_<network, boost::shared_ptr<network>, boost::noncopyable>("CNet",bp::no_init)
         .def("__init__", bp::make_constructor(&CNet_Init))
         .def("__init__", bp::make_constructor(&CNet_loadopts))
-        .def("get_fov",     		&CNet_fov)
-        .def("forward",     		&CNet_forward)
-        .def("backward",			&CNet_backward)
-        .def("set_eta",    		&network::set_eta)
-        .def("set_phase",            &CNet_set_phase)
+        .def("get_fov",  &CNet_fov)
+        .def("forward",  &CNet_forward)
+        .def("backward", &CNet_backward)
+        .def("set_eta",                 &network::set_eta)
+        .def("set_phase",               &CNet_set_phase)
         .def("set_momentum",		&network::set_momentum)
         .def("set_weight_decay",	&network::set_weight_decay )
         .def("get_inputs_setsz", 	&CNet_get_inputs_setsz)
         .def("get_input_num", 		&CNet_get_input_num)
         .def("get_outputs_setsz", 	&CNet_get_outputs_setsz)
         .def("get_output_num", 		&CNet_get_output_num)
-        .def("get_opts",			&CNet_getopts)
+        .def("get_opts",		&CNet_getopts)
         ;
 }
