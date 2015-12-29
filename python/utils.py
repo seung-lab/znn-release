@@ -5,7 +5,8 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 
 import numpy as np
-#from numba import autojit
+from front_end import znetio
+import shutil
 
 def timestamp():
     import datetime
@@ -30,7 +31,6 @@ def assert_arglist(single_arg_option, multi_arg_option):
     Several functions can be called using a composite (parameters/params) data structure or
     by specifying the information from that structure individually. This
     function asserts that one of these two options are properly defined
-
     single_arg_option represents the value of the composite data structure argument
     multi_arg_option should be a list of optional arguments
     '''
@@ -44,7 +44,7 @@ def assert_arglist(single_arg_option, multi_arg_option):
     all_optional_args_defined = all([
         arg is not None for arg in
         multi_arg_option
-        ])
+    ])
 
     assert(params_defined or all_optional_args_defined)
 
@@ -181,35 +181,7 @@ def boundary_mirror( arr, fov ):
             bf[c,z,:,:] = _mirror2d(bf[c, z, l[1]:b[1], l[2]:b[2]], bf[c,z,:,:], fov[1:])
     return bf
 
-#@autojit(nopython=True)
-def fill_boundary_holes( lbl ):
-    """
-    separate the contacting segments with boundaries.
-    """
-    assert(lbl.ndim==3 or lbl.ndim==2)
-    original_shape = lbl.shape
-    if lbl.ndim==2:
-        lbl = np.reshape(lbl, newshape = (1,)+lbl.shape)
-
-    for z in xrange( lbl.shape[0] ):
-        for y in xrange( lbl.shape[1]-1 ):
-            for x in xrange( lbl.shape[2] ):
-                if lbl[z,y,x]>0 and \
-                    lbl[z,y,x]!=lbl[z,y+1,x] and \
-                    lbl[z,y+1,x]>0:
-                        lbl[z, y,   x] = 0
-                        lbl[z, y+1, x] = 0
-
-        for y in xrange( lbl.shape[1] ):
-            for x in xrange( lbl.shape[2]-1 ):
-                    if lbl[z,y,x]>0 and \
-                        lbl[z,y,x]!=lbl[z,y,x+1] and \
-                        lbl[z,y,x+1]>0:
-                        lbl[z, y, x  ] = 0
-                        lbl[z, y, x+1] = 0
-    lbl = lbl.reshape( original_shape )
-
-def make_continuous( d , dtype='float32'):
+def make_continuous( d ):
     """
     make the dictionary arrays continuous.
 
@@ -222,7 +194,7 @@ def make_continuous( d , dtype='float32'):
     d : dict, the inner array are continuous.
     """
     for name, arr in d.iteritems():
-        d[name] = np.ascontiguousarray(arr, dtype=dtype)
+        d[name] = np.ascontiguousarray(arr)
     return d
 
 def get_vox_num( d ):
@@ -262,43 +234,24 @@ def dict_mul(das,dbs):
             ret[name] = a
     return ret
 
-def dict_save( d, fname ):
-    """
-    save a dictionary as a hdf5 file
-    """
-    import h5py
+def get_malis_cost( props, lbl_outs, malis_weights ):
+    assert( len(props.keys()) == 1 )
 
-    f = h5py.File( fname, 'w' )
-    for key, value in d.iteritems():
-        f.create_dataset(key, data=value)
-    f.close()
-
-def save_malis( mws, fname_save_net, num_iters ):
-    """
-    save malis weights
-    the weights was stored in a dictionary
-    """
-    import os
-    root, ext = os.path.splitext( fname_save_net )
-    fname = root + "_malis_weights_{}.h5".format( num_iters )
-    dict_save( mws, fname )
-
-    # current file name
-    current_fname = root + "_malis_weights_current.h5"
-    if os.path.exists( current_fname ):
-        os.remove( current_fname )
-        import shutil
-        shutil.copy( fname, current_fname )
-
-def get_malis_cls( props, lbl_outs, malis_weights ):
-    ret = dict()
+    # dictionary of malis weighted pixel classification error
+    dmc = dict()
+    # dictionary of malis weighted binomial cross entropy energy
+    dme = dict()
     for key, mw in malis_weights.iteritems():
         prop = props[key]
         lbl = lbl_outs[key]
         cls = ( (prop>0.5)!=(lbl>0.5) )
         cls = cls.astype('float32')
-        ret[key] = np.nansum(cls*mw) / np.nansum(mw)
-    return ret
+        # cost energy
+        eng = -lbl*np.log(prop) - (1-lbl)*np.log(1-prop)
+
+        dmc[key] = np.nansum( cls*mw ) / np.nansum(mw)
+        dme[key] = np.nansum( eng*mw ) / np.nansum(mw)
+    return dmc, dme
 
 def mask_dict_vol(dict_vol, mask=None):
     """
@@ -309,3 +262,40 @@ def mask_dict_vol(dict_vol, mask=None):
         return dict_mul(dict_vol, mask)
     else:
         return dict_vol
+
+
+def check_dict_nan( d ):
+    for v in d.values():
+        if np.any(np.isnan(v)):
+            print "bad dict : ", d
+            return False
+    return True
+
+def inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
+               grdts, malis_weights, wmsks, elapsed, it):
+    # get file name
+    filename, filename_current = znetio.get_net_fname( pars['train_save_net'], it )
+    # save network
+    znetio.save_network(net, filename, pars['is_stdio'] )
+    if lc is not None:
+        lc.save( pars, filename, elapsed )
+    if pars['is_debug'] and pars['is_stdio']:
+        stdpre = "/processing/znn/train/patch/"
+        from emirt.emio import h5write
+        for key, val in vol_ins.iteritems():
+            h5write( filename, stdpre + "inputs/"+key, val )
+        for key, val in props.iteritems():
+            h5write( filename, stdpre + "props/"+key, val )
+        for key, val in lbl_outs.iteritems():
+            h5write( filename, stdpre + "lbls/"+key, val)
+        for key, val in grdts.iteritems():
+            h5write( filename, stdpre + "grdts/"+key, val )
+        if pars['is_malis'] and pars['is_stdio']:
+            for key, val in malis_weights.iteritems():
+                h5write( filename, stdpre + "malis_weights/", val )
+        if pars['is_rebalance'] or pars['is_patch_rebalance']:
+            for key, val in wmsks.iteritems():
+                h5write( filename, stdpre + "weights/", val )
+
+    # Overwriting most current file with completely saved version
+    shutil.copyfile(filename, filename_current)

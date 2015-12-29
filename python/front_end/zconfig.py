@@ -129,16 +129,37 @@ def parser( conf_fname ):
     #Whether to use rebalanced training
     pars['is_rebalance']= config.getboolean('parameters', 'is_rebalance')
     # whether to use rebalance of output patch
-    pars['is_patch_rebalance']=config.getboolean('parameters', 'is_patch_rebalance')
+    if config.has_option('parameters', 'is_patch_rebalance'):
+        pars['is_patch_rebalance'] = config.getboolean('parameters', 'is_patch_rebalance')
+    else:
+        pars['is_patch_rebalance'] = False
     #Whether to use malis cost
     if config.has_option('parameters', 'is_malis'):
         pars['is_malis'] = config.getboolean('parameters', 'is_malis')
+<<<<<<< HEAD
         # malis normalization type
         pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
     else:
         pars['is_malis'] = False
+=======
+        if pars['is_malis']:
+            # malis normalization type
+            pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
+    else:
+        pars['is_malis'] = False
+
+>>>>>>> 5a09aca04c04f4eccbe137a32c0a944230eb5b47
     #Whether to display progress plots
     pars['is_visual']   = config.getboolean('parameters', 'is_visual')
+    if config.has_option('parameters', 'is_stdio'):
+        pars['is_stdio'] = config.getboolean('parameters', 'is_stdio')
+    else:
+        pars['is_stdio'] = False
+    # debug mode
+    if config.has_option('parameters', 'is_debug'):
+        pars['is_debug'] = config.getboolean('parameters', 'is_debug')
+    else:
+        pars['is_debug'] = False
 
     #Which Cost Function to Use (as a string)
     pars['cost_fn_str'] = config.get('parameters', 'cost_fn')
@@ -214,7 +235,6 @@ def check_config(config, pars):
     assert('float32'==pars['dtype'] or 'float64'==pars['dtype'])
     assert('boundary' in pars['out_type'] or 'affin' in pars['out_type'])
     assert( np.size(pars['train_outsz'])==3 )
-    assert(pars['eta']<=1           and pars['eta']>=0)
     assert(pars['anneal_factor']>=0 and pars['anneal_factor']<=1)
     assert(pars['momentum']>=0      and pars['momentum']<=1)
     assert(pars['weight_decay']>=0  and pars['weight_decay']<=1)
@@ -245,5 +265,6 @@ def check_config(config, pars):
         assert 'none' in pars['malis_norm_type'] \
             or 'frac' in pars['malis_norm_type'] \
             or 'num'  in pars['malis_norm_type'] \
-            or 'pair' in pars['malis_norm_type']
+            or 'pair' in pars['malis_norm_type'] \
+            or 'constrain' in pars['malis_norm_type']
     return config, pars

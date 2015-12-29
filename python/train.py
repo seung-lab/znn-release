@@ -10,11 +10,21 @@ import test
 import utils
 import zstatistics
 import os
+import numpy as np
+from core import pyznn
+import shutil
 
 def main( conf_file='config.cfg', logfile=None ):
     #%% parameters
     print "reading config parameters..."
     config, pars = zconfig.parser( conf_file )
+
+    # random seed
+    if pars['is_debug']:
+        # use fixed index
+        np.random.seed(1)
+    # no nan detected
+    nonan = True
 
     if pars.has_key('logging') and pars['logging']:
         print "recording configuration file..."
@@ -27,7 +37,15 @@ def main( conf_file='config.cfg', logfile=None ):
         print "loading network..."
         net = znetio.load_network( pars )
         # load existing learning curve
-        lc = zstatistics.CLearnCurve( pars['train_load_net'] )
+        if pars['is_stdio']:
+            flc = pars['train_load_net']
+        else:
+            # change file name for learning curve
+            root, ext = os.path.splitext( pars['train_load_net'] )
+            istr = root.split('_')[-1]
+            flc = os.path.dirname(root) + "/net_statistics_{}.h5".format(istr)
+            print "file name of lc: ", flc
+        lc = zstatistics.CLearnCurve( pars, flc)
         # the last iteration we want to continue training
         iter_last = lc.get_last_it()
     else:
@@ -38,7 +56,7 @@ def main( conf_file='config.cfg', logfile=None ):
             print "initializing network..."
             net = znetio.init_network( pars )
         # initalize a learning curve
-        lc = zstatistics.CLearnCurve()
+        lc = zstatistics.CLearnCurve(pars)
         iter_last = lc.get_last_it()
 
     # show field of view
@@ -72,53 +90,82 @@ def main( conf_file='config.cfg', logfile=None ):
 
     if pars['is_malis']:
         malis_cls = 0.0
+        malis_eng = 0.0
+    else:
+        malis_weights = None
+
+    #Saving initialized network
+    if iter_last+1 == 1:
+        # get file name
+        fname, fname_current = znetio.get_net_fname( pars['train_save_net'], 0 )
+        if os.path.exists(fname):
+            os.remove(fname)
+        znetio.save_network(net, fname, pars['is_stdio'])
+        lc.save( pars, fname )
 
     print "start training..."
     start = time.time()
     total_time = 0.0
     print "start from ", iter_last+1
 
-    #Saving initialized network
-    if iter_last+1 == 1:
-        znetio.save_network(net, pars['train_save_net'], num_iters=0)
-        lc.save( pars, 0.0 )
-
     for i in xrange(iter_last+1, pars['Max_iter']+1):
+        # time cumulation
+        total_time += time.time() - start
+        start = time.time()
+
         # get random sub volume from sample
         vol_ins, lbl_outs, msks, wmsks = smp_trn.get_random_sample()
 
         # forward pass
         # apply the transformations in memory rather than array view
-        vol_ins = utils.make_continuous(vol_ins, dtype=pars['dtype'])
+        vol_ins = utils.make_continuous(vol_ins)
         props = net.forward( vol_ins )
 
         # cost function and accumulate errors
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
         err += cerr
         cls += cost_fn.get_cls(props, lbl_outs)
+        # compute rand error
+        re  += pyznn.get_rand_error( props.values()[0], lbl_outs.values()[0] )
         num_mask_voxels += utils.sum_over_dict(msks)
+
+        # check whether there is a NaN here!
+        if pars['is_debug']:
+            nonan = nonan and utils.check_dict_nan(vol_ins)
+            nonan = nonan and utils.check_dict_nan(lbl_outs)
+            nonan = nonan and utils.check_dict_nan(msks)
+            nonan = nonan and utils.check_dict_nan(wmsks)
+            nonan = nonan and utils.check_dict_nan(props)
+            nonan = nonan and utils.check_dict_nan(grdts)
 
         # gradient reweighting
         grdts = utils.dict_mul( grdts, msks  )
         grdts = utils.dict_mul( grdts, wmsks )
 
         if pars['is_malis'] :
-            malis_weights, rand_errors = cost_fn.malis_weight(pars, props, lbl_outs)
+            malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
+            if num_non_bdr<=1:
+                # skip this iteration
+                continue
             grdts = utils.dict_mul(grdts, malis_weights)
-            # accumulate the rand error
-            re += rand_errors.values()[0]
-            malis_cls_dict = utils.get_malis_cls( props, lbl_outs, malis_weights )
-            malis_cls += malis_cls_dict.values()[0]
-
+            dmc, dme = utils.get_malis_cost( props, lbl_outs, malis_weights )
+            malis_cls += dmc.values()[0]
+            malis_eng += dme.values()[0]
 
         total_time += time.time() - start
         start = time.time()
 
         # test the net
         if i%pars['Num_iter_per_test']==0:
+            # time accumulation should skip the test
+            total_time += time.time() - start
             lc = test.znn_test(net, pars, smp_tst, vn, i, lc)
+            start = time.time()
 
         if i%pars['Num_iter_per_show']==0:
+            # time
+            elapsed = total_time / pars['Num_iter_per_show']
+
             # normalize
             if utils.dict_mask_empty(msks):
                 err = err / vn / pars['Num_iter_per_show']
@@ -126,23 +173,20 @@ def main( conf_file='config.cfg', logfile=None ):
             else:
                 err = err / num_mask_voxels / pars['Num_iter_per_show']
                 cls = cls / num_mask_voxels / pars['Num_iter_per_show']
-
-            lc.append_train(i, err, cls)
-
-            # time
-            elapsed = total_time / pars['Num_iter_per_show']
+            re = re / pars['Num_iter_per_show']
+            lc.append_train(i, err, cls, re)
 
             if pars['is_malis']:
-                re = re / pars['Num_iter_per_show']
-                lc.append_train_rand_error( re )
                 malis_cls = malis_cls / pars['Num_iter_per_show']
+                malis_eng = malis_eng / pars['Num_iter_per_show']
                 lc.append_train_malis_cls( malis_cls )
+                lc.append_train_malis_eng( malis_eng )
 
-                show_string = "iteration %d,    err: %.3f, cls: %.3f, re: %.6f, mc: %.3f, elapsed: %.1f s/iter, learning rate: %.6f"\
-                              %(i, err, cls, re, malis_cls, elapsed, eta )
+                show_string = "iteration %d,    err: %.3f, cls: %.3f, re: %.3f, me: %.3f, mc: %.3f, elapsed: %.1f s/iter, learning rate: %.4f"\
+                              %(i, err, cls, re, malis_eng, malis_cls, elapsed, eta )
             else:
-                show_string = "iteration %d,    err: %.3f, cls: %.3f, elapsed: %.1f s/iter, learning rate: %.6f"\
-                    %(i, err, cls, elapsed, eta )
+                show_string = "iteration %d,    err: %.3f, cls: %.3f, re: %.3f, elapsed: %.1f s/iter, learning rate: %.4f"\
+                    %(i, err, cls, re, elapsed, eta )
 
             if pars.has_key('logging') and pars['logging']:
                 utils.write_to_log(logfile, show_string)
@@ -167,11 +211,14 @@ def main( conf_file='config.cfg', logfile=None ):
             net.set_eta(eta)
 
         if i%pars['Num_iter_per_save']==0:
-            # save network
-            znetio.save_network(net, pars['train_save_net'], num_iters=i)
-            lc.save( pars, elapsed )
-            if pars['is_malis']:
-                utils.save_malis(malis_weights,  pars['train_save_net'], num_iters=i)
+            utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
+                             grdts, malis_weights, wmsks, elapsed, i)
+
+        if  not nonan:
+            utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
+                             grdts, malis_weights, wmsks, elapsed, i)
+            # stop training
+            return
 
         # run backward pass
         grdts = utils.make_continuous(grdts, dtype=pars['dtype'])

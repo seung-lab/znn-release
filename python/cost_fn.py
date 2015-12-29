@@ -6,8 +6,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 import emirt
 import utils
-# numba accelaration
-#from numba import jit
+from malis.pymalis import zalis
 
 
 def get_cls(props, lbls, mask=None):
@@ -32,7 +31,6 @@ def get_cls(props, lbls, mask=None):
 
     for name, prop in props.iteritems():
         lbl = lbls[name]
-
         c += np.count_nonzero( (prop>0.5) != (lbl>0.5) )
 
     return c
@@ -57,7 +55,7 @@ def square_loss(props, lbls, mask=None):
 
     #Applying mask if it exists
     props = utils.mask_dict_vol(props, mask)
-    lbls = utils.mask_dict_vol(lbls, mask)    
+    lbls = utils.mask_dict_vol(lbls, mask)
 
     for name, prop in props.iteritems():
         lbl = lbls[name]
@@ -110,7 +108,7 @@ def binomial_cross_entropy(props, lbls, mask=None):
     grdts = dict()
     err = 0
 
-    #Taking a slightly different strategy with masking 
+    #Taking a slightly different strategy with masking
     # to improve the numerical stability of the error output
     entropy = dict()
 
@@ -130,6 +128,7 @@ def binomial_cross_entropy(props, lbls, mask=None):
         err += np.sum( vol )
 
     return (props, err, grdts)
+
 
 #@jit(nopython=True)
 def softmax(props):
@@ -178,7 +177,7 @@ def multinomial_cross_entropy(props, lbls, mask=None):
     grdts = dict()
     err = 0
 
-    #Taking a slightly different strategy with masking 
+    #Taking a slightly different strategy with masking
     # to improve the numerical stability of the error output
     entropy = dict()
 
@@ -237,185 +236,57 @@ def softmax_loss2(props, lbls, mask=None):
 # TO-DO
 
 
-def malis_weight_aff(affs, true_affs):
+def constrain_label(prp, lbl):
     """
-    compute malis tree_size
-
-    Parameters:
+    parameters:
     -----------
-    affs:      4D array of forward pass output affinity graphs, size: C*Z*Y*X
-    true_affs : 4d array of ground truth affinity graph
-    Dim: dimension
-    threshold: threshold for segmentation
-
-    Return:
-    ------
-    weights : 4D array of weights
+    prp: 4D array, forward propagation result, could be boundary or aff map
+    lbl: 4D array, ground truth labeling
     """
-    # segment the true affinity graph
-    if true_affs.shape[0]==3:
-        tseg = emirt.volume_util.aff2seg(true_affs)
-    elif true_affs.ndim==3 or (true_affs.ndim==4 and true_affs.shape[0]==1):
-        tseg = true_affs
-    elif true_affs.ndim==2:
-        tseg = np.reshape( true_affs, (1,)+true_affs.shape )
-    else:
-        print "ground truth shape: ", true_affs.shape
-        raise NameError( 'invalid true_affs shape' )
-
-    print "true segmentation: ", tseg
-
-    # get affinity graphs
-    xaff = affs[2,:,:,:]
-    yaff = affs[1,:,:,:]
-    zaff = affs[0,:,:,:]
-
-    # voxel ids
-    vids = np.arange( xaff.size, dtype='uint32' ).reshape( xaff.shape )
-
-    # initialize edges: aff, id1, id2, z/y/x, true_aff
-    edges = list()
-    # x affinity edge
-    for z in xrange( xaff.shape[0] ):
-        for y in xrange( xaff.shape[1] ):
-            for x in xrange( 1, xaff.shape[2] ):
-                edges.append( (xaff[z,y,x], vids[z,y,x], vids[z,y,x-1], 2,z,y,x) )
-    # y affinity edge
-    for z in xrange( yaff.shape[0] ):
-        for y in xrange( 1, yaff.shape[1] ):
-            for x in xrange( yaff.shape[2] ):
-                edges.append( (yaff[z,y,x], vids[z,y,x], vids[z,y-1,x], 1,z,y,x) )
-
-    # z affinity edge
-    for z in xrange( 1, zaff.shape[0] ):
-        for y in xrange( zaff.shape[1] ):
-            for x in xrange( zaff.shape[2] ):
-                edges.append( (zaff[z,y,x], vids[z,y,x], vids[z-1,y,x], 0,z,y,x) )
-    # descending sort
-    edges.sort(reverse=True)
-
-    # find the maximum-spanning tree based on union-find algorithm
-    merr = np.zeros( affs.shape, dtype=affs.dtype )
-    serr = np.zeros( affs.shape, dtype=affs.dtype )
-
-    # initialize the watershed domains
-    dms = emirt.domains.CDomains( tseg )
-
-    # union find the sets
-    for e in edges:
-        # voxel ids
-        vid1 = e[1]
-        vid2 = e[2]
-        c = e[-4]
-        z = e[-3]
-        y = e[-2]
-        x = e[-1]
-        # union the domains
-        me, se = dms.union( vid1, vid2 )
-
-        # deal with the maiximin edge
-        # accumulate the merging error
-        merr[c,z,y,x] += me
-        serr[c,z,y,x] += se
-
-    # combine the two error weights
-    w = (merr + serr)
-    return w, merr, serr
-
-
-def malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
-    """
-    compute malis weight for boundary map
-
-    Parameters
-    ----------
-    bdm: 2D array, forward pass output boundary map
-    lbl: 2D array, manual labels containing segment ids
-    threshold: binarization threshold
-
-    Returns
-    -------
-    weights: 2D array of weights
-    """
-    # eliminate the second output
-    assert(bdm.ndim==2)
-    assert(bdm.shape==lbl.shape)
-
-    # initialize segmentation with individual id of each voxel
-    # voxel id start from 0, is exactly the coordinate of voxel in 1D
-    vids = np.arange(bdm.size).reshape( bdm.shape )
-
-    # create edges: bdm, id1, id2, true label
-    # the affinity of neiboring boundary map voxels
-    # was represented by the minimal boundary map value
-
-    edges = list()
-    for y in xrange(bdm.shape[0]):
-        for x in xrange(bdm.shape[1]-1):
-            bmv1 = bdm[y,x]
-            vid1 = vids[y,x]
-            bmv2 = bdm[y,x+1]
-            vid2 = vids[y,x+1]
-            # the voxel with id1 will always has the minimal value
-            if bmv1 > bmv2:
-                bmv1, bmv2 = bmv2, bmv1
-                vid1, vid2 = vid2, vid1
-            edges.append((bmv1, vid1, vid2))
-
-    for y in xrange(bdm.shape[1]-1):
-        for x in xrange(bdm.shape[0]):
-            # boundary map value and voxel id
-            bmv1 = bdm[y,x]
-            vid1 = vids[y,x]
-            bmv2 = bdm[y+1,x]
-            vid2 = vids[y+1,x]
-            if bmv1 > bmv2:
-                bmv1, bmv2 = bmv2, bmv1
-                vid1, vid2 = vid2, vid1
-            edges.append((bmv1, vid1, vid2))
-
-    # descending sort
-    edges.sort(reverse=True)
-
-    # initalize the merge and split errors
-    merr = np.zeros(bdm.size, dtype=bdm.dtype)
-    serr = np.zeros(bdm.size, dtype=bdm.dtype)
-
-    # initalize the watershed domains
-    dms = emirt.domains.CDomains( lbl )
-
-    # find the maximum spanning tree based on union-find algorithm
-    for e in edges:
-        # voxel ids
-        vid1 = e[1]
-        vid2 = e[2]
-        # union the domains
-        me, se = dms.union( vid1, vid2 )
-
-        # deal with the maximin edge
-        # accumulate the merging error
-        merr[vid1] += me
-        # accumulate the spliting error
-        serr[vid1] += se
-
-    # reshape the err
-    merr = merr.reshape(bdm.shape)
-    serr = serr.reshape(bdm.shape)
-    # combine the two error weights
-    w = (merr + serr)
-
-    return (w, merr, serr)
-
-def constrain_label(bdm, lbl):
+    assert prp.shape == lbl.shape
     # merging error boundary map filled with intracellular ground truth
-    mbdm = np.copy(bdm)
-    mbdm[lbl>0] = 1
+    mprp = np.copy(prp)
+    mprp[lbl>0] = 1
 
     # splitting error boundary map filled with boundary ground truth
-    sbdm = np.copy(bdm)
-    sbdm[lbl==0] = 0
+    sprp = np.copy(prp)
+    sprp[lbl==0] = 0
+    return mprp, sprp
 
-    return mbdm, sbdm
+def constrained_malis(prp, lbl, threshold=0.5):
+    """
+    adding constraints for malis weight
+    fill the intracellular space with ground truth when computing merging error
+    fill the boundary with ground truth when computing spliting error
+    """
+    mprp, sprp = constrain_label(prp, lbl)
+    # get the merger weights
+    mme, mse, mre, num, mtp, mtn, mfp, mfn = zalis(mprp, lbl, 1.0, 0.5, 0)
+    # normalization
+    if mfp + mtn > 0:
+        mme = mme / (mfp + mtn)
+    else:
+        mme = mme * 0
+
+    # get the splitter weights
+    sme, sse, sre, num, stp, stn, sfp, sfn = zalis(sprp, lbl, 0.5, 0.0, 0)
+    # normalization
+    if stp + sfn > 0:
+        sse = sse / (stp + sfn)
+    else:
+        sse = sse * 0
+
+    re = (mfp + sfn)/(mtp+mtn+mfp+mfn)
+    w = mme + sse
+
+    #print "mtp: ",mtp, "  mfn: ",mfn, "  mtn: ",mtn,"  mfp: ",mfp
+    #print "stp: ",stp, "  sfn: ",sfn, "  stn: ",stn,"  sfp: ",sfp
+
+    #print "mprp: ",mprp
+    #print "sprp: ",sprp
+    #print "prp: ",prp
+
+    return (w, mme, sse, re, num)
 
 def constrained_malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     """
@@ -484,26 +355,29 @@ def malis_weight(pars, props, lbls):
 
     # malis normalization type
     if 'frac' in pars['malis_norm_type']:
-        is_fract_norm = 1
+        is_frac_norm = 1
     else:
-        is_fract_norm = 0
+        is_frac_norm = 0
 
     for name, prop in props.iteritems():
         assert prop.ndim==4
         lbl = lbls[name]
         if prop.shape[0]==3:
-            # affinity output
-            from malis.pymalis import zalis
-            weights, re, num_non_bdr = zalis( prop, lbl, 1.0, 0.0, is_fract_norm)
-            merr = weights[:3, :,:,:]
-            serr = weights[3:, :,:,:]
+            if 'constrain' in pars['malis_norm_type']:
+                mw, merr, serr, re, num_non_bdr = constrained_malis(prop, lbl)
+            else:
+                # affinity output
+                merr, serr, re, num_non_bdr, \
+                    tp, tn, fp, fn = zalis( prop, lbl, \
+                                            1.0, 0.0, is_frac_norm)
+                #print "tp: ",tp," tn: ",tn, "  fp:",fp,"  fn:",fn
             mw = merr + serr
 
             # normalization
             if 'num' in pars['malis_norm_type']:
-                mw = mw / num_non_bdr
+                mw = mw / float(num_non_bdr)
             elif 'pair' in pars['malis_norm_type']:
-                mw = mw / (num_non_bdr * (num_non_bdr-1))
+                mw = mw / float(num_non_bdr * (num_non_bdr-1))
 
             malis_weights[name] = mw
             rand_errors[name] = re
@@ -511,5 +385,4 @@ def malis_weight(pars, props, lbls):
             # take it as boundary map
             malis_weights[name], merr, serr = malis_weight_bdm(prop, lbl)
 
-    return (malis_weights, rand_errors)
-
+    return (malis_weights, rand_errors, num_non_bdr)

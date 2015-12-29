@@ -8,20 +8,27 @@ from matplotlib.pylab import plt
 from os import path
 
 class CLearnCurve:
-    def __init__(self, fname=None):
+    def __init__(self, pars, fname=None):
+        if pars['is_stdio']:
+            self.stdpre = "/processing/znn/train/statistics/"
+        else:
+            self.stdpre = "/"
+
         if fname is None:
             # initialize with empty list
             self.tt_it  = list()
             self.tt_err = list()
             self.tt_cls = list()
             self.tt_re  = list()
-            self.tt_mc  = list()
+            self.tt_mc  = list() # malis weighted cls
+            self.tt_me  = list() # malis weighted cost energy
 
             self.tn_it  = list()
             self.tn_err = list()
             self.tn_cls = list()
             self.tn_re  = list()
-            self.tn_mc  = list()
+            self.tn_mc  = list() # malis weighted cls
+            self.tn_me  = list() # malis weighted cost energy
         else:
             self._read_curve( fname )
         return
@@ -31,38 +38,46 @@ class CLearnCurve:
         # get the iteration number
         iter_num = self._get_iter_num(fname)
 
-        if 'statistics' not in fname:
-            # it is the network file name
-            fname = find_statistics_file_within_dir(fname)
         assert( path.exists(fname) )
         # read data
         import h5py
         # read into memory
         f = h5py.File(fname, 'r', driver='core')
-        self.tt_it  = list( f['/test/it'].value )
-        self.tt_err = list( f['/test/err'].value )
-        self.tt_cls = list( f['/test/cls'].value )
-        if '/test/re' in f:
-            self.tt_re = list( f['/test/re'].value )
+        print "stdpre: ", self.stdpre
+        self.tt_it  = list( f[self.stdpre + 'test/it'].value )
+        self.tt_err = list( f[self.stdpre + 'test/err'].value )
+        self.tt_cls = list( f[self.stdpre + 'test/cls'].value )
+        if self.stdpre+'/test/re' in f:
+            self.tt_re = list( f[self.stdpre + 'test/re'].value )
         else:
             self.tt_re = list()
-        if '/test/mc' in f:
-            self.tt_mc = list( f['/test/mc'].value )
+        if self.stdpre + '/test/mc' in f:
+            self.tt_mc = list( f[self.stdpre + 'test/mc'].value )
         else:
             self.tt_mc = list()
+        if self.stdpre + '/test/me' in f:
+            self.tt_me = list( f[self.stdpre + '/test/me'].value )
+        else:
+            self.tt_me = list()
 
-        self.tn_it  = list( f['/train/it'].value )
-        self.tn_err = list( f['/train/err'].value )
-        self.tn_cls = list( f['/train/cls'].value )
-        if '/train/re' in f:
-            self.tn_re = list( f['/train/re'].value )
+        self.tn_it  = list( f[self.stdpre + '/train/it'].value )
+        self.tn_err = list( f[self.stdpre + '/train/err'].value )
+        self.tn_cls = list( f[self.stdpre + '/train/cls'].value )
+        if self.stdpre + '/train/re' in f:
+            self.tn_re = list( f[self.stdpre + '/train/re'].value )
         else:
             self.tn_re = list()
 
-        if '/train/mc' in f:
-            self.tn_mc = list( f['/train/mc'].value )
+        if self.stdpre + '/train/mc' in f:
+            self.tn_mc = list( f[self.stdpre + '/train/mc'].value )
         else:
             self.tn_mc = list()
+
+        if self.stdpre + '/train/me' in f:
+            self.tn_me = list( f[self.stdpre + '/train/me'].value )
+        else:
+            self.tn_me = list()
+
         f.close()
 
         # crop the values
@@ -99,25 +114,27 @@ class CLearnCurve:
             return None
         root, ext = path.splitext(fname)
         str_num = root.split('_')[-1]
-        if 'current' in str_num or 'statistics' in str_num:
+        if 'current' in str_num :
             # the last network
             return None
         else:
             return int(str_num)
 
-    def append_test(self, it, err, cls):
+    def append_test(self, it, err, cls, re):
         # add a test result
         self.tt_it.append(it)
         self.tt_err.append(err)
         self.tt_cls.append(cls)
+        self._append_test_rand_error( re )
 
-    def append_train(self, it, err, cls):
+    def append_train(self, it, err, cls, re):
         # add a training result
         self.tn_it.append(it)
         self.tn_err.append(err)
         self.tn_cls.append(cls)
+        self._append_train_rand_error( re )
 
-    def append_train_rand_error( self, re ):
+    def _append_train_rand_error( self, re ):
         while len( self.tn_re ) < len(self.tn_it)-1:
             # fill with nan
             self.tn_re.append( np.nan )
@@ -130,8 +147,12 @@ class CLearnCurve:
             self.tn_mc.append( np.nan )
         self.tn_mc.append( mc )
         assert len(self.tn_it) == len(self.tn_mc)
+    def append_train_malis_eng( self, me ):
+        while len( self.tn_me ) < len( self.tn_it )-1:
+            self.tn_me.append( np.nan )
+        self.tn_me.append( me )
 
-    def append_test_rand_error( self, re ):
+    def _append_test_rand_error( self, re ):
         while len( self.tt_re ) < len(self.tt_it)-1:
             self.tt_re.append( np.nan )
         self.tt_re.append( re )
@@ -142,6 +163,11 @@ class CLearnCurve:
             self.tt_mc.append( np.nan )
         self.tt_mc.append( mc )
         assert len(self.tt_it) == len(self.tt_mc)
+
+    def append_test_malis_eng( self, me ):
+        while len( self.tt_me ) < len( self.tt_it )-1:
+            self.tt_me.append( np.nan )
+        self.tt_me.append( me )
 
     def get_last_it(self):
         # return the last iteration number
@@ -171,6 +197,21 @@ class CLearnCurve:
             y2.append( np.mean( y[i-lw:i+rw+1] ) )
         return x2, y2
 
+    def _find_max_update(self, it, vec):
+        """
+        find the maximum iteration without nan
+        """
+        i = len(vec)-1
+        # traverse from end to start
+        for v in vec[::-1]:
+            if v is not np.nan:
+                return it[i]
+            i -= 1
+        return 0
+
+    def print_max_update(self):
+        print "max iter: ", self._find_max_update( self.tn_it, self.tn_cls )
+
     def show(self, w):
         """
         illustrate the learning curve
@@ -179,9 +220,17 @@ class CLearnCurve:
         ----------
         w : int, window size for smoothing the curve
         """
+        if len(self.tn_mc) > 0:
+            # malis training, increase number of subplots
+            nsp = 5
+        else:
+            nsp = 3
+
+        # print the maximum iteration
+        self.print_max_update()
 
         # plot data
-        plt.subplot(131)
+        plt.subplot(1,nsp, 1)
         plt.plot(self.tn_it, self.tn_err, 'b.', alpha=0.2)
         plt.plot(self.tt_it, self.tt_err, 'r.', alpha=0.2)
         # plot smoothed line
@@ -191,7 +240,7 @@ class CLearnCurve:
         plt.plot(xte, yte, 'r')
         plt.xlabel('iteration'), plt.ylabel('cost energy')
 
-        plt.subplot(132)
+        plt.subplot(1,nsp,2)
         plt.plot(self.tn_it, self.tn_cls, 'b.', alpha=0.2)
         plt.plot(self.tt_it, self.tt_cls, 'r.', alpha=0.2)
         # plot smoothed line
@@ -202,7 +251,7 @@ class CLearnCurve:
         plt.xlabel('iteration'), plt.ylabel( 'classification error' )
 
         if len(self.tn_it) == len( self.tn_re ):
-            plt.subplot(133)
+            plt.subplot(1, nsp, 3)
             plt.plot(self.tn_it, self.tn_re, 'b.', alpha=0.2)
             plt.plot(self.tt_it, self.tt_re, 'r.', alpha=0.2)
             # plot smoothed line
@@ -212,48 +261,81 @@ class CLearnCurve:
             plt.plot(xtr, ytr, 'r', label='test')
             plt.xlabel('iteration'), plt.ylabel( 'rand error' )
 
+
+        if len(self.tn_it) == len( self.tn_mc ):
+            plt.subplot(1, nsp, 4)
+            plt.plot(self.tn_it, self.tn_mc, 'b.', alpha=0.2)
+            plt.plot(self.tt_it, self.tt_mc, 'r.', alpha=0.2)
+            # plot smoothed line
+            xnm, ynm = self._smooth( self.tn_it, self.tn_mc, w )
+            xtm, ytm = self._smooth( self.tt_it, self.tt_mc, w )
+            plt.plot(xnm, ynm, 'b', label='train')
+            plt.plot(xtm, ytm, 'r', label='test')
+            plt.xlabel('iteration'), plt.ylabel( 'malis weighted cost energy' )
+
+        print "tt_it: ", self.tn_it
+        print "tt_me: ", self.tn_me
+
+        if len(self.tn_it) == len( self.tn_me ):
+            plt.subplot(1, nsp, 5)
+            plt.plot(self.tn_it, self.tn_me, 'b.', alpha=0.2)
+            plt.plot(self.tt_it, self.tt_me, 'r.', alpha=0.2)
+            # plot smoothed line
+            xng, yng = self._smooth( self.tn_it, self.tn_me, w )
+            xtg, ytg = self._smooth( self.tt_it, self.tt_me, w )
+            plt.plot(xng, yng, 'b', label='train')
+            plt.plot(xtg, ytg, 'r', label='test')
+            plt.xlabel('iteration'), plt.ylabel( 'malis weighted pixel error' )
+
+
         plt.legend()
         plt.show()
         return
 
-    def save(self, pars, elapsed):
-        # get filename
-        fname = pars['train_save_net']
-        import os
-        import shutil
-        root, ext = os.path.splitext(fname)
-        if len(self.tn_it) > 0:
-            fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
-        else:
-            fname = root + '_statistics_0.h5'
-        if os.path.exists(fname):
-            os.remove( fname )
+    def save(self, pars, fname=None, elapsed=0):
+        if not pars['is_stdio']:
+            # change filename
+            fname = pars['train_save_net']
+            import os
+            import shutil
+            root, ext = os.path.splitext(fname)
+
+            if len(self.tn_it) > 0:
+                fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
+            else:
+                fname = root + '_statistics_0.h5'
+            if os.path.exists(fname):
+                os.remove( fname )
+            stdpre = ''
 
         # save variables
         import h5py
-        f = h5py.File( fname )
-        f.create_dataset('/train/it',  data=self.tn_it )
-        f.create_dataset('/train/err', data=self.tn_err)
-        f.create_dataset('/train/cls', data=self.tn_cls)
+        f = h5py.File( fname, 'a' )
+        f.create_dataset(self.stdpre + '/train/it',  data=self.tn_it )
+        f.create_dataset(self.stdpre + '/train/err', data=self.tn_err)
+        f.create_dataset(self.stdpre + '/train/cls', data=self.tn_cls)
         if pars['is_malis'] :
-            f.create_dataset('/train/re',  data=self.tn_re )
-            f.create_dataset('/train/mc',  data=self.tn_mc )
+            f.create_dataset(self.stdpre + '/train/re',  data=self.tn_re )
+            f.create_dataset(self.stdpre + '/train/mc',  data=self.tn_mc )
+            f.create_dataset(self.stdpre + '/train/me',  data=self.tn_me )
 
-        f.create_dataset('/test/it',   data=self.tt_it )
-        f.create_dataset('/test/err',  data=self.tt_err)
-        f.create_dataset('/test/cls',  data=self.tt_cls)
+        f.create_dataset(self.stdpre + '/test/it',   data=self.tt_it )
+        f.create_dataset(self.stdpre + '/test/err',  data=self.tt_err)
+        f.create_dataset(self.stdpre + '/test/cls',  data=self.tt_cls)
         if pars['is_malis'] :
-            f.create_dataset('/test/re',   data=self.tt_re )
-            f.create_dataset('/test/mc',   data=self.tt_mc )
+            f.create_dataset(self.stdpre + '/test/re',   data=self.tt_re )
+            f.create_dataset(self.stdpre + '/test/mc',   data=self.tt_mc )
+            f.create_dataset(self.stdpre + '/test/me',   data=self.tt_me )
 
-        f.create_dataset('/elapsed',   data=elapsed)
+        f.create_dataset(self.stdpre + '/elapsed',   data=elapsed)
         f.close()
 
-        # move to new name
-        fname2 = root + '_statistics_current.h5'
-        if os.path.exists( fname2 ):
-            os.remove( fname2 )
-        shutil.copyfile(fname, fname2)
+        if not pars['is_stdio']:
+            # move to new name
+            fname2 = root + '_statistics_current.h5'
+            if os.path.exists( fname2 ):
+                os.remove( fname2 )
+            shutil.copyfile(fname, fname2)
 
 def find_statistics_file_within_dir(seed_filename):
     '''
@@ -307,16 +389,16 @@ if __name__ == '__main__':
     import sys
     # default window size
     w = 3
+    assert len(sys.argv) > 1
+    fname = sys.argv[1]
 
-    if len(sys.argv)==2:
-        fname = sys.argv[1]
-        lc = CLearnCurve( fname )
-    elif len(sys.argv)==3:
-        fname = sys.argv[1]
-        lc = CLearnCurve( fname )
+    fconfig = path.dirname(fname) + "/config.cfg"
+    from front_end import zconfig
+    config, pars = zconfig.parser( fconfig )
+
+    lc = CLearnCurve( pars, fname )
+
+    if len(sys.argv)==3:
         w = int( sys.argv[2] )
         print "window size: ", w
-    else:
-        raise NameError("no input statistics h5 file!")
-
     lc.show( w )

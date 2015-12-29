@@ -48,6 +48,10 @@ if you use `python train.py`, the default is `config.cfg` in current folder.
 ### Visualize learning curve
 `python zstatistics.py ../experiments/net_statistics.py`
 
+Data format
+-----------
+The data IO format follows the [standard in Seunglab](https://docs.google.com/spreadsheets/d/1Frn-VH4VatqpwV96BTWSrtMQV0-9ej9soy6HXHgxWtc/edit?usp=sharing).
+
 Contact
 -------
 * Aleksander Zlateski \<zlateski@mit.edu\>
