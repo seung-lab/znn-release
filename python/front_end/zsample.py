@@ -66,9 +66,9 @@ class CSample(object):
             #Finding the section of the config file
             imid = config.getint(self.sec_name, name)
             imsec_name = "label%d" % (imid,)
-            layer_fov = np.array([1,1,1], dtype='uint32')
+            outmapsz = np.array([1,1,1], dtype='uint32')
             self.outs[name] = ConfigOutputLabel( config, pars, imsec_name, \
-                                                 outsz, setsz_out, fov, layer_fov=layer_fov)
+                                                 outsz, setsz_out, fov, outmapsz=outmapsz)
             self.lbls[name] = self.outs[name].data
             self.msks[name] = self.outs[name].msk
 

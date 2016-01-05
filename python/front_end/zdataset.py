@@ -14,7 +14,7 @@ import utils
 
 class CDataset(object):
 
-    def __init__(self, pars, data, outsz, setsz, fov=None, layer_fov=None ):
+    def __init__(self, pars, data, outsz, setsz, fov=None, outmapsz=None ):
 
         # main data
         self.data = data
@@ -24,11 +24,13 @@ class CDataset(object):
         else:
             self.fov = fov
 
-        # field of view of this layer
-        if layer_fov is None:
-            self.layer_fov = self.fov
+        # output mapping size
+        # the outmapsz of first layer is fov
+        # the outmapsz of the last layer is (1,1,1)
+        if outmapsz is None:
+            self.outmapsz = self.fov
         else:
-            self.layer_fov = layer_fov
+            self.outmapsz = outmapsz
 
         # Desired size of subvolumes returned by this instance
         self.patch_shape = np.asarray(setsz[-3:])
@@ -143,11 +145,11 @@ class CDataset(object):
 
         #Decomposing into a similar problem for each axis
         z_bounds = self._patch_bounds_1d(self.volume_shape[0],
-                        output_patch_shape[0], self.layer_fov[0])
+                        output_patch_shape[0], self.outmapsz[0])
         y_bounds = self._patch_bounds_1d(self.volume_shape[1],
-                        output_patch_shape[1], self.layer_fov[1])
+                        output_patch_shape[1], self.outmapsz[1])
         x_bounds = self._patch_bounds_1d(self.volume_shape[2],
-                        output_patch_shape[2], self.layer_fov[2])
+                        output_patch_shape[2], self.outmapsz[2])
 
         #And then recombining the subproblems
         bounds = []
@@ -271,7 +273,7 @@ class ConfigImage(CDataset):
     """
 
     def __init__(self, config, pars, sec_name, \
-                 outsz, setsz, fov, layer_fov=None, is_forward=False):
+                 outsz, setsz, fov, outmapsz=None, is_forward=False):
         """
         Parameters
         ----------
@@ -300,7 +302,7 @@ class ConfigImage(CDataset):
             arr = arr.reshape( (1,) + arr.shape )
 
         # initialize the dataset
-        CDataset.__init__(self, pars, arr, outsz, setsz, fov, layer_fov=layer_fov)
+        CDataset.__init__(self, pars, arr, outsz, setsz, fov, outmapsz=outmapsz)
 
 
     def _center_crop(self, vol, shape):
@@ -441,9 +443,9 @@ class ConfigOutputLabel(ConfigImage):
     contain masks for sparsely-labelled training
     '''
 
-    def __init__(self, config, pars, sec_name, outsz, setsz, fov, layer_fov=None ):
+    def __init__(self, config, pars, sec_name, outsz, setsz, fov, outmapsz=None ):
         ConfigImage.__init__(self, config, pars, sec_name, \
-                             outsz, setsz, fov=fov, layer_fov=layer_fov)
+                             outsz, setsz, fov=fov, outmapsz=outmapsz)
 
         # record and use parameters
         self.pars = pars
