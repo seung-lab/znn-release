@@ -38,13 +38,11 @@ class CLearnCurve:
         # get the iteration number
         iter_num = self._get_iter_num(fname)
 
-<<<<<<< HEAD
-=======
         if 'statistics' not in fname:
             # it is the network file name
             fname = find_statistics_file_within_dir(fname)
             print "find the statistics file: ", fname
->>>>>>> origin/development
+
         assert( path.exists(fname) )
         # read data
         import h5py
