@@ -44,7 +44,6 @@ class CSample(object):
         else:
             self.setsz_ins  = setsz_ins
             self.setsz_outs = setsz_outs
-
         fov = np.asarray(net.get_fov(), dtype='uint32')
 
         # Loading input images
@@ -70,8 +69,9 @@ class CSample(object):
             #Finding the section of the config file
             imid = config.getint(self.sec_name, name)
             imsec_name = "label%d" % (imid,)
+            outmapsz = np.array([1,1,1], dtype='uint32')
             self.outs[name] = ConfigOutputLabel( config, pars, imsec_name, \
-                                                 outsz, setsz_out, fov)
+                                                 outsz, setsz_out, fov, outmapsz=outmapsz)
             self.lbls[name] = self.outs[name].data
             self.msks[name] = self.outs[name].msk
 
@@ -352,6 +352,10 @@ class CAffinitySample(CSample):
         """
         rebalance the affinity labeling with size of (3,Z,Y,X)
         """
+        if (not self.pars['is_patch_rebalance']) and \
+            (not self.pars['is_rebalance']):
+                return dict()
+                
         if self.pars['is_patch_rebalance']:
             # recompute the weights
             self._prepare_rebalance_weights( subtaffs )
@@ -478,6 +482,8 @@ class ConfigSampleOutput(object):
 
         output_patch_shapes = net.get_outputs_setsz()
 
+        fov = np.array([1,1,1], dtype='uint32')
+
         self.output_volumes = {}
         for name, shape in output_patch_shapes.iteritems():
 
@@ -487,7 +493,8 @@ class ConfigSampleOutput(object):
 
             empty_bin = np.zeros(volume_shape, dtype=dtype)
 
-            self.output_volumes[name] = CDataset(pars, empty_bin, shape[-3:], shape[-3:])
+
+            self.output_volumes[name] = CDataset(pars, empty_bin, shape[-3:], shape[-3:], fov=fov )
 
     def set_next_patch(self, output):
 

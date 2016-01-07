@@ -8,9 +8,23 @@ import cost_fn
 import utils
 import os
 import emirt
-import time
 import numpy as np
 
+def get_net(pars):
+    if pars['train_load_net'] and os.path.exists(pars['train_load_net']):
+        print "loading network..."
+        net = znetio.load_network( pars )
+    else:
+        print "initializing network..."
+        net = znetio.init_network( pars )
+    
+    # set some parameters
+    print 'setting up the network...'
+    net.set_eta( pars['eta'] )
+    net.set_momentum( pars['momentum'] )
+    net.set_weight_decay( pars['weight_decay'] )
+    return net
+    
 def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
     #%% parameters
     print "reading config parameters..."
@@ -28,56 +42,28 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
         logfile = zlog.make_logfile_name( pars )
         print "log file name: ", logfile
 
+    net = get_net(pars)
     #%% create and initialize the network
     iter_last = 0
-    if pars['train_load_net'] and os.path.exists(pars['train_load_net']):
-        print "loading network..."
-        net = znetio.load_network( pars )
-    else:
-        print "initializing network..."
-        net = znetio.init_network( pars )
-
+    
     lc = None
     # show field of view
     fov = np.asarray(net.get_fov(), dtype='uint32')
 
     print "field of view: ", fov
 
-    # total voxel number of output volumes
-    vn = utils.get_total_num(net.get_outputs_setsz())
-
-    # set some parameters
-    print 'setting up the network...'
-    eta = pars['eta']
-    net.set_eta( pars['eta'] )
-    net.set_momentum( pars['momentum'] )
-    net.set_weight_decay( pars['weight_decay'] )
-
     # initialize samples
     outsz = pars['train_outsz']
     print "\n\ncreate train samples..."
     smp_trn = zsample.CSamples(config, pars, pars['train_range'], net, outsz, logfile)
-    print "\n\ncreate test samples..."
-    smp_tst = zsample.CSamples(config, pars, pars['test_range'],  net, outsz, logfile)
 
     # initialization
     elapsed = 0
-    err = 0.0 # cost energy
-    cls = 0.0 # pixel classification error
-    re = 0.0  # rand error
-    # number of voxels which accumulate error
-    # (if a mask exists)
-    num_mask_voxels = 0
-
-    if pars['is_malis']:
-        malis_cls = 0.0
 
     print "start training..."
-    start = time.time()
-    total_time = 0.0
     print "start from ", iter_last+1
 
-    for i in xrange(iter_last+1, pars['Max_iter']+1):
+    for i in xrange(iter_last+1, 2): #pars['Max_iter']+1):
         # iteration id
         print "iteration: ", i
 
@@ -100,19 +86,22 @@ def main( conf_file='../testsuit/sample/config.cfg', logfile=None ):
                                  grdts, malis_weights, wmsks, elapsed, i)
                 raise NameError("all zero groundtruth!")
             # check gradient
-            check_gradient(pars, net, vol_ins, lbl_outs, msks )
+            check_gradient(pars, vol_ins, lbl_outs, msks )
 
-def check_gradient(pars, net, vol_ins, lbl_outs, msks):
+
+
+def check_gradient(pars, vol_ins, lbl_outs, msks):
     """
     gradient check method:
     http://cs231n.github.io/neural-networks-3/
     """
     # a small shift
-    h = 0.000001
+    h = 0.001
 
     # numerical gradient
     # apply the transformations in memory rather than array view
     vol_ins = utils.make_continuous(vol_ins)
+    net = get_net(pars)
     props = net.forward( vol_ins )
     props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
 
@@ -122,22 +111,36 @@ def check_gradient(pars, net, vol_ins, lbl_outs, msks):
     for key, val in vol_ins.iteritems():
         vol_ins1[key] = val + h
         vol_ins2[key] = val - h
+
+    net = get_net(pars)
+    props0 = net.forward( vol_ins )
+    prop0 = props0.values()[0]
+    net = get_net(pars)
     props1 = net.forward( vol_ins1 )
+    net = get_net(pars)
     props2 = net.forward( vol_ins2 )
     # compute the analytical gradient
     for key, g in grdts.iteritems():
+        lbl = lbl_outs[key]
+        
         prop1 = props1[key]
         prop2 = props2[key]
-        ag = (prop1 - prop2)/ (2 * h)
+        # cost 
+        c1 = -lbl*np.log(prop1) - (1-lbl)*np.log(1-prop1)
+        c2 = -lbl*np.log(prop2) - (1-lbl)*np.log(1-prop2)
+        ag = (c1 - c2)/ (2 * h)
         error = g-ag
         # check the error range
         print "gradient error: ", error
 
+        com = emirt.show.CompareVol((prop0[0,...], prop1[0,...], prop2[0,...], g[0,...], ag[0,...]))        
+        com.vol_compare_slice()
+        
         # check the relative error
         rle = np.abs(ag-g) / (np.maximum(np.abs(ag),np.abs(g)))
         print "relative gradient error: ", rle
-        assert error.max < 10*h*h
-        assert rle.max() < 0.01
+        #assert error.max < 10*h*h
+        #assert rle.max() < 0.01
 
 def check_dict_all_zero( d ):
     for v in d.values():

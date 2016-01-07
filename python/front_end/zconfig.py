@@ -136,11 +136,14 @@ def parser( conf_fname ):
     #Whether to use malis cost
     if config.has_option('parameters', 'is_malis'):
         pars['is_malis'] = config.getboolean('parameters', 'is_malis')
-        if pars['is_malis']:
-            # malis normalization type
-            pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
     else:
         pars['is_malis'] = False
+
+    if config.has_option('parameters', 'malis_norm_type'):
+        # malis normalization type
+        pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
+    else:
+        pars['malis_norm_type'] = 'none'
 
     #Whether to display progress plots
     pars['is_visual']   = config.getboolean('parameters', 'is_visual')

@@ -71,8 +71,7 @@ def config_forward_pass( config, params, verbose=True, sample_ids=None ):
                                   outsz = output_patch_shape, is_forward=True )
 
         sample_outputs[sample] = generate_full_output(Dataset, net,
-						      params, params['dtype'],
-                                                      verbose=True)
+						      params, params['dtype'], verbose=True)
 
         # softmax if using softmax_loss
         if 'softmax' in params['cost_fn_str']:
