@@ -38,6 +38,11 @@ class CLearnCurve:
         # get the iteration number
         iter_num = self._get_iter_num(fname)
 
+        if 'statistics' not in fname:
+            # it is the network file name
+            fname = find_statistics_file_within_dir(fname)
+            print "find the statistics file: ", fname
+
         assert( path.exists(fname) )
         # read data
         import h5py
@@ -272,9 +277,6 @@ class CLearnCurve:
             plt.plot(xnm, ynm, 'b', label='train')
             plt.plot(xtm, ytm, 'r', label='test')
             plt.xlabel('iteration'), plt.ylabel( 'malis weighted cost energy' )
-
-        print "tt_it: ", self.tn_it
-        print "tt_me: ", self.tn_me
 
         if len(self.tn_it) == len( self.tn_me ):
             plt.subplot(1, nsp, 5)

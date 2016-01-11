@@ -44,7 +44,8 @@ get_rand_error( std::vector<cube_p<real>> affs,
     vec3i  s = size(*affs[0]);
     size_t n = s[0]*s[1]*s[2];
 
-/*
+
+#if defined( DEBUG )
     std::cout<<"\n \n \n prop affinity: "<<std::endl;
     cube<real> const & affx = *affs[0];
     for(size_t i=0; i<100; i++)
@@ -57,7 +58,7 @@ get_rand_error( std::vector<cube_p<real>> affs,
     std::cout<<"\n segmentation: "<<std::endl;
     for(size_t i=0; i<100; i++)
         std::cout<<seg.data()[i]<<",";
-*/
+#endif
 
     cube<real> const & xaff = *affs[0];
     cube<real> const & yaff = *affs[1];

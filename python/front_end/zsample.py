@@ -69,9 +69,9 @@ class CSample(object):
             #Finding the section of the config file
             imid = config.getint(self.sec_name, name)
             imsec_name = "label%d" % (imid,)
-            layer_fov = np.array([1,1,1], dtype='uint32')
+            outmapsz = np.array([1,1,1], dtype='uint32')
             self.outs[name] = ConfigOutputLabel( config, pars, imsec_name, \
-                                                 outsz, setsz_out, fov, layer_fov=layer_fov)
+                                                 outsz, setsz_out, fov, outmapsz=outmapsz)
             self.lbls[name] = self.outs[name].data
             self.msks[name] = self.outs[name].msk
 
@@ -352,6 +352,9 @@ class CAffinitySample(CSample):
         """
         rebalance the affinity labeling with size of (3,Z,Y,X)
         """
+        if (not self.pars['is_patch_rebalance']) and (not  self.pars['is_rebalance']):
+            return dict()
+
         if self.pars['is_patch_rebalance']:
             # recompute the weights
             self._prepare_rebalance_weights( subtaffs )

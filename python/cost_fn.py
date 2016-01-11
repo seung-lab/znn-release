@@ -6,8 +6,6 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 import emirt
 import utils
-from malis.pymalis import zalis
-
 
 def get_cls(props, lbls, mask=None):
     """
@@ -261,6 +259,7 @@ def constrained_malis(prp, lbl, threshold=0.5):
     """
     mprp, sprp = constrain_label(prp, lbl)
     # get the merger weights
+    from malis.pymalis import zalis
     mme, mse, mre, num, mtp, mtn, mfp, mfn = zalis(mprp, lbl, 1.0, 0.5, 0)
     # normalization
     if mfp + mtn > 0:
@@ -350,6 +349,7 @@ def malis_weight(pars, props, lbls):
     """
     compute the malis weight including boundary map and affinity cases
     """
+    from malis.pymalis import zalis
     malis_weights = dict()
     rand_errors = dict()
 

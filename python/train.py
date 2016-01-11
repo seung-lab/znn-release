@@ -140,7 +140,8 @@ def main( conf_file='config.cfg', logfile=None ):
 
         # gradient reweighting
         grdts = utils.dict_mul( grdts, msks  )
-        grdts = utils.dict_mul( grdts, wmsks )
+        if pars['is_rebalance'] or pars['is_patch_rebalance']:
+            grdts = utils.dict_mul( grdts, wmsks )
 
         if pars['is_malis'] :
             malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
@@ -221,7 +222,7 @@ def main( conf_file='config.cfg', logfile=None ):
             return
 
         # run backward pass
-        grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
+        grdts = utils.make_continuous(grdts)
         net.backward( grdts )
 
 
