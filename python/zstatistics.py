@@ -9,6 +9,7 @@ from os import path
 
 class CLearnCurve:
     def __init__(self, pars, fname=None):
+        self.pars = pars
         if pars['is_stdio']:
             self.stdpre = "/processing/znn/train/statistics/"
         else:
@@ -38,7 +39,7 @@ class CLearnCurve:
         # get the iteration number
         iter_num = self._get_iter_num(fname)
 
-        if 'statistics' not in fname:
+        if (not self.pars['is_stdio']) and ('statistics' not in fname):
             # it is the network file name
             fname = find_statistics_file_within_dir(fname)
             print "find the statistics file: ", fname
