@@ -363,7 +363,7 @@ def malis_weight(pars, props, lbls):
         assert prop.ndim==4
         lbl = lbls[name]
         if prop.shape[0]==3:
-            if 'constrain' in pars['malis_norm_type']:
+            if pars['is_constrained_malis']:
                 mw, merr, serr, re, num_non_bdr = constrained_malis(prop, lbl)
             else:
                 # affinity output
