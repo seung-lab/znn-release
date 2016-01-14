@@ -27,8 +27,9 @@ end
 
 # parameters
 #faff = "/znn/experiments/malis21/N4_A_1000/out_sample91_output.h5"
-faff = "/znn/experiments/zfish/N4_A/out_sample91_output.h5"
+#faff = "/znn/experiments/zfish/N4_A/out_sample91_output.h5"
 #faff = "/znn/experiments/malis2/N4_A_100/out_sample91_output.h5"
+faff = "/znn/experiments/malis2/srini2d_A_L10/out_sample91_output.h5"
 flbl = "/znn/dataset/zfish/Merlin_lbl2.h5"
 
 # read affinity data
@@ -47,9 +48,9 @@ thds, rfs, res = affs_error_curve(affs, lbl, 2, 0.05)
 
 # save curve
 fcurve = "/znn/experiments/curves.h5"
-h5write(fcurve, "/zfish/thds", thds)
-h5write(fcurve, "/zfish/rfs",  rfs )
-h5write(fcurve, "/zfish/res",  res )
+h5write(fcurve, "/srini2d/malis2_2/thds", thds)
+h5write(fcurve, "/srini2d/malis2_2/rfs",  rfs )
+h5write(fcurve, "/srini2d/malis2_2/res",  res )
 
 # plot
 using PyPlot
