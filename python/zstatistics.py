@@ -9,6 +9,7 @@ from os import path
 
 class CLearnCurve:
     def __init__(self, pars, fname=None):
+        self.pars = pars
         if pars['is_stdio']:
             self.stdpre = "/processing/znn/train/statistics/"
         else:
@@ -38,7 +39,7 @@ class CLearnCurve:
         # get the iteration number
         iter_num = self._get_iter_num(fname)
 
-        if 'statistics' not in fname:
+        if (not self.pars['is_stdio']) and ('statistics' not in fname):
             # it is the network file name
             fname = find_statistics_file_within_dir(fname)
             print "find the statistics file: ", fname
@@ -234,61 +235,68 @@ class CLearnCurve:
         # print the maximum iteration
         self.print_max_update()
 
+        # using K as iteration unit
+        tn_it = self.tn_it
+        for i in xrange(len(tn_it)):
+            tn_it[i] = tn_it[i] / float(1000)
+        tt_it = self.tt_it
+        for i in xrange(len(tt_it)):
+            tt_it[i] = tt_it[i] / float(1000)
+
         # plot data
         plt.subplot(1,nsp, 1)
-        plt.plot(self.tn_it, self.tn_err, 'b.', alpha=0.2)
-        plt.plot(self.tt_it, self.tt_err, 'r.', alpha=0.2)
+        plt.plot(tn_it, self.tn_err, 'b.', alpha=0.2)
+        plt.plot(tt_it, self.tt_err, 'r.', alpha=0.2)
         # plot smoothed line
-        xne,yne = self._smooth( self.tn_it, self.tn_err, w )
-        xte,yte = self._smooth( self.tt_it, self.tt_err, w )
+        xne,yne = self._smooth( tn_it, self.tn_err, w )
+        xte,yte = self._smooth( tt_it, self.tt_err, w )
         plt.plot(xne, yne, 'b')
         plt.plot(xte, yte, 'r')
-        plt.xlabel('iteration'), plt.ylabel('cost energy')
+        plt.xlabel('iteration (K)'), plt.ylabel('cost energy')
 
         plt.subplot(1,nsp,2)
-        plt.plot(self.tn_it, self.tn_cls, 'b.', alpha=0.2)
-        plt.plot(self.tt_it, self.tt_cls, 'r.', alpha=0.2)
+        plt.plot(tn_it, self.tn_cls, 'b.', alpha=0.2)
+        plt.plot(tt_it, self.tt_cls, 'r.', alpha=0.2)
         # plot smoothed line
-        xnc, ync = self._smooth( self.tn_it, self.tn_cls, w )
-        xtc, ytc = self._smooth( self.tt_it, self.tt_cls, w )
+        xnc, ync = self._smooth( tn_it, self.tn_cls, w )
+        xtc, ytc = self._smooth( tt_it, self.tt_cls, w )
         plt.plot(xnc, ync, 'b', label='train')
         plt.plot(xtc, ytc, 'r', label='test')
-        plt.xlabel('iteration'), plt.ylabel( 'classification error' )
+        plt.xlabel('iteration (K)'), plt.ylabel( 'classification error' )
 
-        if len(self.tn_it) == len( self.tn_re ):
+        if len(tn_it) == len( self.tn_re ):
             plt.subplot(1, nsp, 3)
-            plt.plot(self.tn_it, self.tn_re, 'b.', alpha=0.2)
-            plt.plot(self.tt_it, self.tt_re, 'r.', alpha=0.2)
+            plt.plot(tn_it, self.tn_re, 'b.', alpha=0.2)
+            plt.plot(tt_it, self.tt_re, 'r.', alpha=0.2)
             # plot smoothed line
-            xnr, ynr = self._smooth( self.tn_it, self.tn_re, w )
-            xtr, ytr = self._smooth( self.tt_it, self.tt_re, w )
+            xnr, ynr = self._smooth( tn_it, self.tn_re, w )
+            xtr, ytr = self._smooth( tt_it, self.tt_re, w )
             plt.plot(xnr, ynr, 'b', label='train')
             plt.plot(xtr, ytr, 'r', label='test')
-            plt.xlabel('iteration'), plt.ylabel( 'rand error' )
+            plt.xlabel('iteration (K)'), plt.ylabel( 'rand error' )
 
 
-        if len(self.tn_it) == len( self.tn_mc ):
+        if len(tn_it) == len( self.tn_mc ):
             plt.subplot(1, nsp, 4)
-            plt.plot(self.tn_it, self.tn_mc, 'b.', alpha=0.2)
-            plt.plot(self.tt_it, self.tt_mc, 'r.', alpha=0.2)
+            plt.plot(tn_it, self.tn_mc, 'b.', alpha=0.2)
+            plt.plot(tt_it, self.tt_mc, 'r.', alpha=0.2)
             # plot smoothed line
-            xnm, ynm = self._smooth( self.tn_it, self.tn_mc, w )
-            xtm, ytm = self._smooth( self.tt_it, self.tt_mc, w )
+            xnm, ynm = self._smooth( tn_it, self.tn_mc, w )
+            xtm, ytm = self._smooth( tt_it, self.tt_mc, w )
             plt.plot(xnm, ynm, 'b', label='train')
             plt.plot(xtm, ytm, 'r', label='test')
-            plt.xlabel('iteration'), plt.ylabel( 'malis weighted cost energy' )
+            plt.xlabel('iteration (K)'), plt.ylabel( 'malis weighted cost energy' )
 
-        if len(self.tn_it) == len( self.tn_me ):
+        if len(tn_it) == len( self.tn_me ):
             plt.subplot(1, nsp, 5)
-            plt.plot(self.tn_it, self.tn_me, 'b.', alpha=0.2)
-            plt.plot(self.tt_it, self.tt_me, 'r.', alpha=0.2)
+            plt.plot(tn_it, self.tn_me, 'b.', alpha=0.2)
+            plt.plot(tt_it, self.tt_me, 'r.', alpha=0.2)
             # plot smoothed line
-            xng, yng = self._smooth( self.tn_it, self.tn_me, w )
-            xtg, ytg = self._smooth( self.tt_it, self.tt_me, w )
+            xng, yng = self._smooth( tn_it, self.tn_me, w )
+            xtg, ytg = self._smooth( tt_it, self.tt_me, w )
             plt.plot(xng, yng, 'b', label='train')
             plt.plot(xtg, ytg, 'r', label='test')
-            plt.xlabel('iteration'), plt.ylabel( 'malis weighted pixel error' )
-
+            plt.xlabel('iteration (K)'), plt.ylabel( 'malis weighted pixel error' )
 
         plt.legend()
         plt.show()
