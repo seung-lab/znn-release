@@ -1,28 +1,17 @@
+sudo: false
 language: cpp
 
 compiler: gcc
 
-os:
-        - linux
+os: linux
 
-before_install
-        - if [ "$CXX" == "g++" ]; then sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test; fi
-        - sudo apt-get -qq update
-
-install:
-        - sudo apt-get install -y libfftw3-dev libboost-all-dev libjemalloc-dev
-        - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.8; fi
-        - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8"; fi
+before_install:
+        - add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        - apt-get -qq update
 
 install:
-- if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
-addons:
-  apt:
-        sources:
-                - ubuntu-toolchain-r-test
-        packages:
-                - gcc-4.8
-                - g++-4.8
+        - apt-get install -y libfftw3-dev libboost-all-dev libjemalloc-dev
+        - apt-get install -qq g++-4.8
 
 script:
         - make --jobs=3 --keep-going
