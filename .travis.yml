@@ -7,7 +7,7 @@ os:
 
 install:
         - sudo apt-get -qq update
-        - sudo apt-get install -y libfftw3-dev libboost-all-dev libjemalloc-dev python-tifffile
+        - sudo apt-get install -y libfftw3-dev libboost-all-dev libjemalloc-dev
 
 script:
         - make --jobs=3 --keep-going
