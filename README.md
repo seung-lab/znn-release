@@ -1,6 +1,8 @@
 ZNN v4
 ======
 
+[![Build Status](https://travis-ci.org/seung-lab/znn-release.svg?branch=master)](https://github.com/seung-lab/znn-release)
+
 Required libraries
 ------------------
 Supports Linux and MacOS. When using MKL fftw is not required
