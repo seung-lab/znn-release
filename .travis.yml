@@ -5,13 +5,10 @@ compiler: g++
 os:
         - linux
 
-before_install:
-        - export SCRIPTS = ./scripts/
-        - export MAKE = make --jobs=$NUM_THREADS --keep-going
 install:
         - sudo apt-get -qq update
         - sudo apt-get install -y libfftw3-dev libboost-all-dev libjemalloc-dev python-tifffile
 
 script:
-        - $MAKE
-        - $MAKE clean
+        - make --jobs=3 --keep-going
+        - make clean
