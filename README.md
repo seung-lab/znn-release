@@ -10,7 +10,7 @@ Supports Linux and MacOS. When using MKL fftw is not required
 |Library|Ubuntu package name|
 |:-----:|-------------------|
 |[fftw](http://www.fftw.org/)|libfftw3-dev|
-|[boost](http://www.boost.org/)|libboost-all-dev|
+|[boost1.55](http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2)|libboost-all-dev|
 |[BoostNumpy](http://github.com/ndarray/Boost.NumPy)|NA|
 |[jemalloc](http://www.canonware.com/jemalloc/)|libjemalloc-dev|
 
