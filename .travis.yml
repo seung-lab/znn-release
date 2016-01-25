@@ -29,7 +29,7 @@ before_install:
         # Replace dep1 dep2 ... with your dependencies
         # - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
         # - source activate test-environment
-        - python setup.py install
+        # - python setup.py install
 
 install:
         - sudo apt-get install -y libfftw3-dev libjemalloc-dev cmake
@@ -40,8 +40,12 @@ install:
         - cd Boost.NumPy; cmake ./; make -j 8; sudo make install; cd ../../
 
 script:
+        # make znn binary
        - make --jobs=3 --keep-going
        - make clean
+       # make python core
+       - cd python/core/; make --jobs=3 --keep-going
+       - cd ../../
 
 notifications:
         email: false
