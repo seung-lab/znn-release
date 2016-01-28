@@ -11,7 +11,7 @@ import utils
 import zstatistics
 import os
 
-def main( conf_file='config.cfg', logfile=None ):
+def main( conf_file='../experiments/ISBI/N4/config.cfg', logfile=None ):
     #%% parameters
     print "reading config parameters..."
     config, pars = zconfig.parser( conf_file )
