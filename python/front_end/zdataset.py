@@ -14,15 +14,24 @@ import utils
 
 class CDataset(object):
 
-    def __init__(self, pars, data, outsz, setsz, fov=None ):
+    def __init__(self, pars, data, outsz, setsz, fov=None, outmapsz=None ):
 
         # main data
         self.data = data
-        # field of view
+        # field of view of whole network
         if fov is None:
             self.fov = setsz[-3:] - outsz[-3:] + 1
         else:
             self.fov = fov
+
+        # output mapping size
+        # the outmapsz of first layer is fov
+        # the outmapsz of the last layer is (1,1,1)
+        if outmapsz is None:
+            self.outmapsz = self.fov
+        else:
+            self.outmapsz = outmapsz
+
         # Desired size of subvolumes returned by this instance
         self.patch_shape = np.asarray(setsz[-3:])
 
@@ -113,6 +122,11 @@ class CDataset(object):
         if self.patch_bounds is None:
             print "Calculating patch bounds..."
             self._calculate_patch_bounds()
+#            print "setsz: ", self.patch_shape
+#            print "outsz: ", self.net_output_patch_shape
+#            print "number of patches: ", len(self.patch_bounds)
+#            print "patch bounds: ", self.patch_bounds
+
             print "Done"
 
     def _calculate_patch_bounds(self, output_patch_shape=None, overwrite=True):
@@ -131,11 +145,11 @@ class CDataset(object):
 
         #Decomposing into a similar problem for each axis
         z_bounds = self._patch_bounds_1d(self.volume_shape[0],
-                        output_patch_shape[0], self.fov[0])
+                        output_patch_shape[0], self.outmapsz[0])
         y_bounds = self._patch_bounds_1d(self.volume_shape[1],
-                        output_patch_shape[1], self.fov[1])
+                        output_patch_shape[1], self.outmapsz[1])
         x_bounds = self._patch_bounds_1d(self.volume_shape[2],
-                        output_patch_shape[2], self.fov[2])
+                        output_patch_shape[2], self.outmapsz[2])
 
         #And then recombining the subproblems
         bounds = []
@@ -259,7 +273,7 @@ class ConfigImage(CDataset):
     """
 
     def __init__(self, config, pars, sec_name, \
-                 outsz, setsz, fov, is_forward=False):
+                 outsz, setsz, fov, outmapsz=None, is_forward=False):
         """
         Parameters
         ----------
@@ -288,7 +302,7 @@ class ConfigImage(CDataset):
             arr = arr.reshape( (1,) + arr.shape )
 
         # initialize the dataset
-        CDataset.__init__(self, pars, arr, outsz, setsz, fov)
+        CDataset.__init__(self, pars, arr, outsz, setsz, fov, outmapsz=outmapsz)
 
 
     def _center_crop(self, vol, shape):
@@ -429,9 +443,9 @@ class ConfigOutputLabel(ConfigImage):
     contain masks for sparsely-labelled training
     '''
 
-    def __init__(self, config, pars, sec_name, outsz, setsz, fov ):
+    def __init__(self, config, pars, sec_name, outsz, setsz, fov, outmapsz=None ):
         ConfigImage.__init__(self, config, pars, sec_name, \
-                             outsz, setsz, fov)
+                             outsz, setsz, fov=fov, outmapsz=outmapsz)
 
         # record and use parameters
         self.pars = pars

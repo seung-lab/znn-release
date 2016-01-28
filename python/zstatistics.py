@@ -34,6 +34,7 @@ class CLearnCurve:
         if 'statistics' not in fname:
             # it is the network file name
             fname = find_statistics_file_within_dir(fname)
+            print "find the statistics file: ", fname
         assert( path.exists(fname) )
         # read data
         import h5py
