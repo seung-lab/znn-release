@@ -33,7 +33,7 @@ before_install:
 
 install:
         - sudo apt-get install -y libfftw3-dev libjemalloc-dev cmake 
-        - sudo apt-get install python-numpy python-tifffile libboost-python-dev
+        - sudo apt-get install python-numpy libboost-python-dev
         - sudo apt-get install -qq g++-4.8
 
         # install Boost.Numpy for python interface
