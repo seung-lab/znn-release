@@ -1,6 +1,6 @@
 ODIR		=	.
 SFL 		=	pyznn.cpp
-CPP 		=	g++
+CPP 		=	g++-4.8
 CPP_FLAGS	= 	-g
 INC_FLAGS	=	-I/opt/boost/include -I../../src/include -I../../zi -I.. -I../.. -I/usr/include/python2.7 -I../Boost.NumPy -I/usr/local/include -I/opt/anaconda/include/python2.7 -I/mnt/bucket/labs/seung/libs/anaconda/include/python2.7
 LIB_FLAGS	=	-L/opt/boost/lib -L/usr/local/lib -L./Boost.NumPy/bin/lib -L/mnt/bucket/labs/seung/libs/anaconda/lib/ -L/usr/local/boost/1.55.0/lib64/ -L/opt/anaconda/lib
