@@ -45,7 +45,7 @@ private:
 protected:
     real           patch_sz_ = 1; // minibatch averaging
 
-    std::vector<bool>   enabled_;
+    std::vector<int>    enabled_;
 
 protected:
     nodes( size_t sz,
@@ -72,8 +72,14 @@ protected:
     options const & opts() const { return options_; }
 
 public:
-    bool is_input()  { return is_input_ ; }
-    bool is_output() { return is_output_; }
+    bool is_input()  const { return is_input_ ; }
+    bool is_output() const { return is_output_; }
+
+    bool is_disabled() const
+    {
+        return !std::accumulate(enabled_.begin(), enabled_.end(), 0);
+    }
+
 
     vec3i const &  fsize() const { return fsize_;        }
     task_manager & manager()     { return task_manager_; }
@@ -93,8 +99,29 @@ public:
         return options_.require_as<std::string>("name");
     }
 
+    void display() const
+    {
+        std::cout << "[" << nodes::name() << "]\n";
+        for ( auto& e: enabled_ )
+            std::cout << e;
+
+        std::cout << std::endl;
+    }
+
+protected:
+    // propagate disable dynamics forward
+    virtual void disable_fwd(size_t)
+    { UNIMPLEMENTED(); }
+
+    // propagate disable dynamics backward
+    virtual void disable_bwd(size_t)
+    { UNIMPLEMENTED(); }
+
 public:
     virtual ~nodes() {}
+
+    virtual void setup()
+    { UNIMPLEMENTED(); }
 
     // receive a featuremap for the i-th input
     // featuremap is absorbed
@@ -172,16 +199,16 @@ public:
     virtual void enable(size_t, bool)
     { UNIMPLEMENTED(); }
 
-    virtual void disable_out_edge(size_t)
+    virtual void enable_out_edge(size_t, bool)
     { UNIMPLEMENTED(); }
 
-    virtual void disable_in_edge(size_t)
+    virtual void enable_in_edge(size_t, bool)
     { UNIMPLEMENTED(); }
 
-    virtual void disable_out_fft_edge(size_t)
+    virtual void enable_out_fft_edge(size_t, bool)
     { UNIMPLEMENTED(); }
 
-    virtual void disable_in_fft_edge(size_t, vec3i const &)
+    virtual void enable_in_fft_edge(size_t, vec3i const &, bool)
     { UNIMPLEMENTED(); }
 
     virtual void set_eta( real )

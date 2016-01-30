@@ -186,58 +186,71 @@ public:
         return bwd_accumulators_[n]->grow_fft(nodes::fsize(),1);
     }
 
+protected:
+    void disable_fwd(size_t n) override
+    {
+        ZI_ASSERT(n<nodes::size());
+        if ( !enabled_[n] ) return;
+
+        // diable outgoing edges
+        fwd_dispatch_.enable(n,false);
+        bwd_accumulators_[n]->enable_all(false);
+
+        enabled_[n] = false;
+        if ( nodes::is_output() )
+            waiter_.dec();
+    }
+
+    void disable_bwd(size_t n) override
+    {
+        ZI_ASSERT(n<nodes::size());
+        if ( !enabled_[n] ) return;
+
+        // disable incoming edges
+        bwd_dispatch_.enable(n,false);
+        fwd_accumulators_[n]->enable_all(false);
+
+        enabled_[n] = false;
+        if ( nodes::is_output() )
+            waiter_.dec();
+    }
+
+public:
     void enable(size_t n, bool b) override
     {
         ZI_ASSERT(n<nodes::size());
         if ( enabled_[n] == b ) return;
 
-        // enable outgoing edges
         fwd_dispatch_.enable(n,b);
+        bwd_dispatch_.enable(n,b);
+
+        fwd_accumulators_[n]->enable_all(b);
         bwd_accumulators_[n]->enable_all(b);
 
-        // enable incoming edges
-        bwd_dispatch_.enable(n,b);
-        fwd_accumulators_[n]->enable_all(b);
-
         enabled_[n] = b;
-
         if ( nodes::is_output() )
-        {
-            if ( enabled_[n] )
-                waiter_.inc();
-            else
-                waiter_.dec();
-        }
+            b ? waiter_.inc() : waiter_.dec();
     }
 
-    void disable_out_edge(size_t n) override
+    void enable_out_edge(size_t n, bool b) override
     {
         ZI_ASSERT(n<nodes::size());
-        bwd_accumulators_[n]->disable(1);
-
-        // disconnected forward
-        if ( !bwd_accumulators_[n]->effectively_required() )
-            enable(n,false);
+        if ( !bwd_accumulators_[n]->enable(b) )
+            disable_bwd(n);
     }
 
-    void disable_in_edge(size_t n) override
+    void enable_in_edge(size_t n, bool b) override
     {
         ZI_ASSERT(n<nodes::size());
-        fwd_accumulators_[n]->disable(1);
-
-        // disconnected backward
-        if ( !fwd_accumulators_[n]->effectively_required() )
-            enable(n,false);
+        if ( !fwd_accumulators_[n]->enable(b) )
+            disable_fwd(n);
     }
 
-    void disable_out_fft_edge(size_t n) override
+    void enable_out_fft_edge(size_t n, bool b) override
     {
         ZI_ASSERT(n<nodes::size());
-        bwd_accumulators_[n]->disable_fft(nodes::fsize(),1);
-
-        // disconnected forward
-        if ( !bwd_accumulators_[n]->effectively_required() )
-            enable(n,false);
+        if ( !bwd_accumulators_[n]->enable_fft(nodes::fsize(),b) )
+            disable_bwd(n);
     }
 
     void set_eta( real /*eta*/ ) override {}

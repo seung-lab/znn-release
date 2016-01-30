@@ -26,6 +26,7 @@
 #include "dummy_edge.hpp"
 #include "max_pooling_edge.hpp"
 #include "dropout_edge.hpp"
+#include "nodeout_edge.hpp"
 #include "crop_edge.hpp"
 #include "maxout_edge.hpp"
 #include "nodes.hpp"
@@ -261,6 +262,34 @@ inline edges::edges( nodes * in,
     {
         edges_[i]
             = std::make_unique<dropout_edge>
+            (in, i, out, i, tm_, ratio, phs);
+    }
+}
+
+// nodeout
+inline edges::edges( nodes * in,
+                     nodes * out,
+                     options const & opts,
+                     vec3i const & in_size,
+                     task_manager & tm,
+                     phase phs,
+                     nodeout_tag )
+    : options_(opts)
+    , size_(in_size)
+    , tm_(tm)
+{
+    ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
+
+    size_t n = in->num_out_nodes();
+    edges_.resize(n);
+    waiter_.set(n);
+
+    auto ratio = opts.optional_as<real>("ratio", 0.5);
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        edges_[i]
+            = std::make_unique<nodeout_edge>
             (in, i, out, i, tm_, ratio, phs);
     }
 }

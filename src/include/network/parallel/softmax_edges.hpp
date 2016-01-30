@@ -113,7 +113,19 @@ public:
 
     void backward( ccube_p<real> const & g ) override
     {
+        if ( !enabled_ ) return;
+    }
 
+    void enable(bool b) override
+    {
+        if ( enabled_ == b ) return;
+
+        edge::enable(b);
+
+        if ( enabled_ )
+            layer_data->attach(in_num,this);
+        else
+            layer_data->detach(in_num);
     }
 
     void enable_fwd(bool b) override

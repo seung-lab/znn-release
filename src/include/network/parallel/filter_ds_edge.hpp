@@ -98,6 +98,32 @@ public:
                                                  this, g);
     }
 
+public:
+    void enable(bool b) override
+    {
+        if ( enabled_ == b ) return;
+
+        enabled_ = b;
+        in_nodes->enable_out_fft_edge(in_num,b);
+        out_nodes->enable_in_fft_edge(out_num,in_nodes->fsize(),b);
+    }
+
+    void enable_fwd(bool b) override
+    {
+        if ( enabled_ == b ) return;
+
+        enabled_ = b;
+        out_nodes->enable_in_fft_edge(out_num,in_nodes->fsize(),b);
+    }
+
+    void enable_bwd(bool b) override
+    {
+        if ( enabled_ == b ) return;
+
+        enabled_ = b;
+        in_nodes->enable_out_fft_edge(in_num,b);
+    }
+
     void zap(edges* e) override
     {
         // guard gg(m);

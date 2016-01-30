@@ -1,6 +1,5 @@
 //
-// Copyright (C) 2012-2015  Aleksandar Zlateski <zlateski@mit.edu>
-//                    2015  Kisuk Lee           <kisuklee@mit.edu>
+// Copyright (C)      2016  Kisuk Lee           <kisuklee@mit.edu>
 // ---------------------------------------------------------------
 //
 // This program is free software: you can redistribute it and/or modify
@@ -18,64 +17,71 @@
 //
 #pragma once
 
-#include "../../utils/max_accumulator.hpp"
 #include "edges_fwd.hpp"
-#include "maxout_nodes.hpp"
+#include "nodes.hpp"
+#include "../../initializator/bernoulli_init.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 
-class maxout_edge: public edge
+class nodeout_edge: public edge
 {
 private:
-    maxout_nodes * target;
-    int group_idx;
+    real            ratio_; // keeping ratio
+    vec3i           insize;
+
+    phase           phase_; // TRAIN or TEST
 
 private:
-    cube_p<real> maxout_backprop(ccube<real> const & g)
+    inline real scale() const
     {
-        auto         r = get_cube<real>(size(g));
-        real*       rp = r->data();
-        const real* gp = g.data();
-        const int*  ip = target->get_indices_maps()[out_num]->data();
-
-        for ( size_t i = 0; i < r->num_elements(); ++i )
-        {
-            if ( ip[i] == group_idx )
-                rp[i] = gp[i];
-            else
-                rp[i] = 0;
-        }
-
-        return r;
+        return ratio_;
     }
 
 public:
-    maxout_edge( nodes * in,
-                 size_t inn,
-                 nodes * out,
-                 size_t outn,
-                 task_manager & tm )
+    nodeout_edge( nodes * in,
+                  size_t inn,
+                  nodes * out,
+                  size_t outn,
+                  task_manager & tm,
+                  real p,
+                  phase phs = phase::TRAIN )
         : edge(in,inn,out,outn,tm)
+        , ratio_(p)
+        , phase_(phs)
     {
-        ZI_ASSERT(inn=outn);
-        in->attach_out_edge(inn,this);
+        insize = in->fsize();
 
-        // TODO(lee): any better solution?
-        target = reinterpret_cast<maxout_nodes*>(out_nodes);
-        auto idx = target->attach_maxout_edge(outn,this);
-        group_idx = static_cast<int>(idx);
+        in->attach_out_edge(inn,this);
+        out->attach_in_edge(outn,this);
+    }
+
+    void setup() override
+    {
+        bool b;
+        bernoulli_init<bool>(ratio_).initialize(&b,1);
+        edge::enable(b);
     }
 
     void forward( ccube_p<real> const & f ) override
     {
         if ( !enabled_ ) return;
 
-        target->forward(out_num, get_copy(*f), group_idx);
+        ZI_ASSERT(size(*f)==insize);
+
+        auto fmap = get_copy(*f);
+        if ( phase_ == phase::TEST )
+            *fmap *= scale();
+
+        out_nodes->forward(out_num, std::move(fmap));
     }
 
     void backward( ccube_p<real> const & g ) override
     {
         if ( !enabled_ ) return;
+
+        ZI_ASSERT(insize==size(*g));
+
+        auto gmap = get_copy(*g);
 
         if ( in_nodes->is_input() )
         {
@@ -83,8 +89,13 @@ public:
         }
         else
         {
-            in_nodes->backward(in_num, maxout_backprop(*g));
+            in_nodes->backward(in_num, std::move(gmap));
         }
+    }
+
+    void set_phase( phase phs ) override
+    {
+        phase_ = phs;
     }
 
     void zap(edges* e) override
@@ -92,5 +103,6 @@ public:
         e->edge_zapped();
     }
 };
+
 
 }}} // namespace znn::v4::parallel_network

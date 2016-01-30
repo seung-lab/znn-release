@@ -97,6 +97,7 @@ public:
         return 0;
     }
 
+public:
     void enable(size_t n, bool b) override
     {
         ZI_ASSERT(n<nodes::size());
@@ -107,11 +108,24 @@ public:
 
         enabled_[n] = b;
 
-        // waiter inc/dec
+        // waiter set
         if ( enabled_[n] )
-            waiter_.inc(outputs_.size(n));
+            waiter_.set(outputs_.size(n));
         else
-            waiter_.dec(outputs_.size(n));
+            waiter_.set(0);
+    }
+
+    void enable_out_edge(size_t n, bool b) override
+    {
+        ZI_ASSERT(n<nodes::size());
+        size_t required = b ? waiter_.inc() : waiter_.dec();
+        if ( !required )
+            enabled_[n] = false;
+    }
+
+    void enable_out_fft_edge(size_t n, bool b) override
+    {
+        enable_out_edge(n,b);
     }
 
     void wait() override { waiter_.wait(); }

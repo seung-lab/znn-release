@@ -109,9 +109,7 @@ private:
     std::map<std::string, nnodes*> nodes_;
     std::map<std::string, nnodes*> input_nodes_;
     std::map<std::string, nnodes*> output_nodes_;
-
-    // [kisuklee]
-    // This is only temporary implementation and will be removed.
+    std::map<std::string, nedges*> stochastic_edges_;
     std::map<std::string, nedges*> phase_dependent_edges_;
 
     task_manager tm_;
@@ -121,7 +119,6 @@ private:
 #ifdef ZNN_ANALYSE_TASK_MANAGER
     void dump() { tm_.dump(); }
 #endif
-
 
     void fov_pass(nnodes* n, vec3i fov, const vec3i& fsize )
     {
@@ -335,6 +332,12 @@ private:
                     ( in, out, *opts, e.second->in_fsize,
                       tm_, phase_, edges::dropout_tag() );
             }
+            else if ( type == "nodeout" )
+            {
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, e.second->in_fsize,
+                      tm_, phase_, edges::nodeout_tag() );
+            }
             else if ( type == "crop" )
             {
                 e.second->dedges = std::make_unique<edges>
@@ -452,6 +455,11 @@ private:
         {
             phase_dependent_edges_[name] = es;
         }
+        else if ( type == "nodeout" )
+        {
+            phase_dependent_edges_[name] = es;
+            stochastic_edges_[name] = es;
+        }
         else if ( type == "crop" )
         {
             auto off = op.require_as<ovec3i>("offset");
@@ -548,10 +556,38 @@ public:
         return ret;
     }
 
+    void setup()
+    {
+        zap();
+
+        bool ready = false;
+        while ( !ready )
+        {
+            // back to complete graph
+            for ( auto & n: nodes_ )
+                n.second->dnodes->enable(true);
+
+            // inject graph randomness
+            for ( auto & e: stochastic_edges_ )
+                e.second->dedges->setup();
+
+            // check graph integrity
+            for ( auto & n: input_nodes_ )
+                if ( !n.second->dnodes->is_disabled() )
+                {
+                    ready = true;
+                    break;
+                }
+        }
+    }
+
     std::map<std::string, std::vector<cube_p<real>>>
     forward( std::map<std::string, std::vector<cube_p<real>>> && fin )
     {
         ZI_ASSERT(fin.size()==input_nodes_.size());
+
+        setup();
+
         for ( auto & in: fin )
         {
             ZI_ASSERT(input_nodes_.count(in.first));
@@ -602,6 +638,17 @@ public:
         }
 
         return ret;
+    }
+
+    void display()
+    {
+        zap();
+        for ( auto & n: nodes_ ) n.second->dnodes->display();
+        for ( auto & e: edges_ )
+        {
+            size_t m = e.second->out->dnodes->size();
+            e.second->dedges->display(m);
+        }
     }
 
     std::pair<std::vector<options>,std::vector<options>> serialize()

@@ -36,6 +36,7 @@ public:
     struct max_pooling_tag {};
     struct real_pooling_tag {};
     struct dropout_tag {};
+    struct nodeout_tag {};
     struct crop_tag {};
     struct softmax_tag {};
     struct maxout_tag {};
@@ -63,6 +64,9 @@ public:
     edges( nodes *, nodes *, options const &, vec3i const &,
            task_manager &, phase phs, dropout_tag );
 
+    edges( nodes *, nodes *, options const &, vec3i const &,
+           task_manager &, phase phs, nodeout_tag );
+
     edges( nodes *, nodes *, options const &, task_manager &, crop_tag );
 
     edges( nodes *, nodes *, options const &, task_manager &, softmax_tag );
@@ -74,14 +78,34 @@ public:
         return options_.require_as<std::string>("name");
     }
 
+    void display(size_t ncol) const
+    {
+        std::cout << "[" << edges::name() << "]\n";
+        size_t col = 0;
+        for ( auto& e: edges_ )
+        {
+            std::cout << e->is_enabled();
+            if ( ++col == ncol )
+            {
+                std::cout << "\n";
+                col = 0;
+            }
+        }
+        std::cout << std::endl;
+    }
+
+    void setup()
+    {
+        for ( auto & e: edges_ )
+            e->setup();
+    }
+
     // [kisuklee]
     // This is only temporary implementation and will be removed.
     void set_phase( phase phs )
     {
         for ( auto & e: edges_ )
-        {
             e->set_phase(phs);
-        }
     }
 
     void set_eta( real eta )
