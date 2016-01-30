@@ -159,7 +159,7 @@ public:
             }
         }
 
-        return bucket_map_[size];
+        return effectively_required();
     }
 
     size_t enable_all(bool b)
