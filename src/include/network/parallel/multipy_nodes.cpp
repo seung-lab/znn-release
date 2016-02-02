@@ -27,7 +27,7 @@
 
 namespace znn { namespace v4 { namespace parallel_network {
 
-class multiplication_nodes: public nodes
+class multiply_nodes: public nodes
 {
 private:
     dispatcher_group<concurrent_forward_dispatcher<edge,edge>>    fwd_dispatch_;
@@ -41,13 +41,13 @@ private:
     waiter                       waiter_  ;
 
 public:
-    multiplication_nodes( size_t s,
-                          vec3i const & fsize,
-                          options const & op,
-                          task_manager & tm,
-                          size_t fwd_p,
-                          size_t bwd_p,
-                          bool is_out )
+    multiply_nodes( size_t s,
+                    vec3i const & fsize,
+                    options const & op,
+                    task_manager & tm,
+                    size_t fwd_p,
+                    size_t bwd_p,
+                    bool is_out )
         : nodes(s,fsize,op,tm,fwd_p,bwd_p,false,is_out)
         , fwd_dispatch_(s)
         , bwd_dispatch_(s)
@@ -81,9 +81,6 @@ public:
 
     std::vector<cube_p<real>>& get_featuremaps() override
     {
-        for ( size_t i = 0; i < nodes::size(); ++i )
-            if( !enabled_[i] ) fs_[i] = cube_p<real>();
-
         return fs_;
     }
 
@@ -182,6 +179,9 @@ protected:
         fwd_dispatch_.enable(n,false);
         bwd_accumulators_[n]->enable_all(false);
 
+        // reset feature map
+        fs_[n].reset();
+
         enabled_[n] = false;
         if ( nodes::is_output() )
             waiter_.dec();
@@ -195,6 +195,9 @@ protected:
         // disable incoming edges
         bwd_dispatch_.enable(n,false);
         fwd_accumulators_[n]->reset(0);
+
+        // reset feature map
+        fs_[n].reset();
 
         enabled_[n] = false;
         if ( nodes::is_output() )
@@ -212,6 +215,9 @@ public:
 
         bwd_dispatch_.enable(n,b);
         fwd_accumulators_[n]->reset(b ? bwd_dispatch_.size(n) : 0);
+
+        // reset feature map
+        fs_[n].reset();
 
         enabled_[n] = b;
         if ( nodes::is_output() )
@@ -249,6 +255,6 @@ public:
 
     void zap() override {}
 
-}; // class multiplication_nodes
+}; // class multiply_nodes
 
 }}} // namespace znn::v4::parallel_network

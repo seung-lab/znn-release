@@ -351,6 +351,11 @@ private:
                 e.second->dedges = std::make_unique<edges>
                     ( in, out, *opts, tm_, edges::maxout_tag() );
             }
+            else if ( type == "multiply")
+            {
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, tm_, edges::multiplication_tag() );
+            }
             else if ( type == "dummy" )
             {
                 e.second->dedges = std::make_unique<edges>

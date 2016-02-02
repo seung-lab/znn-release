@@ -85,17 +85,11 @@ public:
 
     std::vector<cube_p<real>>& get_featuremaps() override
     {
-        for ( size_t i = 0; i < nodes::size(); ++i )
-            if( !enabled_[i] ) fs_[i] = cube_p<real>();
-
         return fs_;
     }
 
     std::vector<cube_p<int>>& get_indices_maps()
     {
-        for ( size_t i = 0; i < nodes::size(); ++i )
-            if( !enabled_[i] ) is_[i] = cube_p<int>();
-
         return is_;
     }
 
@@ -195,6 +189,10 @@ protected:
         fwd_dispatch_.enable(n,false);
         bwd_accumulators_[n]->enable_all(false);
 
+        // reset feature map & indices map
+        fs_[n].reset();
+        is_[n].reset();
+
         enabled_[n] = false;
         if ( nodes::is_output() )
             waiter_.dec();
@@ -208,6 +206,10 @@ protected:
         // disable incoming edges
         bwd_dispatch_.enable(n,false);
         fwd_accumulators_[n]->reset(0);
+
+        // reset feature map & indices map
+        fs_[n].reset();
+        is_[n].reset();
 
         enabled_[n] = false;
         if ( nodes::is_output() )
@@ -225,6 +227,10 @@ public:
 
         bwd_dispatch_.enable(n,b);
         fwd_accumulators_[n]->reset(b ? bwd_dispatch_.size(n) : 0);
+
+        // reset feature map & indices map
+        fs_[n].reset();
+        is_[n].reset();
 
         enabled_[n] = b;
         if ( nodes::is_output() )

@@ -166,9 +166,6 @@ public:
 
     std::vector<cube_p<real>>& get_featuremaps() override
     {
-        for ( size_t i = 0; i < nodes::size(); ++i )
-            if( !enabled_[i] ) fs_[i] = cube_p<real>();
-
         return fs_;
     }
 
@@ -366,6 +363,9 @@ protected:
         fwd_dispatch_.enable(n,false);
         bwd_accumulators_[n]->enable_all(false);
 
+        // reset feature map
+        fs_[n].reset();
+
         enabled_[n] = false;
         if ( nodes::is_output() )
             waiter_.dec();
@@ -379,6 +379,9 @@ protected:
         // disable incoming edges
         bwd_dispatch_.enable(n,false);
         fwd_accumulators_[n]->enable_all(false);
+
+        // reset feature map
+        fs_[n].reset();
 
         enabled_[n] = false;
         if ( nodes::is_output() )
@@ -396,6 +399,9 @@ public:
 
         fwd_accumulators_[n]->enable_all(b);
         bwd_accumulators_[n]->enable_all(b);
+
+        // reset feature map
+        fs_[n].reset();
 
         enabled_[n] = b;
         if ( nodes::is_output() )

@@ -23,7 +23,7 @@
 
 namespace znn { namespace v4 { namespace parallel_network {
 
-class multiplication_edge: public edge
+class multiply_edge: public edge
 {
 private:
     real    epsilon_; // small constant for numerical stability
@@ -43,12 +43,12 @@ private:
     }
 
 public:
-    multiplication_edge( nodes * in,
-                         size_t inn,
-                         nodes * out,
-                         size_t outn,
-                         task_manager & tm,
-                         real e )
+    multiply_edge( nodes * in,
+                   size_t inn,
+                   nodes * out,
+                   size_t outn,
+                   task_manager & tm,
+                   real e )
         : edge(in,inn,out,outn,tm)
         , epsilon_(e)
     {

@@ -29,6 +29,7 @@
 #include "nodeout_edge.hpp"
 #include "crop_edge.hpp"
 #include "maxout_edge.hpp"
+#include "multiply_edge.hpp"
 #include "nodes.hpp"
 #include "../../utils/waiter.hpp"
 #include "../../options/options.hpp"
@@ -338,6 +339,30 @@ inline edges::edges( nodes * in,
     {
         edges_[i] = std::make_unique<maxout_edge>
             (in, i, out, i, tm);
+    }
+}
+
+// multiplication
+inline edges::edges( nodes * in,
+                     nodes * out,
+                     options const & opts,
+                     task_manager & tm,
+                     multiply_tag )
+    : options_(opts)
+    , tm_(tm)
+{
+    ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
+
+    size_t n = in->num_out_nodes();
+    edges_.resize(n);
+    waiter_.set(n);
+
+    auto epsilon = opts.optional_as<real>("epsilon", 1e-6f);
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        edges_[i] = std::make_unique<multiply_edge>
+            (in, i, out, i, tm, epsilon);
     }
 }
 
