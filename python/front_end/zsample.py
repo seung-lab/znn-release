@@ -13,6 +13,7 @@ import numpy as np
 import emirt
 import utils
 from zdataset import *
+from threading import Thread
 
 class CSample(object):
     """
