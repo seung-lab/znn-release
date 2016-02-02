@@ -82,22 +82,6 @@ public:
         return options_.require_as<std::string>("name");
     }
 
-    void display(size_t ncol) const
-    {
-        std::cout << "[" << edges::name() << "]\n";
-        size_t col = 0;
-        for ( auto& e: edges_ )
-        {
-            std::cout << e->is_enabled();
-            if ( ++col == ncol )
-            {
-                std::cout << "\n";
-                col = 0;
-            }
-        }
-        std::cout << std::endl;
-    }
-
     void setup()
     {
         for ( auto & e: edges_ )

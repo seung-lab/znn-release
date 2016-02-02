@@ -29,7 +29,7 @@ private:
     size_t required_;
     size_t current_ ;
 
-    cube_p<real>     mult_;
+    cube_p<real>    mult_ ;
     std::mutex      mutex_;
 
     bool do_mult(cube_p<real>&& to_mult)

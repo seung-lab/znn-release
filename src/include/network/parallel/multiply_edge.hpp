@@ -39,6 +39,11 @@ private:
         {
             grad->data()[i] /= (fmap->data()[i] + epsilon_);
         }
+
+        // DEBUG
+        // std::cout << "[" << edge::name() << "] " << "\n";
+        // std::cout << *grad << "\n\n";
+
         return grad;
     }
 

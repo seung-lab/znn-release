@@ -75,6 +75,4 @@ int main(int argc, char** argv)
     }
     std::cout << "elapsed: " << wt.elapsed<double>() << std::endl;
     wt.reset();
-
-    net.display();
 }

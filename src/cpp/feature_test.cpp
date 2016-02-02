@@ -7,7 +7,7 @@ using namespace znn::v4;
 typedef std::map<std::string, std::vector<cube_p<real>>> data_type;
 typedef std::map<std::string, std::pair<vec3i,size_t>>   data_spec;
 
-data_type get_random_data(data_spec const & spec, bool display_value = false)
+data_type get_random_data(data_spec const & spec, bool display_value = true)
 {
     data_type ret;
     std::shared_ptr<initializator<real>> init =
@@ -24,18 +24,26 @@ data_type get_random_data(data_spec const & spec, bool display_value = false)
             auto r = get_cube<real>(sz);
             init->initialize(*r);
             data.push_back(r);
-
-            // DEBUG
-            std::cout << "[" << name << ":" << i << "] " << sz << "\n";
-            if ( display_value )
-                std::cout << *r << "\n\n";
-            else
-                std::cout << "\n";
         }
         ret[name] = data;
     }
 
     return ret;
+}
+
+void display( data_type const & data )
+{
+    for ( auto& l: data )
+    {
+        auto name  = l.first;
+        auto nodes = l.second;
+
+        for ( size_t i = 0; i < nodes.size(); ++i )
+        {
+            std::cout << "[" << name << ":" << i << "] " << "\n";
+            std::cout << *nodes[i] << "\n\n";
+        }
+    }
 }
 
 int main(int argc, char** argv)
@@ -70,11 +78,15 @@ int main(int argc, char** argv)
 
     // forward
     auto insample = get_random_data(net.inputs());
+    display(insample);
     auto prop = net.forward(std::move(insample));
+    display(prop);
 
     // backward
     auto outsample = get_random_data(net.outputs());
-    net.backward(std::move(outsample));
+    display(outsample);
+    auto ret = net.backward(std::move(outsample));
+    display(ret);
 
     std::cout << "Done." << std::endl;
 }

@@ -123,6 +123,8 @@ private:
         //STRONG_ASSERT(fwd_done_[n]);
         fwd_done_[n] = false;
 
+        *g *= *fs_[n];
+
         bwd_dispatch_.dispatch(n,g,nodes::manager());
     }
 
@@ -140,9 +142,7 @@ public:
         {
             if ( bwd_accumulators_[n]->add(std::move(g)) )
             {
-                auto grad = bwd_accumulators_[n]->reset();
-                grad *= fs_[n];
-                do_backward(n,grad);
+                do_backward(n,bwd_accumulators_[n]->reset());
             }
         }
     }

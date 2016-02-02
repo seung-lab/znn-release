@@ -21,6 +21,7 @@
 #include "input_nodes.hpp"
 #include "transfer_nodes.hpp"
 #include "maxout_nodes.hpp"
+#include "multiply_nodes.hpp"
 #include "../../initializator/initializators.hpp"
 #include "../helpers.hpp"
 
@@ -354,7 +355,7 @@ private:
             else if ( type == "multiply")
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts, tm_, edges::multiplication_tag() );
+                    ( in, out, *opts, tm_, edges::multiply_tag() );
             }
             else if ( type == "dummy" )
             {
@@ -406,6 +407,12 @@ private:
             else if ( type == "maxout" )
             {
                 n.second->dnodes = std::make_unique<maxout_nodes>
+                    ( sz, n.second->fsize, *n.second->opts, tm_,
+                      fwd_p,bwd_p,n.second->out.size()==0 );
+            }
+            else if ( type == "multiply" )
+            {
+                n.second->dnodes = std::make_unique<multiply_nodes>
                     ( sz, n.second->fsize, *n.second->opts, tm_,
                       fwd_p,bwd_p,n.second->out.size()==0 );
             }
@@ -472,6 +479,9 @@ private:
             es->crop    = true;
         }
         else if ( type == "maxout" )
+        {
+        }
+        else if ( type == "multiply" )
         {
         }
         else if ( type == "dummy" )
@@ -643,17 +653,6 @@ public:
         }
 
         return ret;
-    }
-
-    void display()
-    {
-        zap();
-        for ( auto & n: nodes_ ) n.second->dnodes->display();
-        for ( auto & e: edges_ )
-        {
-            size_t m = e.second->out->dnodes->size();
-            e.second->dedges->display(m);
-        }
     }
 
     std::pair<std::vector<options>,std::vector<options>> serialize()
