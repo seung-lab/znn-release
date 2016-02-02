@@ -119,6 +119,4 @@ public:
     virtual void zap(edges*) = 0;
 };
 
-
-
 }}} // namespace znn::v4::parallel_network

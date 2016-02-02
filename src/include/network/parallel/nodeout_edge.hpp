@@ -1,5 +1,6 @@
 //
-// Copyright (C)      2016  Kisuk Lee           <kisuklee@mit.edu>
+// Copyright (C) 2012-2015  Aleksandar Zlateski <zlateski@mit.edu>
+//                    2016  Kisuk Lee           <kisuklee@mit.edu>
 // ---------------------------------------------------------------
 //
 // This program is free software: you can redistribute it and/or modify
@@ -28,7 +29,6 @@ class nodeout_edge: public edge
 private:
     real            ratio_; // keeping ratio
     vec3i           insize;
-
     phase           phase_; // TRAIN or TEST
 
 private:
@@ -70,7 +70,9 @@ public:
 
         auto fmap = get_copy(*f);
         if ( phase_ == phase::TEST )
+        {
             *fmap *= scale();
+        }
 
         out_nodes->forward(out_num, std::move(fmap));
     }
@@ -103,6 +105,5 @@ public:
         e->edge_zapped();
     }
 };
-
 
 }}} // namespace znn::v4::parallel_network

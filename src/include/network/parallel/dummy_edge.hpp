@@ -24,13 +24,6 @@ namespace znn { namespace v4 { namespace parallel_network {
 
 class dummy_edge: public edge
 {
-private:
-    vec3i filter_size;
-    vec3i filter_stride;
-
-    cube_p<int> indices;
-    vec3i       insize ;
-
 public:
     dummy_edge( nodes * in,
                 size_t inn,
@@ -62,6 +55,5 @@ public:
         e->edge_zapped();
     }
 };
-
 
 }}} // namespace znn::v4::parallel_network

@@ -30,7 +30,6 @@ class max_accumulator
 {
 private:
     size_t required_;
-    size_t disabled_;
     size_t current_ ;
 
     cube_p<real>    maximum_;
@@ -95,7 +94,6 @@ private:
 public:
     explicit max_accumulator(std::size_t n = 0)
         : required_(n)
-        , disabled_(0)
         , current_(0)
         , maximum_()
         , indices_()
@@ -108,28 +106,12 @@ public:
         return required_;
     }
 
-    size_t enable(bool b)
+    size_t shirink(size_t n = 1)
     {
         ZI_ASSERT(current_==0);
-
-        if ( b )
-        {
-            ZI_ASSERT(effectively_required()<required_);
-            --disabled_;
-        }
-        else
-        {
-            ZI_ASSERT(0<effectively_required());
-            ++disabled_;
-        }
-
-        return effectively_required();
-    }
-
-    size_t enable_all(bool b)
-    {
-        disabled_ = b ? 0 : required_;
-        return effectively_required();
+        ZI_ASSERT(n<=required_);
+        required_ -= n;
+        return required_;
     }
 
     //
@@ -148,14 +130,17 @@ public:
         return { std::move(maximum_), std::move(indices_) };
     }
 
+    void reset(size_t n)
+    {
+        ZI_ASSERT(current_==0);
+        ZI_ASSERT(!maximum_);
+        ZI_ASSERT(!indices_);
+        required_ = n;
+    }
+
     size_t required() const
     {
         return required_;
-    }
-
-    size_t effectively_required() const
-    {
-        return required_ - disabled_;
     }
 
 };

@@ -30,7 +30,6 @@ private:
     real            ratio_; // keeping ratio
     cube_p<bool>    mask_ ; // dropout mask
     vec3i           insize;
-
     phase           phase_; // TRAIN or TEST
 
 private:
@@ -39,8 +38,20 @@ private:
         return static_cast<real>(1)/ratio_;
     }
 
+    inline void dropout( cube<real> & c, ccube<bool> const & msk ) const
+    {
+        size_t s = c.num_elements();
+        for ( size_t i = 0; i < s; ++i )
+        {
+            if ( msk.data()[i] )
+                c.data()[i] *= scale();
+            else
+                c.data()[i] = static_cast<real>(0);
+        }
+    }
+
     // performs inplace dropout and returns dropout mask
-    inline void dropout_forward(cube<real>& f)
+    inline void dropout_forward( cube<real> & f )
     {
         if ( !mask_ )
         {
@@ -50,30 +61,15 @@ private:
         // new random mask
         bernoulli_init<bool>(ratio_).initialize(mask_);
 
-        size_t s = f.num_elements();
-        for ( size_t i = 0; i < s; ++i )
-        {
-            // dropout
-            if ( mask_->data()[i] )
-                f.data()[i] *= scale();
-            else
-                f.data()[i]  = static_cast<real>(0);
-        }
+        dropout(f, *mask_);
     }
 
     // performs inplace dropout backward
-    inline void dropout_backward(cube<real> & g)
+    inline void dropout_backward( cube<real> & g )
     {
         ZI_ASSERT(mask_);
 
-        size_t s = g.num_elements();
-        for ( size_t i = 0; i < s; ++i )
-        {
-            if ( mask_->data()[i] )
-                g.data()[i] *= scale();
-            else
-                g.data()[i]  = static_cast<real>(0);
-        }
+        dropout(g, *mask_);
 
         // Should we reset mask_ here?
     }
@@ -143,6 +139,5 @@ public:
         e->edge_zapped();
     }
 };
-
 
 }}} // namespace znn::v4::parallel_network

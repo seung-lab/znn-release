@@ -1,6 +1,6 @@
 //
-// Copyright (C) 2015-2015  Aleksandar Zlateski <zlateski@mit.edu>
-//                    2015  Kisuk Lee           <kisuklee@mit.edu>
+// Copyright (C) 2012-2015  Aleksandar Zlateski <zlateski@mit.edu>
+//                    2016  Kisuk Lee           <kisuklee@mit.edu>
 // ---------------------------------------------------------------
 //
 // This program is free software: you can redistribute it and/or modify
@@ -21,55 +21,52 @@
 #include "edge.hpp"
 #include "nodes.hpp"
 #include "../../utils/dispatcher.hpp"
-#include "../../utils/max_accumulator.hpp"
+#include "../../utils/mult_accumulator.hpp"
 #include "../../utils/accumulator.hpp"
 #include "../../utils/waiter.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 
-class maxout_nodes: public nodes
+class multiplication_nodes: public nodes
 {
 private:
-    dispatcher_group<concurrent_forward_dispatcher<edge,edge>>  fwd_dispatch_;
-    dispatcher_group<concurrent_backward_dispatcher<edge,edge>> bwd_dispatch_;
+    dispatcher_group<concurrent_forward_dispatcher<edge,edge>>    fwd_dispatch_;
+    dispatcher_group<concurrent_backward_dispatcher<edge,edge>>   bwd_dispatch_;
 
-    std::vector<std::unique_ptr<max_accumulator>>      fwd_accumulators_;
+    std::vector<std::unique_ptr<mult_accumulator>>     fwd_accumulators_;
     std::vector<std::unique_ptr<backward_accumulator>> bwd_accumulators_;
 
     std::vector<cube_p<real>>    fs_      ;
-    std::vector<cube_p<int>>     is_      ;
     std::vector<int>             fwd_done_;
     waiter                       waiter_  ;
 
-
 public:
-    maxout_nodes( size_t s,
-                  vec3i const & fsize,
-                  options const & op,
-                  task_manager & tm,
-                  size_t fwd_p,
-                  size_t bwd_p,
-                  bool is_out )
+    multiplication_nodes( size_t s,
+                          vec3i const & fsize,
+                          options const & op,
+                          task_manager & tm,
+                          size_t fwd_p,
+                          size_t bwd_p,
+                          bool is_out )
         : nodes(s,fsize,op,tm,fwd_p,bwd_p,false,is_out)
         , fwd_dispatch_(s)
         , bwd_dispatch_(s)
         , fwd_accumulators_(s)
         , bwd_accumulators_(s)
         , fs_(s)
-        , is_(s)
         , fwd_done_(s)
         , waiter_(s)
     {
         for ( size_t i = 0; i < nodes::size(); ++i )
         {
             fwd_accumulators_[i]
-                = std::make_unique<max_accumulator>();
+                = std::make_unique<mult_accumulator>();
             bwd_accumulators_[i]
                 = std::make_unique<backward_accumulator>(fsize);
         }
 
         auto type = op.require_as<std::string>("type");
-        ZI_ASSERT(type=="maxout");
+        ZI_ASSERT(type=="multiply");
     }
 
     options serialize() const override
@@ -79,7 +76,6 @@ public:
     }
 
 public:
-
     size_t num_out_nodes() override { return nodes::size(); }
     size_t num_in_nodes()  override { return nodes::size(); }
 
@@ -91,23 +87,12 @@ public:
         return fs_;
     }
 
-    std::vector<cube_p<int>>& get_indices_maps()
-    {
-        for ( size_t i = 0; i < nodes::size(); ++i )
-            if( !enabled_[i] ) is_[i] = cube_p<int>();
-
-        return is_;
-    }
-
 private:
     void do_forward(size_t n)
     {
         ZI_ASSERT(enabled_[n]);
 
-        auto r = fwd_accumulators_[n]->reset();
-        fs_[n] = r.first;
-        is_[n] = r.second;
-
+        fs_[n] = fwd_accumulators_[n]->reset();
         //STRONG_ASSERT(!fwd_done_[n]);
         fwd_done_[n] = true;
 
@@ -122,12 +107,12 @@ private:
     }
 
 public:
-    void forward(size_t n, cube_p<real>&& f, int idx)
+    void forward(size_t n, cube_p<real>&& f)
     {
         ZI_ASSERT(n<nodes::size());
         if ( !enabled_[n] ) return;
 
-        if ( fwd_accumulators_[n]->add(std::move(f),idx) )
+        if ( fwd_accumulators_[n]->mult(std::move(f)) )
         {
             do_forward(n);
         }
@@ -158,24 +143,26 @@ public:
         {
             if ( bwd_accumulators_[n]->add(std::move(g)) )
             {
-                do_backward(n,bwd_accumulators_[n]->reset());
+                auto grad = bwd_accumulators_[n]->reset();
+                grad *= fs_[n];
+                do_backward(n,grad);
             }
         }
     }
 
 public:
-    size_t attach_maxout_edge(size_t i, edge* e)
-    {
-        ZI_ASSERT(i<nodes::size());
-        bwd_dispatch_.sign_up(i,e);
-        return fwd_accumulators_[i]->grow(1);
-    }
-
     void attach_out_edge(size_t i, edge* e) override
     {
         ZI_ASSERT(i<nodes::size());
         fwd_dispatch_.sign_up(i,e);
         bwd_accumulators_[i]->grow(1);
+    }
+
+    void attach_in_edge(size_t i, edge* e) override
+    {
+        ZI_ASSERT(i<nodes::size());
+        bwd_dispatch_.sign_up(i,e);
+        fwd_accumulators_[i]->grow(1);
     }
 
     size_t attach_out_fft_edge(size_t n, edge* e) override
@@ -253,6 +240,7 @@ public:
             disable_bwd(n);
     }
 
+public:
     void set_eta( real /*eta*/ ) override {}
     void set_momentum( real /*mom*/ ) override {}
     void set_weight_decay( real /*wd*/ ) override {}
@@ -261,6 +249,6 @@ public:
 
     void zap() override {}
 
-}; // class maxout_nodes
+}; // class multiplication_nodes
 
 }}} // namespace znn::v4::parallel_network
