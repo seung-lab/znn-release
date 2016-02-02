@@ -74,9 +74,9 @@ def main( args ):
     # initialize samples
     outsz = pars['train_outsz']
     print "\n\ncreate train samples..."
-    smp_trn = zsample.CThreadedSamples(config, pars, pars['train_range'], net, outsz, logfile)
+    smp_trn = zsample_thr.CThreadedSamples_S3(config, pars, pars['train_range'], net, outsz, logfile)
     print "\n\ncreate test samples..."
-    smp_tst = zsample.CSamples(config, pars, pars['test_range'],  net, outsz, logfile)
+    smp_tst = zsample_thr.CThreadedSamples_S3(config, pars, pars['test_range'],  net, outsz, logfile)
 
     if pars['is_check']:
         import zcheck
