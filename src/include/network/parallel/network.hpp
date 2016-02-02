@@ -123,40 +123,47 @@ private:
 #endif
 
 
-    void fov_pass(nnodes* n, const vec3i& fov, const vec3i& fsize )
+    void fov_pass(nnodes* n, vec3i fov, const vec3i& fsize )
     {
         if ( n->fov != vec3i::zero )
         {
             ZI_ASSERT(n->fsize==fsize);
-            ZI_ASSERT(n->fov==fov);
-        }
-        else
-        {
-            for ( auto& e: n->out )
+            if ( n->fov == fov )
             {
-                e->in_fsize = fsize;
+                return;
             }
-            n->fov = fov;
-            n->fsize = fsize;
-            for ( auto& e: n->in )
+            else
             {
-                if ( e->pool )
-                {
-                    vec3i new_fov   = fov * e->width;
-                    vec3i new_fsize = e->width * fsize;
-                    fov_pass(e->in, new_fov, new_fsize);
-                }
-                else if ( e->crop )
-                {
-                    // FoV doesn't change
-                    fov_pass(e->in, fov, fsize + e->width - vec3i::one);
-                }
-                else
-                {
-                    vec3i new_fov   = (fov - vec3i::one) * e->stride + e->width;
-                    vec3i new_fsize = (e->width-vec3i::one) * e->in_stride + fsize;
-                    fov_pass(e->in, new_fov, new_fsize);
-                }
+                fov[0] = std::max(n->fov[0],fov[0]);
+                fov[1] = std::max(n->fov[1],fov[1]);
+                fov[2] = std::max(n->fov[2],fov[2]);
+            }
+        }
+
+        for ( auto& e: n->out )
+        {
+            e->in_fsize = fsize;
+        }
+        n->fov = fov;
+        n->fsize = fsize;
+        for ( auto& e: n->in )
+        {
+            if ( e->pool )
+            {
+                vec3i new_fov   = fov * e->width;
+                vec3i new_fsize = e->width * fsize;
+                fov_pass(e->in, new_fov, new_fsize);
+            }
+            else if ( e->crop )
+            {
+                // FoV doesn't change
+                fov_pass(e->in, fov, fsize + e->width - vec3i::one);
+            }
+            else
+            {
+                vec3i new_fov   = (fov - vec3i::one) * e->stride + e->width;
+                vec3i new_fsize = (e->width-vec3i::one) * e->in_stride + fsize;
+                fov_pass(e->in, new_fov, new_fsize);
             }
         }
     }
