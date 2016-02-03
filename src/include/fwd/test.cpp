@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-void printx( int x, void * )
+void printx( int x )
 {
     std::cout << x << "\n";
 }
@@ -27,15 +27,15 @@ int main()
 
     znn::fwd::task_package p(100000,10);
 
-    // znn::fwd::cpu3d::conv_layer cl(p, 1, 5, 12, vec3i(155,155,155), vec3i(5,5,5));
+    znn::fwd::cpu3d::conv_layer cl(p, 1, 5, 12, vec3i(155,155,155), vec3i(5,5,5));
 
-    // // znn::fwd::pooling_layer pl(p, 2, 2, vec3i(11,11,11), vec3i(2,2,2));
+    // znn::fwd::pooling_layer pl(p, 2, 2, vec3i(11,11,11), vec3i(2,2,2));
 
-    // real* data = znn::fwd::znn_malloc<real>(155*155*155*1*5);
+    real* data = znn::fwd::znn_malloc<real>(155*155*155*1*5);
 
-    // real * xx = cl.forward(data);
+    real * xx = cl.forward(data);
 
-    // print_all(xx, 4000);
+    print_all(xx, 4000);
 
 
 
@@ -43,10 +43,10 @@ int main()
     //     std::cout << xx[i] << "\n";
 
     std::cout << "HERE!!!!\n";
-    for ( int i = 0; i < 1000; ++i )
-        p.add_task(printx, i);
+    // for ( int i = 0; i < 1000; ++i )
+    //     p.add_task(printx, i);
 
-    p.execute();
+    // p.execute(100);
 
     // std::cout << "DONE\n";
 

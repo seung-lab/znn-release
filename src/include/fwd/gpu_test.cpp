@@ -60,18 +60,16 @@ int main()
     //      fw.benchmark(2);
     // }
 
-    znn::fwd::network3d_descriptor fw(5);
+    znn::fwd::network3d_descriptor fw(1);
 
-    fw.conv(12,vec3i(5,5,5))
+    fw.conv(48,vec3i(9,9,9))
         .pool(vec3i(2,2,2))
-        .conv(24,vec3i(5,5,5))
+        .conv(48,vec3i(9,9,9))
         .pool(vec3i(2,2,2))
-        .conv(36,vec3i(5,5,5))
-        .pool(vec3i(2,2,2))
-        .conv(48,vec3i(5,5,5))
-        .pool(vec3i(2,2,2))
-        .conv(48,vec3i(5,5,5))
-        .conv(4,vec3i(1,1,1))
+        .conv(48,vec3i(9,9,9))
+        .conv(48,vec3i(9,9,9))
+        .conv(48,vec3i(9,9,9))
+        .conv(4,vec3i(9,9,9))
         .done(1,vec3i(16,16,16));
 
     fw.benchmark(2);

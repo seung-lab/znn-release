@@ -192,8 +192,8 @@ public:
 
         zi::wall_timer wt;
 
-        int in_data_len = batch_size_ * in_size_[0] * in_size_[1] * in_size_[2];
-        int out_data_len = batch_size_ * out_size_[0] * out_size_[1] * out_size_[2];
+        int in_data_len  = cpu_layers[0]->in_memory() / sizeof(real);
+        int out_data_len = cpu_layers.back()->out_memory() / sizeof(real);
 
         for ( ; rounds > 0; --rounds )
         {

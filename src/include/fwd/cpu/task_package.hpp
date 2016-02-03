@@ -87,8 +87,6 @@ public:
             n_workers = 1;
         }
 
-        n_workers = 1;
-
         if ( n_workers > 0 )
         {
             char * stack = reinterpret_cast<char*>
