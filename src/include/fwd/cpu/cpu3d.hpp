@@ -184,9 +184,8 @@ private:
     {
         long_t cstride = fft_kernel_->num_out_elements();
 
-        complex* output_scratch = reinterpret_cast<complex*>(stack);
-        real*    kernel_scratch
-            = reinterpret_cast<real*>(output_scratch + cstride);
+        complex* output_scratch = znn_malloc<complex>(fft_kernel_->num_out_elements());
+        real*    kernel_scratch = znn_malloc<real>   (fft_kernel_->num_in_elements());
 
         long_t kernel_stride = fs_[0] * fs_[1] * fs_[2];
 
@@ -243,7 +242,7 @@ public:
                               otransforms );
         }
 
-        handle_.execute( fft_kernel_->memory() );
+        handle_.execute();
 
         znn_free(itransforms);
 

@@ -60,19 +60,50 @@ int main()
     //      fw.benchmark(2);
     // }
 
-    znn::fwd::network3d_descriptor fw(1);
 
-    fw.conv(48,vec3i(9,9,9))
-        .pool(vec3i(2,2,2))
-        .conv(48,vec3i(9,9,9))
-        .pool(vec3i(2,2,2))
-        .conv(48,vec3i(9,9,9))
-        .conv(48,vec3i(9,9,9))
-        .conv(48,vec3i(9,9,9))
-        .conv(4,vec3i(9,9,9))
-        .done(1,vec3i(16,16,16));
 
-    fw.benchmark(2);
+    {
+        znn::fwd::network3d_descriptor fw(1);
+         fw.conv(40,vec3i(7,7,7))
+           .pool(vec3i(2,2,2))
+             .conv(40,vec3i(7,7,7))
+           .pool(vec3i(2,2,2))
+             .conv(40,vec3i(7,7,7))
+             .conv(40,vec3i(7,7,7))
+             .conv(40,vec3i(7,7,7))
+             .conv(40,vec3i(7,7,7))
+             .conv(3,vec3i(7,7,7))
+           .done(1,vec3i(64,64,64));
+
+          fw.benchmark(2);
+    }
+    //     {
+    //     znn::fwd::network3d_descriptor fw(1);
+    //      fw.conv(10,vec3i(7,7,7))
+    //          .conv(10,vec3i(7,7,7))
+    //          .conv(10,vec3i(7,7,7))
+    //          .conv(10,vec3i(7,7,7))
+    //          .conv(10,vec3i(7,7,7))
+    //          .conv(1,vec3i(1,1,1))
+    //          .done(1,vec3i(128,128,128));
+
+    //       fw.benchmark(2);
+    // }
+
+    // znn::fwd::network3d_descriptor fw(1);
+
+
+    // fw.conv(48,vec3i(9,9,9))
+    //     .pool(vec3i(2,2,2))
+    //     .conv(48,vec3i(9,9,9))
+    //     .pool(vec3i(2,2,2))
+    //     .conv(48,vec3i(9,9,9))
+    //     .conv(48,vec3i(9,9,9))
+    //     .conv(48,vec3i(9,9,9))
+    //     .conv(4,vec3i(9,9,9))
+    //     .done(1,vec3i(64,64,64));
+
+    // fw.benchmark(2);
 
     cudaDeviceReset();
 

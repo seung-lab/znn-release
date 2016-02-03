@@ -2,6 +2,7 @@
 
 #include "global_task_manager.hpp"
 
+#include "malloc.hpp"
 #include <vector>
 #include <algorithm>
 #include <utility>
@@ -89,8 +90,12 @@ public:
 
         if ( n_workers > 0 )
         {
-            char * stack = reinterpret_cast<char*>
-                (std::malloc(n_workers*stack_size));
+            char * stack = nullptr;
+
+            if ( stack_size > 0 )
+            {
+                stack = znn_malloc<char>(n_workers*stack_size);
+            }
 
             running_threads_ = static_cast<int>(n_workers);
 
@@ -108,7 +113,10 @@ public:
                 }
             }
 
-            std::free(stack);
+            if ( stack_size > 0 )
+            {
+                znn_free(stack);
+            }
 
             size_ = 0;
         }
