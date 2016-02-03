@@ -28,6 +28,8 @@ def parseIntSet(nputstr=""):
 
     http://thoughtsbyclayg.blogspot.com/2008/10/parsing-list-of-numbers-in-python.html
     """
+    if nputstr is None:
+        return None
 
     selection = set()
     invalid = set()
@@ -86,11 +88,7 @@ def parser( conf_fname ):
 
     #IO OPTIONS
     #Filename under which we save the network
-    pars['train_save_net'] = config.get('parameters', 'train_save_net')
-    # initialize from a seed network
-    pars['train_seed_net'] = config.get('parameters', 'train_seed_net')
-    #Network filename to load
-    pars['train_load_net'] = config.get('parameters', 'train_load_net')
+    pars['train_net'] = config.get('parameters', 'train_net')
     #Whether to write .log and .cfg files
     if config.has_option('parameters', 'logging'):
         pars['logging'] = config.getboolean('parameters', 'logging')

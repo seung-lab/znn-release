@@ -218,7 +218,7 @@ class CLearnCurve:
 
     def save(self, pars, elapsed):
         # get filename
-        fname = pars['train_save_net']
+        fname = pars['train_net']
         import os
         import shutil
         root, ext = os.path.splitext(fname)
