@@ -24,6 +24,8 @@
 
 namespace zi {
 
+#if !defined( __GXX_EXPERIMENTAL_CXX0X__ )
+
 template< bool Condition > struct STATIC_ASSERT_FAILED;
 
 template<> struct STATIC_ASSERT_FAILED< true > { static const bool value = true; };
@@ -36,6 +38,12 @@ template< int I > struct static_assert_test { };
     < sizeof( ::zi::STATIC_ASSERT_FAILED< (bool)( value ) > ) >         \
     ZiPP_GLUE( message##_at_line_, __LINE__ )
 
+#else
+
+#define ZI_STATIC_ASSERT( value, message )                              \
+    static_assert((value), #message)
+
+#endif
 
 } // namespace zi
 

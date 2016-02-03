@@ -422,7 +422,7 @@ typename detail::enable_if_c< N == 4, mat< typename detail::promote< T >::type, 
 make_scale( const T& scalex, const T& scaley, const T& scalez )
 {
     typedef typename detail::promote< T >::type promoted_type;
-    mat< T, 4 > res( 0 );
+    mat< promoted_type, 4 > res( 0 );
 
     res.at( 0, 0 ) = scalex;
     res.at( 1, 1 ) = scaley;
@@ -437,7 +437,7 @@ typename detail::enable_if_c< N == 4, mat< typename detail::promote< T >::type, 
 make_scale( const vec< T, 3 >& x )
 {
     typedef typename detail::promote< T >::type promoted_type;
-    mat< T, 4 > res( 0 );
+    mat< promoted_type, 4 > res( 0 );
 
     res.at( 0, 0 ) = x.at( 0 );
     res.at( 1, 1 ) = x.at( 1 );
