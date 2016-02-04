@@ -28,17 +28,18 @@ Note that fftw is not required when using `intel MKL <https://software.intel.com
 Compiler flags
 ``````````````
 
-|Flag|Description|
-|:-----:|-------------------|
-|ZNN_CUBE_POOL|Use custom memory pool, usually faster|
-|ZNN_CUBE_POOL_LOCKFREE|Use custom lockfree memory pool, even faster (some memory overhead)|
-|ZNN_USE_FLOATS|Use single precision floating point numbers|
-|ZNN_DONT_CACHE_FFTS|Don't cache FFTs for the backward pass|
-|ZNN_USE_MKL_DIRECT_CONV|Use MKL direct convolution|
-|ZNN_USE_MKL_FFT|Use MKL fftw wrappers|
-|ZNN_USE_MKL_NATIVE_FFT|Use MKL native convolution overrides the previous flag|
-|ZNN_XEON_PHI|64 byte memory alignment|
-
+=============================           ======================================================================
+Flag                                    Description
+=============================           ======================================================================
+ZNN_CUBE_POOL                           Use custom memory pool, usually faster
+ZNN_CUBE_POOL_LOCKFREE                  Use custom lockfree memory pool, even faster (some memory overhead)
+ZNN_USE_FLOATS                          Use single precision floating point numbers
+ZNN_DONT_CACHE_FFTS                     Don't cache FFTs for the backward pass
+ZNN_USE_MKL_DIRECT_CONV                 Use MKL direct convolution
+ZNN_USE_MKL_FFT                         Use MKL fftw wrappers
+ZNN_USE_MKL_NATIVE_FFT                  Use MKL native convolution overrides the previous flag
+ZNN_XEON_PHI                            64 byte memory alignment
+==============================          ======================================================================= 
 
 Compile with gcc and clang
 ```````````````````````````
@@ -55,7 +56,6 @@ Python Interface
 ----------------
 
 To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python<https://github.com/seung-lab/znn-release/tree/master/python>`_ folder for further information.
-
 
 Resources
 ---------
