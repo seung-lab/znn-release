@@ -41,7 +41,8 @@ Compiler flags
 Compile with make
 `````````````````
 The easiest way to compile ZNN is to use Makefile.
-in the root folder of znn::
+in the root folder of znn:
+::
     make -j number_of_cores
 if you use MKL:
 ::
@@ -50,13 +51,15 @@ if you use MKL:
 Compile with gcc and clang
 ``````````````````````````
 in the folder of ``src``:
-   g++ -std=c++1y training_test.cpp -I../../ -I../include -lfftw3 -lfftw3f -lpthread -pthread -O3 -DNDEBUG -o training_test
+::
+    g++ -std=c++1y training_test.cpp -I../../ -I../include -lfftw3 -lfftw3f -lpthread -pthread -O3 -DNDEBUG -o training_test
 Notethat g++ should support c++1y standard. v4.8 and later works.
 
 Compile with icc
 ````````````````
 in the folder of ``src``:
-   icc -std=c++1y training_test.cpp -I../../ -I../include -lpthread -lrt -static-intel -DNDEBUG -O3 -mkl=sequential -o training_test
+::
+    icc -std=c++1y training_test.cpp -I../../ -I../include -lpthread -lrt -static-intel -DNDEBUG -O3 -mkl=sequential -o training_test
 
 Python Interface
 ----------------
@@ -79,10 +82,12 @@ boost python                                                                    
 Compile the core of python interface
 ````````````````````````````````````
 in the folder of ``python/core``:
-  make -j number_of_cores
+::
+    make -j number_of_cores
   
 if you use MKL:
-  make mkl -j number_of_cores
+::
+    make mkl -j number_of_cores
 
 Resources
 ---------
