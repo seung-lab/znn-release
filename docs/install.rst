@@ -51,35 +51,36 @@ if you use MKL:
 
 Compile with gcc and clang
 ```````````````````````````
-in the folder of `src`:
+in the folder of *src*:
    g++ -std=c++1y training_test.cpp -I../../ -I../include -lfftw3 -lfftw3f -lpthread -pthread -O3 -DNDEBUG -o training_test
 Notethat g++ should support c++1y standard. v4.8 and later works.
 
 Compile with icc
 ````````````````
-in the folder of `src`:
+in the folder of *src*:
    icc -std=c++1y training_test.cpp -I../../ -I../include -lpthread -lrt -static-intel -DNDEBUG -O3 -mkl=sequential -o training_test
 
 Python Interface
 ----------------
 
-To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python<https://github.com/seung-lab/znn-release/tree/master/python>`_ folder for further information.
+To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python <https://github.com/seung-lab/znn-release/tree/master/python>`_ folder for further information.
 
 Required Packages
 `````````````````
 
-Except the libraries required to build the C++ core, we need some more libraries to build the python interface. For normal python libraries, we recommand to use `Anaconda <https://www.continuum.io/downloads>`_.
-=============================================================================================== ===================
+Except the libraries required to build the C++ core, we need some more libraries to build the python interface. For normal python libraries, we recommand to use `Anaconda <https://www.continuum.io/downloads>`_ .
+
+=============================================================================================== ====================
 Library                                                                                          Ubuntu package name
-=============================================================================================== ===================
+=============================================================================================== ====================
 numpy                                                                                            python-numpy
 boost python                                                                                     libboost-python-dev
 `BoostNumpy <http://github.com/ndarray/Boost.NumPy>`_                                            NA
-=============================================================================================== ===================
+=============================================================================================== ====================
 
 Compile the core of python interface
 ````````````````````````````````````
-in the folder of `python/core`:
+in the folder of *python/core*:
   make -j number_of_cores
   
 if you use MKL:
