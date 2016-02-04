@@ -29,7 +29,7 @@ Compiler flags
 ``````````````
 
 =============================           ======================================================================
-Flag                                    Description
+  Flag                                      Description
 =============================           ======================================================================
 ZNN_CUBE_POOL                           Use custom memory pool, usually faster
 ZNN_CUBE_POOL_LOCKFREE                  Use custom lockfree memory pool, even faster (some memory overhead)
