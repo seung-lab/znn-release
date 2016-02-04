@@ -77,7 +77,7 @@ Library                                                                         
 numpy                                                                                            python-numpy
 boost python                                                                                     libboost-python-dev
 `Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_                                            NA
-emirt                                                                                            NA
+`emirt <https://github.com/seung-lab/emirt>`_                                                     NA
 =============================================================================================== ====================
 We use `Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_ to facilitate the interaction between python numpy array and the ``cube`` in C++ core. To install it, please refer to `Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_ repository.
 
