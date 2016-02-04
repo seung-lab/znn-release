@@ -14,14 +14,14 @@ The core of ZNN was written with C++ to handle the most computationally expensiv
 Required libraries
 ``````````````````
 
-=======                                                                                             ===================
+===============================================================================================     ===================
 Library                                                                                             Ubuntu package name
-=======                                                                                             ===================
+===============================================================================================     ===================
 `fftw<http://www.fftw.org/>`_                                                                         libfftw3-dev
 `<boost1.55 <http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2>`_         libboost-all-dev
 `BoostNumpy <http://github.com/ndarray/Boost.NumPy>`_                                                 NA
 `jemalloc <http://www.canonware.com/jemalloc/>`_                                                      libjemalloc-dev
-====================================================                                                ===================
+===============================================================================================     ===================
 
 Note that fftw is not required when using `intel MKL <https://software.intel.com/en-us/intel-mkl>`_.
 
