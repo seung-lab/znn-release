@@ -1,22 +1,31 @@
+.. _install:
+
+*************
 Installation
+************
+
+
+Compilation of C++ core
 ============
+
+Supports Linux and MacOS.
 
 Required libraries
 ------------------
-Supports Linux and MacOS. When using MKL, fftw is not required
 
-=======                                ===================
-Library                                Ubuntu package name
-=======                                ===================
-`fftw<http://www.fftw.org/>`_           libfftw3-dev
-`<boost1.55 <http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2>`_                                    libboost-all-dev
-`BoostNumpy <http://github.com/ndarray/Boost.NumPy>`_ NA
-`jemalloc <http://www.canonware.com/jemalloc/>`_ libjemalloc-dev
+=======                                                                                             ===================
+Library                                                                                             Ubuntu package name
+=======                                                                                             ===================
+`fftw<http://www.fftw.org/>`_                                                                         libfftw3-dev
+`<boost1.55 <http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2>`_         libboost-all-dev
+`BoostNumpy <http://github.com/ndarray/Boost.NumPy>`_                                                 NA
+`jemalloc <http://www.canonware.com/jemalloc/>`_                                                      libjemalloc-dev
 
+Note that fftw is not required when using `intel MKL <https://software.intel.com/en-us/intel-mkl>`_.
 
 Compiler flags
 --------------
-
+md```
 |Flag|Description|
 |:-----:|-------------------|
 |ZNN_CUBE_POOL|Use custom memory pool, usually faster|
@@ -27,20 +36,23 @@ Compiler flags
 |ZNN_USE_MKL_FFT|Use MKL fftw wrappers|
 |ZNN_USE_MKL_NATIVE_FFT|Use MKL native convolution overrides the previous flag|
 |ZNN_XEON_PHI|64 byte memory alignment|
-
-
-Compile gcc and clang
----------------------
-    g++ -std=c++1y training_test.cpp -I../../ -I../include -lfftw3 -lfftw3f -lpthread -pthread -O3 -DNDEBUG -o training_test
-
-    Compile icc
-    -----------
-        icc -std=c++1y training_test.cpp -I../../ -I../include -lpthread -lrt -static-intel -DNDEBUG -O3 -mkl=sequential -o training_test
-
-        Python Interface
-        ----------------
-        To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python` folder for further information.
 ```
+
+Compile with gcc and clang
+---------------------
+.. doctest::
+   g++ -std=c++1y training_test.cpp -I../../ -I../include -lfftw3 -lfftw3f -lpthread -pthread -O3 -DNDEBUG -o training_test
+Notethat g++ should support c++1y standard. v4.8 and later works.
+
+Compile with icc
+-----------
+.. doctest::
+   icc -std=c++1y training_test.cpp -I../../ -I../include -lpthread -lrt -static-intel -DNDEBUG -O3 -mkl=sequential -o training_test
+
+Python Interface
+================
+To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python` folder for further information.
+
 
 Resources
 ---------
