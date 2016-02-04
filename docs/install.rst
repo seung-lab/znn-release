@@ -31,25 +31,30 @@ Compiler flags
 ==============================          ======================================================================
   Flag                                      Description
 ==============================          ======================================================================
-ZNN_CUBE_POOL                            Use custom memory pool, usually faster
-ZNN_CUBE_POOL_LOCKFREE                   Use custom lockfree memory pool, even faster (some memory overhead)
-ZNN_USE_FLOATS                           Use single precision floating point numbers
-ZNN_DONT_CACHE_FFTS                      Don't cache FFTs for the backward pass
-ZNN_USE_MKL_DIRECT_CONV                  Use MKL direct convolution
-ZNN_USE_MKL_FFT                          Use MKL fftw wrappers
-ZNN_USE_MKL_NATIVE_FFT                   Use MKL native convolution overrides the previous flag
-ZNN_XEON_PHI                             64 byte memory alignment
+ ZNN_CUBE_POOL                            Use custom memory pool, usually faster
+ ZNN_CUBE_POOL_LOCKFREE                   Use custom lockfree memory pool, even faster (some memory overhead)
+ ZNN_USE_FLOATS                           Use single precision floating point numbers
+ ZNN_DONT_CACHE_FFTS                      Don't cache FFTs for the backward pass
+ ZNN_USE_MKL_DIRECT_CONV                  Use MKL direct convolution
+ ZNN_USE_MKL_FFT                          Use MKL fftw wrappers
+ ZNN_USE_MKL_NATIVE_FFT                   Use MKL native convolution overrides the previous flag
+ ZNN_XEON_PHI                             64 byte memory alignment
 ==============================          ======================================================================= 
+
+Compile with make
+
+in the root folder of znn:
+  make -j number_of_cores
 
 Compile with gcc and clang
 ```````````````````````````
-
+in the folder of `src`:
    g++ -std=c++1y training_test.cpp -I../../ -I../include -lfftw3 -lfftw3f -lpthread -pthread -O3 -DNDEBUG -o training_test
 Notethat g++ should support c++1y standard. v4.8 and later works.
 
 Compile with icc
 ````````````````
-
+in the folder of `src`:
    icc -std=c++1y training_test.cpp -I../../ -I../include -lpthread -lrt -static-intel -DNDEBUG -O3 -mkl=sequential -o training_test
 
 Python Interface
