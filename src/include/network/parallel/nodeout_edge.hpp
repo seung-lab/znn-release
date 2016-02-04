@@ -57,9 +57,12 @@ public:
 
     void setup() override
     {
-        bool b;
-        bernoulli_init<bool>(ratio_).initialize(&b,1);
-        edge::enable(b);
+        if ( phase_ == phase::TRAIN )
+        {
+            bool b;
+            bernoulli_init<bool>(ratio_).initialize(&b,1);
+            edge::enable(b);
+        }
     }
 
     void forward( ccube_p<real> const & f ) override
