@@ -4,14 +4,15 @@
 Installation
 ============
 
+Supports Linux and MacOS.
 
 Compilation of C++ core
 -----------------------
 
-Supports Linux and MacOS.
+The core of ZNN was written with C++ to handle the most computationally expensive forward and backward pass. It is also fully functional and usable to train networks. 
 
 Required libraries
-------------------
+``````````````````
 
 =======                                                                                             ===================
 Library                                                                                             Ubuntu package name
@@ -25,7 +26,7 @@ Library                                                                         
 Note that fftw is not required when using `intel MKL <https://software.intel.com/en-us/intel-mkl>`_.
 
 Compiler flags
---------------
+``````````````
 
 |Flag|Description|
 |:-----:|-------------------|
@@ -40,18 +41,18 @@ Compiler flags
 
 
 Compile with gcc and clang
----------------------
+```````````````````````````
 
    g++ -std=c++1y training_test.cpp -I../../ -I../include -lfftw3 -lfftw3f -lpthread -pthread -O3 -DNDEBUG -o training_test
 Notethat g++ should support c++1y standard. v4.8 and later works.
 
 Compile with icc
------------
+````````````````
 
    icc -std=c++1y training_test.cpp -I../../ -I../include -lpthread -lrt -static-intel -DNDEBUG -O3 -mkl=sequential -o training_test
 
 Python Interface
-================
+----------------
 
 To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python<https://github.com/seung-lab/znn-release/tree/master/python>`_ folder for further information.
 
