@@ -76,8 +76,17 @@ Library                                                                         
 =============================================================================================== ====================
 numpy                                                                                            python-numpy
 boost python                                                                                     libboost-python-dev
-`BoostNumpy <http://github.com/ndarray/Boost.NumPy>`_                                            NA
+`Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_                                            NA
+emirt                                                                                            NA
 =============================================================================================== ====================
+We use `Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_ to facilitate the interaction between python numpy array and the `cube` in C++ core. To install it, please refer to `Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_ repository.
+
+`emirt <https://github.com/seung-lab/emirt>`_ is a home-made python library specially for neuron reconstruction from EM images.
+
+To install it for ZNN, simply run the following command in the folder of ``python``:
+::
+    git clone https://github.com/seung-lab/emirt.git
+If you find it useful and would like to use it in your other programs, you can also install it in a system path (PYTHONPATH).
 
 Compile the core of python interface
 ````````````````````````````````````
