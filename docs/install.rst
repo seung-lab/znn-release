@@ -1,6 +1,3 @@
-.. _install:
-
-
 Installation
 ============
 
@@ -46,7 +43,8 @@ Compile with make
 The easiest way to compile ZNN is to use Makefile.
 in the root folder of znn::
     make -j number_of_cores
-if you use MKL::
+if you use MKL:
+::
     make mkl -j number_of_cores
 
 Compile with gcc and clang
