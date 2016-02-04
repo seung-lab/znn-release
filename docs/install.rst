@@ -1,12 +1,12 @@
 .. _install:
 
-*************
+
 Installation
-************
+============
 
 
 Compilation of C++ core
-============
+-----------------------
 
 Supports Linux and MacOS.
 
@@ -25,6 +25,7 @@ Note that fftw is not required when using `intel MKL <https://software.intel.com
 
 Compiler flags
 --------------
+
 md```
 |Flag|Description|
 |:-----:|-------------------|
@@ -40,6 +41,7 @@ md```
 
 Compile with gcc and clang
 ---------------------
+
 .. doctest::
    g++ -std=c++1y training_test.cpp -I../../ -I../include -lfftw3 -lfftw3f -lpthread -pthread -O3 -DNDEBUG -o training_test
 Notethat g++ should support c++1y standard. v4.8 and later works.
@@ -51,9 +53,10 @@ Compile with icc
 
 Python Interface
 ================
-To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python` folder for further information.
+
+To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python<https://github.com/seung-lab/znn-release/tree/master/python>`_ folder for further information.
 
 
 Resources
 ---------
-For step by step installation instruction for Linux, please refer to `travis file <https://github.com/seung-lab/znn-release/blob/master/.travis.yml>`_.
+For step by step installation instruction for Linux, the `travis file <https://github.com/seung-lab/znn-release/blob/master/.travis.yml>`_ shows the commands to setup it up in Ubuntu.
