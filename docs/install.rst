@@ -26,7 +26,7 @@ Library                                                                         
 Note that fftw is not required when using `intel MKL <https://software.intel.com/en-us/intel-mkl>`_.
 
 Compiler flags
-``````````````
+```````````````
 
 ============================== ======================================================================
   Flag                                      Description
@@ -39,13 +39,15 @@ Compiler flags
  ZNN_USE_MKL_FFT                Use MKL fftw wrappers
  ZNN_USE_MKL_NATIVE_FFT         Use MKL native convolution overrides the previous flag
  ZNN_XEON_PHI                   64 byte memory alignment
-============================== ======================================================================= 
+============================== ====================================================================== 
 
 Compile with make
 `````````````````
 
 in the root folder of znn:
   make -j number_of_cores
+if you use MKL:
+  make mkl -j number_of_cores
 
 Compile with gcc and clang
 ```````````````````````````
@@ -62,6 +64,26 @@ Python Interface
 ----------------
 
 To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python<https://github.com/seung-lab/znn-release/tree/master/python>`_ folder for further information.
+
+Required Packages
+`````````````````
+
+Except the libraries required to build the C++ core, we need some more libraries to build the python interface. For normal python libraries, we recommand to use `Anaconda <https://www.continuum.io/downloads>`_.
+=============================================================================================== ===================
+Library                                                                                          Ubuntu package name
+=============================================================================================== ===================
+numpy                                                                                            python-numpy
+boost python                                                                                     libboost-python-dev
+`BoostNumpy <http://github.com/ndarray/Boost.NumPy>`_                                            NA
+=============================================================================================== ===================
+
+Compile the core of python interface
+````````````````````````````````````
+in the folder of `python/core`:
+  make -j number_of_cores
+  
+if you use MKL:
+  make mkl -j number_of_cores
 
 Resources
 ---------
