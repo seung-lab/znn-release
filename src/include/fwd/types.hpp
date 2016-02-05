@@ -7,7 +7,7 @@
 #include <memory>
 #include <functional>
 #include <zi/vl/vl.hpp>
-#include <boost/multi_array.hpp>
+//#include <boost/multi_array.hpp>
 
 #include <map>
 #include <list>

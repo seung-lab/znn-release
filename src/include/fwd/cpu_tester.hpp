@@ -3,7 +3,7 @@
 #include "types.hpp"
 #include "assert.hpp"
 //#include "gpu/gpu3d.hpp"
-#include "cpu/cpu3d.hpp"
+//#include "cpu/cpu3d.hpp"
 #include "init.hpp"
 
 namespace znn { namespace fwd {

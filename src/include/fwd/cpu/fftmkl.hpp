@@ -18,11 +18,11 @@ namespace znn { namespace fwd {
 
 #elif defined(ZNN_USE_DOUBLE_PRECISION)
 
-#defune ZNN_DFTI_TYPE DFTI_DOUBLE
+#define ZNN_DFTI_TYPE DFTI_DOUBLE
 
 #else
 
-#defune ZNN_DFTI_TYPE DFTI_SINGLE
+#define ZNN_DFTI_TYPE DFTI_SINGLE
 
 #endif
 
@@ -41,10 +41,10 @@ private:
 public:
     ~fft_transformer()
     {
-        DftiFreeDescriptor(f1);
-        DftiFreeDescriptor(b1);
-        DftiFreeDescriptor(t2);
-        DftiFreeDescriptor(t3);
+        DftiFreeDescriptor(&f1);
+        DftiFreeDescriptor(&b1);
+        DftiFreeDescriptor(&t2);
+        DftiFreeDescriptor(&t3);
     }
 
     fft_transformer( vec3i const & _rsize,
@@ -70,9 +70,9 @@ public:
             MKL_LONG strides_out[2] = { 0, csize[1] * csize[2] };
 
             status = DftiCreateDescriptor( &f1, ZNN_DFTI_TYPE,
-                                           DFTI_REAL, rsize[0] );
+                                           DFTI_REAL, 1, rsize[0] );
             status = DftiCreateDescriptor( &b1, ZNN_DFTI_TYPE,
-                                           DFTI_REAL, rsize[0] );
+                                           DFTI_REAL, 1, rsize[0] );
 
             status = DftiSetValue( f1 , DFTI_CONJUGATE_EVEN_STORAGE,
                                    DFTI_COMPLEX_COMPLEX );
@@ -109,7 +109,7 @@ public:
             MKL_LONG strides[2]  = { 0, csize[2] };
 
             status = DftiCreateDescriptor( &t2, ZNN_DFTI_TYPE,
-                                           DFTI_COMPLEX, csize[1] );
+                                           DFTI_COMPLEX, 1, csize[1] );
 
             status = DftiSetValue( t2, DFTI_COMPLEX_STORAGE, DFTI_COMPLEX_COMPLEX );
             status = DftiSetValue( t2, DFTI_PLACEMENT, DFTI_INPLACE );
@@ -131,7 +131,7 @@ public:
             MKL_LONG strides[2]  = { 0, 1 };
 
             status = DftiCreateDescriptor( &t3, ZNN_DFTI_TYPE,
-                                           DFTI_COMPLEX, csize[2] );
+                                           DFTI_COMPLEX, 1, csize[2] );
 
             status = DftiSetValue( t3, DFTI_COMPLEX_STORAGE, DFTI_COMPLEX_COMPLEX );
             status = DftiSetValue( t3, DFTI_PLACEMENT, DFTI_INPLACE );
@@ -142,11 +142,14 @@ public:
             status = DftiSetValue( t3, DFTI_OUTPUT_DISTANCE, csize[2] );
 
             status = DftiCommitDescriptor(t3);
+        }
     }
 
 
     void forward( real* rp, void* cpv )
     {
+        MKL_LONG status;
+
         real* cp = reinterpret_cast<real*>(cpv);
         std::memset(cp, 0, csize[0]*csize[1]*csize[2]*sizeof(real)*2);
 
@@ -170,6 +173,8 @@ public:
 
     void backward( void* cpv, real* rp )
     {
+        MKL_LONG status;
+
         real* cp = reinterpret_cast<real*>(cpv);
         // In-place complex to complex along z-direction
         status = DftiComputeBackward( t3, cp, cp );

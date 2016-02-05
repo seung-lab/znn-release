@@ -28,8 +28,6 @@ private:
     long_t n_    ;
     long_t fin_  ;
     long_t fout_ ;
-    vec3i  is_   ;
-    vec3i  fs_   ;
 
     int in_memory_ ;
     int out_memory_;
@@ -37,9 +35,7 @@ private:
     real * kernel_data_ ;
     real * bias_data_   ;
 
-    fft_transformer* fft_iimage_;
-    fft_transformer* fft_oimage_;
-    fft_transformer* fft_kernel_;
+    fft_transformer* fft_;
 
 public:
 
@@ -78,34 +74,34 @@ public:
         , n_(n)
         , fin_(fin)
         , fout_(fout)
-        , is_(is)
-        , fs_(fs)
     {
+        fft_ = fft_plans.get(is,fs);
 
-        kernel_data_ = znn_malloc<real>(fin * fout * fs[0] * fs[1] * fs[2]);
+        kernel_data_ = znn_malloc<real>(fin * fout * fft_->kernel_elements());
         bias_data_   = znn_malloc<real>(fout);
 
-        in_memory_ = n * fin * is[0] * is[1] * is[2] * sizeof(real);
-
-        vec3i os = is + vec3i::one - fs;
-
-        out_memory_ = n * fout * os[0] * os[1] * os[2] * sizeof(real);
-
-        os[0] = is[0];
-
-        fft_iimage_ = fft_plans.get(is,is);
-        fft_oimage_ = fft_plans.get(os,is);
-
-        vec3i x = fs;
-        x[0] = is[0];
-
-        fft_kernel_ = fft_plans.get(x,is);
+        in_memory_ = n * fin * fft_->image_memory();
+        out_memory_ = n * fout * fft_->result_memory();
     }
 
 private:
     void do_input_fft( real* in, complex* out, void* )
     {
-        fft_iimage_->forward(in,out);
+        fft_->forward_image(in,out);
+    }
+
+    void do_input_fft_padded( real* in, complex* out, void* scratch)
+    {
+        // copy the image
+        real* tmp = reinterpret_cast<real*>(scratch);
+        std::memcpy( tmp, in, fft_->image_memory());
+
+        // append zeros
+        long_t zero_bytes = fft_->image_scratch_memory()
+            - fft_->image_memory();
+        std::memset( tmp + fft_->image_elements(), 0, zero_bytes );
+
+        fft_->forward_image(tmp,out);
     }
 
     void do_output_ifft( complex* in, real* out, long_t out_elements,
@@ -113,11 +109,10 @@ private:
     {
         real* out_scratch = reinterpret_cast<real*>(stack);
 
-        fft_oimage_->backward(in,out_scratch);
+        fft_->backward(in,out_scratch);
+        real scale = fft_->get_scale();
 
-        real scale = fft_oimage_->get_scale();
-
-        long_t off = fft_oimage_->num_in_elements() - out_elements;
+        long_t off = fft_->result_scratch_elements() - out_elements;
 
         for ( long_t i = 0; i < out_elements; ++i )
         {
@@ -136,19 +131,19 @@ private:
                            long_t output_stride )
     {
         // copy the kernel to the scratch
-        long_t kernel_elements = fs_[0] * fs_[1] * fs_[2];
-        std::memcpy( kernel_scratch, kernel, kernel_elements * sizeof(real));
+        std::memcpy( kernel_scratch, kernel, fft_->kernel_memory());
 
         // append zeros
-        long_t zero_bytes
-            = fft_kernel_->in_memory() - kernel_elements * sizeof(real);
-        std::memset( kernel_scratch + kernel_elements, 0, zero_bytes );
+        long_t zero_bytes = fft_->kernel_scratch_memory()
+            - fft_->kernel_memory();
+        std::memset( kernel_scratch + fft_->kernel_elements(),
+                     0, zero_bytes );
 
         // transform the kernel
-        fft_kernel_->forward( kernel_scratch, output_scratch );
+        fft_->forward_kernel( kernel_scratch, output_scratch );
 
         // loop over the batch
-        long_t n_elements = fft_kernel_->num_out_elements();
+        long_t n_elements = fft_->transform_elements();
 
         if ( first )
         {
@@ -182,12 +177,14 @@ private:
                            complex* outputs,
                            void*)
     {
-        long_t cstride = fft_kernel_->num_out_elements();
+        long_t cstride = fft_->transform_elements();
 
-        complex* output_scratch = znn_malloc<complex>(fft_kernel_->num_out_elements());
-        real*    kernel_scratch = znn_malloc<real>   (fft_kernel_->num_in_elements());
+        complex* output_scratch
+            = znn_malloc<complex>(fft_->transform_elements());
+        real*    kernel_scratch
+            = znn_malloc<real>   (fft_->kernel_scratch_elements());
 
-        long_t kernel_stride = fs_[0] * fs_[1] * fs_[2];
+        long_t kernel_stride = fft_->kernel_elements();
 
         real* first_kernel = kernel_data_ + out_num * kernel_stride * fin_;
 
@@ -205,32 +202,47 @@ private:
     }
 
 
-public:
-    real * forward( real * in ) override
+private:
+    complex * transform_inputs( real * in )
     {
-        // do FFTs of the inputs
-        complex* itransforms;
+        long_t   relements   = fft_->image_elements();
+        long_t   celements   = fft_->transform_elements();
+        complex* itransforms = znn_malloc<complex>(n_*fin_*celements);
 
-        long_t relements = is_[0] * is_[1] * is_[2];
-        long_t celements = (is_[0]/2 + 1) * is_[1] * is_[2];
-        itransforms = znn_malloc<complex>(n_*fin_*celements);
-
-        for ( long_t i = 0, off = 0; i < n_; ++i )
+        if ( fft_->needs_padding() )
         {
-            for ( long_t j = 0; j < fin_; ++j, ++off )
-            {
-                handle_.add_task( &conv_layer::do_input_fft,
-                                  this,
-                                  in + relements * off,
-                                  itransforms + celements * off );
-            }
+            for ( long_t i = 0, off = 0; i < n_; ++i )
+                for ( long_t j = 0; j < fin_; ++j, ++off )
+                {
+                    handle_.add_task( &conv_layer::do_input_fft_padded,
+                                      this,
+                                      in + relements * off,
+                                      itransforms + celements * off );
+                }
+
+            handle_.execute(fft_->image_scratch_memory());
+        }
+        else
+        {
+            for ( long_t i = 0, off = 0; i < n_; ++i )
+                for ( long_t j = 0; j < fin_; ++j, ++off )
+                {
+                    handle_.add_task( &conv_layer::do_input_fft,
+                                      this,
+                                      in + relements * off,
+                                      itransforms + celements * off );
+                }
+
+            handle_.execute();
         }
 
-        handle_.execute();
-
         znn_free(in);
+        return itransforms;
+    }
 
-        // collect (MADs)
+    complex * collect_outputs( complex * itransforms )
+    {
+        long_t   celements   = fft_->transform_elements();
         complex* otransforms = znn_malloc<complex>(n_*fout_*celements);
 
         for ( long_t i = 0; i < fout_; ++i )
@@ -243,12 +255,15 @@ public:
         }
 
         handle_.execute();
-
         znn_free(itransforms);
 
-        // do iFFT of the outputs
-        vec3i  os = is_ + vec3i::one - fs_;
-        long_t oelements = os[0] * os[1] * os[2];
+        return otransforms;
+    }
+
+    real * process_outputs( complex * otransforms )
+    {
+        long_t celements = fft_->transform_elements();
+        long_t oelements = fft_->result_elements();
 
         real* result = znn_malloc<real>(n_*fout_*oelements);
 
@@ -265,11 +280,20 @@ public:
             }
         }
 
-        handle_.execute( fft_oimage_->in_memory() );
+        handle_.execute( fft_->result_scratch_memory() );
 
         znn_free(otransforms);
 
         return result;
+    }
+
+public:
+    real * forward( real * in ) override
+    {
+        // do FFTs of the inputs
+        complex* itransforms = transform_inputs(in);
+        complex* otransforms = collect_outputs(itransforms);
+        return process_outputs(otransforms);
     }
 
 
