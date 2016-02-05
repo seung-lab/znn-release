@@ -53,7 +53,9 @@ To resume a specific network, we can use the seeding function:
 
 Transfer learning
 `````````````````
-Sometimes, we would like to utilize a trained network
+Sometimes, we would like to utilize a trained network. If the network architectures of trained and initialized network are the same, we call it ``Loading``. Otherwise, we call is ``Seeding``, in which case the trained net is used as a seed to initialized part of the new network. Our implementation merges ``Loading`` and ``Seeding``, and use ``-s`` or ``--seed``. 
+::
+    python train.py -c path/of/config.cfg -s path/of/seed.h5
 
 Forward pass
 ------------
