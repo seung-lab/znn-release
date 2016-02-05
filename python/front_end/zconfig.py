@@ -139,11 +139,16 @@ def parser( conf_fname ):
     else:
         pars['is_malis'] = False
 
+    # malis normalization type
     if config.has_option('parameters', 'malis_norm_type'):
-        # malis normalization type
         pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
     else:
         pars['malis_norm_type'] = 'none'
+    # constrained malis
+    if config.has_option('parameters', 'is_constrained_malis'):
+        pars['is_constrained_malis'] = config.getboolean('parameters', 'is_constrained_malis')
+    else:
+        pars['is_constrained_malis'] = False
 
     #Whether to display progress plots
     pars['is_visual']   = config.getboolean('parameters', 'is_visual')

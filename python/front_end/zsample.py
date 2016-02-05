@@ -355,7 +355,7 @@ class CAffinitySample(CSample):
         if (not self.pars['is_patch_rebalance']) and \
             (not self.pars['is_rebalance']):
                 return dict()
-                
+
         if self.pars['is_patch_rebalance']:
             # recompute the weights
             self._prepare_rebalance_weights( subtaffs )
