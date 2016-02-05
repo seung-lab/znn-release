@@ -14,10 +14,10 @@ import numpy as np
 from core import pyznn
 import shutil
 
-def main( conf_file='config.cfg', logfile=None ):
+def main( args ):
     #%% parameters
     print "reading config parameters..."
-    config, pars = zconfig.parser( conf_file )
+    config, pars = zconfig.parser( args["config"] )
 
     # random seed
     if pars['is_debug']:
@@ -29,35 +29,17 @@ def main( conf_file='config.cfg', logfile=None ):
     if pars.has_key('logging') and pars['logging']:
         print "recording configuration file..."
         zlog.record_config_file( pars )
-
         logfile = zlog.make_logfile_name( pars )
+    else:
+        logfile = None
 
     #%% create and initialize the network
-    if pars['train_load_net'] and os.path.exists(pars['train_load_net']):
-        print "loading network..."
-        net = znetio.load_network( pars )
-        # load existing learning curve
-        if pars['is_stdio']:
-            flc = pars['train_load_net']
-        else:
-            # change file name for learning curve
-            root, ext = os.path.splitext( pars['train_load_net'] )
-            istr = root.split('_')[-1]
-            flc = os.path.dirname(root) + "/net_statistics_{}.h5".format(istr)
-            print "file name of lc: ", flc
-        lc = zstatistics.CLearnCurve( pars, flc)
-        # the last iteration we want to continue training
-        iter_last = lc.get_last_it()
-    else:
-        if pars['train_seed_net'] and os.path.exists(pars['train_seed_net']):
-            print "seeding network..."
-            net = znetio.load_network( pars, is_seed=True )
-        else:
-            print "initializing network..."
-            net = znetio.init_network( pars )
-        # initalize a learning curve
-        lc = zstatistics.CLearnCurve(pars)
-        iter_last = lc.get_last_it()
+    fnet = znetio.find_load_net( pars['train_net'], args['seed'] )
+    net = znetio.load_network( pars, fnet )
+    # load existing learning curve
+    lc = zstatistics.CLearnCurve( fnet )
+    # the last iteration we want to continue training
+    iter_last = lc.get_last_it()
 
     # show field of view
     print "field of view: ", net.get_fov()
@@ -107,6 +89,11 @@ def main( conf_file='config.cfg', logfile=None ):
     start = time.time()
     total_time = 0.0
     print "start from ", iter_last+1
+
+    #Saving initialized network
+    if iter_last+1 == 1:
+        znetio.save_network(net, pars['train_net'], num_iters=0)
+        lc.save( pars, 0.0 )
 
     for i in xrange(iter_last+1, pars['Max_iter']+1):
         # time cumulation
@@ -230,10 +217,24 @@ if __name__ == '__main__':
     """
     usage
     ------
-    python train.py path/to/config.cfg
+    python train.py -c path/to/config.cfg -s path/to/seed/net.h5
     """
-    import sys
-    if len(sys.argv)>1:
-        main( sys.argv[1] )
-    else:
-        main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="ZNN network training.")
+    parser.add_argument("-c", "--config", required=True, \
+                        help="path of configuration file")
+    parser.add_argument("-s", "--seed", \
+                        help="load an existing network as seed")
+
+    # make the dictionary of arguments
+    args = vars( parser.parse_args() )
+
+    if not os.path.exists( args['config'] ):
+        raise NameError("config file not exist!")
+
+    if args['seed'] and (not os.path.exists(args['seed'])):
+        import warnings
+        warnings.warn("seed file not found! use train_net of configuration instead.")
+
+    main(args)

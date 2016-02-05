@@ -305,7 +305,7 @@ class CLearnCurve:
     def save(self, pars, fname=None, elapsed=0):
         if not pars['is_stdio']:
             # change filename
-            fname = pars['train_save_net']
+            fname = pars['train_net']
             import os
             import shutil
             root, ext = os.path.splitext(fname)
