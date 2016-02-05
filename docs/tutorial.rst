@@ -2,8 +2,11 @@ Tutorial
 ========
 Since python interface is more convinient to use, this tutorial only focus on usage of python interface.
 
-Data preparation
+File preparation
 ----------------
+
+Data preparation
+````````````````
 
 Image format
 ````````````
@@ -23,12 +26,37 @@ Image Configuration
 ```````````````````
 The image pairs was defined as a **Sample**. The image pair of a sample was defined in a dataset configuration file. This `example <https://github.com/seung-lab/znn-release/blob/master/dataset/ISBI2012/dataset.spec>`_ illustrates the meaning of each parameter in the configuration file.
 
+Network architecture configuration
+``````````````````````````````````
+Please refer to the `examples <https://github.com/seung-lab/znn-release/tree/master/networks>`_.
+
+Parameter Configuration
+```````````````````````
+The training/forward parameters could be set using a configuration file. This `example <https://github.com/seung-lab/znn-release/blob/master/python/config.cfg>`_ illustrated the parameters and the meaning of each parameter.
+
 Training
 --------
 
+Run a Training
+``````````````
+After setting up the configuration file, you can run a training: 
+::
+    python train.py -c path/of/config.cfg 
 
+Resume a training
+`````````````````
+Since the network was periodically saved, we can resume training whenever we want to. In default, ZNN will automatically resume the latest training net (``net_current.h5``) in a folder, which was specified by the ``train_net`` parameter in the configuration file. 
 
+To resume a specific network, we can use the seeding function:
+::
+    python train.py -c path/of/config.cfg -s path/of/seed.h5
+
+Transfer learning
+`````````````````
+Sometimes, we would like to utilize a trained network
 
 Forward pass
 ------------
-
+run the following command:
+::
+    python forward.py -c path/of/config.cfg
