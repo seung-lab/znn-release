@@ -31,7 +31,7 @@ public:
 private:
     std::list<layer_descriptor> descriptors;
 
-    int num_input_units;
+    //int num_input_units;
     int curr_num_units;
 
     vec3i current_dilation = vec3i::one;
@@ -50,8 +50,7 @@ public:
 public:
 
     network3d_descriptor( int n )
-        : num_input_units(n)
-        , curr_num_units(n)
+        : curr_num_units(n)
     { }
 
     network3d_descriptor & conv( int c, vec3i const & w )
@@ -170,7 +169,6 @@ public:
         zi::wall_timer wt, wtt;
 
         int in_data_len  = cpu_layers[0]->in_memory() / sizeof(real);
-        int out_data_len = cpu_layers.back()->out_memory() / sizeof(real);
 
         for ( ; rounds > 0; --rounds )
         {

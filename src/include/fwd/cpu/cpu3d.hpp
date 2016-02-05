@@ -3,7 +3,7 @@
 #include "task_package.hpp"
 #include "../types.hpp"
 #include "../assert.hpp"
-#include "fftw.hpp"
+#include "fft.hpp"
 #include "pooling.hpp"
 #include "malloc.hpp"
 
@@ -180,7 +180,7 @@ private:
     void do_single_output( long_t out_num,
                            complex* inputs,
                            complex* outputs,
-                           void* stack)
+                           void*)
     {
         long_t cstride = fft_kernel_->num_out_elements();
 
