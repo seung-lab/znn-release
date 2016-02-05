@@ -1,7 +1,7 @@
 #pragma once
 
-#if defined(USE_MKL_FFTS)
-#  include "fftmkl.hpp"
+#if defined(ZNN_USE_MKL_FFT)
+#  include "fft/fftmkl.hpp"
 #else
 #  include "fft/fftw.hpp"
 #endif
