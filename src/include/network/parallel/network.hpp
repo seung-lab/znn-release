@@ -306,20 +306,19 @@ private:
             if ( type == "max_filter" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts, e.second->in_stride,
-                      e.second->in_fsize, tm_, edges::max_pooling_tag() );
+                    ( in, out, *opts, e.second->in_stride, tm_,
+                      edges::max_pooling_tag() );
             }
             else if ( type == "max_pool" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts,
-                      e.second->in_fsize, tm_, edges::real_pooling_tag() );
+                    ( in, out, *opts, tm_, edges::real_pooling_tag() );
             }
             else if ( type == "conv" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts, e.second->in_stride,
-                      e.second->in_fsize, tm_, edges::filter_tag() );
+                    ( in, out, *opts, e.second->in_stride, tm_,
+                      edges::filter_tag() );
             }
             else if ( type == "dropout" )
             {
@@ -330,14 +329,12 @@ private:
                 // the effectiveness is yet to be proven.
 
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts, e.second->in_fsize,
-                      tm_, phase_, edges::dropout_tag() );
+                    ( in, out, *opts, tm_, phase_, edges::dropout_tag() );
             }
             else if ( type == "nodeout" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts, e.second->in_fsize,
-                      tm_, phase_, edges::nodeout_tag() );
+                    ( in, out, *opts, tm_, phase_, edges::nodeout_tag() );
             }
             else if ( type == "crop" )
             {

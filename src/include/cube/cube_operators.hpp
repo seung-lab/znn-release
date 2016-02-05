@@ -664,7 +664,8 @@ template<typename T>
 inline T variance( cube<T> const & c )
 {
     auto m = mean(c);
-    return mean(c*c) - m*m;
+    auto squared = c*c;
+    return mean(*squared) - m*m;
 }
 
 }} // namespace znn::v4

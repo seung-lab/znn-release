@@ -75,7 +75,7 @@ private:
         }
 
         // keep for backward pass
-        normalized_ = copy(*r);
+        normalized_ = get_copy(*r);
 
         // compute and save moving average
         if ( !use_global_stat_ )
@@ -92,7 +92,7 @@ private:
             real c = m > 1 ? static_cast<real>(m)/(m - 1)
                            : static_cast<real>(1);
             moving_var_ *= moving_avg_frac_;
-            mvoing_var_ += c*var_;
+            moving_var_ += c*var_;
         }
 
         return r;
@@ -100,19 +100,16 @@ private:
 
     cube_p<real> do_backward( ccube<real> const & g )
     {
-        // r = dE/dY
-        auto r = copy(g);
-
-        // r = dE/dY - mean(dE/dY)
-        r -= mean(g);
+        // r = dE/dY - mean(dE/dY * Y) * Y
+        cube<real> & y = *normalized_;
+        y *= mean(*(g*y));
+        auto r = g - y;
 
         // r = dE/dY - mean(dE/dY) - mean(dE/dY * Y) * Y
-        cube<real> & y = *normalized_;
-        y *= mean(g*y)
-        r -= y;
+        *r -= mean(g);
 
         // normalize
-        r /= std::sqrt(var_ + epsilon_);
+        *r /= std::sqrt(var_ + epsilon_);
 
         normalized_.reset();
         return r;
