@@ -1,5 +1,6 @@
 # prepare path for core
 import sys
+sys.path.append("../python/core/")
 sys.path.append("core/")
 
 import numpy as np
