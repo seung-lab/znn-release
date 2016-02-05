@@ -371,7 +371,7 @@ private:
             }
             else
             {
-                throw std::logic_error(HERE() + "unknown nodes type: " + type);
+                throw std::logic_error(HERE() + "unknown edges type: " + type);
             }
 
             e.second->opts = nullptr;
@@ -503,7 +503,7 @@ private:
         }
         else
         {
-            throw std::logic_error(HERE() + "unknown nodes type: " + type);
+            throw std::logic_error(HERE() + "unknown edges type: " + type);
         }
 
     }
