@@ -55,22 +55,23 @@ class CSample(object):
                                       outsz, setsz_in, fov, is_forward=is_forward )
             self.imgs[name] = self.ins[name].data
 
-        print "\ncreate label image class..."
         self.lbls = dict()
         self.msks = dict()
         self.outs = dict()
-        for name,setsz_out in self.setsz_outs.iteritems():
-            #Allowing for users to abstain from specifying labels
-            if not config.has_option(self.sec_name, name):
-                continue
-            #Finding the section of the config file
-            imid = config.getint(self.sec_name, name)
-            imsec_name = "label%d" % (imid,)
-            outmapsz = np.array([1,1,1], dtype='uint32')
-            self.outs[name] = ConfigOutputLabel( config, pars, imsec_name, \
-                                                 outsz, setsz_out, fov, outmapsz=outmapsz)
-            self.lbls[name] = self.outs[name].data
-            self.msks[name] = self.outs[name].msk
+
+        if not is_forward:
+            print "\ncreate label image class..."
+            for name,setsz_out in self.setsz_outs.iteritems():
+                #Allowing for users to abstain from specifying labels
+                if not config.has_option(self.sec_name, name):
+                    continue
+                #Finding the section of the config file
+                imid = config.getint(self.sec_name, name)
+                imsec_name = "label%d" % (imid,)
+                self.outs[name] = ConfigOutputLabel( config, pars, imsec_name, \
+                                                     outsz, setsz_out, fov)
+                self.lbls[name] = self.outs[name].data
+                self.msks[name] = self.outs[name].msk
 
         if not is_forward:
             self._prepare_training()
