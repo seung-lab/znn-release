@@ -5,9 +5,6 @@ Since python interface is more convinient to use, this tutorial only focus on us
 File preparation
 ----------------
 
-Data preparation
-````````````````
-
 Image format
 ````````````
 The dataset is simply a 3D ``tif`` image stacks. 
