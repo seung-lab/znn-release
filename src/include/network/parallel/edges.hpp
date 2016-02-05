@@ -39,15 +39,14 @@
 
 namespace znn { namespace v4 { namespace parallel_network {
 
+// convolution
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
                      vec3i const & stride,
-                     vec3i const & in_size,
                      task_manager & tm,
                      filter_tag )
     : options_(opts)
-    , size_(in_size)
     , tm_(tm)
 {
     size_t n = in->num_out_nodes();
@@ -64,6 +63,7 @@ inline edges::edges( nodes * in,
     real wd   = opts.optional_as<real>("weight_decay", 0.0);
     auto sz   = opts.require_as<ovec3i>("size");
 
+    // filter size
     size_ = sz;
 
     for ( size_t k = 0; k < n*m; ++k )
@@ -143,6 +143,7 @@ inline edges::edges( nodes * in,
     }
 }
 
+// dummy
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
@@ -164,6 +165,7 @@ inline edges::edges( nodes * in,
     }
 }
 
+// softmax
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
@@ -187,15 +189,14 @@ inline edges::edges( nodes * in,
     }
 }
 
+// max-pooling (max-filtering + sparse convolution)
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
                      vec3i const & stride,
-                     vec3i const & in_size,
                      task_manager & tm,
                      max_pooling_tag )
     : options_(opts)
-    , size_(in_size)
     , tm_(tm)
 {
     ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
@@ -214,14 +215,13 @@ inline edges::edges( nodes * in,
     }
 }
 
+// max-pooling (subsampling)
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
-                     vec3i const & in_size,
                      task_manager & tm,
                      real_pooling_tag )
     : options_(opts)
-    , size_(in_size)
     , tm_(tm)
 {
     ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
@@ -244,12 +244,10 @@ inline edges::edges( nodes * in,
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
-                     vec3i const & in_size,
                      task_manager & tm,
                      phase phs,
                      dropout_tag )
     : options_(opts)
-    , size_(in_size)
     , tm_(tm)
 {
     ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
@@ -272,12 +270,10 @@ inline edges::edges( nodes * in,
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
-                     vec3i const & in_size,
                      task_manager & tm,
                      phase phs,
                      nodeout_tag )
     : options_(opts)
-    , size_(in_size)
     , tm_(tm)
 {
     ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
@@ -343,7 +339,7 @@ inline edges::edges( nodes * in,
     }
 }
 
-// multiplication
+// multiply
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
@@ -367,7 +363,7 @@ inline edges::edges( nodes * in,
     }
 }
 
-// normalization
+// normalize
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
@@ -390,6 +386,62 @@ inline edges::edges( nodes * in,
     {
         edges_[i] = std::make_unique<normalize_edge>
             (in, i, out, i, tm, gstat, frac, eps);
+    }
+}
+
+// scale
+inline edges::edges( nodes * in,
+                     nodes * out,
+                     options const & opts,
+                     task_manager & tm,
+                     scale_tag )
+    : options_(opts)
+    , tm_(tm)
+{
+    ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
+
+    size_t n = in->num_out_nodes();
+
+    edges_.resize(n);
+    filters_.resize(n);
+    waiter_.set(n);
+
+    real eta  = opts.optional_as<real>("eta", 0.0001);
+    real mom  = opts.optional_as<real>("momentum", 0.0);
+    real wd   = opts.optional_as<real>("weight_decay", 0.0);
+    auto sz   = vec3i::one;
+
+    // filter size
+    size_ = sz;
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        filters_[i] = std::make_unique<filter>(sz, eta, mom, wd);
+    }
+
+    std::string filter_values;
+
+    if ( opts.contains("filters") )
+    {
+        filter_values = opts.require_as<std::string>("filters");
+    }
+    else
+    {
+        real * filters_raw = new real[n];
+
+        std::fill_n( filters_raw, n, 1 );
+
+        filter_values = std::string( reinterpret_cast<char*>(filters_raw),
+                                     sizeof(real) * n );
+        delete [] filters_raw;
+    }
+
+    load_filters(filters_, size_, filter_values);
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        edges_[i] = std::make_unique<filter_edge>
+                        (in, i, out, i, tm_, vec3i::one, *filters_[i]);
     }
 }
 

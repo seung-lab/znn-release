@@ -42,6 +42,7 @@ public:
     struct maxout_tag {};
     struct multiply_tag {};
     struct normalize_tag {};
+    struct scale_tag {};
 
 protected:
     options                                options_;
@@ -52,22 +53,23 @@ protected:
     task_manager &                         tm_     ;
 
 public:
-    edges( nodes *, nodes *, options const &, vec3i const &, vec3i const &,
-           task_manager &, filter_tag );
+    edges( nodes *, nodes *, options const &, vec3i const &, task_manager &,
+           filter_tag );
 
-    edges( nodes *, nodes *, options const &, task_manager &, dummy_tag );
+    edges( nodes *, nodes *, options const &, task_manager &,
+           dummy_tag );
 
-    edges( nodes *, nodes *, options const &, vec3i const &, vec3i const &,
-           task_manager &, max_pooling_tag );
+    edges( nodes *, nodes *, options const &, vec3i const &, task_manager &,
+           max_pooling_tag );
 
-    edges( nodes *, nodes *, options const &, vec3i const &,
-           task_manager &, real_pooling_tag );
+    edges( nodes *, nodes *, options const &,task_manager &,
+           real_pooling_tag );
 
-    edges( nodes *, nodes *, options const &, vec3i const &,
-           task_manager &, phase phs, dropout_tag );
+    edges( nodes *, nodes *, options const &, task_manager &, phase phs,
+           dropout_tag );
 
-    edges( nodes *, nodes *, options const &, vec3i const &,
-           task_manager &, phase phs, nodeout_tag );
+    edges( nodes *, nodes *, options const &, task_manager &, phase phs,
+           nodeout_tag );
 
     edges( nodes *, nodes *, options const &, task_manager &, crop_tag );
 
@@ -78,6 +80,8 @@ public:
     edges( nodes *, nodes *, options const &, task_manager &, multiply_tag );
 
     edges( nodes *, nodes *, options const &, task_manager &, normalize_tag );
+
+    edges( nodes *, nodes *, options const &, task_manager &, scale_tag );
 
     std::string name() const
     {
