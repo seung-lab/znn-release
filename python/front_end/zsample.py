@@ -481,7 +481,7 @@ class ConfigSampleOutput(object):
             empty_bin = np.zeros(volume_shape, dtype=dtype)
 
 
-            self.output_volumes[name] = CDataset(pars, empty_bin, shape[-3:], shape[-3:], fov=fov )
+            self.output_volumes[name] = CDataset(pars, empty_bin, shape[-3:], shape[-3:] )
 
     def set_next_patch(self, output):
 
