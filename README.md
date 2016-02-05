@@ -3,7 +3,7 @@ ZNN v4
 
 [![Build Status](https://travis-ci.org/seung-lab/znn-release.svg?branch=master)](https://github.com/seung-lab/znn-release)
 
-**Documentation**: http://znn-release.readthedocs.org/en/latest/index.html#](http://znn-release.readthedocs.org/en/latest/index.html#)
+**Documentation**: [http://znn-release.readthedocs.org/en/latest/index.html#](http://znn-release.readthedocs.org/en/latest/index.html#)
 
 Required libraries
 ------------------
