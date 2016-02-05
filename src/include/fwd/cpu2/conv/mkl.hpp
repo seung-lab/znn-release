@@ -48,14 +48,12 @@ public:
 
     void convolve( real* in, real* kernel, real* out )
     {
-        int status;
-
 #if defined(ZNN_USE_LONG_DOUBLE_PRECISION)
 
 #elif defined(ZNN_USE_DOUBLE_PRECISION)
-        int status = vsldConvExec(conv_, in, kernel, out);
+        int status = vsldConvExec(conv_, in, NULL, kernel, NULL, out, NULL);
 #else
-        int status = vslsConvExec(conv_, in, kernel, out);
+        int status = vslsConvExec(conv_, in, NULL, kernel, NULL, out, NULL);
 #endif
     }
 

@@ -507,14 +507,14 @@ private:
                            real* out, long_t oelements,
                            real bias, void* stack)
     {
-        conv_->convolve_add(input + i * istride, kernel + i * kstride, out);
+        conv_->convolve_add(input, kernel, out);
 
         real* tmp = reinterpret_cast<real*>(stack);
 
         for ( long_t i = 0; i < fin_; ++i )
         {
             conv_->convolve_add(input + i * istride, kernel + i * kstride, tmp);
-            for ( long_t i = 0; i < oelements; ++i ) out[i] += tmp[i];
+            for ( long_t j = 0; j < oelements; ++j ) out[j] += tmp[j];
         }
 
         for ( long_t i = 0; i < oelements; ++i )
@@ -568,7 +568,11 @@ public:
             }
         }
 
+#if defined(ZNN_USE_MKL_CONVOLUTION)
+        handle_.execute(os_[0]*os_[1]*os_[2]*sizeof(real));
+#else
         handle_.execute();
+#endif
 
         znn_free(in);
         return out;
