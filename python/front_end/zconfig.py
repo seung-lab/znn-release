@@ -88,7 +88,10 @@ def parser( conf_fname ):
 
     #IO OPTIONS
     #Filename under which we save the network
-    pars['train_net'] = config.get('parameters', 'train_net')
+    if config.has_option('parameters', 'train_net'):
+        pars['train_net'] = config.get('parameters', 'train_net')
+    elif config.has_option('parameters', 'train_save_net'):
+        pars['train_net'] = config.get('parameters', 'train_save_net')
     #Whether to write .log and .cfg files
     if config.has_option('parameters', 'logging'):
         pars['logging'] = config.getboolean('parameters', 'logging')
