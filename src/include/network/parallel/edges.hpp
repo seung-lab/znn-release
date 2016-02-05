@@ -429,7 +429,20 @@ inline edges::edges( nodes * in,
     {
         real * filters_raw = new real[n];
 
-        std::fill_n( filters_raw, n, 1 );
+        if ( opts.contains("init") )
+        {
+            options info;
+            info.push("fan-in",1);
+            info.push("fan-out",1);
+
+            auto initf = get_initializator( opts, &info );
+
+            initf->initialize( filters_raw, n );
+        }
+        else
+        {
+            std::fill_n( filters_raw, n, 1 );
+        }
 
         filter_values = std::string( reinterpret_cast<char*>(filters_raw),
                                      sizeof(real) * n );
