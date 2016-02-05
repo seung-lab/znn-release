@@ -4,6 +4,7 @@
 #include "../types.hpp"
 #include "../assert.hpp"
 #include "fft.hpp"
+#include "conv.hpp"
 #include "pooling.hpp"
 #include "malloc.hpp"
 
@@ -422,5 +423,160 @@ public:
 
 
 };
+
+
+class direct_conv_layer: public cpu_layer
+{
+private:
+    task_package & handle_;
+
+    long_t n_    ;
+    long_t fin_  ;
+    long_t fout_ ;
+
+    vec3i is_;
+    vec3i ks_;
+    vec3i os_;
+
+    int in_memory_ ;
+    int out_memory_;
+
+    real * kernel_data_ ;
+    real * bias_data_   ;
+
+    convolver* conv_;
+
+public:
+
+    real* kernel_data()
+    {
+        return kernel_data_;
+    }
+
+    real* bias_data()
+    {
+        return bias_data_;
+    }
+
+    int in_memory() const override
+    {
+        return in_memory_;
+    }
+
+    int out_memory() const override
+    {
+        return out_memory_;
+    }
+
+    ~direct_conv_layer()
+    {
+        znn_free(kernel_data_);
+        znn_free(bias_data_);
+        delete conv_;
+    }
+
+public:
+    direct_conv_layer( task_package& handle,
+                       int n, int fin, int fout,
+                       vec3i const & is,
+                       vec3i const & fs )
+        : handle_(handle)
+        , n_(n)
+        , fin_(fin)
+        , fout_(fout)
+        , is_(is)
+        , ks_(fs)
+        , os_(is - fs + vec3i::one)
+    {
+        conv_ = new convolver(is,fs);
+
+        kernel_data_ = znn_malloc<real>(fin * fout * fs[0]*fs[1]*fs[2]);
+        bias_data_   = znn_malloc<real>(fout);
+
+        vec3i os = is + vec3i::one - fs;
+
+        in_memory_ = n * fin * is[0] * is[1] * is[2] * sizeof(real);
+        out_memory_ = n * fout * os[0] * os[1] * os[2] * sizeof(real);
+    }
+
+private:
+
+#if defined(ZNN_USE_MKL_CONVOLUTION)
+    void do_single_output( real* input , long_t istride,
+                           real* kernel, long_t kstride,
+                           real* out, long_t oelements,
+                           real bias, void* stack)
+    {
+        conv_->convolve_add(input + i * istride, kernel + i * kstride, out);
+
+        real* tmp = reinterpret_cast<real*>(stack);
+
+        for ( long_t i = 0; i < fin_; ++i )
+        {
+            conv_->convolve_add(input + i * istride, kernel + i * kstride, tmp);
+            for ( long_t i = 0; i < oelements; ++i ) out[i] += tmp[i];
+        }
+
+        for ( long_t i = 0; i < oelements; ++i )
+        {
+            out[i] = std::max(static_cast<real>(0), out[i] + bias);
+        }
+    }
+#else
+    void do_single_output( real* input , long_t istride,
+                           real* kernel, long_t kstride,
+                           real* out, long_t oelements,
+                           real bias, void* )
+    {
+        conv_->convolve(input, kernel, out);
+        for ( long_t i = 1; i < fin_; ++i )
+        {
+            conv_->convolve_add(input + i * istride, kernel + i * kstride, out);
+        }
+
+        for ( long_t i = 0; i < oelements; ++i )
+        {
+            out[i] = std::max(static_cast<real>(0), out[i] + bias);
+        }
+    }
+#endif
+
+public:
+    real * forward( real * in ) override
+    {
+        long_t istride = is_[0] * is_[1] * is_[2];
+        long_t ostride = os_[0] * os_[1] * os_[2];
+        long_t kstride = ks_[0] * ks_[1] * ks_[2];
+
+        long_t nistride = fin_  * istride;
+        long_t nostride = fout_ * ostride;
+
+        real* out = znn_malloc<real>(n_ * nostride);
+
+        for ( long_t n = 0; n < n_; ++n )
+        {
+            for ( long_t i = 0; i < fout_; ++i )
+            {
+                real* first_kernel = kernel_data_ + i * kstride * fin_;
+                handle_.add_task( &direct_conv_layer::do_single_output,
+                                  this,
+                                  in + n * nistride, istride,
+                                  first_kernel, kstride,
+                                  out + n * nostride + i * ostride, ostride,
+                                  bias_data_[i] );
+
+            }
+        }
+
+        handle_.execute();
+
+        znn_free(in);
+        return out;
+    }
+
+
+};
+
+
 
 }}} // namespace znn::fwd::cpu3d

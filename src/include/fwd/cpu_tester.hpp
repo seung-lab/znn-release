@@ -8,6 +8,7 @@
 
 namespace znn { namespace fwd {
 
+template<class Conv>
 class network3d_descriptor
 {
 public:
@@ -142,7 +143,7 @@ public:
         {
             if ( d.layer_type == 1 )
             {
-                cpu3d::conv_layer* cc = new cpu3d::conv_layer
+                Conv* cc = new Conv
                     ( cpu_handle, d.batch_size,
                       d.fin, d.fout, d.image_size, d.filter_size );
 
@@ -172,7 +173,7 @@ public:
 
         for ( ; rounds > 0; --rounds )
         {
-	    wtt.reset();
+            wtt.reset();
             real* in_data = znn_malloc<real>(in_data_len);
 
             ui.initialize( in_data, in_data_len );
@@ -190,8 +191,8 @@ public:
                 std::cout << "  CPU took: " << wt.elapsed<double>() << std::endl;
             }
 
-	    std::cout << "TOTAL: " << wtt.elapsed<double>() << std::endl;
-	    wt.reset();
+            std::cout << "TOTAL: " << wtt.elapsed<double>() << std::endl;
+            wt.reset();
 
             znn_free(in_data);
         }
