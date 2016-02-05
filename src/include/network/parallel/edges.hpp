@@ -30,6 +30,7 @@
 #include "crop_edge.hpp"
 #include "maxout_edge.hpp"
 #include "multiply_edge.hpp"
+#include "normalize_edge.hpp"
 #include "nodes.hpp"
 #include "../../utils/waiter.hpp"
 #include "../../options/options.hpp"
@@ -357,12 +358,38 @@ inline edges::edges( nodes * in,
     edges_.resize(n);
     waiter_.set(n);
 
-    auto epsilon = opts.optional_as<real>("epsilon", 1e-5f);
+    auto eps = opts.optional_as<real>("eps", 1e-5f);
 
     for ( size_t i = 0; i < n; ++i )
     {
         edges_[i] = std::make_unique<multiply_edge>
-            (in, i, out, i, tm, epsilon);
+            (in, i, out, i, tm, eps);
+    }
+}
+
+// normalization
+inline edges::edges( nodes * in,
+                     nodes * out,
+                     options const & opts,
+                     task_manager & tm,
+                     normalize_tag )
+    : options_(opts)
+    , tm_(tm)
+{
+    ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
+
+    size_t n = in->num_out_nodes();
+    edges_.resize(n);
+    waiter_.set(n);
+
+    auto gstat = opts.optional_as<bool>("gstat", false);
+    auto frac  = opts.optional_as<real>("frac", 0.999);
+    auto eps   = opts.optional_as<real>("eps", 1e-5f);
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        edges_[i] = std::make_unique<normalize_edge>
+            (in, i, out, i, tm, gstat, frac, eps);
     }
 }
 

@@ -124,12 +124,12 @@ public:
                     nodes * out,
                     size_t outn,
                     task_manager & tm,
-                    bool stat,
+                    bool gstat,
                     real frac,
                     real eps,
                     phase phs = phase::TRAIN )
         : edge(in,inn,out,outn,tm)
-        , use_global_stat_(stat)
+        , use_global_stat_(gstat)
         , moving_avg_frac_(frac)
         , epsilon_(eps)
         , phase_(phs)

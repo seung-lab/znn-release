@@ -41,6 +41,7 @@ public:
     struct softmax_tag {};
     struct maxout_tag {};
     struct multiply_tag {};
+    struct normalize_tag {};
 
 protected:
     options                                options_;
@@ -74,8 +75,9 @@ public:
 
     edges( nodes *, nodes *, options const &, task_manager &, maxout_tag );
 
-    edges( nodes *, nodes *, options const &, task_manager &,
-           multiply_tag );
+    edges( nodes *, nodes *, options const &, task_manager &, multiply_tag );
+
+    edges( nodes *, nodes *, options const &, task_manager &, normalize_tag );
 
     std::string name() const
     {
