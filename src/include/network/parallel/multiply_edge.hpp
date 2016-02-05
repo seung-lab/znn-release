@@ -53,9 +53,9 @@ public:
                    nodes * out,
                    size_t outn,
                    task_manager & tm,
-                   real e )
+                   real eps )
         : edge(in,inn,out,outn,tm)
-        , epsilon_(e)
+        , epsilon_(eps)
     {
         in->attach_out_edge(inn,this);
         out->attach_in_edge(outn,this);

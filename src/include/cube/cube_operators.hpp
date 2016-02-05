@@ -653,4 +653,18 @@ inline cube_p<T> mirror_boundary( cube<T> const & c,
     return rp;
 }
 
+template<typename T>
+inline T mean( cube<T> const & c )
+{
+    ZI_ASSERT(c.num_elements());
+    return sum(c)/c.num_elements();
+}
+
+template<typename T>
+inline T variance( cube<T> const & c )
+{
+    auto m = mean(c);
+    return mean(c*c) - m*m;
+}
+
 }} // namespace znn::v4

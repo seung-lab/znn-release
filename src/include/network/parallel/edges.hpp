@@ -357,7 +357,7 @@ inline edges::edges( nodes * in,
     edges_.resize(n);
     waiter_.set(n);
 
-    auto epsilon = opts.optional_as<real>("epsilon", 1e-6f);
+    auto epsilon = opts.optional_as<real>("epsilon", 1e-5f);
 
     for ( size_t i = 0; i < n; ++i )
     {
