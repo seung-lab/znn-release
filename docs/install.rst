@@ -98,6 +98,10 @@ if you use MKL:
 ::
     make mkl -j number_of_cores
 
+Uninstall ZNN
+-------------
+simply remove the ZNN folder. The packages should be uninstalled separately if you would like to.
+
 Resources
 ---------
 - the `travis file <https://github.com/seung-lab/znn-release/blob/master/.travis.yml>`_ shows the step by step installation commands in Ubuntu.
