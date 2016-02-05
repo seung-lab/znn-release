@@ -31,8 +31,6 @@ private:
     real    epsilon_         ;
     phase   phase_           ;
 
-    cube_p<real> normalized_ ;
-
     // for moving average calculation
     real    moving_win_ = 0.0;
     real    moving_avg_ = 0.0;
@@ -72,9 +70,6 @@ private:
             r->data()[i] /= (var + epsilon_);
         }
 
-        // for later use
-        normalized_ = get_copy(r);
-
         // moving window
         moving_win_ *= moving_avg_frac_;
         moving_win_ += static_cast<real>(1);
@@ -111,6 +106,9 @@ public:
     {
         in->attach_out_edge(inn,this);
         out->attach_in_edge(outn,this);
+
+        // TODO(lee):
+        // out nodes MUST be "sum" nodes.
     }
 
     void setup() override
