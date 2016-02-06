@@ -111,10 +111,10 @@ bp::tuple bias_string_to_np( std::string const & bin,
 //Same thing for convolution filters
 // Assumes the input size is THREE dimensional
 bp::tuple filter_string_to_np( std::string const & bin,
-	std::vector<std::size_t> size,
-	std::size_t nodes_in,
-	std::size_t nodes_out,
-	bp::object const & self)
+							   std::vector<std::size_t> size,
+							   std::size_t nodes_in,
+							   std::size_t nodes_out,
+							   bp::object const & self )
 {
 	real const * data = reinterpret_cast<real const *>(bin.data());
 
@@ -129,7 +129,7 @@ bp::tuple filter_string_to_np( std::string const & bin,
 		//values
 		np::from_data(data,
 					np::dtype::get_builtin<real>(),
-					bp::make_tuple(nodes_in, nodes_out, size[0],size[1],size[2]),
+					bp::make_tuple(nodes_in,nodes_out,size[0],size[1],size[2]),
 					bp::make_tuple(nodes_out*size[0]*size[1]*size[2]*sizeof(real),
 								   size[0]*size[1]*size[2]*sizeof(real),
 								   size[1]*size[2]*sizeof(real),
@@ -140,7 +140,7 @@ bp::tuple filter_string_to_np( std::string const & bin,
 		//momentum values
 		np::from_data(momentum,
 					np::dtype::get_builtin<real>(),
-					bp::make_tuple(nodes_in, nodes_out, size[0],size[1],size[2]),
+					bp::make_tuple(nodes_in,nodes_out,size[0],size[1],size[2]),
 					bp::make_tuple(nodes_out*size[0]*size[1]*size[2]*sizeof(real),
 								   size[0]*size[1]*size[2]*sizeof(real),
 								   size[1]*size[2]*sizeof(real),
@@ -148,6 +148,38 @@ bp::tuple filter_string_to_np( std::string const & bin,
 								   sizeof(real)),
 					self
 					).copy()//copying seems to prevent overwriting
+		);
+};
+
+// scale filters (one-to-one, single coefficient)
+bp::tuple scale_filter_to_np( std::string const & bin,
+							  std::size_t n,
+							  bp::object const & self )
+{
+	real const * data = reinterpret_cast<real const *>(bin.data());
+
+	//momentum values stored immediately after array values
+	std::size_t gap = bin.size() / (2 * sizeof(real));
+	real const * momentum = data + gap;
+
+	//Debug
+	//print_data_string(data, bin.size() / (2 * sizeof(real)));
+
+	return bp::make_tuple(
+		//values
+		np::from_data(data,
+					np::dtype::get_builtin<real>(),
+					bp::make_tuple(n),
+					bp::make_tuple(sizeof(real)),
+					self
+					).copy(),
+		//momentum values
+		np::from_data(momentum,
+					np::dtype::get_builtin<real>(),
+					bp::make_tuple(n),
+					bp::make_tuple(sizeof(real)),
+					self
+					).copy()
 		);
 };
 
@@ -214,13 +246,15 @@ bp::dict edge_opt_to_dict( options const opt,
 {
 	bp::dict res;
 	std::vector<std::size_t> size;
-	std::string input_layer = "";
+	std::string input_layer  = "";
 	std::string output_layer = "";
+
+	auto type = opt.require_as<std::string>("type");
 
 	//First do a conversion of all fields except
 	// biases and filters to gather necessary information
 	// (size of filters, # input and output filters)
-	for ( auto & p : opt )
+	for ( auto & p: opt )
 	{
 		if ( p.first == "size" )
 		{
@@ -248,20 +282,30 @@ bp::dict edge_opt_to_dict( options const opt,
 	}
 
 	//Then scan again, for a field we can reshape into a np array
-	for (auto & p : opt )
+	for ( auto & p: opt )
 	{
-		if (p.first == "filters" )
+		if ( p.first == "filters" )
 		{
 			//Debug
 			// res["raw_filters"] = p.second;
 			//std::cout << opt.require_as<std::string>("name") << std::endl;
-			std::size_t nodes_in = layer_sizes[input_layer];
+			std::size_t nodes_in  = layer_sizes[input_layer];
 			std::size_t nodes_out = layer_sizes[output_layer];
 
-			res[p.first] = filter_string_to_np(p.second, size,
-											nodes_in,
-											nodes_out,
-											self);
+			if ( type == "conv" )
+			{
+				res[p.first] = filter_string_to_np( p.second, size,
+													nodes_in, nodes_out, self );
+			}
+			else if ( type == "scale" )
+			{
+				res[p.first] = scale_filter_to_np( p.second, nodes_in, self );
+			}
+			else
+			{
+				throw std::logic_error(HERE() +
+					"unknown filter edges type: " + type);
+			}
 		}
 	}
 	return res;
@@ -344,14 +388,12 @@ std::string opt_to_string( bp::dict const & layer_dict, std::string key )
 // and converts it to a vector of znn options
 std::vector<options> pyopt_to_znnopt( bp::list const & py_opts )
 {
-
 	std::vector<options> res;
 	std::size_t num_layers = bp::extract<std::size_t>( py_opts.attr("__len__")() );
 
 	//list loop
 	for (std::size_t i=0; i < num_layers; i++ )
 	{
-
 		res.resize(res.size()+1);
 
 		bp::dict layer_dict = bp::extract<bp::dict>( py_opts[i] );
@@ -363,7 +405,6 @@ std::vector<options> pyopt_to_znnopt( bp::list const & py_opts )
 			std::string opt_string = opt_to_string( layer_dict, keys[k] );
 			res.back().push( keys[k], opt_string );
 		}
-
 	}
 
 	return res;
