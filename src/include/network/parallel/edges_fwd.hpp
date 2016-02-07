@@ -142,6 +142,11 @@ public:
         options ret = options_;
         if ( filters_.size() )
         {
+            if ( !ret.contains("size") )
+            {
+                ret.push("size", size_);
+            }
+
             ret.push("filters", save_filters(filters_, size_));
         }
         return ret;

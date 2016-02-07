@@ -26,18 +26,18 @@ namespace znn { namespace v4 { namespace parallel_network {
 class normalize_edge: public edge
 {
 private:
-    bool    use_global_stat_ ;
-    real    moving_avg_frac_ ;
-    real    epsilon_         ;
-    phase   phase_           ;
+    bool    use_global_stat_;
+    real    moving_avg_frac_;
+    real    epsilon_        ;
+    phase   phase_          ;
 
     // for later use
-    cube_p<real> normalized_ ;
+    cube_p<real> normalized_;
 
     // for moving average calculation
-    real    moving_win_ = 0.0;
-    real    moving_avg_ = 0.0;
-    real    moving_var_ = 0.0;
+    real &  moving_win_;
+    real &  moving_avg_;
+    real &  moving_var_;
 
     // used in both forward/backward passes
     real    avg_ = 0.0;
@@ -124,11 +124,15 @@ public:
                     bool gstat,
                     real frac,
                     real eps,
+                    filter & f,
                     phase phs = phase::TRAIN )
         : edge(in,inn,out,outn,tm)
         , use_global_stat_(gstat)
         , moving_avg_frac_(frac)
         , epsilon_(eps)
+        , moving_win_(f.W().data()[0])
+        , moving_avg_(f.W().data()[1])
+        , moving_var_(f.W().data()[2])
         , phase_(phs)
         , normalized_()
     {

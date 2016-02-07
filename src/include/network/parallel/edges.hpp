@@ -375,17 +375,52 @@ inline edges::edges( nodes * in,
     ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
 
     size_t n = in->num_out_nodes();
+
     edges_.resize(n);
+    filters_.resize(n);
     waiter_.set(n);
 
     auto gstat = opts.optional_as<bool>("gstat", false);
     auto frac  = opts.optional_as<real>("frac", 0.999);
     auto eps   = opts.optional_as<real>("eps", 1e-5f);
 
+    // TODO(lee):
+    //      Each normalize edge has three real values to save/load.
+    //      This is only a temporary solution that could have been done
+    //      more neatly, but this is the best workaround as of now.
+    const size_t num_vars = 3;
+    auto sz = vec3i(1,1,num_vars);
+
+    size_ = sz;
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        filters_[i] = std::make_unique<filter>(sz,0,0,0);
+    }
+
+    std::string filter_values;
+
+    if ( opts.contains("filters") )
+    {
+        filter_values = opts.require_as<std::string>("filters");
+    }
+    else
+    {
+        real * filters_raw = new real[n*num_vars];
+
+        std::fill_n( filters_raw, n*num_vars, 0 );
+
+        filter_values = std::string( reinterpret_cast<char*>(filters_raw),
+                                     sizeof(real) * n * num_vars );
+        delete [] filters_raw;
+    }
+
+    load_filters(filters_, size_, filter_values);
+
     for ( size_t i = 0; i < n; ++i )
     {
         edges_[i] = std::make_unique<normalize_edge>
-            (in, i, out, i, tm, gstat, frac, eps);
+            (in, i, out, i, tm, gstat, frac, eps, *filters_[i]);
     }
 }
 

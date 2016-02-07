@@ -151,10 +151,11 @@ bp::tuple filter_string_to_np( std::string const & bin,
 		);
 };
 
-// scale filters (one-to-one, single coefficient)
-bp::tuple scale_filter_to_np( std::string const & bin,
-							  std::size_t n,
-							  bp::object const & self )
+// one-to-one edges
+bp::tuple one_to_one_filter_string_to_np( std::string const & bin,
+								   		  std::vector<std::size_t> size,
+							  	   		  std::size_t n,
+							  	   		  bp::object const & self )
 {
 	real const * data = reinterpret_cast<real const *>(bin.data());
 
@@ -169,19 +170,57 @@ bp::tuple scale_filter_to_np( std::string const & bin,
 		//values
 		np::from_data(data,
 					np::dtype::get_builtin<real>(),
-					bp::make_tuple(n),
-					bp::make_tuple(sizeof(real)),
+					bp::make_tuple(n,size[0],size[1],size[2]),
+					bp::make_tuple(size[0]*size[1]*size[2]*sizeof(real),
+								   size[1]*size[2]*sizeof(real),
+								   size[2]*sizeof(real),
+								   sizeof(real)),
 					self
 					).copy(),
 		//momentum values
 		np::from_data(momentum,
 					np::dtype::get_builtin<real>(),
-					bp::make_tuple(n),
-					bp::make_tuple(sizeof(real)),
+					bp::make_tuple(n,size[0],size[1],size[2]),
+					bp::make_tuple(size[0]*size[1]*size[2]*sizeof(real),
+								   size[1]*size[2]*sizeof(real),
+								   size[2]*sizeof(real),
+								   sizeof(real)),
 					self
 					).copy()
 		);
 };
+
+// // scale filters (one-to-one, single coefficient)
+// bp::tuple scale_filter_to_np( std::string const & bin,
+// 							  std::size_t n,
+// 							  bp::object const & self )
+// {
+// 	real const * data = reinterpret_cast<real const *>(bin.data());
+
+// 	//momentum values stored immediately after array values
+// 	std::size_t gap = bin.size() / (2 * sizeof(real));
+// 	real const * momentum = data + gap;
+
+// 	//Debug
+// 	//print_data_string(data, bin.size() / (2 * sizeof(real)));
+
+// 	return bp::make_tuple(
+// 		//values
+// 		np::from_data(data,
+// 					np::dtype::get_builtin<real>(),
+// 					bp::make_tuple(n),
+// 					bp::make_tuple(sizeof(real)),
+// 					self
+// 					).copy(),
+// 		//momentum values
+// 		np::from_data(momentum,
+// 					np::dtype::get_builtin<real>(),
+// 					bp::make_tuple(n),
+// 					bp::make_tuple(sizeof(real)),
+// 					self
+// 					).copy()
+// 		);
+// };
 
 //Finds the number of nodes for all node groups specified within a vector
 // of options. This is useful in importing the convolution filters
@@ -297,10 +336,15 @@ bp::dict edge_opt_to_dict( options const opt,
 				res[p.first] = filter_string_to_np( p.second, size,
 													nodes_in, nodes_out, self );
 			}
-			else if ( type == "scale" )
+			else if ( type == "normalize" || type == "scale" )
 			{
-				res[p.first] = scale_filter_to_np( p.second, nodes_in, self );
+				res[p.first] = one_to_one_filter_to_np( p.second, size,
+														nodes_in, self );
 			}
+			// else if ( type == "scale" )
+			// {
+			// 	res[p.first] = scale_filter_to_np( p.second, nodes_in, self );
+			// }
 			else
 			{
 				throw std::logic_error(HERE() +
