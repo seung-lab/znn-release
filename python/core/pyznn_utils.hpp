@@ -338,8 +338,8 @@ bp::dict edge_opt_to_dict( options const opt,
 			}
 			else if ( type == "normalize" || type == "scale" )
 			{
-				res[p.first] = one_to_one_filter_to_np( p.second, size,
-														nodes_in, self );
+				res[p.first] = one_to_one_filter_string_to_np( p.second, size,
+															   nodes_in, self );
 			}
 			// else if ( type == "scale" )
 			// {
