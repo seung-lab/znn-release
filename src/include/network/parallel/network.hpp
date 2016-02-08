@@ -556,9 +556,11 @@ public:
 
     // [kisuklee]
     // This is only temporary implementation and will be removed.
-    void set_phase( phase phs = phase::TRAIN )
+    void set_phase( phase phs )
     {
         zap();
+        for ( auto & e: nodes_ )
+            e.second->dnodes->set_phase(phs);
         for ( auto & e: phase_dependent_edges_ )
             e.second->dedges->set_phase(phs);
     }
@@ -592,11 +594,15 @@ public:
         bool ready = false;
         while ( !ready )
         {
-            // back to complete graph
+            // revert to complete graph
             for ( auto & n: nodes_ )
                 n.second->dnodes->enable(true);
 
-            // inject graph randomness
+            // inject randomness to stochastic nodes
+            for ( auto & n: nodes_ )
+                n.second->dnodes->setup();
+
+            // inject randomness to stochastic edges
             for ( auto & e: stochastic_edges_ )
                 e.second->dedges->setup();
 
@@ -713,6 +719,7 @@ public:
 
         // generate 10 inputs and outputs
         network net(ns,es,outsz,n_threads);
+        net.set_phase(phase::OPTIMIZE);
 
         std::vector<std::map<std::string, std::vector<cube_p<real>>>>
             allins, allouts;
@@ -831,6 +838,8 @@ public:
 
         // generate 10 inputs and outputs
         network net(ns,es,outsz,n_threads);
+        net.set_phase(phase::OPTIMIZE);
+
         auto ins  = net.inputs();
         auto outs = net.outputs();
 

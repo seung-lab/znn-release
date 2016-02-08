@@ -146,7 +146,6 @@ public:
             {
                 ret.push("size", size_);
             }
-
             ret.push("filters", save_filters(filters_, size_));
         }
         return ret;

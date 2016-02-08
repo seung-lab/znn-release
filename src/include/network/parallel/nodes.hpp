@@ -21,10 +21,11 @@
 #include "../../options/options.hpp"
 #include "../../utils/task_manager.hpp"
 #include "../../cube/cube.hpp"
+#include "../../initializator/initializators.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 
-enum class phase : std::uint8_t {TRAIN = 0, TEST = 1};
+enum class phase : std::uint8_t {TRAIN = 0, TEST = 1, OPTIMIZE = 2};
 
 // Forward definition
 class edge;
@@ -42,6 +43,8 @@ private:
     size_t const   fwd_priority_;
     size_t const   bwd_priority_;
 
+    phase          phase_       ; // TRAIN/TEST
+
 protected:
     real           patch_sz_ = 1; // minibatch averaging
 
@@ -55,7 +58,8 @@ protected:
            size_t fwd_p,
            size_t bwd_p,
            bool is_in = false,
-           bool is_out = false )
+           bool is_out = false,
+           phase phs = phase::TRAIN )
         : size_(sz)
         , fsize_(fsize)
         , task_manager_(tm)
@@ -64,6 +68,7 @@ protected:
         , is_output_(is_out)
         , fwd_priority_(fwd_p)
         , bwd_priority_(bwd_p)
+        , phase_(phs)
         , enabled_(sz,true)
     {
     }
@@ -120,8 +125,25 @@ protected:
 public:
     virtual ~nodes() {}
 
+    virtual void set_phase( phase phs )
+    {
+        phase_ = phs;
+    }
+
     virtual void setup()
-    { UNIMPLEMENTED(); }
+    {
+        // stochasitc enable/disable
+        if ( phase_ == phase::TRAIN )
+        {
+            if ( options_.contains("ratio") )
+            {
+                bool ratio = options_.require_as<bool>("ratio");
+                bool b = true;;
+                bernoulli_init<bool>(ratio).initialize(&b,1);
+                nodes::enable(b);
+            }
+        }
+    }
 
     // receive a featuremap for the i-th input
     // featuremap is absorbed
@@ -137,14 +159,14 @@ public:
     virtual void forward(size_t,
                          ccube_p<real> const & /* featuremap */,
                          ccube_p<real> const & /* filter */,
-                         vec3i const &           /* filter_stride */ )
+                         vec3i const &         /* filter_stride */ )
     { UNIMPLEMENTED(); }
 
     // for inplace convolution
     virtual void backward(size_t,
                           ccube_p<real> const & /* gradient */,
                           ccube_p<real> const & /* filter */,
-                          vec3i const &           /* filter_stride */ )
+                          vec3i const &         /* filter_stride */ )
     { UNIMPLEMENTED(); }
 
     // receive a featuremap for the i-th input

@@ -99,7 +99,7 @@ public:
         ZI_ASSERT(size(*f)==insize);
 
         auto fmap = get_copy(*f);
-        if ( phase_ == phase::TRAIN )
+        if ( phase_ == phase::TRAIN || phase_ == phase::OPTIMIZE )
         {
             dropout_forward(*fmap);
         }
@@ -114,7 +114,7 @@ public:
         ZI_ASSERT(insize==size(*g));
 
         auto gmap = get_copy(*g);
-        if ( phase_ == phase::TRAIN )
+        if ( phase_ == phase::TRAIN || phase_ == phase::OPTIMIZE )
         {
             dropout_backward(*gmap);
         }

@@ -57,7 +57,7 @@ public:
 
     void setup() override
     {
-        if ( phase_ == phase::TRAIN )
+        if ( phase_ == phase::TRAIN || phase_ == phase::OPTIMIZE )
         {
             bool b;
             bernoulli_init<bool>(ratio_).initialize(&b,1);
