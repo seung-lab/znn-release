@@ -137,7 +137,7 @@ public:
         {
             if ( options_.contains("ratio") )
             {
-                real ratio = options_.require_as<bool>("ratio");
+                real ratio = options_.require_as<real>("ratio");
                 bool b = true;;
                 bernoulli_init<bool>(ratio).initialize(&b,1);
                 nodes::enable(b);
