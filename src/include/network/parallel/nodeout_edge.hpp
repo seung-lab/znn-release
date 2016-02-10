@@ -29,7 +29,8 @@ class nodeout_edge: public edge
 private:
     real            ratio_; // keeping ratio
     vec3i           insize;
-    phase           phase_; // TRAIN or TEST
+    phase           phase_; // TRAIN/TEST/OPTIMIZE
+    bool            force_; // nodeout regardless of phase
 
 private:
     inline real scale() const
@@ -44,10 +45,12 @@ public:
                   size_t outn,
                   task_manager & tm,
                   real p,
-                  phase phs = phase::TRAIN )
+                  phase phs = phase::TRAIN,
+                  bool force = false )
         : edge(in,inn,out,outn,tm)
         , ratio_(p)
         , phase_(phs)
+        , force_(force)
     {
         insize = in->fsize();
 
@@ -57,7 +60,7 @@ public:
 
     void setup() override
     {
-        if ( phase_ == phase::TRAIN || phase_ == phase::OPTIMIZE )
+        if ( force_ || phase_ == phase::TRAIN || phase_ == phase::OPTIMIZE )
         {
             bool b;
             bernoulli_init<bool>(ratio_).initialize(&b,1);
@@ -72,7 +75,7 @@ public:
         ZI_ASSERT(size(*f)==insize);
 
         auto fmap = get_copy(*f);
-        if ( phase_ == phase::TEST )
+        if ( !force_ && phase_ == phase::TEST )
         {
             *fmap *= scale();
         }
