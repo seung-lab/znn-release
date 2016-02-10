@@ -12,21 +12,32 @@ function parse_commandline()
         arg_type = ASCIIString
         default = "/tmp/error_curve.h5"
 
+        "--tag"
+        help = "curve name"
+        arg_type= ASCIIString
+        default = "all"
     end
     return parse_args(s)
 end
 
 function plotall()
     fname = ""
+    stag = ""
     for pa in parse_commandline()
         if pa[1] == "fname"
             fname = pa[2]
+        elseif pa[1] == "tag"
+            stag = pa[2]
         end
     end
 
     # traverse the tags
     f = h5open(fname, "r")
     for tag in names(f)
+        if stag != "all" && tag != stag
+            continue
+        end
+
         println("tag name: $tag")
         # every error curve
         thds = read( f[tag]["thds"] )

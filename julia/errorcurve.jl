@@ -74,7 +74,7 @@ function main()
     lbl = h5read(flbl, "/main")
 
     # rand error and rand f score curve, both are foreground restricted
-    thds, rf, rfm, rfs, re, rem, res = affs_error_curve(affs, lbl, 2, 0.1)
+    thds, rf, rfm, rfs, re, rem, res = affs_error_curve(affs, lbl, 2, 0.1, "connectivity_analysis")
 
     # save the curve
     h5write(fcurve, "/$tag/thds", thds)
