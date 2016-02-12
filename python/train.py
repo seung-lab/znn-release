@@ -25,7 +25,10 @@ def main( args ):
 
     #%% create and initialize the network
     fnet = znetio.find_load_net( pars['train_net'], args['seed'] )
-    net = znetio.load_network( pars, fnet )
+    if os.path.exists(fnet):
+        net = znetio.load_network( pars, fnet )
+    else:
+        net = znetio.init_network( pars )
     # load existing learning curve
     lc = zstatistics.CLearnCurve( fnet )
     # the last iteration we want to continue training
