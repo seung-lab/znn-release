@@ -3,18 +3,20 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to ZNN's documentation!
+ZNN Documentation
 ===============================
+
+`ZNN <https://github.com/seung-lab/znn-release>`__ is a multi-core CPU implementation of deep learning for 2D and 3D convolutional networks (ConvNets).
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
-.. automodule:: front_end
+   introduction
+   install
+   tutorial
 
-.. autoclass:: CSample
-   :members:_prepare_training
 
 Indices and tables
 ==================

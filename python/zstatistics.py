@@ -34,6 +34,7 @@ class CLearnCurve:
         if 'statistics' not in fname:
             # it is the network file name
             fname = find_statistics_file_within_dir(fname)
+            print "find the statistics file: ", fname
         assert( path.exists(fname) )
         # read data
         import h5py
@@ -218,7 +219,7 @@ class CLearnCurve:
 
     def save(self, pars, elapsed):
         # get filename
-        fname = pars['train_save_net']
+        fname = pars['train_net']
         import os
         import shutil
         root, ext = os.path.splitext(fname)
