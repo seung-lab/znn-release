@@ -31,6 +31,7 @@ private:
     cube_p<bool>    mask_ ; // dropout mask
     vec3i           insize;
     phase           phase_; // TRAIN or TEST
+    bool            force_; // dropout regardless of phase
 
 private:
     inline real scale() const
@@ -81,7 +82,8 @@ public:
                   size_t outn,
                   task_manager & tm,
                   real p,
-                  phase phs = phase::TRAIN )
+                  phase phs = phase::TRAIN,
+                  bool force = false )
         : edge(in,inn,out,outn,tm)
         , ratio_(p)
         , phase_(phs)
@@ -99,7 +101,7 @@ public:
         ZI_ASSERT(size(*f)==insize);
 
         auto fmap = get_copy(*f);
-        if ( phase_ == phase::TRAIN || phase_ == phase::OPTIMIZE )
+        if ( force_ || phase_ == phase::TRAIN || phase_ == phase::OPTIMIZE )
         {
             dropout_forward(*fmap);
         }
@@ -114,7 +116,7 @@ public:
         ZI_ASSERT(insize==size(*g));
 
         auto gmap = get_copy(*g);
-        if ( phase_ == phase::TRAIN || phase_ == phase::OPTIMIZE )
+        if ( force_ || phase_ == phase::TRAIN || phase_ == phase::OPTIMIZE )
         {
             dropout_backward(*gmap);
         }

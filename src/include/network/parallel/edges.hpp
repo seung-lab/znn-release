@@ -257,12 +257,13 @@ inline edges::edges( nodes * in,
     waiter_.set(n);
 
     auto ratio = opts.optional_as<real>("ratio", 0.5);
+    auto force = opts.optional_as<bool>("force", false);
 
     for ( size_t i = 0; i < n; ++i )
     {
         edges_[i]
             = std::make_unique<dropout_edge>
-            (in, i, out, i, tm_, ratio, phs);
+            (in, i, out, i, tm_, ratio, phs, force);
     }
 }
 
