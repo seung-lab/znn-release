@@ -266,7 +266,7 @@ def constrained_malis(prp, lbl, threshold=0.5):
     sme, sse, sre, num, stp, stn, sfp, sfn = zalis(sprp, lbl, 0.5, 0.0, 0)
 
     re = (mfp + sfn)/(mtp+mtn+mfp+mfn)
-    return (mw, mme, sse, re, num)
+    return (mme, sse, re, num)
 
 def constrained_malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     """
