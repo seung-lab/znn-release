@@ -261,31 +261,12 @@ def constrained_malis(prp, lbl, threshold=0.5):
     # get the merger weights
     from malis.pymalis import zalis
     mme, mse, mre, num, mtp, mtn, mfp, mfn = zalis(mprp, lbl, 1.0, 0.5, 0)
-    # normalization
-    if mfp + mtn > 0:
-        mme = mme / (mfp + mtn)
-    else:
-        mme = mme * 0
 
     # get the splitter weights
     sme, sse, sre, num, stp, stn, sfp, sfn = zalis(sprp, lbl, 0.5, 0.0, 0)
-    # normalization
-    if stp + sfn > 0:
-        sse = sse / (stp + sfn)
-    else:
-        sse = sse * 0
 
     re = (mfp + sfn)/(mtp+mtn+mfp+mfn)
-    w = mme + sse
-
-    #print "mtp: ",mtp, "  mfn: ",mfn, "  mtn: ",mtn,"  mfp: ",mfp
-    #print "stp: ",stp, "  sfn: ",sfn, "  stn: ",stn,"  sfp: ",sfp
-
-    #print "mprp: ",mprp
-    #print "sprp: ",sprp
-    #print "prp: ",prp
-
-    return (w, mme, sse, re, num)
+    return (mw, mme, sse, re, num)
 
 def constrained_malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     """
@@ -298,8 +279,7 @@ def constrained_malis_weight_bdm_2D(bdm, lbl, threshold=0.5):
     mw, mme, mse = malis_weight_bdm_2D(mbdm, lbl, threshold)
     # get the splitter weights
     sw, sme, sse = malis_weight_bdm_2D(sbdm, lbl, threshold)
-    w = mme + sse
-    return (w, mme, sse)
+    return ( mme, sse)
 
 def malis_weight_bdm(bdm, lbl, threshold=0.5):
     """
@@ -364,13 +344,13 @@ def malis_weight(pars, props, lbls):
         lbl = lbls[name]
         if prop.shape[0]==3:
             if pars['is_constrained_malis']:
-                mw, merr, serr, re, num_non_bdr = constrained_malis(prop, lbl)
+                merr, serr, re, num_non_bdr = constrained_malis(prop, lbl)
             else:
                 # affinity output
                 merr, serr, re, num_non_bdr, \
                     tp, tn, fp, fn = zalis( prop, lbl, \
                                             1.0, 0.0, is_frac_norm)
-                #print "tp: ",tp," tn: ",tn, "  fp:",fp,"  fn:",fn
+            # combine merge and split malis weight
             mw = merr + serr
 
             # normalization
