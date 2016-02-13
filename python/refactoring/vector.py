@@ -335,6 +335,28 @@ class Vec3d(object):
     def __setstate__(self, dict):
         self.x, self.y, self.z = dict
 
+# helper vector functions
+def minimum(v1, v2):
+    v1 = Vec3d(v1)
+    v2 = Vec3d(v2)
+
+    xmin = min(v1.x, v2.x)
+    ymin = min(v1.y, v2.y)
+    zmin = min(v1.z, v2.z)
+
+    return Vec3d(xmin, ymin, zmin)
+
+def maximum(v1, v2):
+    v1 = Vec3d(v1)
+    v2 = Vec3d(v2)
+
+    xmax = max(v1.x, v2.x)
+    ymax = max(v1.y, v2.y)
+    zmax = max(v1.z, v2.z)
+
+    return Vec3d(xmax, ymax, zmax)
+
+
 ########################################################################
 ## Unit Testing                                                       ##
 ########################################################################
@@ -441,6 +463,12 @@ if __name__ == "__main__":
             testvec_str = pickle.dumps(testvec)
             loaded_vec = pickle.loads(testvec_str)
             self.assertEquals(testvec, loaded_vec)
+
+        def testVec3dMinMax(self):
+            vmin = Vec3d_min((1,2,3),(3,2,1))
+            vmax = Vec3d_max((1,2,3),(3,2,1))
+            self.assertTrue(vmin == (1,2,1))
+            self.assertTrue(vmax == (3,2,3))
 
     ####################################################################
     unittest.main()

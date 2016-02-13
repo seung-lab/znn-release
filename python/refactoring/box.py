@@ -8,12 +8,14 @@ https://wiki.python.org/moin/PointsAndRectangles
 
 This code is in the public domain.
 
-Box     -- two vectors, forming a box
+Box -- two vectors, forming a box
 
 Kisuk Lee <kisuklee@mit.edu>, 2015
 """
 
-from vector import *
+from vector import Vec3d
+from vector import minimum, maximum
+
 import math
 
 class Box:
@@ -25,15 +27,15 @@ class Box:
     overlaps         -- does a box overlap?
     intersect        -- intersection between two boxes, if exist
     merge            -- merge two boxes
-    min              -- get min corner
-    max              -- get max corner
+    min              -- get min corner point vector
+    max              -- get max corner point vector
     expand_by        -- in-place grow (or shrink)
     expanded_by      -- grow (or shrink)
 
     """
 
     def __init__(self, v1_or_box, v2=None):
-        """Initialize a box from two vectors."""
+        """Initialize a box from another box or two vectors."""
         if v2 == None:
             self.set_coords(v1_or_box.min(), v1_or_box.max())
         else:
@@ -41,20 +43,9 @@ class Box:
 
     def set_coords(self, v1, v2):
         """Reset the box coordinates."""
-        (x1, y1, z1) = v1
-        (x2, y2, z2) = v2
-
-        xmin = min(x1, x2)
-        ymin = min(y1, y2)
-        zmin = min(z1, z2)
-
-        xmax = max(x1, x2)
-        ymax = max(y1, y2)
-        zmax = max(z1, z2)
-
-        self._min  = Vec3d(xmin,ymin,zmin)
-        self._max  = Vec3d(xmax,ymax,zmax)
-        self._size = Vec3d(xmax-xmin,ymax-ymin,zmax-zmin)
+        self._min  = minimum(v1, v2)
+        self._max  = maximum(v1, v2)
+        self._size = self._max - self._min
 
     def size(self):
         return Vec3d(self._size)
@@ -75,41 +66,21 @@ class Box:
     def intersect(self, other):
         """Return intersection between this and other box, if overlaps."""
         if self.overlaps(other):
-            # min corner
-            xmin = max(self._min.x, other._min.x)
-            ymin = max(self._min.y, other._min.y)
-            zmin = max(self._min.z, other._min.z)
-
-            # max corner
-            xmax = min(self._max.x, other._max.x)
-            ymax = min(self._max.y, other._max.y)
-            zmax = min(self._max.z, other._max.z)
-
             # min/max corners
-            v1 = Vec3d(xmin,ymin,zmin)
-            v2 = Vec3d(xmax,ymax,zmax)
+            vmin = maximum(self._min, other._min)
+            vmax = minimum(self._max, other._max)
 
-            return Box(v1,v2)
+            return Box(vmin,vmax)
         else:
             return None
 
     def merge(self, other):
         """Return merge of this and other box. Two boxes need not overlap."""
-        # min corner
-        xmin = min(self._min.x, other._min.x)
-        ymin = min(self._min.y, other._min.y)
-        zmin = min(self._min.z, other._min.z)
+       # min/max corners
+        vmin = minimum(self._min, other._min)
+        vmax = maximum(self._max, other._max)
 
-        # max corner
-        xmax = max(self._max.x, other._max.x)
-        ymax = max(self._max.y, other._max.y)
-        zmax = max(self._max.z, other._max.z)
-
-        # min/max corners
-        v1 = Vec3d(xmin,ymin,zmin)
-        v2 = Vec3d(xmax,ymax,zmax)
-
-        return Box(v1,v2)
+        return Box(vmin,vmax)
 
     def translate(self, v):
         self._min += v
@@ -123,13 +94,6 @@ class Box:
         """Return the max corner as a vector."""
         return Vec3d(self._max)
 
-    def expanded_by(self, v):
-        """Return a box with extended borders."""
-        v1 = self._min - v
-        v2 = self._max + v
-        assert v1.x < v2.x and v1.y < v2.y and v1.z < v2.z
-        return Box(v1,v2)
-
     def expand_by(self, v):
         """In-place expansion by v."""
         self._min -= v
@@ -137,6 +101,13 @@ class Box:
         assert(self._min.x < self._max.x and
                self._min.y < self._max.y and
                self._min.z < self._max.z)
+
+    def expanded_by(self, v):
+        """Return a box with extended borders."""
+        v1 = self._min - v
+        v2 = self._max + v
+        assert v1.x < v2.x and v1.y < v2.y and v1.z < v2.z
+        return Box(v1,v2)
 
     # Comparison
     def __eq__(self, b):
@@ -152,6 +123,7 @@ class Box:
     def __repr__(self):
         return "%s(%r, %r)" % (self.__class__.__name__,self._min,self._max)
 
+# helper box functions
 def centered_box(c, s):
     """Return a box of size s centered on c."""
     center = Vec3d(c)
@@ -204,15 +176,15 @@ if __name__ == "__main__":
         def testContains(self):
             b = Box(Vec3d(1,1,1),[3,3,3])
             self.assertTrue(b.contains(b.min()))
-            self.assertFalse(b.contains(b.max()))
+            self.assertTrue(not b.contains(b.max()))
             self.assertTrue(b.contains((2,2,2)))
-            self.assertFalse(b.contains((-2,-2,-2)))
+            self.assertTrue(not b.contains((-2,-2,-2)))
 
         def testOverlaps(self):
             b1 = Box(Vec3d(1,1,1),[2,2,2])
             b2 = Box(Vec3d(3,3,3),[2,2,2])
             self.assertTrue(b1.overlaps(b1) and b2.overlaps(b2))
-            self.assertFalse(b1.overlaps(b2) or b2.overlaps(b1))
+            self.assertTrue((not b1.overlaps(b2)) and (not b2.overlaps(b1)))
             b2.translate((-0.5,-0.5,-0.5))
             self.assertTrue(b1.overlaps(b2) and b2.overlaps(b1))
 
