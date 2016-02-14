@@ -41,7 +41,6 @@ class CSample(object):
         else:
             self.setsz_ins  = setsz_ins
             self.setsz_outs = setsz_outs
-
         fov = np.asarray(net.get_fov(), dtype='uint32')
 
         # Loading input images
@@ -59,6 +58,7 @@ class CSample(object):
         self.lbls = dict()
         self.msks = dict()
         self.outs = dict()
+
         if not is_forward:
             print "\ncreate label image class..."
             for name,setsz_out in self.setsz_outs.iteritems():
@@ -469,6 +469,8 @@ class ConfigSampleOutput(object):
 
         output_patch_shapes = net.get_outputs_setsz()
 
+        fov = np.array([1,1,1], dtype='uint32')
+
         self.output_volumes = {}
         for name, shape in output_patch_shapes.iteritems():
 
@@ -478,7 +480,8 @@ class ConfigSampleOutput(object):
 
             empty_bin = np.zeros(volume_shape, dtype=dtype)
 
-            self.output_volumes[name] = CDataset(pars, empty_bin, shape[-3:], shape[-3:])
+
+            self.output_volumes[name] = CDataset(pars, empty_bin, shape[-3:], shape[-3:] )
 
     def set_next_patch(self, output):
 
