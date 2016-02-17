@@ -247,7 +247,7 @@ bp::tuple CNet_getopts( bp::object const & self )
 }
 
 //===========================================================================
-//PROPOGATION FUNCTIONS
+//PROPAGATION FUNCTIONS
 
 //Computes the forward-pass
 bp::dict CNet_forward( bp::object const & self, bp::dict& ins )
