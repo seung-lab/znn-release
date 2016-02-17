@@ -26,7 +26,7 @@ namespace znn { namespace v4 {
 
 class filter
 {
-private:
+protected:
     cube_p<real>   W_;
     cube_p<real>   mom_volume_;
 
@@ -69,7 +69,7 @@ public:
         return weight_decay_;
     }
 
-    void update(const cube<real>& dEdW, real patch_size = 1 ) noexcept
+    virtual void update(const cube<real>& dEdW, real patch_size = 1 ) noexcept
     {
         real delta = -eta_/patch_size;
 
