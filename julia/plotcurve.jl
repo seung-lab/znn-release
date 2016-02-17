@@ -60,19 +60,17 @@ function plotall()
         plot(rem, res, color=c, "s-", label=tag, linewidth=2, alpha=0.5)
         xlabel("rand error merger")
         ylabel("rand error splitter")
-        legend()
+
 
         subplot(223)
-        plot(thds, rf, color=c, "o-", label=tag, linewidth=2, alpha=0.5)
+        plot(thds, rf, color=c, "s-", label=tag, linewidth=2, alpha=0.5)
         xlabel("thresholds")
         ylabel("rand f score")
-        legend(loc=2)
 
         subplot(224)
-        plot(rfm, rfs, color=c, "o-", label=tag, linewidth=2, alpha=0.5)
+        plot(rfm, rfs, color=c, "s-", label=tag, linewidth=2, alpha=0.5)
         xlabel("rand f score merger")
         ylabel("rand f score splitter")
-        legend(loc=2)
 
     end
     show()
