@@ -188,6 +188,8 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=F
                 src_params[opt_dict['name']] = ('biases',opt_dict['biases'])
             elif opt_dict.has_key('filters'):
                 src_params[opt_dict['name']] = ('filters',opt_dict['filters'])
+            elif opt_dict.has_key('fft'):
+                src_params[opt_dict['name']] = ('fft',opt_dict['fft'])
 
     print "performing consolidation"
     source_names = src_params.keys()
