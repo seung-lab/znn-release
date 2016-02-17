@@ -90,26 +90,33 @@ def main( conf_file='config.cfg', logfile=None ):
         # forward pass
         # apply the transformations in memory rather than array view
         vol_ins = utils.make_continuous(vol_ins, dtype=pars['dtype'])
-        props = net.forward( vol_ins )
+        props = net.forward(vol_ins)
 
-        # cost function and accumulate errors
-        props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
-        err += cerr
-        cls += cost_fn.get_cls(props, lbl_outs)
-        num_mask_voxels += utils.sum_over_dict(msks)
+        # cost, gradient, classification error
+        costs, grdts = pars['cost_fn']( props, lbl_outs )
+        cerrs = cost_fn.get_cls( props, lbl_outs )
 
-        # gradient reweighting
-        grdts = utils.dict_mul( grdts, msks  )
+        # apply masks
+        costs = utils.dict_mul( costs, msks )
+        grdts = utils.dict_mul( grdts, msks )
+        cerrs = utils.dict_mul( cerrs, msks )
+
+        # apply rebalancing weights
+        costs = utils.dict_mul( costs, wmsks )
         grdts = utils.dict_mul( grdts, wmsks )
+
+        # record keeping
+        err += utils.sum_over_dict(costs)
+        cls += utils.sum_over_dict(cerrs)
+        num_mask_voxels += utils.sum_over_dict(msks)
 
         if pars['is_malis'] :
             malis_weights, rand_errors = cost_fn.malis_weight(pars, props, lbl_outs)
             grdts = utils.dict_mul(grdts, malis_weights)
             # accumulate the rand error
             re += rand_errors.values()[0]
-            malis_cls_dict = utils.get_malis_cls( props, lbl_outs, malis_weights )
+            malis_cls_dict = utils.get_malis_cls(props, lbl_outs, malis_weights)
             malis_cls += malis_cls_dict.values()[0]
-
 
         total_time += time.time() - start
         start = time.time()

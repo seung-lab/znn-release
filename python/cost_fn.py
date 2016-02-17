@@ -10,139 +10,112 @@ import utils
 #from numba import jit
 
 
-def get_cls(props, lbls, mask=None):
+def get_cls(props, lbls, thresh=0.5):
     """
     compute classification error.
 
     Parameters
     ----------
-    props : dict of array, network propagation output volumes.
-    lbls  : dict of array, ground truth
+    props : dict of array, forward pass output
+    lbls  : dict of array, target label
 
     Returns
     -------
-    c : number of classification error
+    errs  : dict of array, classification error
     """
-    errors = dict()
-    c = 0.0
-
-    #Applying mask if it exists
-    props = utils.mask_dict_vol(props, mask)
-    lbls = utils.mask_dict_vol(lbls, mask)
+    errs = dict()
 
     for name, prop in props.iteritems():
         lbl = lbls[name]
+        errs[name] = (prop>thresh) != (lbl>thresh)
 
-        c += np.count_nonzero( (prop>0.5) != (lbl>0.5) )
-
-    return c
+    return errs
 
 #@jit(nopython=True)
-def square_loss(props, lbls, mask=None):
+def square_loss(props, lbls):
     """
     compute square loss
 
     Parameters
     ----------
-    props: numpy array, forward pass output
-    lbls:  numpy array, ground truth labeling
+    props : dict of array, forward pass output
+    lbls  : dict of array, target label
 
     Return
     ------
-    err:   cost energy
-    grdts: numpy array, gradient volumes
+    costs : dict of array, cost volumes
+    grdts : dict of array, gradient volumes
     """
+    costs = dict()
     grdts = dict()
-    err = 0
-
-    #Applying mask if it exists
-    props = utils.mask_dict_vol(props, mask)
-    lbls = utils.mask_dict_vol(lbls, mask)    
 
     for name, prop in props.iteritems():
-        lbl = lbls[name]
-
+        lbl  = lbls[name]
         grdt = prop - lbl
+
+        costs[name] = np.square( grdt )
         grdts[name] = grdt * 2
 
-        err += np.sum(np.square( grdt ))
+    return (costs, grdts)
 
-    return (props, err, grdts)
-
-def square_square_loss(props, lbls, mask=None, margin=0.2):
+def square_square_loss(props, lbls, margin=0.2):
     """
     square-square loss (square loss with a margin)
     """
-    gradients = dict()
-    error = 0
+    costs = dict()
+    grdts = dict()
 
-    #Applying mask if it exists
-    props = utils.mask_dict_vol(props, mask)
-    lbls = utils.mask_dict_vol(lbls, mask)
+    for name, prop in props.iteritems():
+        lbl  = lbls[name]
+        grdt = prop - lbl
+        grdt[np.abs(grdt) <= margin] = 0
 
-    for name, propagation in props.iteritems():
-        lbl = lbls[name]
+        costs[name] = np.square( grdt )
+        grdts[name] = grdt * 2
 
-        gradient = propagation - lbl
-        gradient[np.abs(gradient) <= margin] = 0
-        gradients[name] = gradient * 2
-
-        error += np.sum(np.square( gradient ))
-
-
-    return (props, error, gradients)
+    return (costs, grdts)
 
 #@jit(nopython=True)
-def binomial_cross_entropy(props, lbls, mask=None):
+def binomial_cross_entropy(props, lbls):
     """
     compute binomial cost
 
     Parameters
     ----------
-    props:  dict of network output arrays
-    lbls:   dict of ground truth arrays
+    props : dict of array, forward pass output
+    lbls  : dict of array, target label
 
     Return
     ------
-    err:    cost energy
-    grdts:  dict of gradient volumes
+    costs : dict of array, cost volumes
+    grdts : dict of array, gradient volumes
     """
+    costs = dict()
     grdts = dict()
-    err = 0
 
-    #Taking a slightly different strategy with masking 
-    # to improve the numerical stability of the error output
-    entropy = dict()
-
-    #Finding Gradients
     for name, prop in props.iteritems():
         lbl = lbls[name]
 
+        costs[name] = -lbl*np.log(prop) - (1-lbl)*np.log(1-prop)
         grdts[name] = prop - lbl
 
-        entropy[name] = -lbl*np.log(prop) - (1-lbl)*np.log(1-prop)
-
-    #Applying mask if it exists
-    grdts = utils.mask_dict_vol(grdts, mask)
-    entropy = utils.mask_dict_vol(entropy, mask)
-
-    for name, vol in entropy.iteritems():
-        err += np.sum( vol )
-
-    return (props, err, grdts)
+    return (costs, grdts)
 
 #@jit(nopython=True)
 def softmax(props):
     """
     softmax activation
 
-    Parameters:
-    props:  numpy array, net forward output volumes
+    Parameters
+    ----------
+    props : dict of array, forward pass output
 
-    Returns:
-    ret:   numpy array, softmax activation volumes
+    Return
+    ------
+    ret   : dict of array, softmax activation volumes
     """
     ret = dict()
+
     for name, prop in props.iteritems():
         # make sure that it is the output of binary class
         # assert(prop.shape[0]==2)
@@ -158,6 +131,7 @@ def softmax(props):
         ret[name] = np.empty(prop.shape, dtype=prop.dtype)
         for c in xrange(prop.shape[0]):
             ret[name][c,:,:,:] = prop[c,:,:,:] / pesum
+
     return ret
 
 def multinomial_cross_entropy(props, lbls, mask=None):
@@ -166,45 +140,32 @@ def multinomial_cross_entropy(props, lbls, mask=None):
 
     Parameters
     ----------
-    props:    list of forward pass output
-    lbls:     list of ground truth labeling
+    props : dict of array, forward pass output
+    lbls  : dict of array, target label
 
     Return
     ------
-    err:    cost energy
-    cls:    classfication error
-    grdts:  list of gradient volumes
+    costs : dict of array, cost volumes
+    grdts : dict of array, gradient volumes
     """
+    costs = dict()
     grdts = dict()
-    err = 0
-
-    #Taking a slightly different strategy with masking 
-    # to improve the numerical stability of the error output
-    entropy = dict()
 
     for name, prop in props.iteritems():
         lbl = lbls[name]
 
+        costs[name] = -lbl * np.log(prop)
         grdts[name] = prop - lbl
 
-        entropy[name] = -lbl * np.log(prop)
+    return (costs, grdts)
 
-    #Applying mask if it exists
-    grdts = utils.mask_dict_vol(grdts, mask)
-    entropy = utils.mask_dict_vol(entropy, mask)
-
-    for name, vol in entropy.iteritems():
-        err += np.sum( vol )
-
-    return (props, err, grdts)
-
-def softmax_loss(props, lbls, mask=None):
+def softmax_loss(props, lbls):
     props = softmax(props)
-    return multinomial_cross_entropy(props, lbls, mask)
+    return multinomial_cross_entropy(props, lbls)
 
-def softmax_loss2(props, lbls, mask=None):
+def softmax_loss2(props, lbls):
+    costs = dict()
     grdts = dict()
-    err = 0
 
     for name, prop in props.iteritems():
         # make sure that it is the output of binary class
@@ -215,7 +176,7 @@ def softmax_loss2(props, lbls, mask=None):
         # rebase the prop for numerical stability
         # mathimatically, this do not affect the softmax result!
         # http://ufldl.stanford.edu/tutorial/supervised/SoftmaxRegression/
-#        prop = prop - np.max(prop)
+        # prop = prop - np.max(prop)
         propmax = np.max(prop, axis=0)
         prop[0,:,:,:] -= propmax
         prop[1,:,:,:] -= propmax
@@ -227,15 +188,15 @@ def softmax_loss2(props, lbls, mask=None):
         props[name] = prop
 
         lbl = lbls[name]
+        costs[name] = -lbl * log_softmax
         grdts[name] = prop - lbl
-        err = err + np.sum( -lbl * log_softmax )
         print "gradient: ", grdts[name]
         assert(not np.any(np.isnan(grdts[name])))
-    return (props, err, grdts)
+
+    return (costs, grdts)
 
 #def hinge_loss(props, lbls):
 # TO-DO
-
 
 def malis_weight_aff(affs, true_affs):
     """
