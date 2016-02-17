@@ -131,8 +131,8 @@ def main( conf_file='config.cfg', logfile=None ):
                 err = err / vn / pars['Num_iter_per_show']
                 cls = cls / vn / pars['Num_iter_per_show']
             else:
-                err = err / num_mask_voxels / pars['Num_iter_per_show']
-                cls = cls / num_mask_voxels / pars['Num_iter_per_show']
+                err = err / num_mask_voxels
+                cls = cls / num_mask_voxels
 
             lc.append_train(i, err, cls)
 
