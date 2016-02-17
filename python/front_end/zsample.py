@@ -124,10 +124,10 @@ class CSample(object):
         if self.pars['is_data_aug']:
             rft = (np.random.rand(4)>0.5)
             for key, subinput in subinputs.iteritems():
-                subinputs[key] = utils.data_aug_transform(subinput,      rft )
+                subinputs[key] = utils.data_aug_transform(subinput, rft )
             for key, subtlbl in subtlbls.iteritems():
                 subtlbls[key]  = utils.data_aug_transform(subtlbl, rft )
-                submsks[key]   = utils.data_aug_transform(submsks[key],  rft )
+                submsks[key]   = utils.data_aug_transform(submsks[key], rft )
         return subinputs, subtlbls, submsks
 
     def get_random_sample(self):
@@ -158,12 +158,13 @@ class CSample(object):
 
         return ( subinputs, subtlbls, submsks )
 
-    def _get_balance_weight(self, arr, msk=None):
-        mask_empty = msk is None or msk.size == 0
+    def _get_balance_weight(self, arr, mask=None):
+        # applying mask
+	mask_empty = mask is None or mask.size == 0
         if mask_empty:
-            values = arr
+             values = arr
         else:
-            values = arr[ np.nonzero(msk) ]
+             values = arr[ np.nonzero(mask) ]
 
         # number of nonzero elements
         pn = float( np.count_nonzero(values) )
@@ -172,6 +173,8 @@ class CSample(object):
         # number of zero elements
         zn = num - pn
 
+        #if mask is empty, we'll fall through to this case
+        # but all errors will be masked out eventually anyway
         if pn==0 or zn==0:
             return 1,1
         else:
@@ -183,12 +186,12 @@ class CSample(object):
 
     # ZNNv1 uses different normalization
     # This method is only temporary (for reproducing paper results)
-    def _get_balance_weight_v1(self, arr, msk=None):
-        mask_empty = msk is None or msk.size == 0
+    def _get_balance_weight_v1(self, arr, mask=None):
+        mask_empty = mask is None or mask.size == 0
         if mask_empty:
             values = arr
         else:
-            values = arr[ np.nonzero(msk) ]
+            values = arr[ np.nonzero(mask) ]
 
         # number of nonzero elements
         pn = float( np.count_nonzero(values) )
@@ -337,12 +340,12 @@ class CAffinitySample(CSample):
 
         return ret
 
-
     def _prepare_rebalance_weights(self, taffs, tmsks):
         """
         get rebalance tree_size of gradient.
         make the nonboundary and boundary region have same contribution of training.
         taffs: dict, key is layer name, value is true affinity output
+        tmsks: dict, matching mask for each taffs value
         """
         self.zwps = dict()
         self.zwzs = dict()
@@ -432,7 +435,7 @@ class CBoundarySample(CSample):
         self.wzs = dict()
         for key, lbl in self.lbls.iteritems():
             msk = self.msks[key]
-            self.wps[key], self.wzs[key] = self._get_balance_weight( lbl,msk )
+            self.wps[key], self.wzs[key] = self._get_balance_weight( lbl, msk )
 
     def _binary_class(self, lbl):
         """
@@ -476,8 +479,8 @@ class CBoundarySample(CSample):
         # boundary map rebalance
         subwmsks = dict()
         for key, sublbl in sublbls.iteritems():
-            submsk = submsks[key]
-            subwmsks[key] = self._rebalance_bdr( sublbl, submsk, self.wps[key], self.wzs[key] )
+            submask = submsks[key]
+            subwmsks[key] = self._rebalance_bdr( sublbl, submask, self.wps[key], self.wzs[key] )
 
         for key,sublbl in sublbls.iteritems():
             assert sublbl.ndim==3 or (sublbl.ndim==4 and sublbl.shape[0]==1)
