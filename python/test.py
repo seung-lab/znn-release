@@ -14,10 +14,23 @@ def _single_test(net, pars, sample):
     vol_ins = utils.make_continuous(vol_ins, dtype=pars['dtype'])
     props = net.forward( vol_ins )
 
-    # cost function and accumulate errors
-    props, err, grdts = pars['cost_fn']( props, lbl_outs )
-    cls = cost_fn.get_cls(props, lbl_outs)
+    # cost, gradient, classification error
+    costs, grdts = pars['cost_fn']( props, lbl_outs )
+    cerrs = cost_fn.get_cls( props, lbl_outs )
 
+    # apply masks
+    costs = utils.dict_mul( costs, msks )
+    cerrs = utils.dict_mul( cerrs, msks )
+
+    # apply rebalancing weights
+    costs = utils.dict_mul( costs, wmsks )
+
+    # record keeping
+    err = utils.sum_over_dict(costs)
+    cls = utils.sum_over_dict(cerrs)
+    num_mask_voxels = utils.sum_over_dict(msks)
+
+    # MALIS
     re = 0.0
     malis_cls = 0.0
     if pars['is_malis']:
@@ -26,7 +39,8 @@ def _single_test(net, pars, sample):
         # dictionary of malis classification error
         mcd = utils.get_malis_cls( props, lbl_outs, malis_weights )
         malis_cls = mcd.values()[0]
-    return props, err, cls, re, malis_cls
+
+    return err, cls, re, malis_cls, num_mask_voxels
 
 def znn_test(net, pars, samples, vn, it, lc):
     """
@@ -47,22 +61,31 @@ def znn_test(net, pars, samples, vn, it, lc):
     """
     err = 0.0
     cls = 0.0
-    re = 0.0
-    # malis classification error
-    mc = 0.0
+    re  = 0.0
+    mc  = 0.0 # malis classification error
+    nmv = 0.0 # number of mask voxels
 
     net.set_phase(1)
+
     test_num = pars['test_num']
     for i in xrange( test_num ):
-        props, cerr, ccls, cre, cmc = _single_test(net, pars, samples)
-        err += cerr
-        cls += ccls
-        re  += cre
-        mc  += cmc
+        serr, scls, sre, smc, snmv = _single_test(net, pars, samples)
+        err += serr
+        cls += scls
+        re  += sre
+        mc  += smc
+        nmv += snmv
+
     net.set_phase(0)
+
     # normalize
-    err = err / vn / test_num
-    cls = cls / vn / test_num
+    if nmv > 0:
+        err = err / nmv
+        cls = cls / nmv
+    else:
+        err = err / vn / test_num
+        cls = cls / vn / test_num
+
     # rand error only need to be normalized by testing time
     re  = re  / test_num
     mc  = mc  / test_num
