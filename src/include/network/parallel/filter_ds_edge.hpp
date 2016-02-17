@@ -32,6 +32,7 @@ private:
     vec3i    filter_stride;
     vec3i    repeat_;
     filter & filter_;
+    bool     shared_;
 
     ccube_p<real> last_input;
 
@@ -65,11 +66,13 @@ public:
                     task_manager & tm,
                     vec3i const & stride,
                     vec3i const & repeat,
-                    filter & f )
-        : edge(in,inn,out,outn,tm),
-          filter_stride(stride),
-          repeat_(repeat),
-          filter_(f)
+                    filter & f,
+                    bool shared = false )
+        : edge(in,inn,out,outn,tm)
+        , filter_stride(stride)
+        , repeat_(repeat)
+        , filter_(f)
+        , shared_(shared)
     {
         in->attach_out_edge(inn,this);
         out->attach_in_edge(outn,this);
@@ -94,8 +97,16 @@ public:
                                                filter_.W(),
                                                filter_stride));
 
-        pending_ = manager.schedule_unprivileged(&filter_ds_edge::do_update,
-                                                 this, g);
+        if ( shared_ )
+        {
+            // immediate update
+            do_update(g);
+        }
+        else
+        {
+            pending_ = manager.schedule_unprivileged(&filter_ds_edge::do_update,
+                                                     this, g);
+        }
     }
 
 public:

@@ -21,7 +21,6 @@
 #include "../cube/cube.hpp"
 #include "../cube/cube_operators.hpp"
 
-
 namespace znn { namespace v4 {
 
 class filter
@@ -34,6 +33,9 @@ protected:
     real        eta_          = 0.1 ;
     real        momentum_     = 0.0 ;
     real        weight_decay_ = 0.0 ;
+
+    // for shared filter
+    std::mutex  mutex_;
 
 public:
     filter( const vec3i& s, real eta, real mom = 0.0, real wd = 0.0 )
@@ -69,8 +71,17 @@ public:
         return weight_decay_;
     }
 
-    virtual void update(const cube<real>& dEdW, real patch_size = 1 ) noexcept
+private:
+    void do_update()
     {
+
+    }
+
+public:
+    void update(const cube<real>& dEdW, real patch_size = 1 ) noexcept
+    {
+        guard g(mutex_);
+
         real delta = -eta_/patch_size;
 
         if ( momentum_ == 0 )
@@ -98,6 +109,7 @@ public:
             *W_ += *mom_volume_;
         }
     }
+
 }; // class filter
 
 }} // namespace znn::v4

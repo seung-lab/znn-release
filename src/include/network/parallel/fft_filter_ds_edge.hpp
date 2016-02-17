@@ -32,6 +32,7 @@ private:
     vec3i    filter_stride;
     vec3i    repeat_;
     filter & filter_;
+    bool     shared_;
 
 #ifndef ZNN_DONT_CACHE_FFTS
     ccube_p<complex> w_fft;
@@ -109,11 +110,13 @@ public:
                         task_manager & tm,
                         vec3i const & stride,
                         vec3i const & repeat,
-                        filter & f )
-        : edge(in,inn,out,outn,tm),
-          filter_stride(stride),
-          repeat_(repeat),
-          filter_(f)
+                        filter & f,
+                        bool shared = false )
+        : edge(in,inn,out,outn,tm)
+        , filter_stride(stride)
+        , repeat_(repeat)
+        , filter_(f)
+        , shared_(shared)
     {
         bwd_bucket_ = in->attach_out_fft_edge(inn, this);
         fwd_bucket_ = out->attach_in_fft_edge(outn, this, in->fsize());
@@ -150,8 +153,16 @@ public:
             in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
         }
 
-        pending_ = manager.schedule_unprivileged(
-                                &fft_filter_ds_edge::do_update, this, g);
+        if ( shared_ )
+        {
+            // immediate update
+            do_update(g);
+        }
+        else
+        {
+            pending_ = manager.schedule_unprivileged(
+                                    &fft_filter_ds_edge::do_update, this, g);
+        }
     }
 
     void zap(edges* e) override

@@ -31,6 +31,7 @@ class filter_edge: public edge
 private:
     vec3i    filter_stride;
     filter & filter_;
+    bool     shared_;
 
     ccube_p<real> last_input;
 
@@ -62,8 +63,12 @@ public:
                  size_t outn,
                  task_manager & tm,
                  vec3i const & stride,
-                 filter & f )
-        : edge(in,inn,out,outn,tm), filter_stride(stride), filter_(f)
+                 filter & f,
+                 bool shared = false )
+        : edge(in,inn,out,outn,tm)
+        , filter_stride(stride)
+        , filter_(f)
+        , shared_(shared)
     {
         in->attach_out_edge(inn,this);
         out->attach_in_edge(outn,this);
@@ -91,8 +96,16 @@ public:
                 convolve_sparse_inverse(*g, filter_.W(), filter_stride));
         }
 
-        pending_ = manager.schedule_unprivileged(&filter_edge::do_update,
-                                                 this, g);
+        if ( shared_ )
+        {
+            // immediate update
+            do_update(g);
+        }
+        else
+        {
+            pending_ = manager.schedule_unprivileged(&filter_edge::do_update,
+                                                     this, g);
+        }
     }
 
     void zap(edges* e) override
