@@ -179,6 +179,7 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=F
     #Makes a dictionary mapping group names to filter/bias arrays
     # (along with the respective key: 'filters' or 'biases')
     src_params = {}
+    src_ffts = {}
     #0=node, 1=edge
     print "defining initial dict"
     for group_type in range(len(source_opts)):
@@ -188,6 +189,10 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=F
                 src_params[opt_dict['name']] = ('biases',opt_dict['biases'])
             elif opt_dict.has_key('filters'):
                 src_params[opt_dict['name']] = ('filters',opt_dict['filters'])
+
+            # optimized FFT
+            if opt_dict.has_key('fft'):
+                src_ffts[opt_dict['name']] = ('fft',opt_dict['fft'])
 
     print "performing consolidation"
     source_names = src_params.keys()
@@ -206,6 +211,11 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=F
                 #should only be one copy of the layer to load,
                 # and this allows for warning messages below
                 del src_params[ opt_dict['name'] ]
+
+            # optimized FFT
+            if opt_dict['name'] in src_ffts.keys():
+                key, val = src_ffts[opt_dict['name']]
+                opt_dict[key] = val
 
     layers_not_copied = src_params.keys()
     if len(layers_not_copied) != 0:
