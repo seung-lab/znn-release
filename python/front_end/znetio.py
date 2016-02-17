@@ -300,13 +300,25 @@ def load_network( params=None, train=True, hdf5_filename=None,
         if train:
             _hdf5_filename = get_current( params['train_net'] )
             _output_patch_shape = params['train_outsz']
-            _optimize = params['is_train_optimize']
+            if "optimize" in params['train_conv_mode']:
+                _optimize = True
+            else:
+                _optimize = False
+            if "fft" in params['train_conv_mode']:
+                _force_fft = True
+            else:
+                _force_fft = False
         else:
             _hdf5_filename = params['forward_net']
             _output_patch_shape = params['forward_outsz']
-            _optimize = params['is_forward_optimize']
-
-        _force_fft = params['force_fft']
+            if "optimize" in params['forward_conv_mode']:
+                _optimize = True
+            else:
+                _optimize = False
+            if "fft" in params['forward_conv_mode']:
+                _force_fft = True
+            else:
+                _force_fft = False
         _network_specfile = params['fnet_spec']
         _num_threads = params['num_threads']
         _is_stdio = params['is_stdio']
@@ -384,12 +396,25 @@ def init_network( params=None, train=True, network_specfile=None,
 
         if train:
             _output_patch_shape = params['train_outsz']
-            _optimize = params['is_train_optimize']
+            if "optimize" in params['train_conv_mode']:
+                _optimize = True
+            else:
+                _optimize = False
+            if "fft" in params['train_conv_mode']:
+                _force_fft = True
+            else:
+                _force_fft = False
         else:
             _output_patch_shape = params['forward_outsz']
-            _optimize = params['is_forward_optimize']
+            if "optimize" in params['forward_conv_mode']:
+                _optimize = True
+            else:
+                _optimize = False
+            if "fft" in params['forward_conv_mode']:
+                _force_fft = True
+            else:
+                _force_fft = False
 
-        _force_fft = params['force_fft']
         _network_specfile = params['fnet_spec']
         _num_threads = params['num_threads']
 

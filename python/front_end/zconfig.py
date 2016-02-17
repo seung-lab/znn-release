@@ -81,6 +81,10 @@ def parser( conf_fname ):
 
     #Number of threads to use
     pars['num_threads'] = int( config.get('parameters', 'num_threads') )
+    if pars['num_threads'] <= 0:
+        # use maximum number of cpus
+        import multiprocessing
+        pars['num_threads'] = multiprocessing.cpu_count()
     # data type
     pars['dtype']       = config.get('parameters', 'dtype')
     #Output layer data type (e.g. 'boundary','affinity')
@@ -117,9 +121,25 @@ def parser( conf_fname ):
                                     'train_outsz').split(',') ], dtype=np.int64 )
     #Whether to optimize the convolution computation by layer
     # (FFT vs Direct Convolution)
-    pars['is_train_optimize'] = config.getboolean('parameters', 'is_train_optimize')
-    pars['is_forward_optimize'] = config.getboolean('parameters', 'is_forward_optimize')
-    pars['force_fft'] = config.getboolean('parameters', 'force_fft')
+    if config.has_option("parameters", "is_train_optimize"):
+        if config.getboolean('parameters', 'is_train_optimize'):
+            pars['train_conv_mode'] = "optimize"
+        else:
+            pars['train_conv_mode'] = "direct"
+    if config.has_option("parameters", "is_forward_optimize"):
+        if config.getboolean('parameters', 'is_forward_optimize'):
+            pars['forward_conv_mode'] = "optimize"
+        else:
+            pars['forward_conv_mode'] = 'direct'
+    if config.has_option('parameters', 'force_fft'):
+        if config.getboolean('parameters', 'force_fft'):
+            pars['train_conv_mode'] = 'fft'
+            pars['forward_conv_mode'] = 'fft'
+    if config.has_option('parameters', 'train_conv_mode'):
+        pars['train_conv_mode'] = config.get('parameters', 'train_conv_mode')
+    if config.has_option('parameters', 'forward_conv_mode'):
+        pars['forward_conv_mode'] = config.get('parameters', 'forward_conv_mode')
+
     #Whether to use data augmentation
     pars['is_data_aug'] = config.getboolean('parameters', 'is_data_aug')
     #Whether to use boundary mirroring
@@ -164,6 +184,11 @@ def parser( conf_fname ):
         pars['is_debug'] = config.getboolean('parameters', 'is_debug')
     else:
         pars['is_debug'] = False
+    # automatically check the gradient and patch matching
+    if config.has_option("parameters", "is_check"):
+        pars["is_check"] = config.getboolean("parameters", "is_check")
+    else:
+        pars["is_check"] = False
 
     #Which Cost Function to Use (as a string)
     pars['cost_fn_str'] = config.get('parameters', 'cost_fn')

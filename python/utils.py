@@ -274,7 +274,7 @@ def check_dict_nan( d ):
 def inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
                grdts, malis_weights, wmsks, elapsed, it):
     # get file name
-    filename, filename_current = znetio.get_net_fname( pars['train_save_net'], it )
+    filename, filename_current = znetio.get_net_fname( pars['train_net'], it )
     # save network
     znetio.save_network(net, filename, pars['is_stdio'] )
     if lc is not None:

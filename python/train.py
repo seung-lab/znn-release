@@ -168,10 +168,10 @@ def main( args ):
                 lc.append_train_malis_cls( malis_cls )
                 lc.append_train_malis_eng( malis_eng )
 
-                show_string = "iteration %d,    err: %.3f, cls: %.3f, re: %.3f, me: %.3f, mc: %.3f, elapsed: %.1f s/iter, learning rate: %.4f"\
+                show_string = "update %d,    cost: %.3f, pixel error: %.3f, rand error: %.3f, me: %.3f, mc: %.3f, elapsed: %.1f s/iter, learning rate: %.4f"\
                               %(i, err, cls, re, malis_eng, malis_cls, elapsed, eta )
             else:
-                show_string = "iteration %d,    err: %.3f, cls: %.3f, re: %.3f, elapsed: %.1f s/iter, learning rate: %.4f"\
+                show_string = "update %d,    cost: %.3f, pixel error: %.3f, rand error: %.3f, elapsed: %.1f s/iter, learning rate: %.3f"\
                     %(i, err, cls, re, elapsed, eta )
 
             if pars.has_key('logging') and pars['logging']:
