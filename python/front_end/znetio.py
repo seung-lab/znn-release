@@ -34,7 +34,6 @@ def assert_arglist(single_arg_option, multi_arg_option):
 
     assert(params_defined or all_optional_args_defined)
 
-
 def save_opts(opts, filename, is_stdio=False):
     # standard format folder prefix
     if is_stdio:
@@ -123,13 +122,12 @@ def get_current( filename ):
     filename_current = "{}{}{}".format(root, '_current', ext)
     return filename_current
 
-def save_network(network, filename, num_iters=None):
+def get_net_fname(filename, num_iters=None):
     '''Saves a network under an h5 file. Appends the number
     of iterations if passed, and updates a "current" file with
     the most recent (uncorrupted) information'''
     # get directory name from file name
     archive_directory_name = os.path.dirname( filename )
-#    filename = os.path.basename( filename )
     if not os.path.exists(archive_directory_name) and archive_directory_name != '':
         os.mkdir(archive_directory_name)
 
@@ -146,6 +144,8 @@ def save_network(network, filename, is_stdio=False):
     the most recent (uncorrupted) information'''
 
     print "save as ", filename
+    if os.path.exists(filename):
+        os.remove(filename)
     save_opts(network.get_opts(), filename, is_stdio=is_stdio)
 
 def load_opts(filename, is_stdio=False):

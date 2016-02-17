@@ -149,7 +149,12 @@ def parser( conf_fname ):
         pars['is_constrained_malis'] = False
 
     #Whether to display progress plots
-    pars['is_visual']   = config.getboolean('parameters', 'is_visual')
+    if config.has_option('parameters', "is_visual"):
+        pars['is_visual']   = config.getboolean('parameters', 'is_visual')
+    else:
+        pars['is_visual'] = False
+
+    # standard IO
     if config.has_option('parameters', 'is_stdio'):
         pars['is_stdio'] = config.getboolean('parameters', 'is_stdio')
     else:

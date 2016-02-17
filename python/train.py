@@ -35,12 +35,15 @@ def main( args ):
 
     #%% create and initialize the network
     fnet = znetio.find_load_net( pars['train_net'], args['seed'] )
-    if os.path.exists(fnet):
+    print "fnet: ", fnet
+    if fnet and os.path.exists(fnet):
         net = znetio.load_network( pars, fnet )
+        # load existing learning curve
+        lc = zstatistics.CLearnCurve( pars, fnet )
     else:
+        # initialize a new network
         net = znetio.init_network( pars )
-    # load existing learning curve
-    lc = zstatistics.CLearnCurve( fnet )
+        lc = zstatistics.CLearnCurve( pars )
     # the last iteration we want to continue training
     iter_last = lc.get_last_it()
 
@@ -80,23 +83,15 @@ def main( args ):
         malis_weights = None
 
     #Saving initialized network
-    if iter_last+1 == 1:
-        # get file name
-        fname, fname_current = znetio.get_net_fname( pars['train_save_net'], 0 )
-        if os.path.exists(fname):
-            os.remove(fname)
-        znetio.save_network(net, fname, pars['is_stdio'])
-        lc.save( pars, fname )
+    # get file name
+    fname, fname_current = znetio.get_net_fname( pars['train_net'], iter_last )
+    znetio.save_network(net, fname, pars['is_stdio'])
+    lc.save( pars, fname )
 
     print "start training..."
     start = time.time()
     total_time = 0.0
     print "start from ", iter_last+1
-
-    #Saving initialized network
-    if iter_last+1 == 1:
-        znetio.save_network(net, pars['train_net'], num_iters=0)
-        lc.save( pars, 0.0 )
 
     for i in xrange(iter_last+1, pars['Max_iter']+1):
         # time cumulation
