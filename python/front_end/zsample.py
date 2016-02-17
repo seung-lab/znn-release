@@ -115,10 +115,10 @@ class CSample(object):
         if self.pars['is_data_aug']:
             rft = (np.random.rand(4)>0.5)
             for key, subinput in subinputs.iteritems():
-                subinputs[key] = utils.data_aug_transform(subinput,      rft )
+                subinputs[key] = utils.data_aug_transform(subinput, rft )
             for key, subtlbl in subtlbls.iteritems():
                 subtlbls[key]  = utils.data_aug_transform(subtlbl, rft )
-                submsks[key]   = utils.data_aug_transform(submsks[key],  rft )
+                submsks[key]   = utils.data_aug_transform(submsks[key], rft )
         return subinputs, subtlbls, submsks
 
     def get_random_sample(self):
@@ -149,14 +149,23 @@ class CSample(object):
 
         return ( subinputs, subtlbls, submsks )
 
-    def _get_balance_weight(self, arr):
+    def _get_balance_weight(self, arr, mask=None):
+        # applying mask
+	mask_empty = mask is None or mask.size == 0
+        if mask_empty:
+             values = arr
+        else:
+             values = arr[ np.nonzero(mask) ]
+
         # number of nonzero elements
-        pn = float( np.count_nonzero(arr) )
+        pn = float( np.count_nonzero(values) )
         # total number of elements
-        num = float( np.size(arr) )
+        num = float( np.size(values) )
         # number of zero elements
         zn = num - pn
 
+        #if mask is empty, we'll fall through to this case
+        # but all errors will be masked out eventually anyway
         if pn==0 or zn==0:
             return 1,1
         else:
@@ -167,11 +176,17 @@ class CSample(object):
 
     # ZNNv1 uses different normalization
     # This method is only temporary (for reproducing paper results)
-    def _get_balance_weight_v1(self, arr):
+    def _get_balance_weight_v1(self, arr, mask=None):
+        mask_empty = mask is None or mask.size == 0
+        if mask_empty:
+            values = arr
+        else:
+            values = arr[ np.nonzero(mask) ]
+
         # number of nonzero elements
-        pn = float( np.count_nonzero(arr) )
+        pn = float( np.count_nonzero(values) )
         # total number of elements
-        num = float( np.size(arr) )
+        num = float( np.size(values) )
         zn = num - pn
 
         # weight of positive and zero
@@ -247,10 +262,12 @@ class CAffinitySample(CSample):
 
         # precompute the global rebalance weights
         self.taffs = dict()
+        self.tmsks = dict()
         for k, lbl in self.lbls.iteritems():
             self.taffs[k] = self._seg2aff( lbl )
+            self.tmsks[k] = self._msk2affmsk( self.msks[k] )
 
-        self._prepare_rebalance_weights( self.taffs )
+        self._prepare_rebalance_weights( self.taffs, self.tmsks )
         return
 
     def _seg2aff( self, lbl ):
@@ -321,11 +338,12 @@ class CAffinitySample(CSample):
                         ret[2,z,y,x] = 1
         return ret
 
-    def _prepare_rebalance_weights(self, taffs):
+    def _prepare_rebalance_weights(self, taffs, tmsks):
         """
         get rebalance tree_size of gradient.
         make the nonboundary and boundary region have same contribution of training.
         taffs: dict, key is layer name, value is true affinity output
+        tmsks: dict, matching mask for each taffs value
         """
         self.zwps = dict()
         self.zwzs = dict()
@@ -336,18 +354,19 @@ class CAffinitySample(CSample):
 
         if self.pars['is_rebalance'] or self.pars['is_patch_rebalance']:
             for k, aff in taffs.iteritems():
-                self.zwps[k], self.zwzs[k] = self._get_balance_weight_v1(aff[0,:,:,:])
-                self.ywps[k], self.ywzs[k] = self._get_balance_weight_v1(aff[1,:,:,:])
-                self.xwps[k], self.xwzs[k] = self._get_balance_weight_v1(aff[2,:,:,:])
+                msk = tmsks[k]
+                self.zwps[k], self.zwzs[k] = self._get_balance_weight(aff[0,:,:,:], msk[0,:,:,:])
+                self.ywps[k], self.ywzs[k] = self._get_balance_weight(aff[1,:,:,:], msk[1,:,:,:])
+                self.xwps[k], self.xwzs[k] = self._get_balance_weight(aff[2,:,:,:], msk[2,:,:,:])
         return
 
-    def _rebalance_aff(self, subtaffs):
+    def _rebalance_aff(self, subtaffs, submsks):
         """
         rebalance the affinity labeling with size of (3,Z,Y,X)
         """
         if self.pars['is_patch_rebalance']:
             # recompute the weights
-            self._prepare_rebalance_weights( subtaffs )
+            self._prepare_rebalance_weights( subtaffs, submsks )
 
         subwmsks = dict()
         for k, subtaff in subtaffs.iteritems():
@@ -381,7 +400,7 @@ class CAffinitySample(CSample):
             submsks[key]  = self._msk2affmsk( submsks[key] )
 
         # affinity map rebalance
-        subwmsks = self._rebalance_aff(  subtaffs )
+        subwmsks = self._rebalance_aff( subtaffs, submsks )
 
         return subimgs, subtaffs, submsks, subwmsks
 
@@ -407,7 +426,8 @@ class CBoundarySample(CSample):
         self.wps = dict()
         self.wzs = dict()
         for key, lbl in self.lbls.iteritems():
-            self.wps[key], self.wzs[key] = self._get_balance_weight( lbl )
+            msk = self.msks[key]
+            self.wps[key], self.wzs[key] = self._get_balance_weight( lbl, msk )
 
     def _binary_class(self, lbl):
         """
@@ -429,14 +449,14 @@ class CBoundarySample(CSample):
 
         return ret
 
-    def _rebalance_bdr(self, sublbl, wp, wz):
+    def _rebalance_bdr(self, sublbl, submsk, wp, wz):
         assert sublbl.ndim==4 and sublbl.shape[0]==1
 
         weight = np.ones( sublbl.shape, dtype=self.pars['dtype'] )
 
         # recompute weight for patch rebalance
         if self.pars['is_patch_rebalance']:
-            wp, wz = self._get_balance_weight_v1( sublbl )
+            wp, wz = self._get_balance_weight_v1( sublbl, submsk )
 
         if self.pars['is_patch_rebalance'] or self.pars['is_rebalance']:
             weight[0,:,:,:][sublbl[0,:,:,:]> 0] = wp
@@ -451,7 +471,8 @@ class CBoundarySample(CSample):
         # boundary map rebalance
         subwmsks = dict()
         for key, sublbl in sublbls.iteritems():
-            subwmsks[key] = self._rebalance_bdr(  sublbl, self.wps[key], self.wzs[key] )
+            submask = submsks[key]
+            subwmsks[key] = self._rebalance_bdr( sublbl, submask, self.wps[key], self.wzs[key] )
 
         for key,sublbl in sublbls.iteritems():
             assert sublbl.ndim==3 or (sublbl.ndim==4 and sublbl.shape[0]==1)
