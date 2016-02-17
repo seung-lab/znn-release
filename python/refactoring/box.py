@@ -13,8 +13,7 @@ Box -- two vectors, forming a box
 Kisuk Lee <kisuklee@mit.edu>, 2015
 """
 
-from vector import Vec3d
-from vector import minimum, maximum
+from vector import Vec3d, minimum, maximum
 
 import math
 

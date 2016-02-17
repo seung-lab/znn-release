@@ -6,7 +6,7 @@ Read-only/writable TensorData classes.
 Kisuk Lee <kisuklee@mit.edu>, 2015
 """
 
-from vector import Vec3d
+from vector import Vec3d, minimum, maximum
 from box import *
 
 import numpy as np
@@ -15,7 +15,7 @@ import math
 class TensorData:
     """
     Read-oly tensor data.
-    This is not a general tensor, in that 4th dimension is regarded as
+    This is not a general tensor, in that 4th dimension is only regarded as
     parallel channels, not actual dimension for arbitrary access.
     Threfore, every data access is made through 3-dimensional vector.
 
@@ -44,7 +44,7 @@ class TensorData:
         self._FoV    = Vec3d(0,0,0)
         self._offset = Vec3d(0,0,0)
 
-        # set data
+        # set data (order is important)
         self._set_data(data)
         self._set_FoV(FoV)
         self._set_offset(offset)
@@ -54,19 +54,29 @@ class TensorData:
         Extract a subvolume of size _FoV centered on pos.
         """
         assert self._rg.contains(pos)
-        pos -= self._offset # local coordinate
+        pos -= self._offset # local coordinate system
         box  = centered_box(pos, self._FoV)
-        v1   = b.min()
-        v2   = b.max()
-        return np.copy(self._data[:,v1[0]:v2[0],v1[1]:v2[1],v1[2]:v2[2]])
+        vmin = box.min()
+        vmax = box.max()
+        return np.copy(self._data[:,vmin[0]:vmax[0],
+                                    vmin[1]:vmax[1],
+                                    vmin[2]:vmax[2]])
 
     def get_volume(self):
-        return np.copy(self._data)
+        return self._data
 
     def size(self):
+        """
+        Return the shape of tensor data.
+        E.g. (w,z,y,x), where w is the number of parallel channels.
+        """
         return self._data.shape
 
     def dimension(self):
+        """
+        Return the shape of accessible dimensions.
+        E.g. (z,y,x), w is not an accessible dimension.
+        """
         return self._dim
 
     def FoV(self):
@@ -86,11 +96,11 @@ class TensorData:
         assert isinstance(data, np.ndarray)
         assert data.ndim == 4
 
-        # data dimension
+        # return data dimension
         return Vec3d(data.shape[1:])
 
     def _set_data(self, data):
-        # TODO: should copy data?
+        # TODO: should deep copy data?
         self._data = data
         self._dim  = self._check_data(data)
 
@@ -101,18 +111,14 @@ class TensorData:
     def _set_FoV(self, FoV):
         """
         Set a nonnegative field of view (FoV), i.e., patch size.
-        If FoV is zero, set it to the data volume dimension.
+        If FoV is zero, set it to cover the whole volume.
         """
         FoV = Vec3d(FoV)
         if FoV == (0,0,0):
             FoV = Vec3d(self._dim)
 
-        # FoV should be nonnegative and smaller than data
-        FoV[0] = min(max(FoV[0],0),self._dim[0])
-        FoV[1] = min(max(FoV[1],0),self._dim[1])
-        FoV[2] = min(max(FoV[2],0),self._dim[2])
-
-        self._FoV = FoV
+        # FoV should be nonnegative and smaller than data volume
+        self._FoV = minimum(maximum(FoV,(0,0,0)), self._dim)
 
         # update range
         self._set_range()
@@ -136,40 +142,54 @@ class TensorData:
 
     def _set_range(self):
         """
+        Set a valid range for extracting patches.
         """
         # top margin
         top = self._FoV/2
         # bottom margin
         btm = self._FoV - top - (1,1,1)
 
-        v1 = self._offset + top
-        v2 = self._offset + self._dim - btm
+        vmin = self._offset + top
+        vmax = self._offset + self._dim - btm
 
-        self._rg = Box(v1,v2)
+        self._rg = Box(vmin,vmax)
 
     # String representaion (for printing and debugging)
     def __str__( self ):
         return "<TensorData>\nsize = %s\ndim  = %s\nFoV  = %s\noff  = %s\n" % \
                (self.size(), self._dim, self._FoV, self._offset)
 
+
 class WritableTensorData(TensorData):
     """
-    Writable volume data
+    Writable tensor data.
 
     """
-    def __init__(self, data, FoV=(0,0,0), offset=(0,0,0)):
-        TensorData.__init__(self,data,FoV,offset)
+    def __init__(self, data_or_shape, FoV=(0,0,0), offset=(0,0,0)):
+        """
+        Initialize a writable tensor data, or create a new tensor of zeros.
+        """
+        if isinstance(data_or_shape, np.ndarray):
+            TensorData.__init__(self,data_or_shape,FoV,offset)
+        else:
+            shape = Vec3d(data_or_shape)
+            data  = np.zeros(shape)
+            TensorData.__init__(self,data,FoV,offset)
 
-    def set_patch(self, pos, vol):
+    def set_patch(self, pos, patch):
+        """
+        Write a patch of size _FoV centered on pos.
+        """
         assert self._rg.contains(pos)
-        dim  = self._check_data(vol)
-        box  = centered_box(pos, dim)
+        dim = self._check_data(patch)
+        assert dim == self._FoV
+        box = centered_box(pos, dim)
 
         # local coordinate
         box.translate(-self._offset)
-        v1 = box.min()
-        v2 = box.max()
-        self._data[:,v1[0]:v2[0],v1[1]:v2[1],v1[2]:v2[2]] = vol
+        vmin = box.min()
+        vmax = box.max()
+        self._data[:,vmin[0]:vmax[0],vmin[1]:vmax[1],vmin[2]:vmax[2]] = patch
 
 
 ########################################################################
@@ -217,7 +237,6 @@ if __name__ == "__main__":
             v = WritableTensorData(np.zeros((1,5,5,5)), (3,3,3), (1,1,1))
             p = np.random.rand(1,3,3,3)
             v.set_patch((4,4,4),p)
-            # print v.get_volume()
 
     ####################################################################
     unittest.main()
