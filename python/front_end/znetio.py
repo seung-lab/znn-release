@@ -70,7 +70,7 @@ def save_opts(opts, filename):
 
     f.close()
 
-def find_load_net( train_net, seed ):
+def find_load_net( train_net, seed=None ):
     if seed and os.path.exists(seed):
         fnet = seed
     else:
@@ -86,7 +86,7 @@ def get_current( filename ):
     filename_current = "{}{}{}".format(root, '_current', ext)
     return filename_current
 
-def save_network(network, filename, num_iters=None):
+def save_network(network, filename, num_iters=None, suffix=None):
     '''Saves a network under an h5 file. Appends the number
     of iterations if passed, and updates a "current" file with
     the most recent (uncorrupted) information'''
@@ -98,9 +98,13 @@ def save_network(network, filename, num_iters=None):
 
     filename_current = get_current(filename)
 
+    if suffix is not None:
+        root, ext = os.path.splitext(filename)
+        filename = "{}_{}{}".format(root, suffix, ext)
+
     if num_iters is not None:
         root, ext = os.path.splitext(filename)
-        filename = "{}{}{}{}".format(root, '_', num_iters, ext)
+        filename = "{}_{}{}".format(root, num_iters, ext)
 
     print "save as ", filename
     save_opts(network.get_opts(), filename)
@@ -300,7 +304,7 @@ def load_network( params=None, train=True, hdf5_filename=None,
         final_options = consolidate_opts(load_options, template_options, params)
 
     else:
-        print _hdf5filename, " do not exist, initialize a new network..."
+        print _hdf5_filename, " do not exist, initialize a new network..."
         final_options = template.get_opts()
         del template
 
