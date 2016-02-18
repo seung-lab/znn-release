@@ -63,9 +63,10 @@ def main( conf_file='config.cfg', logfile=None ):
 
     # initialization
     elapsed = 0
-    err = 0.0 # cost energy
+    err = 0.0 # cost
     cls = 0.0 # pixel classification error
     re = 0.0  # rand error
+    ucost = 0.0
     # number of voxels which accumulate error
     # (if a mask exists)
     num_mask_voxels = 0
@@ -102,10 +103,12 @@ def main( conf_file='config.cfg', logfile=None ):
         cerrs = utils.dict_mul( cerrs, msks )
 
         # apply rebalancing weights
-        costs = utils.dict_mul( costs, wmsks )
-        grdts = utils.dict_mul( grdts, wmsks )
+        ucosts = np.copy( costs )
+        costs  = utils.dict_mul( costs, wmsks )
+        grdts  = utils.dict_mul( grdts, wmsks )
 
         # record keeping
+        ucost += utils.sum_over_dict(ucosts)
         err += utils.sum_over_dict(costs)
         cls += utils.sum_over_dict(cerrs)
         num_mask_voxels += utils.sum_over_dict(msks)
@@ -128,13 +131,15 @@ def main( conf_file='config.cfg', logfile=None ):
         if i%pars['Num_iter_per_show']==0:
             # normalize
             if utils.dict_mask_empty(msks):
-                err = err / vn / pars['Num_iter_per_show']
-                cls = cls / vn / pars['Num_iter_per_show']
+                err   = err   / vn / pars['Num_iter_per_show']
+                cls   = cls   / vn / pars['Num_iter_per_show']
+                ucost = ucost / vn / pars['Num_iter_per_show']
             else:
-                err = err / num_mask_voxels
-                cls = cls / num_mask_voxels
+                err   = err   / num_mask_voxels
+                cls   = cls   / num_mask_voxels
+                ucost = ucost / num_mask_voxels
 
-            lc.append_train(i, err, cls)
+            lc.append_train(i, err, cls, ucost)
 
             # time
             elapsed = total_time / pars['Num_iter_per_show']

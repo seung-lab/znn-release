@@ -22,6 +22,10 @@ class CLearnCurve:
             self.tn_cls = list()
             self.tn_re  = list()
             self.tn_mc  = list()
+
+            # unbalanced cost
+            self.tt_ucost = list()
+            self.tn_ucost = list()
         else:
             self._read_curve( fname )
         return
@@ -105,17 +109,21 @@ class CLearnCurve:
         else:
             return int(str_num)
 
-    def append_test(self, it, err, cls):
+    def append_test(self, it, err, cls, ucost=None):
         # add a test result
         self.tt_it.append(it)
         self.tt_err.append(err)
         self.tt_cls.append(cls)
+        if ucost not None:
+            self.tt_ucost.append(ucost)
 
-    def append_train(self, it, err, cls):
+    def append_train(self, it, err, cls, ucost=None):
         # add a training result
         self.tn_it.append(it)
         self.tn_err.append(err)
         self.tn_cls.append(cls)
+        if ucost not None:
+            self.tn_ucost.append(ucost)
 
     def append_train_rand_error( self, re ):
         while len( self.tn_re ) < len(self.tn_it)-1:
@@ -245,6 +253,11 @@ class CLearnCurve:
         if pars['is_malis'] :
             f.create_dataset('/test/re',   data=self.tt_re )
             f.create_dataset('/test/mc',   data=self.tt_mc )
+
+        # unbalanced cost
+        if len(self.tn_ucost) > 0:
+            f.create_dataset('/train/ucost', data=self.tn_ucost)
+            f.create_dataset('/test/ucost',  data=self.tt_ucost)
 
         f.create_dataset('/elapsed',   data=elapsed)
         f.close()
