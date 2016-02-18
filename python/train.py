@@ -14,17 +14,25 @@ import numpy as np
 from core import pyznn
 import shutil
 
-def main( args ):
+def parse_args(args):
+    # parse args
     #%% parameters
-    print "reading config parameters..."
-    config, pars = zconfig.parser( args["config"] )
+    if not os.path.exists( args['config'] ):
+        raise NameError("config file not exist!")
+    else:
+        print "reading config parameters..."
+        config, pars = zconfig.parser( args["config"] )
+
+    # overwrite the config file parameters from command line
+    if "yes" == args["is_check"]:
+        pars["is_check"] = True
+    elif "no" == args["is_check"]:
+        pars["is_check"] = False
 
     # random seed
     if pars['is_debug'] or pars['is_check']:
         # use fixed index
         np.random.seed(1)
-    # no nan detected
-    nonan = True
 
     if pars.has_key('logging') and pars['logging']:
         print "recording configuration file..."
@@ -33,32 +41,24 @@ def main( args ):
     else:
         logfile = None
 
-    #%% create and initialize the network
-    fnet = znetio.find_load_net( pars['train_net'], args['seed'] )
-    print "fnet: ", fnet
-    if fnet and os.path.exists(fnet):
-        net = znetio.load_network( pars, fnet )
-        # load existing learning curve
-        lc = zstatistics.CLearnCurve( pars, fnet )
+    # check the seed file
+    if args['seed']:
+        if not os.path.exists(args['seed']):
+            import warnings
+            warnings.warn("seed file not found! use train_net of configuration instead.")
+        else:
+            pars['seed'] = args['seed']
     else:
-        # initialize a new network
-        net = znetio.init_network( pars )
-        lc = zstatistics.CLearnCurve( pars )
-    # the last iteration we want to continue training
-    iter_last = lc.get_last_it()
+        pars['seed'] = None
+    return config, pars, logfile
 
-    # show field of view
-    print "field of view: ", net.get_fov()
+def main( args ):
+    config, pars, logfile = parse_args(args)
+    #%% create and initialize the network
+    net, lc = znetio.create_net(pars)
 
     # total voxel number of output volumes
     vn = utils.get_total_num(net.get_outputs_setsz())
-
-    # set some parameters
-    print 'setting up the network...'
-    eta = pars['eta']
-    net.set_eta( pars['eta'] )
-    net.set_momentum( pars['momentum'] )
-    net.set_weight_decay( pars['weight_decay'] )
 
     # initialize samples
     outsz = pars['train_outsz']
@@ -74,6 +74,7 @@ def main( args ):
         zcheck.check_gradient(pars, net, smp_trn)
 
     # initialization
+    eta = pars['eta']
     elapsed = 0
     err = 0.0 # cost energy
     cls = 0.0 # pixel classification error
@@ -89,6 +90,8 @@ def main( args ):
         malis_weights = None
 
     #Saving initialized network
+    # the last iteration we want to continue training
+    iter_last = lc.get_last_it()
     # get file name
     fname, fname_current = znetio.get_net_fname( pars['train_net'], iter_last )
     znetio.save_network(net, fname, pars['is_stdio'])
@@ -98,6 +101,9 @@ def main( args ):
     start = time.time()
     total_time = 0.0
     print "start from ", iter_last+1
+
+    # no nan detected
+    nonan = True
 
     for i in xrange(iter_last+1, pars['Max_iter']+1):
         # time cumulation
@@ -131,7 +137,7 @@ def main( args ):
 
         # gradient reweighting
         grdts = utils.dict_mul( grdts, msks  )
-        if pars['is_rebalance'] or pars['is_patch_rebalance']:
+        if pars['rebalance_mode']:
             grdts = utils.dict_mul( grdts, wmsks )
 
         if pars['is_malis'] :
@@ -225,24 +231,18 @@ if __name__ == '__main__':
     """
     usage
     ------
-    python train.py -c path/to/config.cfg -s path/to/seed/net.h5
+    python train.py -c path/to/config.cfg -s path/to/seed/net.h5 -k yes
     """
     import argparse
 
     parser = argparse.ArgumentParser(description="ZNN network training.")
     parser.add_argument("-c", "--config", required=True, \
-                        help="path of configuration file")
+                        help="path of configuration file.")
     parser.add_argument("-s", "--seed", \
-                        help="load an existing network as seed")
+                        help="load an existing network as seed.")
+    parser.add_argument("-k", "--is_check", default="none",\
+                        help = "do patch matching/gradient check or not. options: yes, no, none")
 
     # make the dictionary of arguments
     args = vars( parser.parse_args() )
-
-    if not os.path.exists( args['config'] ):
-        raise NameError("config file not exist!")
-
-    if args['seed'] and (not os.path.exists(args['seed'])):
-        import warnings
-        warnings.warn("seed file not found! use train_net of configuration instead.")
-
-    main(args)
+    main( args )

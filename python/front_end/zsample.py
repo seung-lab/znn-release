@@ -342,7 +342,7 @@ class CAffinitySample(CSample):
         self.xwps = dict()
         self.xwzs = dict()
 
-        if self.pars['is_rebalance'] or self.pars['is_patch_rebalance']:
+        if self.pars['rebalance_mode']:
             for k, aff in taffs.iteritems():
                 self.zwps[k], self.zwzs[k] = self._get_balance_weight_v1(aff[0,:,:,:])
                 self.ywps[k], self.ywzs[k] = self._get_balance_weight_v1(aff[1,:,:,:])
@@ -353,11 +353,9 @@ class CAffinitySample(CSample):
         """
         rebalance the affinity labeling with size of (3,Z,Y,X)
         """
-        if (not self.pars['is_patch_rebalance']) and \
-            (not self.pars['is_rebalance']):
-                return dict()
-
-        if self.pars['is_patch_rebalance']:
+        if self.pars['rebalance_mode'] is None:
+            return dict()
+        elif 'patch' in self.pars['rebalance_mode']:
             # recompute the weights
             self._prepare_rebalance_weights( subtaffs )
 
@@ -448,10 +446,10 @@ class CBoundarySample(CSample):
         weight = np.ones( sublbl.shape, dtype=self.pars['dtype'] )
 
         # recompute weight for patch rebalance
-        if self.pars['is_patch_rebalance']:
+        if 'patch' in self.pars['rebalance_mode']:
             wp, wz = self._get_balance_weight_v1( sublbl )
 
-        if self.pars['is_patch_rebalance'] or self.pars['is_rebalance']:
+        if self.pars['rebalance_mode']:
             weight[0,:,:,:][sublbl[0,:,:,:]> 0] = wp
             weight[0,:,:,:][sublbl[0,:,:,:]==0] = wz
 

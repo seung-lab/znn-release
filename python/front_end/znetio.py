@@ -8,6 +8,7 @@ import numpy as np
 import h5py
 import pyznn
 import os.path, shutil
+import zstatistics
 
 np_array_fields = ("filters","biases","size","stride")
 
@@ -107,6 +108,8 @@ def save_opts(opts, filename, is_stdio=False):
     f.close()
 
 def find_load_net( train_net, seed ):
+    if "none" == seed or "None"==seed:
+        return None
     if seed and os.path.exists(seed):
         fnet = seed
     else:
@@ -432,3 +435,26 @@ def init_network( params=None, train=True, network_specfile=None,
 
     return pyznn.CNet(_network_specfile, _output_patch_shape,
                     _num_threads, _optimize, phase, _force_fft)
+
+def create_net(pars):
+    fnet = find_load_net( pars['train_net'], pars['seed'] )
+    print "fnet: ", fnet
+    if fnet and os.path.exists(fnet):
+        net = load_network( pars, fnet )
+        # load existing learning curve
+        lc = zstatistics.CLearnCurve( pars, fnet )
+    else:
+        # initialize a new network
+        net = init_network( pars )
+        lc = zstatistics.CLearnCurve( pars )
+
+    # show field of view
+    print "field of view: ", net.get_fov()
+
+    # set some parameters
+    print 'setting up the network...'
+    net.set_eta( pars['eta'] )
+    net.set_momentum( pars['momentum'] )
+    net.set_weight_decay( pars['weight_decay'] )
+
+    return net, lc

@@ -145,12 +145,22 @@ def parser( conf_fname ):
     #Whether to use boundary mirroring
     pars['is_bd_mirror']= config.getboolean('parameters', 'is_bd_mirror')
     #Whether to use rebalanced training
-    pars['is_rebalance']= config.getboolean('parameters', 'is_rebalance')
+    if config.has_option('parameters', 'is_rebalance'):
+        if config.getboolean('parameters', 'is_rebalance'):
+            pars['rebalance_mode'] = 'global'
+        else:
+            pars['rebalance_mode'] = None
     # whether to use rebalance of output patch
     if config.has_option('parameters', 'is_patch_rebalance'):
-        pars['is_patch_rebalance'] = config.getboolean('parameters', 'is_patch_rebalance')
+        if config.getboolean('parameters', 'is_patch_rebalance'):
+            pars['rebalance_mode'] = 'patch'
+        else:
+            pars['rebalance_mode'] = None
+    if config.has_option('parameters', 'rebalance_mode'):
+        pars['rebalance_mode'] = config.get('parameters', 'rebalance_mode')
     else:
-        pars['is_patch_rebalance'] = False
+        pars['rebalance_mode'] = None
+
     #Whether to use malis cost
     if config.has_option('parameters', 'is_malis'):
         pars['is_malis'] = config.getboolean('parameters', 'is_malis')
@@ -269,7 +279,7 @@ def check_config(config, pars):
     assert(pars['weight_decay']>=0  and pars['weight_decay']<=1)
 
     # normally, we shoud not use two rebalance technique together
-    assert(not (pars['is_rebalance'] and pars['is_patch_rebalance']) )
+    assert ('global' in pars['rebalance_mode']) or ('patch' in pars['rebalance_mode']) or (pars['rebalance_mode'] is None)
 
     assert(pars['Num_iter_per_show']>0)
     assert(pars['Num_iter_per_test']>0)
