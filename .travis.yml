@@ -30,7 +30,7 @@ before_install:
         - conda install python=$TRAVIS_PYTHON_VERSION numpy
 
 install:
-        - sudo apt-get install -y libfftw3-dev libjemalloc-dev cmake
+        - sudo apt-get install -y libfftw3-dev cmake
         - sudo apt-get install -y python-numpy libboost-python-dev
         - sudo apt-get install -qq g++-4.8
 

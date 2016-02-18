@@ -20,7 +20,7 @@ def main( args ):
     config, pars = zconfig.parser( args["config"] )
 
     # random seed
-    if pars['is_debug']:
+    if pars['is_debug'] or pars['is_check']:
         # use fixed index
         np.random.seed(1)
     # no nan detected
@@ -66,6 +66,12 @@ def main( args ):
     smp_trn = zsample.CSamples(config, pars, pars['train_range'], net, outsz, logfile)
     print "\n\ncreate test samples..."
     smp_tst = zsample.CSamples(config, pars, pars['test_range'],  net, outsz, logfile)
+
+    if pars['is_check']:
+        import zcheck
+        zcheck.check_patch(pars, smp_trn)
+        # gradient check
+        zcheck.check_gradient(pars, net, smp_trn)
 
     # initialization
     elapsed = 0
@@ -210,6 +216,10 @@ def main( args ):
         grdts = utils.make_continuous(grdts)
         net.backward( grdts )
 
+        # stop the iteration at checking mode
+        if pars['is_check']:
+            print "only need one iteration for checking, stop program..."
+            break
 
 if __name__ == '__main__':
     """
