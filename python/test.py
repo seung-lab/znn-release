@@ -23,6 +23,7 @@ def _single_test(net, pars, sample):
     cerrs = utils.dict_mul( cerrs, msks )
 
     # apply rebalancing weights
+    ucost = utils.sum_over_dict( costs )
     costs = utils.dict_mul( costs, wmsks )
 
     # record keeping
@@ -40,7 +41,7 @@ def _single_test(net, pars, sample):
         mcd = utils.get_malis_cls( props, lbl_outs, malis_weights )
         malis_cls = mcd.values()[0]
 
-    return err, cls, re, malis_cls, num_mask_voxels
+    return err, cls, re, malis_cls, num_mask_voxels, ucost
 
 def znn_test(net, pars, samples, vn, it, lc):
     """
@@ -59,38 +60,42 @@ def znn_test(net, pars, samples, vn, it, lc):
     -------
     lc : updated learning curve
     """
-    err = 0.0
-    cls = 0.0
-    re  = 0.0
-    mc  = 0.0 # malis classification error
-    nmv = 0.0 # number of mask voxels
+    err   = 0.0
+    cls   = 0.0
+    re    = 0.0
+    mc    = 0.0 # malis classification error
+    nmv   = 0.0 # number of mask voxels
+    ucost = 0.0 # unbalanced cost
 
     net.set_phase(1)
 
     test_num = pars['test_num']
     for i in xrange( test_num ):
-        serr, scls, sre, smc, snmv = _single_test(net, pars, samples)
-        err += serr
-        cls += scls
-        re  += sre
-        mc  += smc
-        nmv += snmv
+        serr, scls, sre, smc, snmv, sucost = _single_test(net, pars, samples)
+        err   += serr
+        cls   += scls
+        re    += sre
+        mc    += smc
+        nmv   += snmv
+        ucost += sucost
 
     net.set_phase(0)
 
     # normalize
     if nmv > 0:
-        err = err / nmv
-        cls = cls / nmv
+        err   = err   / nmv
+        cls   = cls   / nmv
+        ucost = ucost / nmv
     else:
-        err = err / vn / test_num
-        cls = cls / vn / test_num
+        err   = err   / vn / test_num
+        cls   = cls   / vn / test_num
+        ucost = ucost / vn / test_num
 
     # rand error only need to be normalized by testing time
     re  = re  / test_num
     mc  = mc  / test_num
     # update the learning curve
-    lc.append_test( it, err, cls )
+    lc.append_test( it, err, cls, ucost )
     lc.append_test_rand_error( re )
     lc.append_test_malis_cls( mc )
     if pars['is_malis']:

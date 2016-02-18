@@ -10,6 +10,7 @@ import test
 import utils
 import zstatistics
 import os
+import numpy as np
 
 def main( conf_file='config.cfg', logfile=None ):
     #%% parameters
@@ -103,12 +104,11 @@ def main( conf_file='config.cfg', logfile=None ):
         cerrs = utils.dict_mul( cerrs, msks )
 
         # apply rebalancing weights
-        ucosts = np.copy( costs )
+        ucost += utils.sum_over_dict( costs )
         costs  = utils.dict_mul( costs, wmsks )
         grdts  = utils.dict_mul( grdts, wmsks )
 
         # record keeping
-        ucost += utils.sum_over_dict(ucosts)
         err += utils.sum_over_dict(costs)
         cls += utils.sum_over_dict(cerrs)
         num_mask_voxels += utils.sum_over_dict(msks)

@@ -69,6 +69,16 @@ class CLearnCurve:
             self.tn_mc = list()
         f.close()
 
+        # unbalanced cost
+        if '/test/ucost' in f:
+            self.tt_ucost = list( f['/test/ucost'].value )
+        else:
+            self.tt_ucost = list()
+        if '/train/ucost' in f:
+            self.tn_ucost = list( f['/train/ucost'].value )
+        else:
+            self.tn_ucost = list()
+
         # crop the values
         if iter_num is not None:
             self._crop_iters(iter_num)
@@ -80,9 +90,10 @@ class CLearnCurve:
         gen = (i for i,v in enumerate(self.tt_it) if v>iter_num)
         try:
             ind = next(gen)
-            self.tt_it  = self.tt_it[:ind]
-            self.tt_err = self.tt_err[:ind]
-            self.tt_cls = self.tt_cls[:ind]
+            self.tt_it    = self.tt_it[:ind]
+            self.tt_err   = self.tt_err[:ind]
+            self.tt_cls   = self.tt_cls[:ind]
+            self.tt_ucost = self.tt_ucost[:ind]
         except StopIteration:
             pass
 
@@ -90,9 +101,10 @@ class CLearnCurve:
         gen = (i for i,v in enumerate(self.tn_it) if v>iter_num)
         try:
             ind = next(gen)
-            self.tn_it  = self.tn_it[:ind]
-            self.tn_err = self.tn_err[:ind]
-            self.tn_cls = self.tn_cls[:ind]
+            self.tn_it    = self.tn_it[:ind]
+            self.tn_err   = self.tn_err[:ind]
+            self.tn_cls   = self.tn_cls[:ind]
+            self.tn_ucost = self.tn_ucost[:ind]
         except StopIteration:
             pass
 
