@@ -142,10 +142,7 @@ public:
 
     void setup() override
     {
-        if ( phase_ == phase::TEST )
-        {
-            use_global_stat_ = true;
-        }
+        use_global_stat_ = (phase_ == phase::TEST) ? true : false;
     }
 
     void forward( ccube_p<real> const & f ) override
