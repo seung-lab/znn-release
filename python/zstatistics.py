@@ -114,7 +114,7 @@ class CLearnCurve:
         self.tt_it.append(it)
         self.tt_err.append(err)
         self.tt_cls.append(cls)
-        if ucost not None:
+        if ucost is not None:
             self.tt_ucost.append(ucost)
 
     def append_train(self, it, err, cls, ucost=None):
@@ -122,7 +122,7 @@ class CLearnCurve:
         self.tn_it.append(it)
         self.tn_err.append(err)
         self.tn_cls.append(cls)
-        if ucost not None:
+        if ucost is not None:
             self.tn_ucost.append(ucost)
 
     def append_train_rand_error( self, re ):
