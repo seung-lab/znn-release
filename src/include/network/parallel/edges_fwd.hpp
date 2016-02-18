@@ -52,10 +52,6 @@ protected:
     vec3i                                  size_   ;
     task_manager &                         tm_     ;
 
-protected:
-    static std::map<std::string, std::vector<std::shared_ptr<filter>>>
-           shared_filter_pool;
-
 public:
     edges( nodes *, nodes *, options const &, vec3i const &, task_manager &,
            filter_tag );

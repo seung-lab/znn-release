@@ -17,6 +17,8 @@
 //
 #pragma once
 
+#include <zi/utility/singleton.hpp>
+
 #include "../types.hpp"
 #include "../cube/cube.hpp"
 #include "../cube/cube_operators.hpp"
@@ -36,6 +38,12 @@ protected:
 
     // for shared filter
     std::mutex  mutex_;
+
+public:
+    typedef std::map<std::string, std::vector<std::shared_ptr<filter>>>
+            pool_type;
+
+    static pool_type& shared_filters_pool;
 
 public:
     filter( const vec3i& s, real eta, real mom = 0.0, real wd = 0.0 )
@@ -111,5 +119,8 @@ public:
     }
 
 }; // class filter
+
+filter::pool_type& filter::shared_filters_pool =
+        zi::singleton<filter::pool_type>::instance();
 
 }} // namespace znn::v4

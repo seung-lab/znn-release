@@ -34,6 +34,12 @@ private:
     std::mutex   mutex_;
 
 public:
+    typedef std::map<std::string, std::vector<std::shared_ptr<bias>>>
+            pool_type;
+
+    static pool_type& shared_biases_pool;
+
+public:
     bias( real eta, real mom = 0.0, real wd = 0.0 )
         : b_(0), v_(0), eta_(eta), mom_(mom), wd_(wd)
     {
@@ -73,5 +79,8 @@ public:
     }
 
 }; // class bias
+
+bias::pool_type& bias::shared_biases_pool =
+        zi::singleton<bias::pool_type>::instance();
 
 }} // namespace znn::v4

@@ -87,35 +87,62 @@ public:
             real mom = op.optional_as<real>("momentum", 0.0);
             real wd  = op.optional_as<real>("weight_decay", 0.0);
 
-            for ( auto& b: biases_ )
+            // shared bias
+            bool need_init = true;
+            if ( op.contains("shared") )
             {
-                b = std::make_shared<bias>(eta, mom, wd);
-            }
-
-            std::string bias_values;
-
-            if ( op.contains("biases") )
-            {
-                bias_values = op.require_as<std::string>("biases");
-            }
-            else
-            {
-                real biases_raw[nodes::size()];
-                if ( op.contains("init") )
+                auto name = op.require_as<std::string>("shared");
+                if ( bias::shared_biases_pool.count(name) == 0 )
                 {
-                    auto initf = get_initializator(op);
-                    initf->initialize( biases_raw, nodes::size() );
+                    auto& shared = bias::shared_biases_pool[name];
+                    shared.resize(s);
+                    for ( auto& b: shared )
+                    {
+                        b = std::make_shared<bias>(eta, mom, wd);
+                    }
                 }
                 else
                 {
-                    std::fill_n(biases_raw, nodes::size(), 0);
+                    need_init = false;
                 }
-
-                bias_values = std::string( reinterpret_cast<char*>(biases_raw),
-                                           sizeof(real) * nodes::size() );
+                biases_ = bias::shared_biases_pool[name];
+            }
+            else
+            {
+                for ( auto& b: biases_ )
+                {
+                    b = std::make_shared<bias>(eta, mom, wd);
+                }
             }
 
-            load_biases(biases_, bias_values);
+            if ( need_init )
+            {
+                std::string bias_values;
+
+                if ( op.contains("biases") )
+                {
+                    bias_values = op.require_as<std::string>("biases");
+                }
+                else
+                {
+                    real biases_raw[nodes::size()];
+                    if ( op.contains("init") )
+                    {
+                        auto initf = get_initializator(op);
+                        initf->initialize( biases_raw, nodes::size() );
+                    }
+                    else
+                    {
+                        std::fill_n(biases_raw, nodes::size(), 0);
+                    }
+
+                    bias_values =
+                        std::string( reinterpret_cast<char*>(biases_raw),
+                                     sizeof(real) * nodes::size() );
+                }
+
+                load_biases(biases_, bias_values);
+            }
         }
         else
         {

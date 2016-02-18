@@ -39,9 +39,6 @@
 
 namespace znn { namespace v4 { namespace parallel_network {
 
-std::map<std::string, std::vector<std::shared_ptr<filter>>>
-edges::shared_filter_pool;
-
 // convolution
 inline edges::edges( nodes * in,
                      nodes * out,
@@ -71,19 +68,24 @@ inline edges::edges( nodes * in,
 
     // shared filter
     bool is_shared = false;
+    bool need_init = true;
     if ( opts.contains("shared") )
     {
         auto name = opts.require_as<std::string>("shared");
-        if ( shared_filter_pool.count(name) == 0 )
+        if ( filter::shared_filters_pool.count(name) == 0 )
         {
-            auto& shared = shared_filter_pool[name];
+            auto& shared = filter::shared_filters_pool[name];
             shared.resize(n*m);
             for ( size_t k = 0; k < n*m; ++k )
             {
                 shared[k] = std::make_shared<filter>(sz, eta, mom, wd);
             }
         }
-        filters_  = shared_filter_pool[name];
+        else
+        {
+            need_init = false;
+        }
+        filters_  = filter::shared_filters_pool[name];
         is_shared = true;
     }
     else
@@ -94,34 +96,39 @@ inline edges::edges( nodes * in,
         }
     }
 
-    std::string filter_values;
+    STRONG_ASSERT(is_shared||need_init);
 
-    if ( opts.contains("filters") )
+    if ( need_init )
     {
-        filter_values = opts.require_as<std::string>("filters");
+        std::string filter_values;
+
+        if ( opts.contains("filters") )
+        {
+            filter_values = opts.require_as<std::string>("filters");
+        }
+        else
+        {
+            size_t n_coeffs = size_[0]*size_[1]*size_[2];
+            size_t n_values = n*m*n_coeffs;
+            real * filters_raw = new real[n_values];
+
+            // additional information for initialization
+            // e.g. fan-in, fan-out
+            options info;
+            info.push("fan-in",n*n_coeffs);
+            info.push("fan-out",m*n_coeffs);
+
+            auto initf = get_initializator( opts, &info );
+
+            initf->initialize( filters_raw, n_values );
+
+            filter_values = std::string( reinterpret_cast<char*>(filters_raw),
+                                         sizeof(real) * n_values );
+            delete [] filters_raw;
+        }
+
+        load_filters(filters_, size_, filter_values);
     }
-    else
-    {
-        size_t n_coeffs = size_[0]*size_[1]*size_[2];
-        size_t n_values = n*m*n_coeffs;
-        real * filters_raw = new real[n_values];
-
-        // additional information for initialization
-        // e.g. fan-in, fan-out
-        options info;
-        info.push("fan-in",n*n_coeffs);
-        info.push("fan-out",m*n_coeffs);
-
-        auto initf = get_initializator( opts, &info );
-
-        initf->initialize( filters_raw, n_values );
-
-        filter_values = std::string( reinterpret_cast<char*>(filters_raw),
-                                     sizeof(real) * n_values );
-        delete [] filters_raw;
-    }
-
-    load_filters(filters_, size_, filter_values);
 
     int does_fft = options_.optional_as<int>("fft", "0");
     auto repeat  = options_.optional_as<ovec3i>("repeat", "1,1,1");
