@@ -326,7 +326,7 @@ public:
 class dummy_edges: public edges
 {
 private:
-    options                                    options_;
+    options                            options_;
     std::vector<std::unique_ptr<edge>> edges_  ;
 
 public:
@@ -360,7 +360,7 @@ public:
 class max_pooling_edges: public edges
 {
 private:
-    options                                    options_;
+    options                            options_;
     std::vector<std::unique_ptr<edge>> edges_  ;
 
 public:
@@ -398,7 +398,7 @@ public:
 class real_pooling_edges: public edges
 {
 private:
-    options                                    options_;
+    options                            options_;
     std::vector<std::unique_ptr<edge>> edges_  ;
 
 public:
@@ -437,10 +437,10 @@ public:
 class filter_edges: public edges
 {
 private:
-    options                                           options_;
-    std::vector<std::unique_ptr<filter>>              filters_;
+    options                                   options_;
+    std::vector<std::shared_ptr<filter>>      filters_;
     std::vector<std::unique_ptr<edge>>        edges_  ;
-    vec3i                                             size_   ;
+    vec3i                                     size_   ;
 
 public:
     filter_edges( nodes * in,
@@ -467,7 +467,7 @@ public:
 
         for ( size_t k = 0; k < n*m; ++k )
         {
-            filters_[k] = std::make_unique<filter>(sz, eta, mom, wd);
+            filters_[k] = std::make_shared<filter>(sz, eta, mom, wd);
         }
 
         std::string filter_values;
@@ -698,13 +698,13 @@ class transfer_nodes: public nodes
 {
 private:
     size_t                                  size_    ;
-    std::vector<std::unique_ptr<bias>>      biases_  ;
+    std::vector<std::shared_ptr<bias>>      biases_  ;
     transfer_function                       func_    ;
-    std::vector<std::vector<edge*>> inputs_  ;
-    std::vector<std::vector<edge*>> outputs_ ;
+    std::vector<std::vector<edge*>>         inputs_  ;
+    std::vector<std::vector<edge*>>         outputs_ ;
     std::vector<size_t>                     received_;
-    std::vector<cube_p<real>>             fs_      ;
-    std::vector<cube_p<real>>             gs_      ;
+    std::vector<cube_p<real>>               fs_      ;
+    std::vector<cube_p<real>>               gs_      ;
     options                                 options_ ;
 
 public:
@@ -729,7 +729,7 @@ public:
 
         for ( auto& b: biases_ )
         {
-            b = std::make_unique<bias>(eta, mom, wd);
+            b = std::make_shared<bias>(eta, mom, wd);
         }
 
         std::string bias_values;

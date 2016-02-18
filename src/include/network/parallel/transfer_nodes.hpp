@@ -32,7 +32,7 @@ namespace znn { namespace v4 { namespace parallel_network {
 class transfer_nodes: public nodes
 {
 private:
-    std::vector<std::unique_ptr<bias>>   biases_  ;
+    std::vector<std::shared_ptr<bias>>   biases_  ;
     transfer_function                    func_    ;
 
     dispatcher_group<concurrent_forward_dispatcher<edge,edge>>    fwd_dispatch_;
@@ -89,7 +89,7 @@ public:
 
             for ( auto& b: biases_ )
             {
-                b = std::make_unique<bias>(eta, mom, wd);
+                b = std::make_shared<bias>(eta, mom, wd);
             }
 
             std::string bias_values;

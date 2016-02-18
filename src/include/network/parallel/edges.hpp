@@ -39,6 +39,9 @@
 
 namespace znn { namespace v4 { namespace parallel_network {
 
+std::map<std::string, std::vector<std::shared_ptr<filter>>>
+edges::shared_filter_pool;
+
 // convolution
 inline edges::edges( nodes * in,
                      nodes * out,
@@ -66,9 +69,29 @@ inline edges::edges( nodes * in,
     // filter size
     size_ = sz;
 
-    for ( size_t k = 0; k < n*m; ++k )
+    // shared filter
+    bool is_shared = false;
+    if ( opts.contains("shared") )
     {
-        filters_[k] = std::make_unique<filter>(sz, eta, mom, wd);
+        auto name = opts.require_as<std::string>("shared");
+        if ( shared_filter_pool.count(name) == 0 )
+        {
+            auto& shared = shared_filter_pool[name];
+            shared.resize(n*m);
+            for ( size_t k = 0; k < n*m; ++k )
+            {
+                shared[k] = std::make_shared<filter>(sz, eta, mom, wd);
+            }
+        }
+        filters_  = shared_filter_pool[name];
+        is_shared = true;
+    }
+    else
+    {
+        for ( size_t k = 0; k < n*m; ++k )
+        {
+            filters_[k] = std::make_shared<filter>(sz, eta, mom, wd);
+        }
     }
 
     std::string filter_values;
@@ -115,13 +138,13 @@ inline edges::edges( nodes * in,
                 {
                     edges_[k]
                         = std::make_unique<fft_filter_edge>
-                        (in, i, out, j, tm_, stride, *filters_[k]);
+                        (in, i, out, j, tm_, stride, *filters_[k], is_shared);
                 }
                 else
                 {
                     edges_[k]
                         = std::make_unique<filter_edge>
-                        (in, i, out, j, tm_, stride, *filters_[k]);
+                        (in, i, out, j, tm_, stride, *filters_[k], is_shared);
                 }
             }
             else
@@ -130,13 +153,15 @@ inline edges::edges( nodes * in,
                 {
                     edges_[k]
                         = std::make_unique<fft_filter_ds_edge>
-                        (in, i, out, j, tm_, stride, repeat, *filters_[k]);
+                        (in, i, out, j, tm_, stride, repeat, *filters_[k],
+                            is_shared);
                 }
                 else
                 {
                     edges_[k]
                         = std::make_unique<filter_ds_edge>
-                        (in, i, out, j, tm_, stride, repeat, *filters_[k]);
+                        (in, i, out, j, tm_, stride, repeat, *filters_[k],
+                            is_shared);
                 }
             }
         }
@@ -397,7 +422,7 @@ inline edges::edges( nodes * in,
 
     for ( size_t i = 0; i < n; ++i )
     {
-        filters_[i] = std::make_unique<filter>(sz,0,0,0);
+        filters_[i] = std::make_shared<filter>(sz,0,0,0);
     }
 
     std::string filter_values;
@@ -453,7 +478,7 @@ inline edges::edges( nodes * in,
 
     for ( size_t i = 0; i < n; ++i )
     {
-        filters_[i] = std::make_unique<filter>(sz, eta, mom, wd);
+        filters_[i] = std::make_shared<filter>(sz, eta, mom, wd);
     }
 
     std::string filter_values;

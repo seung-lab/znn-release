@@ -48,9 +48,13 @@ protected:
     options                                options_;
     waiter                                 waiter_ ;
     std::vector<std::unique_ptr<edge>>     edges_  ;
-    std::vector<std::unique_ptr<filter>>   filters_;
+    std::vector<std::shared_ptr<filter>>   filters_;
     vec3i                                  size_   ;
     task_manager &                         tm_     ;
+
+protected:
+    static std::map<std::string, std::vector<std::shared_ptr<filter>>>
+           shared_filter_pool;
 
 public:
     edges( nodes *, nodes *, options const &, vec3i const &, task_manager &,
