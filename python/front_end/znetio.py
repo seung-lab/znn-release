@@ -70,7 +70,7 @@ def save_opts(opts, filename):
 
     f.close()
 
-def find_load_net( train_net, seed ):
+def find_load_net( train_net, seed=None ):
     if seed and os.path.exists(seed):
         fnet = seed
     else:
@@ -86,7 +86,7 @@ def get_current( filename ):
     filename_current = "{}{}{}".format(root, '_current', ext)
     return filename_current
 
-def save_network(network, filename, num_iters=None):
+def save_network(network, filename, num_iters=None, suffix=None):
     '''Saves a network under an h5 file. Appends the number
     of iterations if passed, and updates a "current" file with
     the most recent (uncorrupted) information'''
@@ -98,9 +98,13 @@ def save_network(network, filename, num_iters=None):
 
     filename_current = get_current(filename)
 
+    if suffix is not None:
+        root, ext = os.path.splitext(filename)
+        filename = "{}_{}{}".format(root, suffix, ext)
+
     if num_iters is not None:
         root, ext = os.path.splitext(filename)
-        filename = "{}{}{}{}".format(root, '_', num_iters, ext)
+        filename = "{}_{}{}".format(root, num_iters, ext)
 
     print "save as ", filename
     save_opts(network.get_opts(), filename)
@@ -190,6 +194,7 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
     #Makes a dictionary mapping group names to filter/bias arrays
     # (along with the respective key: 'filters' or 'biases')
     src_params = {}
+    src_ffts = {}
     #0=node, 1=edge
     print "defining initial dict"
     for group_type in range(len(source_opts)):
@@ -199,6 +204,10 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
                 src_params[opt_dict['name']] = ('biases',opt_dict['biases'])
             elif opt_dict.has_key('filters'):
                 src_params[opt_dict['name']] = ('filters',opt_dict['filters'])
+
+            # optimized FFT
+            if opt_dict.has_key('fft'):
+                src_ffts[opt_dict['name']] = ('fft',opt_dict['fft'])
 
     print "performing consolidation"
     source_names = src_params.keys()
@@ -217,6 +226,11 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
                 #should only be one copy of the layer to load,
                 # and this allows for warning messages below
                 del src_params[ opt_dict['name'] ]
+
+            # optimized FFT
+            if opt_dict['name'] in src_ffts.keys():
+                key, val = src_ffts[opt_dict['name']]
+                opt_dict[key] = val
 
     layers_not_copied = src_params.keys()
     if len(layers_not_copied) != 0:
@@ -300,7 +314,7 @@ def load_network( params=None, train=True, hdf5_filename=None,
         final_options = consolidate_opts(load_options, template_options, params)
 
     else:
-        print _hdf5filename, " do not exist, initialize a new network..."
+        print _hdf5_filename, " do not exist, initialize a new network..."
         final_options = template.get_opts()
         del template
 

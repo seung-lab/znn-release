@@ -71,10 +71,9 @@ def main( args ):
     total_time = 0.0
     print "start from ", iter_last+1
 
-    #Saving initialized network
-    if iter_last+1 == 1:
-        znetio.save_network(net, pars['train_net'], num_iters=0)
-        lc.save( pars, 0.0 )
+    #Saving initial/seeded network
+    znetio.save_network(net, pars['train_net'], num_iters=iter_last, suffix="init")
+    lc.save( pars, 0.0, suffix="init_iter{}".format(iter_last) )
 
     for i in xrange(iter_last+1, pars['Max_iter']+1):
         # get random sub volume from sample
