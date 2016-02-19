@@ -279,7 +279,7 @@ def check_config(config, pars):
     assert(pars['weight_decay']>=0  and pars['weight_decay']<=1)
 
     # normally, we shoud not use two rebalance technique together
-    assert ('global' in pars['rebalance_mode']) or ('patch' in pars['rebalance_mode']) or (pars['rebalance_mode'] is None)
+    assert (pars['rebalance_mode'] is None) or ('global' in pars['rebalance_mode']) or ('patch' in pars['rebalance_mode'])
 
     assert(pars['Num_iter_per_show']>0)
     assert(pars['Num_iter_per_test']>0)

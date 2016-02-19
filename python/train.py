@@ -24,10 +24,21 @@ def parse_args(args):
         config, pars = zconfig.parser( args["config"] )
 
     # overwrite the config file parameters from command line
-    if "yes" == args["is_check"]:
-        pars["is_check"] = True
-    elif "no" == args["is_check"]:
-        pars["is_check"] = False
+    if args["is_check"]:
+        if "yes" == args["is_check"]:
+            pars["is_check"] = True
+        elif "no" == args["is_check"]:
+            pars["is_check"] = False
+        else:
+            raise NameError("invalid checking option in command line")
+    # data type
+    if args["dtype"]:
+        if "single" in args["dtype"] or "float32" in args["dtype"]:
+            pars["dtype"] = "float32"
+        elif "double" in args["dtype"] or "float64" in args["dtype"]:
+            pars["dtype"] = "float64"
+        else:
+            raise NameError("invalid data type defined in command line.")
 
     # random seed
     if pars['is_debug'] or pars['is_check']:
@@ -70,8 +81,8 @@ def main( args ):
     if pars['is_check']:
         import zcheck
         zcheck.check_patch(pars, smp_trn)
-        # gradient check
-        zcheck.check_gradient(pars, net, smp_trn)
+        # gradient check is not working now.
+        # zcheck.check_gradient(pars, net, smp_trn)
 
     # initialization
     eta = pars['eta']
@@ -240,8 +251,10 @@ if __name__ == '__main__':
                         help="path of configuration file.")
     parser.add_argument("-s", "--seed", \
                         help="load an existing network as seed.")
-    parser.add_argument("-k", "--is_check", default="none",\
+    parser.add_argument("-k", "--is_check", default=None,\
                         help = "do patch matching/gradient check or not. options: yes, no, none")
+    parser.add_argument("-d", "--dtype", default=None, \
+                        help = "data type. options: float32, float64, single, double")
 
     # make the dictionary of arguments
     args = vars( parser.parse_args() )

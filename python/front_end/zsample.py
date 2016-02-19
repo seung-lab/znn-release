@@ -284,7 +284,7 @@ class CAffinitySample(CSample):
         aff_size = np.asarray(lbl.shape)-1
         aff_size[0] = 3
 
-        aff = np.zeros( tuple(aff_size) , dtype=lbl.dtype  )
+        aff = np.zeros( tuple(aff_size) , dtype=self.pars['dtype'] )
 
         #x-affinity
         aff[0,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,:-1, 1:  ,1: ]) & (lbl[0,1:,1:,1:]>0)
@@ -446,7 +446,7 @@ class CBoundarySample(CSample):
         weight = np.ones( sublbl.shape, dtype=self.pars['dtype'] )
 
         # recompute weight for patch rebalance
-        if 'patch' in self.pars['rebalance_mode']:
+        if self.pars['rebalance_mode'] and 'patch' in self.pars['rebalance_mode']:
             wp, wz = self._get_balance_weight_v1( sublbl )
 
         if self.pars['rebalance_mode']:

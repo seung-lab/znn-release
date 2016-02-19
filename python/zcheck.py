@@ -8,10 +8,13 @@ import numpy as np
 import utils
 import emirt
 
-def check_gradient(pars, net, smp, h=0.001):
+def check_gradient(pars, net, smp, h=0.00001):
     """
     gradient check method:
     http://cs231n.github.io/neural-networks-3/
+
+    Note that this function is currently not working!
+    We should get the gradient from the C++ core, which is not implemented yet.
     """
     # get random sub volume from sample
     vol_ins, lbl_outs, msks, wmsks = smp.get_random_sample()
@@ -19,18 +22,19 @@ def check_gradient(pars, net, smp, h=0.001):
     # numerical gradient
     # apply the transformations in memory rather than array view
     vol_ins = utils.make_continuous(vol_ins)
-    props = net.forward( vol_ins )
-    props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
-
     # shift the input to compute the analytical gradient
     vol_ins1 = dict()
     vol_ins2 = dict()
     for key, val in vol_ins.iteritems():
         vol_ins1[key] = val - h
         vol_ins2[key] = val + h
-
+        assert np.any(vol_ins1[key]!=vol_ins2[key])
+    props = net.forward( vol_ins )
     props1 = net.forward( vol_ins1 )
     props2 = net.forward( vol_ins2 )
+    import copy
+    props_tmp, cerr, grdts = pars['cost_fn']( copy.deepcopy(props), lbl_outs, msks )
+
     # compute the analytical gradient
     for key, g in grdts.iteritems():
         lbl = lbl_outs[key]
@@ -39,15 +43,23 @@ def check_gradient(pars, net, smp, h=0.001):
         prop2 = props2[key]
         ag = (prop2 - prop1)/ (2 * h)
         error = g-ag
-        # check the error range
-        print "gradient error: ", error
 
-        com = emirt.show.CompareVol((prop[0,...], prop1[0,...], prop2[0,...], g[0,...], ag[0,...]))
+        # label value
+        print "ground truth label: ", lbl[0,...]
+        print "forward output: ", prop[0,...]
+        print "forward output - h: ", prop1[0,...]
+        print "forward output + h: ", prop2[0,...]
+        print "numerical gradient: ", g[0,...]
+        print "analytical gradient: ", ag[0,...]
+        # check the error range
+        print "gradient error: ", error[0,...]
+
+        com = emirt.show.CompareVol((lbl[0,...], prop[0,...], prop1[0,...], prop2[0,...], g[0,...], ag[0,...]))
         com.vol_compare_slice()
 
         # check the relative error
         rle = np.abs(ag-g) / (np.maximum(np.abs(ag),np.abs(g)))
-        print "relative gradient error: ", rle
+        print "relative gradient error: ", rle[0,...]
         assert error.max < 10*h*h
         assert rle.max() < 0.01
 
@@ -59,16 +71,22 @@ def check_dict_all_zero( d ):
     return False
 
 def check_patch(pars, smp):
+    print "check patch matching..."
     # get random sub volume from sample
     vol_ins, lbl_outs, msks, wmsks = smp.get_random_sample()
 
     # check the image with ground truth
     fdir = os.path.dirname(pars['train_net'])
-    fname = fdir + "/gtruth/net_1.h5"
+    if "float32" in pars['dtype']:
+        fname = fdir + "/gtruth/net_1_single.h5"
+    elif "float64" in pars['dtype']:
+        fname = fdir + "/gtruth/net_1_double.h5"
+    else:
+        raise NameError("invalid data type.")
     if os.path.exists(fname):
         import h5py
         f = h5py.File(fname)
-        print "find and check using "+ fname
+        print "find existing patch: "+ fname
         stdpre = "/processing/znn/train/patch/"
         for key,val in vol_ins.iteritems():
             ref = f[stdpre+"inputs/"+key]

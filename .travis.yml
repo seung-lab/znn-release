@@ -43,8 +43,16 @@ script:
        - make --jobs=3 --keep-going
        - make clean
        # make python core
-       - cd python/core/; make --jobs=3 --keep-going
-       - cd ../../
+       - cd python/core/; make --jobs=3 --keep-going; cd ../../
+
+       # check patch using single precision, this check will create the net_current.h5 file for testing loading
+       - cd python; python train.py -c ../testsuit/boundary/config.cfg -d single -k yes; cd ..
+       # second check to test the network loading
+       - cd python; python train.py -c ../testsuit/boundary/config.cfg -d single -k yes; cd ..
+       # check the double precision
+       # compile the core with double precision
+       - cd python/core; make double -j 4; cd ../..
+       - cd python; python train.py -c ../testsuit/boundary/config.cfg -d double -k yes; cd ..
 
 notifications:
         email: false

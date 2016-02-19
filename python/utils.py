@@ -293,7 +293,7 @@ def inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
         if pars['is_malis'] and pars['is_stdio']:
             for key, val in malis_weights.iteritems():
                 h5write( filename, stdpre + "malis_weights/", val )
-        if pars['is_rebalance'] or pars['is_patch_rebalance']:
+        if pars['rebalance_mode']:
             for key, val in wmsks.iteritems():
                 h5write( filename, stdpre + "weights/", val )
 
