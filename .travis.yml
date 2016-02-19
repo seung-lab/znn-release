@@ -36,7 +36,10 @@ install:
 
         # install Boost.Numpy for python interface
         - cd python; git clone https://github.com/ndarray/Boost.NumPy.git
-        - cd Boost.NumPy; cmake ./; make -j 8; sudo make install; cd ../../
+        - cd Boost.NumPy; cmake ./
+        - make -j 8
+        - sudo make install
+        - cd ../../
 
 script:
         # make znn binary
@@ -53,8 +56,11 @@ script:
        # check the double precision
        # compile the core with double precision
        - cd core; make double -j 4
+       # return to `python`
        - cd ..
-       - python train.py -c ../testsuit/boundary/config.cfg -d double -k yes; cd ..
+       - python train.py -c ../testsuit/boundary/config.cfg -d double -k yes
+       # return to root directory
+       - cd ..
 
 notifications:
         email: false
