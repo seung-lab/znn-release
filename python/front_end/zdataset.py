@@ -64,9 +64,7 @@ class CDataset(object):
 
     def _check_patch_bounds(self):
         if self.patch_bounds is None:
-            print "Calculating patch bounds..."
             self._calculate_patch_bounds()
-            print "Done"
 
     def _calculate_patch_bounds(self, output_patch_shape=None, overwrite=True):
         '''
