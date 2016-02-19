@@ -125,10 +125,7 @@ def get_current( filename ):
     filename_current = "{}{}{}".format(root, '_current', ext)
     return filename_current
 
-def save_network(network, filename, num_iters=None, suffix=None):
-    '''Saves a network under an h5 file. Appends the number
-    of iterations if passed, and updates a "current" file with
-    the most recent (uncorrupted) information'''
+def get_net_fname(filename, num_iters=None, suffix=None):
     # get directory name from file name
     archive_directory_name = os.path.dirname( filename )
     if not os.path.exists(archive_directory_name) and archive_directory_name != '':
@@ -145,11 +142,12 @@ def save_network(network, filename, num_iters=None, suffix=None):
         filename = "{}_{}{}".format(root, num_iters, ext)
     return filename, filename_current
 
-def save_network(network, filename, is_stdio=False):
+def save_network(network, filename, num_iters=None, suffix=None, is_stdio=False):
     '''Saves a network under an h5 file. Appends the number
     of iterations if passed, and updates a "current" file with
     the most recent (uncorrupted) information'''
 
+    filename, filename_current = get_net_fname(filename, num_iters, suffix)
     print "save as ", filename
     if os.path.exists(filename):
         os.remove(filename)
