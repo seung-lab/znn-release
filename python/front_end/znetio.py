@@ -1,4 +1,3 @@
-
 # prepare path for core
 import sys
 sys.path.append("../python/core/")
@@ -71,25 +70,41 @@ def save_opts(opts, filename):
 
     f.close()
 
-def save_network(network, filename, num_iters=None):
+def find_load_net( train_net, seed=None ):
+    if seed and os.path.exists(seed):
+        fnet = seed
+    else:
+        fnet = get_current( train_net )
+    # check whether fnet exists
+    if not os.path.exists(fnet):
+        return None
+    else:
+        return fnet
+
+def get_current( filename ):
+    root, ext = os.path.splitext(filename)
+    filename_current = "{}{}{}".format(root, '_current', ext)
+    return filename_current
+
+def save_network(network, filename, num_iters=None, suffix=None):
     '''Saves a network under an h5 file. Appends the number
     of iterations if passed, and updates a "current" file with
     the most recent (uncorrupted) information'''
-
     # get directory name from file name
     archive_directory_name = os.path.dirname( filename )
 #    filename = os.path.basename( filename )
     if not os.path.exists(archive_directory_name) and archive_directory_name != '':
         os.mkdir(archive_directory_name)
 
-#    filename = "{}/{}".format(archive_directory_name, filename)
+    filename_current = get_current(filename)
 
-    root, ext = os.path.splitext(filename)
-
-    filename_current = "{}{}{}".format(root, '_current', ext)
+    if suffix is not None:
+        root, ext = os.path.splitext(filename)
+        filename = "{}_{}{}".format(root, suffix, ext)
 
     if num_iters is not None:
-        filename = "{}{}{}{}".format(root, '_', num_iters, ext)
+        root, ext = os.path.splitext(filename)
+        filename = "{}_{}{}".format(root, num_iters, ext)
 
     print "save as ", filename
     save_opts(network.get_opts(), filename)
@@ -170,7 +185,7 @@ def load_opts(filename):
 
     return (node_opts, edge_opts)
 
-def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=False):
+def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
     '''
     Takes two option structures, and implants the filters and biases
     from the source struct to the dest version based on node/edge group name
@@ -179,6 +194,7 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=F
     #Makes a dictionary mapping group names to filter/bias arrays
     # (along with the respective key: 'filters' or 'biases')
     src_params = {}
+    src_ffts = {}
     #0=node, 1=edge
     print "defining initial dict"
     for group_type in range(len(source_opts)):
@@ -189,13 +205,17 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=F
             elif opt_dict.has_key('filters'):
                 src_params[opt_dict['name']] = ('filters',opt_dict['filters'])
 
+            # optimized FFT
+            if opt_dict.has_key('fft'):
+                src_ffts[opt_dict['name']] = ('fft',opt_dict['fft'])
+
     print "performing consolidation"
     source_names = src_params.keys()
     #Loops through group names for dest, replaces filter/bias values with source
     for group_type in range(len(dest_opts)):
         for opt_dict in dest_opts[group_type]:
 
-            if is_seed and opt_dict.has_key('seeding') and (opt_dict['seeding'] == "0"):
+            if opt_dict.has_key('seeding') and (opt_dict['seeding'] == "0"):
                 continue
 
             if opt_dict['name'] in source_names:
@@ -207,6 +227,11 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=F
                 # and this allows for warning messages below
                 del src_params[ opt_dict['name'] ]
 
+            # optimized FFT
+            if opt_dict['name'] in src_ffts.keys():
+                key, val = src_ffts[opt_dict['name']]
+                opt_dict[key] = val
+
     layers_not_copied = src_params.keys()
     if len(layers_not_copied) != 0:
         print "WARNING: layer(s) {} not copied!".format(layers_not_copied)
@@ -214,7 +239,7 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=F
     return dest_opts
 
 
-def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
+def load_network( params=None, train=True, hdf5_filename=None,
     network_specfile=None, output_patch_shape=None, num_threads=None,
     optimize=None, force_fft=None ):
     '''
@@ -232,7 +257,7 @@ def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
 
     #"ALL" optional args excludes train (it has a default)
     assert_arglist(params,
-        [is_seed, hdf5_filename, network_specfile, output_patch_shape,
+        [ hdf5_filename, network_specfile, output_patch_shape,
         num_threads, optimize, force_fft])
 
     #Defining phase argument by train argument
@@ -242,7 +267,7 @@ def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
     if params_defined:
 
         if train:
-            _hdf5_filename = params['train_load_net']
+            _hdf5_filename = get_current( params['train_net'] )
             _output_patch_shape = params['train_outsz']
             _optimize = params['is_train_optimize']
         else:
@@ -278,6 +303,7 @@ def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
                 _num_threads, False, False )
 
     #If the file doesn't exist, init a new network
+    print "try to load network file: ", _hdf5_filename
     if os.path.isfile( _hdf5_filename ):
 
         load_options = load_opts(_hdf5_filename)
@@ -285,9 +311,10 @@ def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
         del template
 
         print "consolidating options..."
-        final_options = consolidate_opts(load_options, template_options, params, is_seed)
+        final_options = consolidate_opts(load_options, template_options, params)
 
     else:
+        print _hdf5_filename, " do not exist, initialize a new network..."
         final_options = template.get_opts()
         del template
 

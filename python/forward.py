@@ -29,13 +29,10 @@ Main Outputs:
 Nicholas Turner <nturner@cs.princeton.edu>
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
-#TODO- Better argument handling
-
 import numpy as np
-
+import os
 from front_end import *
 import utils
-
 from emirt import emio
 
 #CONSTANTS
@@ -45,7 +42,7 @@ range_optionname = 'forward_range'
 outsz_optionname = 'forward_outsz'
 
 
-def config_forward_pass( config, params, verbose=True, sample_ids=None ):
+def config_forward_pass( config, params, fnet=None, verbose=True, sample_ids=None ):
     '''
     Performs a full forward pass for all samples specified within
     a configuration file
@@ -57,7 +54,7 @@ def config_forward_pass( config, params, verbose=True, sample_ids=None ):
         params[range_optionname] = sample_ids
 
     # load network
-    net = znetio.load_network( params, train=False )
+    net = znetio.load_network( params, train=False, hdf5_filename=fnet )
     output_patch_shape = params[outsz_optionname]
     sample_outputs = {}
     #Loop over sample range
@@ -71,8 +68,7 @@ def config_forward_pass( config, params, verbose=True, sample_ids=None ):
                                   outsz = output_patch_shape, is_forward=True )
 
         sample_outputs[sample] = generate_full_output(Dataset, net,
-						      params, params['dtype'],
-                                                      verbose=True)
+						      params, params['dtype'], verbose=True)
 
         # softmax if using softmax_loss
         if 'softmax' in params['cost_fn_str']:
@@ -185,19 +181,21 @@ def save_sample_outputs(sample_outputs, prefix):
                 emio.imsave(dataset.data[i,:,:,:],\
                     "{}_sample{}_{}_{}.tif".format(prefix, sample_num, dataset_name, i))
 
-def main( config_filename, sample_ids=None ):
+def main( args ):
     '''
     Script functionality - runs config_forward_pass and saves the
     output volumes
     '''
-    config, params = zconfig.parser( config_filename )
+    config, params = zconfig.parser( args['config'] )
 
+    from front_end.zconfig import parseIntSet
+    sample_ids = parseIntSet( args['range'] )
     if sample_ids is None:
     	sample_ids = params[range_optionname]
 
     for sample_id in sample_ids:
 
-    	output_volume = config_forward_pass( config, params, verbose=True, sample_ids=[sample_id])
+    	output_volume = config_forward_pass( config, params, fnet=args['net'], verbose=True, sample_ids=[sample_id])
 
     	print "Saving Output Volume %d..." % sample_id
     	save_sample_outputs( output_volume, params[output_prefix_optionname] )
@@ -206,14 +204,24 @@ if __name__ == '__main__':
     """
     usage
     ----
-    python forward.py path/of/config.cfg forward_range
+    python forward.py -c path/of/config.cfg -r forward_range
     forward_range: the sample ids, such as 1-3,5
     """
-    from sys import argv
-    if len(argv)==2:
-        main( argv[1] )
-    elif len(argv) > 2:
-        sample_ids = zconfig.parseIntSet(argv[2])
-        main( argv[1], sample_ids )
-    else:
-        main('config.cfg')
+    import argparse
+    parser = argparse.ArgumentParser(description="ZNN forward pass.")
+    parser.add_argument("-c", "--config", required=True, \
+                        help="path of configuration file")
+    parser.add_argument("-n", "--net", \
+                        help="network path")
+    parser.add_argument("-r", "--range", help="sample id range, et.al 1-3,5")
+
+    # make the dictionary of arguments
+    args = vars( parser.parse_args() )
+
+    if not os.path.exists( args['config'] ):
+        raise NameError("config file not exist!")
+    if not args['net']:
+        if os.path.exists( args['net'] ):
+            raise NameError( "net file do not exist!")
+
+    main( args )
