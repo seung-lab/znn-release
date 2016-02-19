@@ -40,8 +40,7 @@ install:
         - make -j 8
         - sudo make install
         - cd ../../
-        # copy boost library directly to `core` folder to fix import pyznn problem
-        - cp /usr/local/lib/libboost_numpy.so python/
+        - export LD_LIBRARY_PATH=LD_LIBRARY:"/usr/local/lib"
 
 script:
         # make znn binary
