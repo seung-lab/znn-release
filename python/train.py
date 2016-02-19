@@ -109,8 +109,10 @@ def main( args ):
     print "start from ", iter_last+1
 
     #Saving initial/seeded network
-    znetio.save_network(net, pars['train_net'], num_iters=iter_last, suffix="init")
-    lc.save( pars, 0.0, suffix="init_iter{}".format(iter_last) )
+    # get file name
+    fname, fname_current = znetio.get_net_fname( pars['train_net'], iter_last, suffix="init" )
+    znetio.save_network(net, fname, pars['is_stdio'])
+    lc.save( pars, fname, elapsed=0.0, suffix="init_iter{}".format(iter_last) )
     # no nan detected
     nonan = True
 
