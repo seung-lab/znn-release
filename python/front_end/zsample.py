@@ -352,9 +352,10 @@ class CAffinitySample(CSample):
 
                 msk = tmsks[k] if tmsks[k].size != 0 else np.zeros((3,0,0,0))
 
-                self.zwps[k], self.zwzs[k] = self._get_balance_weight_v1(aff[0,:,:,:])
-                self.ywps[k], self.ywzs[k] = self._get_balance_weight_v1(aff[1,:,:,:])
-                self.xwps[k], self.xwzs[k] = self._get_balance_weight_v1(aff[2,:,:,:])
+                self.zwps[k], self.zwzs[k] = self._get_balance_weight_v1(aff[0,:,:,:], msk[0,:,:,:])
+                self.ywps[k], self.ywzs[k] = self._get_balance_weight_v1(aff[1,:,:,:], msk[1,:,:,:])
+                self.xwps[k], self.xwzs[k] = self._get_balance_weight_v1(aff[2,:,:,:], msk[2,:,:,:])
+                
         return
 
     def _rebalance_aff(self, subtaffs, submsks):
