@@ -317,22 +317,15 @@ class CAffinitySample(CSample):
         C,Z,Y,X = msk.shape
         ret = np.zeros((3, Z-1, Y-1, X-1), dtype=self.pars['dtype'])
 
-        for z in xrange(Z-1):
-            for y in xrange(Y-1):
-                for x in xrange(X-1):
-                    #Current affinity convention
-                    if msk[0,z+1,y+1,x+1]>0:
-                        ret[:,z,y,x] = 1
+        #Z mask
+        ret[0,:,:,:] = (msk[0,1:,1:,1:]>0) | (msk[0,:-1,1:,1:]>0)
+        #Y mask
+        ret[1,:,:,:] = (msk[0,1:,1:,1:]>0) | (msk[0,1:,:-1,1:]>0)
+        #X mask
+        ret[2,:,:,:] = (msk[0,1:,1:,1:]>0) | (msk[0,1:,1:,:-1]>0)
 
-                    if msk[0,z,y+1,x+1]>0:
-                        ret[0,z,y,x] = 1
-
-                    if msk[0,z+1,y,x+1]>0:
-                        ret[1,z,y,x] = 1
-
-                    if msk[0,z+1,y+1,x]>0:
-                        ret[2,z,y,x] = 1
         return ret
+
 
     def _prepare_rebalance_weights(self, taffs, tmsks):
         """
