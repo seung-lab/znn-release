@@ -68,15 +68,15 @@ def main( args ):
     #%% create and initialize the network
     net, lc = znetio.create_net(pars)
 
-    # total voxel number of output volumes
+    # total voxel number of output volume voxels
     vn = utils.get_total_num(net.get_outputs_setsz())
 
     # initialize samples
     outsz = pars['train_outsz']
     print "\n\ncreate train samples..."
-    smp_trn = zsample_thr.CThreadedSamples_S3(config, pars, pars['train_range'], net, outsz, logfile)
+    smp_trn = pars['data_provider'](config, pars, pars['train_range'], net, outsz, logfile)
     print "\n\ncreate test samples..."
-    smp_tst = zsample_thr.CThreadedSamples_S3(config, pars, pars['test_range'],  net, outsz, logfile)
+    smp_tst = pars['data_provider'](config, pars, pars['test_range'],  net, outsz, logfile)
 
     if pars['is_check']:
         import zcheck
@@ -132,7 +132,7 @@ def main( args ):
         # cost function and accumulate errors
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
         err += cerr
-        cls += cost_fn.get_cls(props, lbl_outs)
+        cls += cost_fn.get_cls( props, lbl_outs, msks )
         # compute rand error
         if pars['is_debug']:
             assert not np.all(lbl_outs.values()[0]==0)
@@ -149,7 +149,6 @@ def main( args ):
             nonan = nonan and utils.check_dict_nan(grdts)
 
         # gradient reweighting
-        grdts = utils.dict_mul( grdts, msks  )
         if pars['rebalance_mode']:
             grdts = utils.dict_mul( grdts, wmsks )
 
@@ -182,10 +181,11 @@ def main( args ):
                 err = err / vn / pars['Num_iter_per_show']
                 cls = cls / vn / pars['Num_iter_per_show']
             else:
-                err = err / num_mask_voxels / pars['Num_iter_per_show']
-                cls = cls / num_mask_voxels / pars['Num_iter_per_show']
+                err = err / num_mask_voxels
+                cls = cls / num_mask_voxels
             re = re / pars['Num_iter_per_show']
-            lc.append_train(i, err, cls, re)
+
+            lc.append_train(i, err, cls)
 
             if pars['is_malis']:
                 malis_cls = malis_cls / pars['Num_iter_per_show']
@@ -230,12 +230,6 @@ def main( args ):
                              grdts, malis_weights, wmsks, elapsed, i)
             # stop training
             return
-
-        if (pars.has_key('Num_iter_per_dset_swap') 
-            and 
-            i%pars['Num_iter_per_dset_swap'] == 0):
-            smp_trn.swap_samples()
-            print "Active sample: %s" % smp_trn.get_active_sample_id()
 
         if (pars.has_key('Num_iter_per_dset_swap') 
             and 

@@ -205,13 +205,26 @@ def get_vox_num( d ):
         n = n + arr.shape[0]*arr.shape[1]*arr.shape[2]*arr.shape[3]
     return n
 
-def get_total_num(outputs):
+def get_total_num(net_outputs):
     """
+    Takes an output size dict, and returns the total number
+    of expected voxels
     """
     n = 0
-    for name, sz in outputs.iteritems():
+    for name, sz in net_outputs.iteritems():
         n = n + np.prod(sz)
     return n
+
+def get_total_num_mask(masks, props=None):
+    '''Returns the total number of active voxels in a forward pass'''
+    s = 0
+    for name, mask in masks.iteritems():
+        #full mask corresponds to empty array
+        if mask.size == 0 and props is not None:
+            s += props[name].size
+        else:
+            s += mask.sum()
+    return s
 
 def sum_over_dict(dict_vol):
     s = 0
