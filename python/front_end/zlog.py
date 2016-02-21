@@ -36,7 +36,7 @@ def record_config_file(params=None, config_filename=None, net_save_filename=None
     if params is not None:
         _config_filename = params['fconfig']
         if train:
-            _net_save_filename = params['train_save_net']
+            _net_save_filename = params['train_net']
         else:
             _net_save_filename = params['']
 
