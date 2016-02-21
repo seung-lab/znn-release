@@ -117,9 +117,11 @@ def copy_file_from_S3(s3_pathname, local_pathname):
 
         #creating the directory if it doesn't exist already
         dirname = os.path.dirname(local_pathname)
-        if not os.path.exists( dirname ):
+        try:
             print "making directory"
             os.makedirs( dirname )
+        except:
+            pass
 
         subprocess.call(s3_cp_command)
         print "should be done"

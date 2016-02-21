@@ -13,6 +13,7 @@ import numpy as np
 import emirt
 import utils
 from zdataset import *
+from threading import Thread
 
 class CSample(object):
     """
@@ -261,13 +262,13 @@ class CAffinitySample(CSample):
                          log=log, is_forward=is_forward)
 
         # precompute the global rebalance weights
-        self.taffs = dict()
-        self.tmsks = dict()
+        taffs = dict()
+        tmsks = dict()
         for k, lbl in self.lbls.iteritems():
-            self.taffs[k] = self._seg2aff( lbl )
-            self.tmsks[k] = self._msk2affmsk( self.msks[k] )
+            taffs[k] = self._seg2aff( lbl )
+            tmsks[k] = self._msk2affmsk( self.msks[k] )
 
-        self._prepare_rebalance_weights( self.taffs, self.tmsks )
+        self._prepare_rebalance_weights( taffs, tmsks )
         return
 
     def _seg2aff( self, lbl ):
@@ -295,11 +296,11 @@ class CAffinitySample(CSample):
 
         aff = np.zeros( tuple(aff_size) , dtype=lbl.dtype  )
 
-        #x-affinity
+        #z-affinity
         aff[0,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,:-1, 1:  ,1: ]) & (lbl[0,1:,1:,1:]>0)
         #y-affinity
         aff[1,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , :-1 ,1: ]) & (lbl[0,1:,1:,1:]>0)
-        #z-affinity
+        #x-affinity
         aff[2,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , 1:  ,:-1]) & (lbl[0,1:,1:,1:]>0)
 
         return aff
@@ -316,27 +317,21 @@ class CAffinitySample(CSample):
         -------
         ret : 4D array, 3 channel for z,y,x direction
         """
+
         if np.size(msk)==0:
             return msk
         C,Z,Y,X = msk.shape
         ret = np.zeros((3, Z-1, Y-1, X-1), dtype=self.pars['dtype'])
 
-        for z in xrange(Z-1):
-            for y in xrange(Y-1):
-                for x in xrange(X-1):
-                    #Current affinity convention
-                    if msk[0,z+1,y+1,x+1]>0:
-                        ret[:,z,y,x] = 1
+        #Z mask
+        ret[0,:,:,:] = (msk[0,1:,1:,1:]>0) | (msk[0,:-1,1:,1:]>0)
+        #Y mask
+        ret[1,:,:,:] = (msk[0,1:,1:,1:]>0) | (msk[0,1:,:-1,1:]>0)
+        #X mask
+        ret[2,:,:,:] = (msk[0,1:,1:,1:]>0) | (msk[0,1:,1:,:-1]>0)
 
-                    if msk[0,z,y+1,x+1]>0:
-                        ret[0,z,y,x] = 1
-
-                    if msk[0,z+1,y,x+1]>0:
-                        ret[1,z,y,x] = 1
-
-                    if msk[0,z+1,y+1,x]>0:
-                        ret[2,z,y,x] = 1
         return ret
+
 
     def _prepare_rebalance_weights(self, taffs, tmsks):
         """
