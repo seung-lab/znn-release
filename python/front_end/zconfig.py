@@ -11,6 +11,7 @@ import ConfigParser
 import numpy as np
 import os
 import cost_fn
+import zsample, zsample_thr
 import utils
 
 from emirt import volume_util
@@ -86,6 +87,7 @@ def parser( conf_fname ):
     #Output layer data type (e.g. 'boundary','affinity')
     pars['out_type']   = config.get('parameters', 'out_type')
 
+
     #IO OPTIONS
     #Filename under which we save the network
     if config.has_option('parameters', 'train_net'):
@@ -95,6 +97,7 @@ def parser( conf_fname ):
     #Whether to write .log and .cfg files
     if config.has_option('parameters', 'logging'):
         pars['logging'] = config.getboolean('parameters', 'logging')
+
 
     #TRAINING OPTIONS
     #Samples to use for training
@@ -138,12 +141,18 @@ def parser( conf_fname ):
         pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
     else:
         pars['malis_norm_type'] = 'none'
+    #Data Provider
+    if config.has_option('parameters','data_provider'):
+        pars['data_provider'] = config.get( 'parameters', 'data_provider')
+    else:
+        pars['data_provider'] = 'default' #processed below
 
     #Whether to display progress plots
     pars['is_visual']   = config.getboolean('parameters', 'is_visual')
 
     #Which Cost Function to Use (as a string)
     pars['cost_fn_str'] = config.get('parameters', 'cost_fn')
+
 
     #DISPLAY OPTIONS
     #How often to show progress to the screen
@@ -164,6 +173,7 @@ def parser( conf_fname ):
     #Numer of Iterations between dataset swaps
     if config.has_option('parameters','Num_iter_per_dset_swap'):
         pars['Num_iter_per_dset_swap'] = config.getint('parameters', 'Num_iter_per_dset_swap')
+
 
     #FULL FORWARD PASS PARAMETERS
     #Which samples to use
@@ -213,6 +223,15 @@ def check_config(config, pars):
         pars['cost_fn'] = cost_fn.softmax_loss
     else:
         raise NameError('unknown type of cost function')
+
+    #PROCESSING DATA PROVIDER STRING
+    if ('S3' in pars['data_provider'] or
+        's3' in pars['data_provider'] ):
+        pars['data_provider'] = zsample_thr.CThreadedSamples_S3
+    elif 'threaded' in pars['data_provider']:
+        pars['data_provider'] = zsample_thr.CThreadedSamples
+    else:
+        pars['data_provider'] = zsample.CSamples
 
     # check the single parameters
     assert(pars['num_threads']>=0)

@@ -15,8 +15,8 @@ def _single_test(net, pars, sample):
     props = net.forward( vol_ins )
 
     # cost function and accumulate errors
-    props, err, grdts = pars['cost_fn']( props, lbl_outs )
-    cls = cost_fn.get_cls(props, lbl_outs)
+    props, err, grdts = pars['cost_fn']( props, lbl_outs, msks )
+    cls = cost_fn.get_cls( props, lbl_outs, msks )
 
     re = 0.0
     malis_cls = 0.0

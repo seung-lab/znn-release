@@ -25,7 +25,7 @@ def main( args ):
 
     #%% create and initialize the network
     fnet = znetio.find_load_net( pars['train_net'], args['seed'] )
-    net = znetio.load_network( pars, fnet )
+    net = znetio.load_network( pars, hdf5_filename=fnet )
     # load existing learning curve
     lc = zstatistics.CLearnCurve( fnet )
     # the last iteration we want to continue training
@@ -34,7 +34,7 @@ def main( args ):
     # show field of view
     print "field of view: ", net.get_fov()
 
-    # total voxel number of output volumes
+    # total voxel number of output volume voxels
     vn = utils.get_total_num(net.get_outputs_setsz())
 
     # set some parameters
@@ -47,9 +47,9 @@ def main( args ):
     # initialize samples
     outsz = pars['train_outsz']
     print "\n\ncreate train samples..."
-    smp_trn = zsample_thr.CThreadedSamples_S3(config, pars, pars['train_range'], net, outsz, logfile)
+    smp_trn = pars['data_provider'](config, pars, pars['train_range'], net, outsz, logfile)
     print "\n\ncreate test samples..."
-    smp_tst = zsample_thr.CThreadedSamples_S3(config, pars, pars['test_range'],  net, outsz, logfile)
+    smp_tst = pars['data_provider'](config, pars, pars['test_range'],  net, outsz, logfile)
 
     # initialization
     elapsed = 0
@@ -84,11 +84,11 @@ def main( args ):
         # cost function and accumulate errors
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
         err += cerr
-        cls += cost_fn.get_cls(props, lbl_outs)
+        cls += cost_fn.get_cls( props, lbl_outs, msks )
         num_mask_voxels += utils.sum_over_dict(msks)
 
         # gradient reweighting
-        grdts = utils.dict_mul( grdts, msks  )
+        # grdts = utils.dict_mul( grdts, msks  )
         grdts = utils.dict_mul( grdts, wmsks )
 
         if pars['is_malis'] :
@@ -113,8 +113,8 @@ def main( args ):
                 err = err / vn / pars['Num_iter_per_show']
                 cls = cls / vn / pars['Num_iter_per_show']
             else:
-                err = err / num_mask_voxels / pars['Num_iter_per_show']
-                cls = cls / num_mask_voxels / pars['Num_iter_per_show']
+                err = err / num_mask_voxels
+                cls = cls / num_mask_voxels
 
             lc.append_train(i, err, cls)
 
@@ -161,12 +161,6 @@ def main( args ):
             lc.save( pars, elapsed )
             if pars['is_malis']:
                 utils.save_malis(malis_weights,  pars['train_net'], num_iters=i)
-
-        if (pars.has_key('Num_iter_per_dset_swap') 
-            and 
-            i%pars['Num_iter_per_dset_swap'] == 0):
-            smp_trn.swap_samples()
-            print "Active sample: %s" % smp_trn.get_active_sample_id()
 
         if (pars.has_key('Num_iter_per_dset_swap') 
             and 
