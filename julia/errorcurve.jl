@@ -32,6 +32,11 @@ function parse_commandline()
         arg_type = ASCIIString
         default = "/tmp/error_curve.h5"
 
+        "--seg_method"
+        help = "segmentation method: connected_component; watershed"
+        arg_type = ASCIIString
+        default = "connected_component"
+
         "--isplot"
         help = "whether plot the curve or not"
         arg_type = Bool
@@ -46,6 +51,7 @@ function main()
     flbl = ""
     tag = ""
     step = 0.1
+    seg_method = ""
     fcurve = ""
     isplot = true
     for pa in parse_commandline()
@@ -57,6 +63,8 @@ function main()
             faffs = pa[2]
         elseif pa[1] == "step"
             step = pa[2]
+        elseif pa[1] == "seg_method"
+            seg_method = pa[2]
         elseif pa[1] == "fcurve"
             fcurve = pa[2]
         elseif pa[1] == "isplot"
@@ -74,9 +82,10 @@ function main()
     lbl = h5read(flbl, "/main")
 
     # rand error and rand f score curve, both are foreground restricted
-    thds, rf, rfm, rfs, re, rem, res = affs_error_curve(affs, lbl, 2, 0.1, "connectivity_analysis")
+    thds, segs, rf, rfm, rfs, re, rem, res = affs_error_curve(affs, lbl, 2, 0.1, seg_method)
 
     # save the curve
+    h5write(fcurve, "/$tag/segs", segs)
     h5write(fcurve, "/$tag/thds", thds)
     h5write(fcurve, "/$tag/rf",   rf )
     h5write(fcurve, "/$tag/rfm",  rfm )
