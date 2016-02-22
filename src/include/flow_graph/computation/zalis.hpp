@@ -32,12 +32,11 @@
 namespace znn { namespace v4 {
 
 inline zalis_weight
-zalis( std::vector<cube_p<real>> true_affs,
-       std::vector<cube_p<real>> affs,
-       bool frac_norm = false,
-       real high = 0.99,
-       real low  = 0.01,
-       size_t norm_mode = 0 )
+zalis( std::vector<cube_p<real>> affs,
+       std::vector<cube_p<real>> true_affs,
+       real high = 1.0,
+       real low  = 0.0,
+       size_t is_frac_norm = 0 )
 {
     ZI_ASSERT(affs.size()==3);
     ZI_ASSERT(true_affs.size()==affs.size());
@@ -84,6 +83,8 @@ zalis( std::vector<cube_p<real>> true_affs,
     // initialize the counting
     real FP=0;
     real FN=0;
+    real TP=0;
+    real TN=0;
     real num_non_bdr=0;
 
     for ( size_t i = 0; i < n; ++i )
@@ -211,7 +212,7 @@ zalis( std::vector<cube_p<real>> true_affs,
                 real     segsize1 = seg1.second;
 
                 // fraction normalize
-                if ( norm_mode==1 ) segsize1 /= seg_sizes[segID1];
+                if ( is_frac_norm==1 ) segsize1 /= seg_sizes[segID1];
 
                 // skip boundary
                 if ( segID1 == 0 ) continue;
@@ -223,7 +224,7 @@ zalis( std::vector<cube_p<real>> true_affs,
                     real     segsize2 = seg2.second;
 
                     // fraction normalize
-                    if ( norm_mode==1 ) segsize2 /= seg_sizes[segID2];
+                    if ( is_frac_norm==1 ) segsize2 /= seg_sizes[segID2];
 
                     // skip boundary
                     if ( segID2 == 0 ) continue;
@@ -232,14 +233,20 @@ zalis( std::vector<cube_p<real>> true_affs,
                     if ( segID1 == segID2 )
                     {
                         n_same_pair += segsize1 * segsize2;
+			//std::cout<< affinity << ", ";
                         if (affinity < 0.5)
                             FN += segsize1 * segsize2;
+                        else
+                            TP += segsize1 * segsize2;
                     }
                     else
                     {
                         n_diff_pair += segsize1 * segsize2;
+			//std::cout<<affinity << ", ";
                         if (affinity >0.5)
                             FP += segsize1 * segsize2;
+                        else
+                            TN += segsize1 * segsize2;
                     }
                 }
             }
@@ -301,7 +308,8 @@ zalis( std::vector<cube_p<real>> true_affs,
 
     // rand error
     real re = (FP+FN) / (num_non_bdr*(num_non_bdr-1)/2);
-    zalis_weight ret(mw, sw, re, num_non_bdr);
+    zalis_weight ret(mw, sw, re, num_non_bdr, TP, TN, FP, FN);
+    ZI_ASSERT( num_non_bdr*(num_non_bdr-1)/2==TP+FN+TN+FP );
 #if defined( DEBUG )
     ret.ws_snapshots = ws_snapshots;
     ret.ws_timestamp = ws_timestamp;

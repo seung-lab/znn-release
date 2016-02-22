@@ -31,9 +31,8 @@ def imsave( vol, fname ):
     if '.hdf5' in fname or '.h5' in fname:
         import h5py
         f = h5py.File( fname )
-        f.create_dataset('/main', data=vol)
+        f.create_dataset('/main', data=vol, compression="gzip")
         f.close()
-        print 'hdf5 file was written :)'
     elif '.tif' in fname:
 #        import skimage.io
 #        skimage.io.imsave(fname, vol, plugin='tifffile')
@@ -42,19 +41,6 @@ def imsave( vol, fname ):
     else:
         print "save as znn image..."
         znn_img_save(vol, fname)
-
-def save_variable( var, vname ):
-    import pickle
-    f = open(vname, 'w')
-    pickle.dump(var, f)
-    f.close()
-
-def load_variable( vname ):
-    import pickle
-    f = open( vname, 'rb' )
-    var = pickle.load(f)
-    f.close()
-    return var
 
 # load binary znn image
 def znn_img_read( fname ):
@@ -70,8 +56,8 @@ def znn_img_read( fname ):
     vol = np.fromfile(fname + ext, dtype='double').reshape(sz)
     return vol
 
-def znn_img_save(vol, fname):
-#    vol = vol.astype('double')
+def znn_img_save(vol, fname, dtype = 'double'):
+    vol = vol.astype('double')
     if ".image" in fname:
         fname = fname.replace(".image", "")
         ext = ".image"
@@ -95,7 +81,6 @@ def tif2h5(intif, outh5):
             hv[k] = page.asarray()
     f.close()
 
-
 def write_for_znn(Dir, vol, cid):
     '''transform volume to znn format'''
     # make directory
@@ -114,3 +99,22 @@ def write_for_znn(Dir, vol, cid):
     f.write('ext=image\n')
     f.write('size='+str(sz[2])+','+str(sz[1])+','+str(sz[0])+'\n')
     f.write('pptype=standard2D\n\n')
+
+def h5write( fname, data_path, data, compression="gzip" ):
+    """
+    save dataset in hdf5 file
+    """
+    import h5py
+    f = h5py.File( fname, 'a' )
+    f.create_dataset(data_path, data=data, compression=compression)
+    f.close()
+
+def h5read( fname, data_path ):
+    """
+    read dataset in hdf5 file
+    """
+    import h5py
+    f = h5py.File( fname )
+    data = f[data_path].value
+    f.close()
+    return data

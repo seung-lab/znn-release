@@ -50,12 +50,16 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
     # instance type
     instance_type = tncfg.get(sec, 'instance_type')
 
+    # sleep interval (secs)
+    if tncfg.has_option(sec, 'node_check_interval'):
+        node_check_interval = tncfg.getint(sec, 'node_check_interval')
+    else:
+        node_check_interval = 10 * 60
+
     # if there are several cluster template in config file,
     # you have to set the cluster id to a specific cluster template
     cluster_id = 0
 
-    # sleep interval (secs)
-    sleep_interval = 10 * 60
 
     #%% configuration
     cfg = config.get_config( sc_cfg )
@@ -116,8 +120,8 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
 
         f.write('wait for cluster...\n')
         # sleep for a while
-        print "node {} is running, wait for {} secs to check.".format( node_name, sleep_interval )
-        time.sleep( sleep_interval )
+        print "node {} is running, wait for {} secs to check.".format( node_name, node_check_interval )
+        time.sleep( node_check_interval )
 
     f.close()
 
