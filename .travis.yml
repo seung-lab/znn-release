@@ -33,6 +33,7 @@ install:
         - sudo apt-get install -y libfftw3-dev cmake
         - sudo apt-get install -y python-numpy python-matplotlib python-h5py libboost-python-dev
         - sudo apt-get install -qq g++-4.8
+        - export CXX="g++-4.8" CC="gcc-4.8"
 
         # install Boost.Numpy for python interface
         - cd python; git clone https://github.com/ndarray/Boost.NumPy.git

@@ -1,6 +1,6 @@
 ODIR		=	.
 SFL 		=	pyznn.cpp
-CPP 		=	g++-4.8
+CPP 		=	g++
 CPP_FLAGS	= 	-g
 INC_FLAGS	=	-I/opt/boost/include -I../../src/include -I../../zi -I.. -I../.. -I/usr/include/python2.7 -I../Boost.NumPy -I/usr/local/include -I/opt/anaconda/include/python2.7 -I/mnt/bucket/labs/seung/libs/anaconda/include/python2.7
 LIB_FLAGS	=	-L/opt/boost/lib -L/usr/local/lib -L./Boost.NumPy/bin/lib -L/mnt/bucket/labs/seung/libs/anaconda/lib/ -L/usr/local/boost/1.55.0/lib64/ -L/opt/anaconda/lib
@@ -18,12 +18,15 @@ endif
 pyznn: $(SFL)
 	$(CPP) -o $(ODIR)/pyznn.so $(SFL) $(CPP_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(SINGLE_FLAG) $(OTH_FLAGS) $(LIBS)
 
-.PHONY: mkl clean
+.PHONY: double mkl mkl_double clean
 
 double: $(SFL)
 	$(CPP) -o $(ODIR)/pyznn.so $(SFL) $(CPP_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(OTH_FLAGS) $(LIBS)
 
 mkl: $(SFL)
+	/opt/intel/bin/icc -o $(ODIR)/pyznn.so $(SFL) $(MKL_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(SINGLE_FLAG) $(OTH_FLAGS) $(LIBS)
+
+mkl_double: $(SFL)
 	/opt/intel/bin/icc -o $(ODIR)/pyznn.so $(SFL) $(MKL_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(OTH_FLAGS) $(LIBS)
 
 clean:
