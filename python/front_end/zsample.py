@@ -300,12 +300,12 @@ class CAffinitySample(CSample):
 
         aff = np.zeros( tuple(aff_size) , dtype=self.pars['dtype'] )
 
-        #x-affinity
-        aff[0,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,:-1, 1:  ,1: ]) & (lbl[0,1:,1:,1:]>0)
-        #y-affinity
-        aff[1,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , :-1 ,1: ]) & (lbl[0,1:,1:,1:]>0)
         #z-affinity
-        aff[2,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , 1:  ,:-1]) & (lbl[0,1:,1:,1:]>0)
+        aff[2,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0, :-1, 1:  ,1: ]) & (lbl[0,1:,1:,1:]>0)
+        #y-affinity
+        aff[1,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0, 1: , :-1 ,1: ]) & (lbl[0,1:,1:,1:]>0)
+        #x-affinity
+        aff[0,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0, 1: , 1:  ,:-1]) & (lbl[0,1:,1:,1:]>0)
 
         return aff
 
@@ -327,11 +327,11 @@ class CAffinitySample(CSample):
         ret = np.zeros((3, Z-1, Y-1, X-1), dtype=self.pars['dtype'])
 
         #Z mask
-        ret[0,:,:,:] = (msk[0,1:,1:,1:]>0) | (msk[0,:-1,1:,1:]>0)
+        ret[2,:,:,:] = (msk[0,1:,1:,1:]>0) | (msk[0,:-1,1:,1:]>0)
         #Y mask
         ret[1,:,:,:] = (msk[0,1:,1:,1:]>0) | (msk[0,1:,:-1,1:]>0)
         #X mask
-        ret[2,:,:,:] = (msk[0,1:,1:,1:]>0) | (msk[0,1:,1:,:-1]>0)
+        ret[0,:,:,:] = (msk[0,1:,1:,1:]>0) | (msk[0,1:,1:,:-1]>0)
 
         return ret
 
@@ -354,9 +354,9 @@ class CAffinitySample(CSample):
 
                 msk = tmsks[k] if tmsks[k].size != 0 else np.zeros((3,0,0,0))
 
-                self.zwps[k], self.zwzs[k] = self._get_balance_weight_v1(aff[0,:,:,:], msk[0,:,:,:])
+                self.zwps[k], self.zwzs[k] = self._get_balance_weight_v1(aff[2,:,:,:], msk[2,:,:,:])
                 self.ywps[k], self.ywzs[k] = self._get_balance_weight_v1(aff[1,:,:,:], msk[1,:,:,:])
-                self.xwps[k], self.xwzs[k] = self._get_balance_weight_v1(aff[2,:,:,:], msk[2,:,:,:])
+                self.xwps[k], self.xwzs[k] = self._get_balance_weight_v1(aff[0,:,:,:], msk[0,:,:,:])
 
         return
 
@@ -375,13 +375,13 @@ class CAffinitySample(CSample):
             assert subtaff.ndim==4 and subtaff.shape[0]==3
             w = np.zeros(subtaff.shape, dtype=self.pars['dtype'])
 
-            w[0,:,:,:][subtaff[0,:,:,:] >0] = self.zwps[k]
+            w[2,:,:,:][subtaff[2,:,:,:] >0] = self.zwps[k]
             w[1,:,:,:][subtaff[1,:,:,:] >0] = self.ywps[k]
-            w[2,:,:,:][subtaff[2,:,:,:] >0] = self.xwps[k]
+            w[0,:,:,:][subtaff[0,:,:,:] >0] = self.xwps[k]
 
-            w[0,:,:,:][subtaff[0,:,:,:]==0] = self.zwzs[k]
+            w[2,:,:,:][subtaff[2,:,:,:]==0] = self.zwzs[k]
             w[1,:,:,:][subtaff[1,:,:,:]==0] = self.ywzs[k]
-            w[2,:,:,:][subtaff[2,:,:,:]==0] = self.xwzs[k]
+            w[0,:,:,:][subtaff[0,:,:,:]==0] = self.xwzs[k]
             subwmsks[k] = w
 
         return subwmsks
