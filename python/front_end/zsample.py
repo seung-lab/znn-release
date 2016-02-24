@@ -357,7 +357,7 @@ class CAffinitySample(CSample):
                 self.zwps[k], self.zwzs[k] = self._get_balance_weight_v1(aff[0,:,:,:], msk[0,:,:,:])
                 self.ywps[k], self.ywzs[k] = self._get_balance_weight_v1(aff[1,:,:,:], msk[1,:,:,:])
                 self.xwps[k], self.xwzs[k] = self._get_balance_weight_v1(aff[2,:,:,:], msk[2,:,:,:])
-                
+
         return
 
     def _rebalance_aff(self, subtaffs, submsks):
@@ -474,7 +474,7 @@ class CBoundarySample(CSample):
         # boudary map rebalance
         subwmsks = dict()
         for key, sublbl in sublbls.iteritems():
-            submsk[key] = submsks[key]
+            submsk = submsks[key]
             subwmsks[key] = self._rebalance_bdr( sublbl, submsk, self.wps[key], self.wzs[key] )
 
         for key,sublbl in sublbls.iteritems():
