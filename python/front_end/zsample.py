@@ -560,7 +560,7 @@ class CSamples(object):
 
     def _save_candidate_locs(self):
         for sample in self.samples:
-            fname = '../testsuit/sample/candidate_locs_{}.h5'.format(sample.sid)
+            fname = '../testsuit/candidate_locs_{}.h5'.format(sample.sid)
             if os.path.exists( fname ):
                 os.remove(fname)
             f = h5py.File( fname, 'w' )
@@ -572,11 +572,11 @@ class CSamples(object):
         for sample in self.samples:
             # save sample images
             raw, lbl = sample.get_dataset()
-            fname = '../testsuit/sample/sample_{}_raw.h5'.format(sample.sid)
+            fname = '../testsuit/sample_{}_raw.h5'.format(sample.sid)
             if os.path.exists( fname ):
                 os.remove( fname )
             imsave(raw, fname)
-            fname = '../testsuit/sample/sample_{}_lbl.h5'.format(sample.sid)
+            fname = '../testsuit/sample_{}_lbl.h5'.format(sample.sid)
             if os.path.exists( fname ):
                 os.remove( fname )
             imsave(lbl, fname )
