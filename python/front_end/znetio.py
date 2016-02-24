@@ -311,7 +311,11 @@ def load_network( params=None, train=True, hdf5_filename=None,
     if params_defined:
 
         if train:
-            _hdf5_filename = get_current( params['train_net'] )
+            if params['seed'] and os.path.exists( params['seed'] ):
+                print "use seed network: ", params['seed']
+                _hdf5_filename = params['seed']
+            else:
+                _hdf5_filename = get_current( params['train_net'] )
             _output_patch_shape = params['train_outsz']
             if "optimize" in params['train_conv_mode']:
                 _optimize = True
