@@ -1,6 +1,6 @@
 ODIR		=	./bin
 SFL			=	src/cpp/malis_test.cpp
-CPP		 	=	g++-4.8
+CPP		 	=	g++
 ICC			= 	/opt/intel/bin/icc
 CPP_FLAGS	= 	-g
 INC_FLAGS	=	-I./src/include -I./zi -I.

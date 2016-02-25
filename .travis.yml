@@ -33,6 +33,7 @@ install:
         - sudo apt-get install -y libfftw3-dev cmake
         - sudo apt-get install -y python-numpy python-matplotlib python-h5py libboost-python-dev
         - sudo apt-get install -qq g++-4.8
+        - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 50
 
         # install Boost.Numpy for python interface
         - cd python; git clone https://github.com/ndarray/Boost.NumPy.git
@@ -51,6 +52,9 @@ script:
 
        # check patch using single precision, this check will create the net_current.h5 file for testing loading
        - cd python
+       # test affinity training patch, network initialization, network with even field of view
+       - python train.py -c ../testsuit/affinity/config.cfg -d single -k yes
+       # test boundary map training, patch matching, network initialization
        - python train.py -c ../testsuit/boundary/config.cfg -d single -k yes
        # second check to test the network loading
        - python train.py -c ../testsuit/boundary/config.cfg -d single -k yes
