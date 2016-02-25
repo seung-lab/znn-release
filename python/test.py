@@ -80,9 +80,8 @@ def znn_test(net, pars, samples, vn, it, lc):
     lc.append_test_malis_eng( me )
 
     if pars['is_malis']:
-        print "test iter: %d,     err: %.3f, cls: %.3f, re: %.6f, me: %.3f, mc: %.3f"\
+        print "test iter: %d,     cost: %.3f, pixel error: %.3f, rand error: %.6f, malis cost: %.3f, malis error: %.3f"\
                 %(it, err, cls, re, me, mc)
     else:
-        print "test iter: %d,     err: %.3f, cls: %.3f" \
-                %(it, err, cls)
+        print "test iter: %d,     cost: %.3f, pixel error: %.3f" %(it, err, cls)
     return lc
