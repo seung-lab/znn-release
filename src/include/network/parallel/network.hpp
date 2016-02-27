@@ -610,6 +610,8 @@ public:
             for ( auto & n: input_nodes_ )
                 if ( !n.second->dnodes->is_disabled() )
                 {
+                    // if there exists at least one available input nodes,
+                    // then we're ready to go.
                     ready = true;
                     break;
                 }
