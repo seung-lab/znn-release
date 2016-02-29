@@ -4,7 +4,8 @@ ZNN
 [![Build Status](https://travis-ci.org/seung-lab/znn-release.svg?branch=master)](https://github.com/seung-lab/znn-release)
 
 Most of current deep learning implementation use GPU, but GPU has some limitations:
-* SIMD (Single Instruction Multiple Data). A single instruction decoder - all cores do same work. divergence kills performance
+* SIMD (Single Instruction Multiple Data). A single instruction decoder - all cores do same work. 
+   * divergence kills performance
 * Parallelization done per convolution(s)
     * Direct convolution, computationally expensive
     * FFT, can’t efficiently utilize all cores
@@ -13,12 +14,12 @@ Most of current deep learning implementation use GPU, but GPU has some limitatio
     * limit the dense output size (few alternatives for this feature)
 
 ZNN shines when Filter sizes are large so that FFTs are used 
-    * Wide and deep networks
-    * Bigger output patch
+* Wide and deep networks
+* Bigger output patch
 ZNN is the only (reasonable) open source solution
-    * Very deep networks with large filters
-    * FFTs of the feature maps and gradients can fit in RAM, but couldn’t fit on the GPU
-    * run out of the box on future MUUUUULTI core machines
+* Very deep networks with large filters
+* FFTs of the feature maps and gradients can fit in RAM, but couldn’t fit on the GPU
+* run out of the box on future MUUUUULTI core machines
 
 Required libraries
 ------------------
