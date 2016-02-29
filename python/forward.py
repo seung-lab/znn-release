@@ -187,15 +187,17 @@ def main( args ):
     output volumes
     '''
     config, params = zconfig.parser( args['config'] )
+    if args['net']:
+        # overwrite the network in config file
+        params['forward_net'] = args['net']
 
-    from front_end.zconfig import parseIntSet
-    sample_ids = parseIntSet( args['range'] )
-    if sample_ids is None:
+    if args['range']:
+        sample_ids = utils.parseIntSet( args['range'] )
+    else:
     	sample_ids = params[range_optionname]
 
     for sample_id in sample_ids:
-
-    	output_volume = config_forward_pass( config, params, fnet=args['net'], verbose=True, sample_ids=[sample_id])
+    	output_volume = config_forward_pass( config, params, fnet=params['forward_net'], verbose=True, sample_ids=[sample_id])
 
     	print "Saving Output Volume %d..." % sample_id
     	save_sample_outputs( output_volume, params[output_prefix_optionname] )
