@@ -50,11 +50,13 @@ def parser( conf_fname ):
     #Filename under which we save the network
     if config.has_option('parameters', 'train_net_prefix'):
         pars['train_net_prefix'] = config.get('parameters', 'train_net_prefix')
+    elif config.has_option('parameters', 'train_net'):
+        pars['train_net_prefix'] = config.get('parameters', 'train_net')
     elif config.has_option('parameters', 'train_save_net'):
         pars['train_net_prefix'] = config.get('parameters', 'train_save_net')
-        # remove the ".h5"
-        import string
-        pars['train_net_prefix'] = string.replace(pars['train_net_prefix'], ".h5", "")
+    # remove the ".h5"
+    import string
+    pars['train_net_prefix'] = string.replace(pars['train_net_prefix'], ".h5", "")
     #Whether to write .log and .cfg files
     if config.has_option('parameters', 'logging'):
         pars['logging'] = config.getboolean('parameters', 'logging')
