@@ -84,8 +84,8 @@ public:
         for ( auto& n: nodes_ ) delete n.second;
         for ( auto& e: edges_ ) delete e.second;
 
-        for ( auto& n: implcit_nodes_ ) delete n.second;
-        for ( auto& e: implcit_edges_ ) delete e.second;
+        for ( auto& n: implicit_nodes_ ) delete n.second;
+        for ( auto& e: implicit_edges_ ) delete e.second;
     }
 
 private:
@@ -118,8 +118,8 @@ private:
     std::map<std::string, nedges*> phase_dependent_edges_;
 
     // implicit (automatically inserted) nodes and edges
-    std::map<std::string, nodes*> implcit_nodes_;
-    std::map<std::string, edges*> implcit_edges_;
+    std::map<std::string, nodes*> implicit_nodes_;
+    std::map<std::string, edges*> implicit_edges_;
 
     task_manager tm_;
 
@@ -128,51 +128,6 @@ private:
 #ifdef ZNN_ANALYSE_TASK_MANAGER
     void dump() { tm_.dump(); }
 #endif
-
-    // void fov_pass(nnodes* n, vec3i fov, const vec3i& fsize )
-    // {
-    //     if ( n->fov != vec3i::zero )
-    //     {
-    //         ZI_ASSERT(n->fsize==fsize);
-    //         if ( n->fov == fov )
-    //         {
-    //             return;
-    //         }
-    //         else
-    //         {
-    //             fov[0] = std::max(n->fov[0],fov[0]);
-    //             fov[1] = std::max(n->fov[1],fov[1]);
-    //             fov[2] = std::max(n->fov[2],fov[2]);
-    //         }
-    //     }
-
-    //     for ( auto& e: n->out )
-    //     {
-    //         e->in_fsize = fsize;
-    //     }
-    //     n->fov = fov;
-    //     n->fsize = fsize;
-    //     for ( auto& e: n->in )
-    //     {
-    //         if ( e->pool )
-    //         {
-    //             vec3i new_fov   = fov * e->width;
-    //             vec3i new_fsize = e->width * fsize;
-    //             fov_pass(e->in, new_fov, new_fsize);
-    //         }
-    //         else if ( e->crop )
-    //         {
-    //             // FoV doesn't change
-    //             fov_pass(e->in, fov, fsize + e->width - vec3i::one);
-    //         }
-    //         else
-    //         {
-    //             vec3i new_fov   = (fov - vec3i::one) * e->stride + e->width;
-    //             vec3i new_fsize = (e->width-vec3i::one) * e->in_stride + fsize;
-    //             fov_pass(e->in, new_fov, new_fsize);
-    //         }
-    //     }
-    // }
 
     void fov_pass(nnodes* n, vec3i fov, vec3i fsize )
     {
@@ -373,7 +328,7 @@ private:
                     ( in->size(), e->in_fsize, op, tm_,
                       in->fwd_priority(), in->bwd_priority(), false );
 
-                implcit_nodes_[name] = bridge;
+                implicit_nodes_[name] = bridge;
             }
 
             // create crop edges
@@ -385,7 +340,7 @@ private:
                 op.push("input",iname);
                 op.push("output",name);
 
-                implcit_edges_[in_out] = new edges
+                implicit_edges_[in_out] = new edges
                     ( in, bridge, op, tm_, edges::crop_tag() );
             }
 
