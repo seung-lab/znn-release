@@ -490,20 +490,18 @@ class CBoundarySample(CSample):
 class ConfigSampleOutput(object):
     '''Documentation coming soon...'''
 
-    def __init__(self, pars, net, output_volume_shape3d, dtype):
+    def __init__(self, pars, net, output_volume_shape3d):
 
         output_patch_shapes = net.get_outputs_setsz()
-
-        fov = np.array([1,1,1], dtype='uint32')
 
         self.output_volumes = {}
         for name, shape in output_patch_shapes.iteritems():
 
             num_volumes = shape[0]
 
-            volume_shape = np.hstack((num_volumes,output_volume_shape3d)).astype('uint32')
+            volume_shape = np.hstack((num_volumes, output_volume_shape3d)).astype('uint32')
 
-            empty_bin = np.zeros(volume_shape, dtype=dtype)
+            empty_bin = np.zeros(volume_shape, dtype=pars['dtype'])
 
 
             self.output_volumes[name] = CDataset(pars, empty_bin, shape[-3:], shape[-3:] )

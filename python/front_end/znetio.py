@@ -107,39 +107,34 @@ def save_opts(opts, filename, is_stdio=False):
 
     f.close()
 
-def find_load_net( train_net, seed=None ):
+def find_load_net( train_net_prefix, seed=None ):
     if seed is None or "none" == seed or "None"==seed:
         return None
     if seed and os.path.exists(seed):
         fnet = seed
     else:
-        fnet = get_current( train_net )
+        fnet = train_net_prefix + "_current.h5"
     # check whether fnet exists
     if not os.path.exists(fnet):
         return None
     else:
         return fnet
 
-def get_current( filename ):
-    root, ext = os.path.splitext(filename)
-    filename_current = "{}{}{}".format(root, '_current', ext)
-    return filename_current
-
-def get_net_fname(filename, num_iters=None, suffix=None):
+def get_net_fname(train_net_prefix, num_iters=None, suffix=None):
     # get directory name from file name
-    archive_directory_name = os.path.dirname( filename )
+    archive_directory_name = os.path.dirname( train_net_prefix )
     if not os.path.exists(archive_directory_name) and archive_directory_name != '':
         os.mkdir(archive_directory_name)
 
-    filename_current = get_current(filename)
-
+    filename_current = train_net_prefix + "_current.h5"
+    filename = train_net_prefix + ".h5"
     if suffix:
         root, ext = os.path.splitext(filename)
-        filename = "{}_{}{}".format(root, suffix, ext)
+        filename = train_net_prefix + "_{}.h5".format( suffix )
 
     if num_iters:
         root, ext = os.path.splitext(filename)
-        filename = "{}_{}{}".format(root, num_iters, ext)
+        filename = train_net_prefix + "_{}.h5".format( num_iters )
     return filename, filename_current
 
 def save_network(network, filename, is_stdio=False):
@@ -315,7 +310,7 @@ def load_network( params=None, train=True, hdf5_filename=None,
                 print "use seed network: ", params['seed']
                 _hdf5_filename = params['seed']
             else:
-                _hdf5_filename = get_current( params['train_net'] )
+                _hdf5_filename = get_current( params['train_net_prefix'] )
             _output_patch_shape = params['train_outsz']
             if "optimize" in params['train_conv_mode']:
                 _optimize = True
@@ -451,7 +446,7 @@ def init_network( params=None, train=True, network_specfile=None,
                     _num_threads, _optimize, phase, _force_fft)
 
 def create_net(pars):
-    fnet = find_load_net( pars['train_net'], pars['seed'] )
+    fnet = find_load_net( pars['train_net_prefix'], pars['seed'] )
     print "fnet: ", fnet
     if fnet and os.path.exists(fnet):
         net = load_network( pars, fnet )
