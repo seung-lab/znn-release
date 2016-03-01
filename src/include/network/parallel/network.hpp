@@ -166,6 +166,44 @@ private:
         }
     }
 
+    void new_fov_pass(nnodes* n, vec3i fov, const vec3i& fsize )
+    {
+        if ( n->fov != vec3i::zero )
+        {
+            if ( n->fov == fov )
+            {
+                STRONG_ASSERT(n->fsize==fsize);
+                return;
+            }
+        }
+
+        fov[0] = std::max(n->fov[0],fov[0]);
+        fov[1] = std::max(n->fov[1],fov[1]);
+        fov[2] = std::max(n->fov[2],fov[2]);
+        n->fov = fov;
+
+        fsize[0] = std::max(n->fsize[0],fsize[0]);
+        fsize[1] = std::max(n->fsize[1],fsize[1]);
+        fsize[2] = std::max(n->fsize[2],fsize[2]);
+        n->fsize = fsize;
+
+        for ( auto& e: n->in )
+        {
+            if ( e->pool )
+            {
+                vec3i new_fov = fov*e->width;
+                e->in_fsize   = e->width*fsize;
+                fov_pass(e->in, new_fov, e->in_fsize);
+            }
+            else
+            {
+                vec3i new_fov = (fov - vec3i::one)*e->stride + e->width;
+                e->in_fsize   = (e->width - vec3i::one)*e->in_stride + fsize;
+                fov_pass(e->in, new_fov, e->in_fsize);
+            }
+        }
+    }
+
     void stride_pass(nnodes* n, const vec3i& stride )
     {
         if ( n->stride != vec3i::zero )
@@ -294,14 +332,67 @@ private:
         }
     }
 
+    // automatically add crop layer whenever feature map sizes are conflicting
+    nodes * auto_crop(nedges * e)
+    {
+        nodes * in  = e->in->dnodes.get();
+        nodes * out = e->out->dnodes.get();
+
+        auto iname = in->name();
+        auto oname = out->name();
+
+        auto diff  = e->in->fsize - e->in_fsize;
+        if ( diff != vec3i::zero )
+        {
+            nodes * bridge = nullptr;
+            std::string name = "ncrop_" + iname + "_" oname;
+
+            // create nodes
+            {
+                options op;
+                op.push("nodes",name);
+                op.push("type","sum");
+                op.push("size",in->size());
+                op.push("auto","1");
+
+                bridge = std::make_unique<transfer_nodes>
+                    ( in->size(), e->in_fsize, op, tm_,
+                      in->fwd_priority(), in->bwd_priority(), false );
+            }
+
+            // create crop edges
+            {
+                options op;
+                op.push("edges",iname + "_" oname);
+                op.push("type","crop");
+                op.push("offset",diff/vec3i(2,2,2));
+                op.push("input",iname);
+                op.push("output",name);
+                op.push("auto","1");
+
+                e.second->dedges = std::make_unique<edges>
+                    ( in, bridge, op, tm_, edges::crop_tag() );
+            }
+
+            // replace "in"
+            in = bridge;
+        }
+
+        return in;
+    }
+
     void create_edges()
     {
         for ( auto & e: edges_ )
         {
+            // nodes * in  = e.second->in->dnodes.get();
+            // nodes * out = e.second->out->dnodes.get();
+
+            nodes * in  = auto_crop(e.second);
+            nodes * out = e.second->out->dnodes.get();
+
             auto opts = e.second->opts;
             auto type = opts->require_as<std::string>("type");
-            nodes * in  = e.second->in->dnodes.get();
-            nodes * out = e.second->out->dnodes.get();
 
             if ( type == "max_filter" )
             {
