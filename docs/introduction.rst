@@ -3,7 +3,7 @@ Introduction
 
 Resources
 ---------
-Tutorial slides: `How to ZNN<https://docs.google.com/presentation/d/1B5g4lgnHN92fD5bkqDCAHraGZL3lz3Df6G-QiYrEWPg/edit?usp=sharing>`_
+Tutorial slides: `How to ZNN <https://docs.google.com/presentation/d/1B5g4lgnHN92fD5bkqDCAHraGZL3lz3Df6G-QiYrEWPg/edit?usp=sharing>`_
 
 Publications
 ------------
