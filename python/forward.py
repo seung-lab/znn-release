@@ -205,7 +205,7 @@ if __name__ == '__main__':
     if not os.path.exists( args['config'] ):
         raise NameError("config file not exist!")
     if args['net'] is not None:
-        if os.path.exists( args['net'] ):
+        if not os.path.exists( args['net'] ):
             raise NameError( "net file do not exist!")
 
     main( args )
