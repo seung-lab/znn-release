@@ -121,52 +121,52 @@ private:
     void dump() { tm_.dump(); }
 #endif
 
+    // void fov_pass(nnodes* n, vec3i fov, const vec3i& fsize )
+    // {
+    //     if ( n->fov != vec3i::zero )
+    //     {
+    //         ZI_ASSERT(n->fsize==fsize);
+    //         if ( n->fov == fov )
+    //         {
+    //             return;
+    //         }
+    //         else
+    //         {
+    //             fov[0] = std::max(n->fov[0],fov[0]);
+    //             fov[1] = std::max(n->fov[1],fov[1]);
+    //             fov[2] = std::max(n->fov[2],fov[2]);
+    //         }
+    //     }
+
+    //     for ( auto& e: n->out )
+    //     {
+    //         e->in_fsize = fsize;
+    //     }
+    //     n->fov = fov;
+    //     n->fsize = fsize;
+    //     for ( auto& e: n->in )
+    //     {
+    //         if ( e->pool )
+    //         {
+    //             vec3i new_fov   = fov * e->width;
+    //             vec3i new_fsize = e->width * fsize;
+    //             fov_pass(e->in, new_fov, new_fsize);
+    //         }
+    //         else if ( e->crop )
+    //         {
+    //             // FoV doesn't change
+    //             fov_pass(e->in, fov, fsize + e->width - vec3i::one);
+    //         }
+    //         else
+    //         {
+    //             vec3i new_fov   = (fov - vec3i::one) * e->stride + e->width;
+    //             vec3i new_fsize = (e->width-vec3i::one) * e->in_stride + fsize;
+    //             fov_pass(e->in, new_fov, new_fsize);
+    //         }
+    //     }
+    // }
+
     void fov_pass(nnodes* n, vec3i fov, const vec3i& fsize )
-    {
-        if ( n->fov != vec3i::zero )
-        {
-            ZI_ASSERT(n->fsize==fsize);
-            if ( n->fov == fov )
-            {
-                return;
-            }
-            else
-            {
-                fov[0] = std::max(n->fov[0],fov[0]);
-                fov[1] = std::max(n->fov[1],fov[1]);
-                fov[2] = std::max(n->fov[2],fov[2]);
-            }
-        }
-
-        for ( auto& e: n->out )
-        {
-            e->in_fsize = fsize;
-        }
-        n->fov = fov;
-        n->fsize = fsize;
-        for ( auto& e: n->in )
-        {
-            if ( e->pool )
-            {
-                vec3i new_fov   = fov * e->width;
-                vec3i new_fsize = e->width * fsize;
-                fov_pass(e->in, new_fov, new_fsize);
-            }
-            else if ( e->crop )
-            {
-                // FoV doesn't change
-                fov_pass(e->in, fov, fsize + e->width - vec3i::one);
-            }
-            else
-            {
-                vec3i new_fov   = (fov - vec3i::one) * e->stride + e->width;
-                vec3i new_fsize = (e->width-vec3i::one) * e->in_stride + fsize;
-                fov_pass(e->in, new_fov, new_fsize);
-            }
-        }
-    }
-
-    void new_fov_pass(nnodes* n, vec3i fov, const vec3i& fsize )
     {
         if ( n->fov != vec3i::zero )
         {
@@ -353,7 +353,6 @@ private:
                 op.push("nodes",name);
                 op.push("type","sum");
                 op.push("size",in->size());
-                op.push("auto","1");
 
                 bridge = std::make_unique<transfer_nodes>
                     ( in->size(), e->in_fsize, op, tm_,
@@ -368,7 +367,6 @@ private:
                 op.push("offset",diff/vec3i(2,2,2));
                 op.push("input",iname);
                 op.push("output",name);
-                op.push("auto","1");
 
                 e.second->dedges = std::make_unique<edges>
                     ( in, bridge, op, tm_, edges::crop_tag() );
