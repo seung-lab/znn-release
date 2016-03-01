@@ -80,8 +80,12 @@ public:
     ~network()
     {
         zap();
+
         for ( auto& n: nodes_ ) delete n.second;
         for ( auto& e: edges_ ) delete e.second;
+
+        for ( auto& n: implcit_nodes_ ) delete n.second;
+        for ( auto& e: implcit_edges_ ) delete e.second;
     }
 
 private:
@@ -112,6 +116,10 @@ private:
     std::map<std::string, nnodes*> output_nodes_;
     std::map<std::string, nedges*> stochastic_edges_;
     std::map<std::string, nedges*> phase_dependent_edges_;
+
+    // implicit (automatically inserted) nodes and edges
+    std::map<std::string, nodes*> implcit_nodes_;
+    std::map<std::string, edges*> implcit_edges_;
 
     task_manager tm_;
 
@@ -166,7 +174,7 @@ private:
     //     }
     // }
 
-    void fov_pass(nnodes* n, vec3i fov, const vec3i& fsize )
+    void fov_pass(nnodes* n, vec3i fov, vec3i fsize )
     {
         if ( n->fov != vec3i::zero )
         {
@@ -340,12 +348,13 @@ private:
 
         auto iname = in->name();
         auto oname = out->name();
+        std::string in_out = iname + "_" + oname;
 
         auto diff  = e->in->fsize - e->in_fsize;
         if ( diff != vec3i::zero )
         {
             nodes * bridge = nullptr;
-            std::string name = "ncrop_" + iname + "_" oname;
+            std::string name = "ncrop_" + in_out;
 
             // create nodes
             {
@@ -354,21 +363,23 @@ private:
                 op.push("type","sum");
                 op.push("size",in->size());
 
-                bridge = std::make_unique<transfer_nodes>
+                bridge = new transfer_nodes
                     ( in->size(), e->in_fsize, op, tm_,
                       in->fwd_priority(), in->bwd_priority(), false );
+
+                implcit_nodes_[name] = bridge;
             }
 
             // create crop edges
             {
                 options op;
-                op.push("edges",iname + "_" oname);
+                op.push("edges",in_out);
                 op.push("type","crop");
                 op.push("offset",diff/vec3i(2,2,2));
                 op.push("input",iname);
                 op.push("output",name);
 
-                e.second->dedges = std::make_unique<edges>
+                implcit_edges_[in_out] = new edges
                     ( in, bridge, op, tm_, edges::crop_tag() );
             }
 
