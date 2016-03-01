@@ -203,6 +203,12 @@ private:
                 e->in_fsize   = e->width*fsize;
                 fov_pass(e->in, new_fov, e->in_fsize);
             }
+            else if ( e->crop )
+            {
+                // FoV doesn't change
+                e->in_fsize = fsize + e->width - vec3i::one;
+                fov_pass(e->in, fov, e->in_fsize);
+            }
             else
             {
                 vec3i new_fov = (fov - vec3i::one)*e->stride + e->width;
