@@ -36,8 +36,7 @@ zalis( std::vector<cube_p<real>> true_affs,
        std::vector<cube_p<real>> affs,
        bool frac_norm = false,
        real high = 0.99,
-       real low  = 0.01,
-       size_t norm_mode = 0 )
+       real low  = 0.01 )
 {
     ZI_ASSERT(affs.size()==3);
     ZI_ASSERT(true_affs.size()==affs.size());
@@ -211,7 +210,7 @@ zalis( std::vector<cube_p<real>> true_affs,
                 real     segsize1 = seg1.second;
 
                 // fraction normalize
-                if ( norm_mode==1 ) segsize1 /= seg_sizes[segID1];
+                if ( frac_norm ) segsize1 /= seg_sizes[segID1];
 
                 // skip boundary
                 if ( segID1 == 0 ) continue;
@@ -223,7 +222,7 @@ zalis( std::vector<cube_p<real>> true_affs,
                     real     segsize2 = seg2.second;
 
                     // fraction normalize
-                    if ( norm_mode==1 ) segsize2 /= seg_sizes[segID2];
+                    if ( frac_norm ) segsize2 /= seg_sizes[segID2];
 
                     // skip boundary
                     if ( segID2 == 0 ) continue;
@@ -232,13 +231,13 @@ zalis( std::vector<cube_p<real>> true_affs,
                     if ( segID1 == segID2 )
                     {
                         n_same_pair += segsize1 * segsize2;
-                        if (affinity < 0.5)
+                        if ( affinity < 0.5 )
                             FN += segsize1 * segsize2;
                     }
                     else
                     {
                         n_diff_pair += segsize1 * segsize2;
-                        if (affinity >0.5)
+                        if ( affinity > 0.5 )
                             FP += segsize1 * segsize2;
                     }
                 }

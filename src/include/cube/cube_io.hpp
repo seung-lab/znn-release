@@ -43,6 +43,38 @@ inline cube_p<T> read( std::string const & fname, vec3i const & sz )
     return ret;
 }
 
+template<typename F, typename T>
+inline std::vector<cube_p<T>> read_tensor( std::string const & fname,
+                                           vec3i const & sz,
+                                           size_t n )
+{
+    std::vector<cube_p<T>> ret;
+
+    FILE* fvol = fopen(fname.c_str(), "r");
+
+    STRONG_ASSERT(fvol);
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        auto c = get_cube<T>(sz);
+        F v;
+
+        for ( long_t z = 0; z < sz[0]; ++z )
+            for ( long_t y = 0; y < sz[1]; ++y )
+                for ( long_t x = 0; x < sz[2]; ++x )
+                {
+                    static_cast<void>(fread(&v, sizeof(F), 1, fvol));
+                    (*c)[z][y][x] = static_cast<T>(v);
+                }
+
+        ret.push_back(c);
+    }
+
+    fclose(fvol);
+
+    return ret;
+}
+
 inline bool export_size_info( std::string const & fname,
                               vec3i const & sz, size_t n = 0 )
 {

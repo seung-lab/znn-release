@@ -1,11 +1,11 @@
-size 1,10,10
-xaff ./experiments/malis/xaff.bin
-yaff ./experiments/malis/yaff.bin
-zaff ./experiments/malis/zaff.bin
-lbl ./experiments/malis/label.bin
-out ./experiments/malis/out
-
-phase BOTH
-constrain 0
-frac_norm 0
+size 168,255,255
+aff ./experiments/new_Piriform/VD2D3D/affinity/MS/pretrain/exp1/iter_200K/exp1/iter_300K/Piriform_sample1_output.affin
+lbl ./dataset/Piriform/stack1-label.bin
+out ./experiments/new_Piriform/VD2D3D/affinity/MS/pretrain/exp1/iter_200K/exp1/iter_300K/Piriform_sample1_output
+high 1
+low 0.2
+dim 3
+phase MERGER
+constrain 1
+frac_norm 1
 debug_print 0
