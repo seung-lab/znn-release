@@ -64,6 +64,8 @@ script:
        # return to `python`
        - cd ..
        - python train.py -c ../testsuit/boundary/config.cfg -d double -k yes
+       # test forward pass
+       - python forward.py -c ../testsuit/forward/config.cfg
        # return to root directory
        - cd ..
 
