@@ -1,0 +1,8 @@
+n_threads 0
+force_fft 1
+optimize  0
+
+outsz   z,y,x
+offset  0,0,0
+grid    0,0,0
+prefix  out

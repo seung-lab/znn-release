@@ -75,7 +75,7 @@ class Box:
 
     def merge(self, other):
         """Return merge of this and other box. Two boxes need not overlap."""
-       # min/max corners
+        # min/max corners
         vmin = minimum(self._min, other._min)
         vmax = maximum(self._max, other._max)
 
