@@ -76,7 +76,7 @@ def check_patch(pars, smp):
     vol_ins, lbl_outs, msks, wmsks = smp.get_random_sample()
 
     # check the image with ground truth
-    fdir = os.path.dirname(pars['train_net'])
+    fdir = os.path.dirname(pars['train_net_prefix'])
     if "float32" in pars['dtype']:
         fname = fdir + "/gtruth/net_1_single.h5"
     elif "float64" in pars['dtype']:
