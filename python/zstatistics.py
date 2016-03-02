@@ -67,7 +67,6 @@ class CLearnCurve:
             self.tn_mc = list( f['/train/mc'].value )
         else:
             self.tn_mc = list()
-        f.close()
 
         # unbalanced cost
         if '/test/ucost' in f:
@@ -78,6 +77,8 @@ class CLearnCurve:
             self.tn_ucost = list( f['/train/ucost'].value )
         else:
             self.tn_ucost = list()
+
+        f.close()
 
         # crop the values
         if iter_num is not None:
