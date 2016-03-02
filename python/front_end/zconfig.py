@@ -12,53 +12,9 @@ import numpy as np
 import os
 import cost_fn
 import utils
+from utils import parseIntSet
 
 from emirt import volume_util
-
-def parseIntSet(nputstr=""):
-    """
-    Allows users to specify a comma-delimited list of number ranges as sample selections.
-    Specifically, parses a string which should contain a comma-delimited list of
-    either numerical values (e.g. 3), or a dash-separated range (e.g. 4-5).
-
-    If the ranges are redundant (e.g. 3, 3-5), only one copy of the selection will
-    be added to the result.
-
-    IGNORES ranges which don't fit the desired format (e.g. 3&5)
-
-    http://thoughtsbyclayg.blogspot.com/2008/10/parsing-list-of-numbers-in-python.html
-    """
-    if nputstr is None:
-        return None
-
-    selection = set()
-    invalid = set()
-
-    # tokens are comma seperated values
-    tokens = [x.strip() for x in nputstr.split(',')]
-
-    for i in tokens:
-       try:
-          # typically, tokens are plain old integers
-          selection.add(int(i))
-       except:
-
-          # if not, then it might be a range
-          try:
-             token = [int(k.strip()) for k in i.split('-')]
-             if len(token) > 1:
-                token.sort()
-                # we have items seperated by a dash
-                # try to build a valid range
-                first = token[0]
-                last = token[len(token)-1]
-                for x in range(first, last+1):
-                   selection.add(x)
-          except:
-             # not an int and not a range...
-             invalid.add(i)
-
-    return selection
 
 def parser( conf_fname ):
     '''
@@ -92,10 +48,15 @@ def parser( conf_fname ):
 
     #IO OPTIONS
     #Filename under which we save the network
-    if config.has_option('parameters', 'train_net'):
-        pars['train_net'] = config.get('parameters', 'train_net')
+    if config.has_option('parameters', 'train_net_prefix'):
+        pars['train_net_prefix'] = config.get('parameters', 'train_net_prefix')
+    elif config.has_option('parameters', 'train_net'):
+        pars['train_net_prefix'] = config.get('parameters', 'train_net')
     elif config.has_option('parameters', 'train_save_net'):
-        pars['train_net'] = config.get('parameters', 'train_save_net')
+        pars['train_net_prefix'] = config.get('parameters', 'train_save_net')
+    # remove the ".h5"
+    import string
+    pars['train_net_prefix'] = string.replace(pars['train_net_prefix'], ".h5", "")
     #Whether to write .log and .cfg files
     if config.has_option('parameters', 'logging'):
         pars['logging'] = config.getboolean('parameters', 'logging')
