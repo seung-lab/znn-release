@@ -604,6 +604,20 @@ public:
         return ret;
     }
 
+    std::vector<cube_p<real>>&
+    get_featuremaps( std::vector<std::string> const & keys )
+    {
+        STRONG_ASSERT(nodes_[name].count()!=0);
+
+        std::map<std::string, std::vector<cube_p<real>>> ret;
+        for ( auto& key: keys )
+        {
+            ret[key] = nodes_[key]->dnodes->get_featuremaps();
+        }
+
+        return ret;
+    }
+
     std::pair<std::vector<options>,std::vector<options>> serialize()
     {
         zap();

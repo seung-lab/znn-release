@@ -444,7 +444,7 @@ bp::dict sample2pydict( bp::object const & self,
     bp::dict ret;
     for (auto & am: sample )
     {
-        ret[am.first] = cubelist2array<T>( self, am.second);
+        ret[am.first] = cubelist2array<T>( self, am.second );
     }
     return ret;
 }

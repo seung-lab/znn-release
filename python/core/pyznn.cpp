@@ -257,7 +257,7 @@ bp::dict CNet_forward( bp::object const & self, bp::dict& ins )
 
     // run forward and get output
     auto prop = net.forward( std::move( pydict2sample<real>( ins ) ) );
-    return sample2pydict<real>( self, prop);
+    return sample2pydict<real>( self, prop );
 }
 
 //Computes the backward-pass and updates network parameters
@@ -272,6 +272,17 @@ void CNet_backward( bp::object & self, bp::dict& grdts )
 
 	// backward
     net.backward( std::move(gsample) );
+}
+
+bp::dict CNet_get_featuremaps( bp::object & self, bp::dict layers )
+{
+    // extract the class from self
+    network& net = bp::extract<network&>(self)();
+
+    std::vector<std::string> keys = extract_dict_keys(layers);
+
+    auto& fmaps = net.get_featuremaps( keys );
+    return sample2pydict<real>( self, fmaps );
 }
 
 //===========================================================================
@@ -357,6 +368,7 @@ BOOST_PYTHON_MODULE(pyznn)
         .def("get_fov",     		&CNet_fov)
         .def("forward",     		&CNet_forward)
         .def("backward",			&CNet_backward)
+        .def("get_featuremaps",     &CNet_get_featuremaps)
         .def("set_eta",    		    &network::set_eta)
         .def("set_phase",           &CNet_set_phase)
         .def("set_momentum",		&network::set_momentum)
