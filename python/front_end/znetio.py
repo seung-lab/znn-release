@@ -108,14 +108,13 @@ def save_opts(opts, filename, is_stdio=False):
     f.close()
 
 def find_load_net( train_net_prefix, seed=None ):
-    if seed is None or "none" == seed or "None"==seed:
-        return None
     if seed and os.path.exists(seed):
         fnet = seed
     else:
         fnet = train_net_prefix + "_current.h5"
     # check whether fnet exists
     if not os.path.exists(fnet):
+        print "net file not exist: ", fnet
         return None
     else:
         return fnet
@@ -310,7 +309,7 @@ def load_network( params=None, train=True, hdf5_filename=None,
                 print "use seed network: ", params['seed']
                 _hdf5_filename = params['seed']
             else:
-                _hdf5_filename = get_current( params['train_net_prefix'] )
+                _hdf5_filename = params['train_net_prefix'] + "_current.h5"
             _output_patch_shape = params['train_outsz']
             if "optimize" in params['train_conv_mode']:
                 _optimize = True
@@ -447,13 +446,14 @@ def init_network( params=None, train=True, network_specfile=None,
 
 def create_net(pars):
     fnet = find_load_net( pars['train_net_prefix'], pars['seed'] )
-    print "fnet: ", fnet
+    
     if fnet and os.path.exists(fnet):
+        print "loading network: ", fnet
         net = load_network( pars, fnet )
         # load existing learning curve
         lc = zstatistics.CLearnCurve( pars, fnet )
     else:
-        # initialize a new network
+        print "initialize a new network..."
         net = init_network( pars )
         lc = zstatistics.CLearnCurve( pars )
 
