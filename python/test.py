@@ -16,9 +16,9 @@ def _single_test(net, pars, sample):
     props = net.forward( vol_ins )
 
     # cost function and accumulate errors
-    props, err, grdts = pars['cost_fn']( props, lbl_outs )
+    props, err, grdts = pars['cost_fn']( props, lbl_outs, msks )
     # pixel classification error
-    cls = cost_fn.get_cls(props, lbl_outs)
+    cls = cost_fn.get_cls(props, lbl_outs, msks)
     # rand error
     re = pyznn.get_rand_error(props.values()[0], lbl_outs.values()[0])
 
