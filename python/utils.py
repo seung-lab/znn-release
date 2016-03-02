@@ -220,7 +220,7 @@ def get_total_num_mask(masks, props=None):
         if mask.size == 0 and props is not None:
             s += props[name].size
         else:
-            s += mask.sum()
+            s += np.count_nonzero(mask)
     return s
 
 
