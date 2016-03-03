@@ -17,7 +17,6 @@
 //
 #pragma once
 
-#include "forward_scanner.hpp"
 #include "volume_data.hpp"
 #include "../network/parallel/network.hpp"
 
@@ -27,8 +26,12 @@ template <typename T>
 class volume_forward_scanner
 {
 private:
-    typedef std::vector<volume_data<T>>         input_type      ;
-    typedef std::map<size_t,rw_volume_data<T>>  output_type     ;
+    typedef std::unique_ptr<volume_data<T>>     volume    ;
+    typedef std::unique_ptr<rw_volume_data<T>>  rw_volume ;
+
+private:
+    typedef std::vector<volume>                 input_type      ;
+    typedef std::map<size_t,rw_volume>          output_type     ;
     typedef std::pair<vec3i,size_t>             layer_size_type ;
     typedef std::pair<vec3i,std::set<size_t>>   layer_spec_type ;
     typedef std::vector<cube_p<T>>              tensor_type     ;
@@ -92,7 +95,7 @@ private:
 
             for ( size_t i = 0; i < size; ++i )
             {
-                ret[name][i] = inputs_[name][i].get_patch(loc);
+                ret[name][i] = inputs_[name][i]->get_patch(loc);
             }
         }
 
@@ -100,7 +103,7 @@ private:
     }
 
     // push outputs to the specified location
-    void push( vec3i const & loc, std::map<std::string, tensor_type> & data )
+    void push( vec3i const & loc, std::map<std::string, tensor_type> data )
     {
         for ( auto& l: layers_spec_ )
         {
@@ -109,8 +112,8 @@ private:
 
             for ( auto& v: range )
             {
-                ZI_ASSERT(outputs_[name][v].count()!=0);
-                outputs_[name][v].set_patch(loc, data[name][v-1]);
+                ZI_ASSERT(outputs_[name].count(v)!=0);
+                outputs_[name][v]->set_patch(loc, data[name][v-1]);
             }
         }
     }
@@ -141,14 +144,15 @@ public:
         auto& input = inputs_[name];
         for ( auto& d: data )
         {
-            input.emplace_back(d, patch_size, offset);
+            input.push_back(
+                std::make_unique<volume_data<T>>(d, patch_size, offset));
         }
 
         ZI_ASSERT(input.size()!=0);
         ZI_ASSERT(input.size()==inputs_size_[name].second);
 
         // update valid range
-        box const & range = input[0].range();
+        box const & range = input[0]->range();
         range_ = range_.empty() ? range : range_.intersect(range);
     }
 
@@ -253,7 +257,8 @@ private:
         {
             auto data = get_cube<T>(bbox.size());
             fill(*data,0);
-            output.emplace(v, rw_volume_data<T>(data, patch_size, bbox.min()));
+            output[v] = std::make_unique<rw_volume_data<T>>
+                                (data, patch_size, bbox.min());
         }
 
         ZI_ASSERT(output.size()!=0);
@@ -306,7 +311,7 @@ private:
 
         for ( auto& n: nodes )
         {
-            auto& name = n.require_as<std::string>("name");
+            auto name  = n.require_as<std::string>("name");
             auto range = n.optional_as<std::string>("range","");
 
             layers_name_.push_back(name);

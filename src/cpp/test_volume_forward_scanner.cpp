@@ -17,6 +17,9 @@
 //
 #include "network/parallel/network.hpp"
 #include "front_end/volume_forward_scanner.hpp"
+#include "cube/cube_io.hpp"
+
+#include <iostream>
 
 using namespace znn::v4;
 
@@ -37,7 +40,7 @@ int main(int argc, char** argv)
 
     auto net_spec = op.require_as<std::string>("net_spec");
     parse_net_file(nodes, edges, net_spec);
-    parallel::network::force_fft(edges);
+    parallel_network::network::force_fft(edges);
 
     auto outsz = op.require_as<ovec3i>("outsz");
     auto tc = op.require_as<size_t>("n_threads");
@@ -53,8 +56,7 @@ int main(int argc, char** argv)
     // ---------------------------------------------------------------
     // preprocess input
     // ---------------------------------------------------------------
-    input = mirror_boundary(input, net.fov());
-    normalize2D(input);
+    input = mirror_boundary(*input, net.fov());
 
     // ---------------------------------------------------------------
     // construct volume_forward_scanner
@@ -81,7 +83,7 @@ int main(int argc, char** argv)
     for ( auto& o: outputs )
     {
         auto& name = o.first;
-        auto oname = spath + name + ".bin"
+        auto oname = spath + name + ".bin";
 
         std::cout << "Writing [" << name << "]...";
         wt.reset();

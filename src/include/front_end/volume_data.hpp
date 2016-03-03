@@ -66,7 +66,7 @@ public:
     void set_data( cube_p<T> const & data )
     {
         data_ = data;
-        dim_  = size(data);
+        dim_  = size(*data);
 
         set_bbox();
         set_range();
@@ -122,14 +122,14 @@ public:
                  vec3i const & fov = vec3i::zero,
                  vec3i const & off = vec3i::zero )
         : data_(data)
-        , dim_(size(data))
+        , dim_(size(*data))
         , fov_(fov)
         , off_(off)
     {
         ZI_ASSERT(dim_!=vec3i::zero);
 
-        set_fov();
-        set_offset();
+        set_fov(fov);
+        set_offset(off);
     }
 
     virtual ~volume_data() {}
