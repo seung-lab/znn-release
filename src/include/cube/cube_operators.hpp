@@ -653,4 +653,55 @@ inline cube_p<T> mirror_boundary( cube<T> const & c,
     return rp;
 }
 
+template<typename T>
+inline T mean( cube<T> const & c )
+{
+    ZI_ASSERT(c.num_elements());
+    return sum(c)/c.num_elements();
+}
+
+template<typename T>
+inline T variance( cube<T> const & c )
+{
+    auto m = mean(c);
+    auto squared = c*c;
+    return mean(*squared) - m*m;
+}
+
+template<typename T>
+inline void normalize( cube<T> c )
+{
+    auto m = mean(c);
+    auto v = variance(c);
+    auto s = std::sqrt(v);
+
+    for ( size_t i = 0; i < c.num_elements(); ++i )
+    {
+        c.data()[i] -= m;
+        c.data()[i] /= s;
+    }
+}
+
+template<typename T>
+inline void normalize2D( cube<T> c )
+{
+    // 2D slice size
+    vec3i sz = size(c);
+    sz[0] = 1;
+
+    for ( std::size_t z = 0; z < volsz[0]; ++z )
+    {
+        vec3i vmin(z,0,0);
+        vec3i vmax = vmin + sz;
+
+        auto slice = crop(c,vmin,sz);
+        normalize(*slice);
+
+        (*c)[indices
+                [range(vmin[0],vmax[0])]
+                [range(vmin[1],vmax[1])]
+                [range(vmin[2],vmax[2])]] = (*slice);
+    }
+}
+
 }} // namespace znn::v4

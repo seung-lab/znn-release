@@ -122,6 +122,11 @@ public:
         // TODO(lee): return auto-crop results
     }
 
+    std::map<std::string, layer_spec_type> layer_spec()
+    {
+        return layers_spec_;
+    }
+
 
 public:
     void add_input( std::string const & name,
@@ -283,8 +288,7 @@ private:
     {
         auto layers_size = net_->layers();
 
-        std::vector<options> nodes;
-        std::vector<options> edges;
+        std::vector<options> nodes, edges;
 
         if ( fname.empty() )
         {
