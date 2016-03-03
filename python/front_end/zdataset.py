@@ -491,6 +491,28 @@ class ConfigOutputLabel(ConfigImage):
         # (from the label mask [self.msk])
         return weight
 
+    def get_candidate_loc_by_class( self, low, high):
+        """
+        find the candidate location of subvolume separating by class
+        """
+        mask = np.copy(self.data[0,:,:,:])
+        
+        # erase outside region of deviation range.
+        ct = self.center
+        mask[:ct[0]+low[0], :, : ] = -1
+        mask[:, :ct[1]+low[1], : ] = -1
+        mask[:, :, :ct[2]+low[2] ] = -1
+
+        mask[ct[0]+high[0]+1:, :, :] = -1
+        mask[:, ct[1]+high[1]+1:, :] = -1
+        mask[:, :, ct[2]+high[2]+1:] = -1
+
+        neg_locs = np.where(mask == 0)
+        pos_locs = np.where(mask > 0)  
+        print mask[pos_locs]
+        print "lengths: ", len(neg_locs[0]), len(pos_locs[0])
+        return neg_locs, pos_locs
+  
     def get_candidate_loc( self, low, high ):
         """
         find the candidate location of subvolume

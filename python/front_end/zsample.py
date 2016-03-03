@@ -104,7 +104,8 @@ class CSample(object):
         # find the candidate central locations of sample
         if len(self.outs) > 0:
             # this will not work with multiple output layers!!
-            self.locs = self.outs.values()[0].get_candidate_loc( dev_low, dev_high )
+            #self.locs = self.outs.values()[0].get_candidate_loc( dev_low, dev_high )
+            self.neg_locs, self.pos_locs = self.outs.values()[0].get_candidate_loc_by_class ( dev_low, dev_high )
         else:
             print "\nWARNING: No output volumes defined!\n"
             self.locs = None
@@ -122,15 +123,20 @@ class CSample(object):
 
     def get_random_sample(self):
         '''Fetches a matching random sample from all input and output volumes'''
-
+  
+        # random choice between negative of positive sample    
+        sample = np.random.random_integers(2)
+        locs = self.neg_locs
+        if sample == 2:  locs = self.pos_locs 
+        
         # random deviation
-        ind = np.random.randint( np.size(self.locs[0]) )
+        ind = np.random.randint( np.size(locs[0]) )
         loc = np.empty( 3, dtype=np.uint32 )
-        loc[0] = self.locs[0][ind]
-        loc[1] = self.locs[1][ind]
-        loc[2] = self.locs[2][ind]
+        loc[0] = locs[0][ind]
+        loc[1] = locs[1][ind]
+        loc[2] = locs[2][ind]
         dev = loc - self.outs.values()[0].center
-
+        #print "locs: ", loc
         self.write_request_to_log(dev)
 
         # get input and output 4D sub arrays
