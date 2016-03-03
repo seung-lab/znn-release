@@ -175,7 +175,7 @@ class CThreadedSamples(object):
 class S3Copy_LoaderThread(Thread):
 
     def __init__(self, config, pars, sample_num, net, outsz, log, class_obj):
-        '''Same as above'''
+        '''Same as above - CURRENTLY NOT IN USE, this seems to create deadlock with ZNN threads'''
         Thread.__init__(self)
 
         #storing stuff
@@ -220,7 +220,7 @@ class CThreadedSamples_S3(CThreadedSamples):
 
     def __init__(self, config, pars, ids, net, outsz, log=None):
         '''
-        Nothing new
+        Nothing new (see CThreadedSamples above)
         '''
         CThreadedSamples.__init__(self, config, pars,
                                 ids, net, outsz, log)
@@ -256,8 +256,11 @@ class CThreadedSamples_S3(CThreadedSamples):
         # for when we remove the files
         self.backup_sample_num = self.choose_random_sample_num()
 
+        #Using a serial copy for now - seems to cause deadlock with ZNN(?)
+        s3_utils.copy_sample_from_S3(self.config, self.net, self.backup_sample_num)
+
         #Initializing the thread
-        thread = S3Copy_LoaderThread(
+        thread = LoaderThread(
             self.config,
             self.pars,
             self.backup_sample_num,
@@ -268,7 +271,7 @@ class CThreadedSamples_S3(CThreadedSamples):
             )
 
         #Starting the read from disk
-        thread.start()
+        thread.run()
 
         #Returning the pointer
         return thread
