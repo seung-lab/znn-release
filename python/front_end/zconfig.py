@@ -28,6 +28,8 @@ def parseIntSet(nputstr=""):
 
     http://thoughtsbyclayg.blogspot.com/2008/10/parsing-list-of-numbers-in-python.html
     """
+    if nputstr is None:
+        return None
 
     selection = set()
     invalid = set()
@@ -79,6 +81,10 @@ def parser( conf_fname ):
 
     #Number of threads to use
     pars['num_threads'] = int( config.get('parameters', 'num_threads') )
+    if pars['num_threads'] <= 0:
+        # use maximum number of cpus
+        import multiprocessing
+        pars['num_threads'] = multiprocessing.cpu_count()
     # data type
     pars['dtype']       = config.get('parameters', 'dtype')
     #Output layer data type (e.g. 'boundary','affinity')
@@ -86,11 +92,10 @@ def parser( conf_fname ):
 
     #IO OPTIONS
     #Filename under which we save the network
-    pars['train_save_net'] = config.get('parameters', 'train_save_net')
-    # initialize from a seed network
-    pars['train_seed_net'] = config.get('parameters', 'train_seed_net')
-    #Network filename to load
-    pars['train_load_net'] = config.get('parameters', 'train_load_net')
+    if config.has_option('parameters', 'train_net'):
+        pars['train_net'] = config.get('parameters', 'train_net')
+    elif config.has_option('parameters', 'train_save_net'):
+        pars['train_net'] = config.get('parameters', 'train_save_net')
     #Whether to write .log and .cfg files
     if config.has_option('parameters', 'logging'):
         pars['logging'] = config.getboolean('parameters', 'logging')
@@ -103,7 +108,10 @@ def parser( conf_fname ):
     #Learning Rate
     pars['eta']         = config.getfloat('parameters', 'eta')
     #Learning Rate Annealing Factor
-    pars['anneal_factor']=config.getfloat('parameters', 'anneal_factor')
+    if config.has_option('parameters', 'anneal_factor'):
+        pars['anneal_factor'] = config.getfloat('parameters', 'anneal_factor')
+    else:
+        pars['anneal_factor'] = 1
     #Momentum Constant
     pars['momentum']    = config.getfloat('parameters', 'momentum')
     #Weight Decay
@@ -113,24 +121,84 @@ def parser( conf_fname ):
                                     'train_outsz').split(',') ], dtype=np.int64 )
     #Whether to optimize the convolution computation by layer
     # (FFT vs Direct Convolution)
-    pars['is_train_optimize'] = config.getboolean('parameters', 'is_train_optimize')
-    pars['is_forward_optimize'] = config.getboolean('parameters', 'is_forward_optimize')
-    pars['force_fft'] = config.getboolean('parameters', 'force_fft')
+    if config.has_option("parameters", "is_train_optimize"):
+        if config.getboolean('parameters', 'is_train_optimize'):
+            pars['train_conv_mode'] = "optimize"
+        else:
+            pars['train_conv_mode'] = "direct"
+    if config.has_option("parameters", "is_forward_optimize"):
+        if config.getboolean('parameters', 'is_forward_optimize'):
+            pars['forward_conv_mode'] = "optimize"
+        else:
+            pars['forward_conv_mode'] = 'direct'
+    if config.has_option('parameters', 'force_fft'):
+        if config.getboolean('parameters', 'force_fft'):
+            pars['train_conv_mode'] = 'fft'
+            pars['forward_conv_mode'] = 'fft'
+    if config.has_option('parameters', 'train_conv_mode'):
+        pars['train_conv_mode'] = config.get('parameters', 'train_conv_mode')
+    if config.has_option('parameters', 'forward_conv_mode'):
+        pars['forward_conv_mode'] = config.get('parameters', 'forward_conv_mode')
+
     #Whether to use data augmentation
     pars['is_data_aug'] = config.getboolean('parameters', 'is_data_aug')
     #Whether to use boundary mirroring
     pars['is_bd_mirror']= config.getboolean('parameters', 'is_bd_mirror')
     #Whether to use rebalanced training
-    pars['is_rebalance']= config.getboolean('parameters', 'is_rebalance')
+    if config.has_option('parameters', 'is_rebalance'):
+        if config.getboolean('parameters', 'is_rebalance'):
+            pars['rebalance_mode'] = 'global'
+        else:
+            pars['rebalance_mode'] = None
     # whether to use rebalance of output patch
-    pars['is_patch_rebalance']=config.getboolean('parameters', 'is_patch_rebalance')
+    if config.has_option('parameters', 'is_patch_rebalance'):
+        if config.getboolean('parameters', 'is_patch_rebalance'):
+            pars['rebalance_mode'] = 'patch'
+        else:
+            pars['rebalance_mode'] = None
+    if config.has_option('parameters', 'rebalance_mode'):
+        pars['rebalance_mode'] = config.get('parameters', 'rebalance_mode')
+    else:
+        pars['rebalance_mode'] = None
+
     #Whether to use malis cost
-    pars['is_malis']    = config.getboolean('parameters', 'is_malis')
-    if pars['is_malis']:
-        # malis normalization type
+    if config.has_option('parameters', 'is_malis'):
+        pars['is_malis'] = config.getboolean('parameters', 'is_malis')
+    else:
+        pars['is_malis'] = False
+
+    # malis normalization type
+    if config.has_option('parameters', 'malis_norm_type'):
         pars['malis_norm_type'] = config.get( 'parameters', 'malis_norm_type' )
+    else:
+        pars['malis_norm_type'] = 'none'
+    # constrained malis
+    if config.has_option('parameters', 'is_constrained_malis'):
+        pars['is_constrained_malis'] = config.getboolean('parameters', 'is_constrained_malis')
+    else:
+        pars['is_constrained_malis'] = False
+
     #Whether to display progress plots
-    pars['is_visual']   = config.getboolean('parameters', 'is_visual')
+    if config.has_option('parameters', "is_visual"):
+        pars['is_visual']   = config.getboolean('parameters', 'is_visual')
+    else:
+        pars['is_visual'] = False
+
+    # standard IO
+    if config.has_option('parameters', 'is_stdio'):
+        pars['is_stdio'] = config.getboolean('parameters', 'is_stdio')
+    else:
+        pars['is_stdio'] = False
+    # debug mode
+    if config.has_option('parameters', 'is_debug'):
+        pars['is_debug'] = config.getboolean('parameters', 'is_debug')
+    else:
+        pars['is_debug'] = False
+    # automatically check the gradient and patch matching
+    if config.has_option("parameters", "is_check"):
+        pars["is_check"] = config.getboolean("parameters", "is_check")
+    else:
+        pars["is_check"] = False
 
     #Which Cost Function to Use (as a string)
     pars['cost_fn_str'] = config.get('parameters', 'cost_fn')
@@ -147,6 +215,8 @@ def parser( conf_fname ):
     #How often to change the learning rate
     if config.has_option('parameters','Num_iter_per_annealing'):
         pars['Num_iter_per_annealing'] = config.getint('parameters', 'Num_iter_per_annealing')
+    else:
+        pars['Num_iter_per_annealing'] = 100
     #Maximum training updates
     pars['Max_iter']    = config.getint('parameters', 'Max_iter')
 
@@ -204,13 +274,12 @@ def check_config(config, pars):
     assert('float32'==pars['dtype'] or 'float64'==pars['dtype'])
     assert('boundary' in pars['out_type'] or 'affin' in pars['out_type'])
     assert( np.size(pars['train_outsz'])==3 )
-    assert(pars['eta']<=1           and pars['eta']>=0)
     assert(pars['anneal_factor']>=0 and pars['anneal_factor']<=1)
     assert(pars['momentum']>=0      and pars['momentum']<=1)
     assert(pars['weight_decay']>=0  and pars['weight_decay']<=1)
 
     # normally, we shoud not use two rebalance technique together
-    assert(not (pars['is_rebalance'] and pars['is_patch_rebalance']) )
+    assert (pars['rebalance_mode'] is None) or ('global' in pars['rebalance_mode']) or ('patch' in pars['rebalance_mode'])
 
     assert(pars['Num_iter_per_show']>0)
     assert(pars['Num_iter_per_test']>0)
@@ -235,5 +304,6 @@ def check_config(config, pars):
         assert 'none' in pars['malis_norm_type'] \
             or 'frac' in pars['malis_norm_type'] \
             or 'num'  in pars['malis_norm_type'] \
-            or 'pair' in pars['malis_norm_type']
+            or 'pair' in pars['malis_norm_type'] \
+            or 'constrain' in pars['malis_norm_type']
     return config, pars
