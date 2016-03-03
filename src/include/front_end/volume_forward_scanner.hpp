@@ -26,12 +26,12 @@ template <typename T>
 class volume_forward_scanner
 {
 private:
-    typedef std::unique_ptr<volume_data<T>>     volume    ;
-    typedef std::unique_ptr<rw_volume_data<T>>  rw_volume ;
+    typedef std::unique_ptr<volume_data<T>>     volume_p    ;
+    typedef std::unique_ptr<rw_volume_data<T>>  rw_volume_p ;
 
 private:
-    typedef std::vector<volume>                 input_type      ;
-    typedef std::map<size_t,rw_volume>          output_type     ;
+    typedef std::vector<volume_p>               input_type      ;
+    typedef std::map<size_t,rw_volume_p>        output_type     ;
     typedef std::pair<vec3i,size_t>             layer_size_type ;
     typedef std::pair<vec3i,std::set<size_t>>   layer_spec_type ;
     typedef std::vector<cube_p<T>>              tensor_type     ;
