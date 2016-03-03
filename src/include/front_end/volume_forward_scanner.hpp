@@ -17,6 +17,7 @@
 //
 #pragma once
 
+#include "forward_scanner.hpp"
 #include "volume_data.hpp"
 #include "../network/parallel/network.hpp"
 
@@ -72,7 +73,7 @@ private:
         wt.reset();
         {
             net_->forward(pull(loc));
-            push(loc,net_->get_featuremaps(layers_name_));
+            push(loc, net_->get_featuremaps(layers_name_));
         }
         auto elapsed = wt.elapsed<double>();
 
@@ -116,7 +117,7 @@ private:
 
 
 public:
-    std::map<std::string, tensor_type> scan_output( bool auto_crop = true )
+    std::map<std::string, tensor_type> outputs( bool auto_crop = true )
     {
         // TODO(lee): return auto-crop results
     }
@@ -146,7 +147,7 @@ public:
         range_ = range_.empty() ? range : range_.intersect(range);
     }
 
-    // call setup after adding inputs
+    // setup after adding inputs
     void setup()
     {
         setup_scan_stride();
