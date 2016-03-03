@@ -76,7 +76,7 @@ def main( args ):
     print "\n\ncreate train samples..."
     smp_trn = pars['data_provider'](config, pars, pars['train_range'], net, outsz, logfile)
     print "\n\ncreate test samples..."
-    smp_tst = pars['data_provider'](config, pars, pars['test_range'],  net, outsz, logfile)
+    smp_tst = zsample.CSamples(config, pars, pars['test_range'],  net, outsz, logfile)
 
     if pars['is_check']:
         import zcheck
