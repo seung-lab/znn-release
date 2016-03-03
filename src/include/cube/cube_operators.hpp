@@ -685,16 +685,18 @@ inline void normalize( cube<T> c )
 template<typename T>
 inline void normalize2D( cube<T> c )
 {
-    // 2D slice size
+    // volume size
     vec3i sz = size(c);
-    sz[0] = 1;
 
-    for ( std::size_t z = 0; z < volsz[0]; ++z )
+    // slice size
+    vec3i ssz(1,sz[1],sz[2]);
+
+    for ( std::size_t z = 0; z < sz[0]; ++z )
     {
         vec3i vmin(z,0,0);
-        vec3i vmax = vmin + sz;
+        vec3i vmax = vmin + ssz;
 
-        auto slice = crop(c,vmin,sz);
+        auto slice = crop(c,vmin,ssz);
         normalize(*slice);
 
         (*c)[indices
