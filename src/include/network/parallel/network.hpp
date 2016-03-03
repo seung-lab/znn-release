@@ -604,14 +604,24 @@ public:
         return ret;
     }
 
-    std::vector<cube_p<real>>&
+    std::map<std::string, std::pair<vec3i,size_t>> layers() const
+    {
+        std::map<std::string, std::pair<vec3i,size_t>> ret;
+        for ( auto & in: nodes_ )
+        {
+            ret[in.first] = { in.second->fsize,
+                              in.second->dnodes->num_out_nodes() };
+        }
+        return ret;
+    }
+
+    std::map<std::string, std::vector<cube_p<real>>>
     get_featuremaps( std::vector<std::string> const & keys )
     {
-        STRONG_ASSERT(nodes_[name].count()!=0);
-
         std::map<std::string, std::vector<cube_p<real>>> ret;
         for ( auto& key: keys )
         {
+            ZI_ASSERT(nodes_.count(key)!=0);
             ret[key] = nodes_[key]->dnodes->get_featuremaps();
         }
 

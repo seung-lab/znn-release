@@ -25,9 +25,9 @@ namespace znn { namespace v4 {
 class box
 {
 private:
-    vec3i   vmin_;
-    vec3i   vmax_;
-    vec3i   size_;
+    vec3i   vmin_;  // min corner of the box
+    vec3i   vmax_;  // max corner of the box
+    vec3i   size_;  // size of the box
 
 
 public:
@@ -118,6 +118,11 @@ public:
         return this->merge(rhs);
     }
 
+    box operator-( vec3i const & offset )
+    {
+        return box(vmin_ - offset, vmax_ - offset);
+    }
+
 public:
     friend std::ostream&
     operator<<( std::ostream & os, box const & rhs )
@@ -132,8 +137,6 @@ public:
     {
         vec3i rad = size/vec3i(2,2,2);
 
-        STRONG_ASSERT(minimum(center,rad)==rad);
-
         vec3i vmin = center - rad;
         vec3i vmax = vmin + size;
 
@@ -142,8 +145,8 @@ public:
 
 
 public:
-    box( vec3i const & v1 == vec3i::zero,
-         vec3i const & v2 == vec3i::zero ) explicit
+    explicit box( vec3i const & v1 = vec3i::zero,
+                  vec3i const & v2 = vec3i::zero )
         : vmin_(minimum(v1,v2))
         , vmax_(maximum(v1,v2))
         , size_(vmax_ - vmin_)

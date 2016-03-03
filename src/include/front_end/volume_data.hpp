@@ -49,7 +49,7 @@ public:
 
         // crop & return patch
         box patch = box::centered_box(pos, fov_);
-        return crop(*data_, patch.vmin(), patch.size());
+        return crop(*data_, patch.min(), patch.size());
     }
 
 
@@ -117,9 +117,10 @@ public:
     }
 
 public:
+    explicit
     volume_data( cube_p<T> const & data,
                  vec3i const & fov = vec3i::zero,
-                 vec3i const & off = vec3i::zero ) explicit
+                 vec3i const & off = vec3i::zero )
         : data_(data)
         , dim_(size(data))
         , fov_(fov)
@@ -137,37 +138,41 @@ public:
 
 
 template <typename T>
-class writable_volume_data: public volume_data<T>
+class rw_volume_data: public volume_data<T>
 {
 public:
     void set_patch( vec3i pos, cube_p<T> const & data )
     {
-        // validity check
-        STRONG_ASSERT(range_.contains(pos));
+        if ( !data )
+        {
+            // validity check
+            STRONG_ASSERT(this->range_.contains(pos));
 
-        // transform to local coordinate
-        pos -= off_;
+            // transform to local coordinate
+            pos -= this->off_;
 
-        // set patch
-        box patch  = box::centered_box(pos, fov_);
-        vec3i vmin = patch.min();
-        vec3i vmax = patch.max();
+            // set patch
+            box patch  = box::centered_box(pos, this->fov_);
+            vec3i vmin = patch.min();
+            vec3i vmax = patch.max();
 
-        (*data_)[indices
-            [range(vmin[0],vmax[0])]
-            [range(vmin[1],vmax[1])]
-            [range(vmin[2],vmax[2])]] = (*data);
+            (*this->data_)[indices
+                [range(vmin[0],vmax[0])]
+                [range(vmin[1],vmax[1])]
+                [range(vmin[2],vmax[2])]] = (*data);
+        }
     }
 
 public:
-    writable_volume_data( cube_p<T> const & data
-                          vec3i const & fov = vec3i::zero,
-                          vec3i const & off = vec3i::zero ) explicit
+    explicit
+    rw_volume_data( cube_p<T> const & data,
+                    vec3i const & fov = vec3i::zero,
+                    vec3i const & off = vec3i::zero )
         : volume_data<T>(data,fov,off)
     {}
 
-    ~writable_volume_data() {}
+    ~rw_volume_data() {}
 
-}; // class writable_volume_data
+}; // class rw_volume_data
 
 }} // namespace znn::v4
