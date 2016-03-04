@@ -39,18 +39,18 @@ private:
     task_manager::task_handle pending_ = 0;
 
 private:
-    inline cube_p<T> convolve_forward( cube<T> const & a,
-                                       cube<T> const & b,
-                                       vec3i const & s )
+    inline cube_p<real> convolve_forward( cube<real> const & a,
+                                          cube<real> const & b,
+                                          vec3i const & s )
     {
         return deconv_ ? convolve_sparse_inverse(a,b,s)
                        : convolve_sparse(a,b,s);
 
     }
 
-    inline cube_p<T> convolve_backward( cube<T> const & a,
-                                        cube<T> const & b,
-                                        vec3i const & s )
+    inline cube_p<real> convolve_backward( cube<real> const & a,
+                                           cube<real> const & b,
+                                           vec3i const & s )
     {
         return deconv_ ? convolve_sparse(a,b,s)
                        : convolve_sparse_inverse(a,b,s);
@@ -86,7 +86,7 @@ public:
                  task_manager & tm,
                  vec3i const & stride,
                  filter & f,
-                 bool deconv,
+                 bool deconv = false,
                  bool shared = false )
         : edge(in,inn,out,outn,tm)
         , filter_stride(stride)

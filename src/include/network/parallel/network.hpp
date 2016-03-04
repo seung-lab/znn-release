@@ -183,8 +183,8 @@ private:
         {
             if ( e->pool )
             {
-                vec3i new_fov = reverse ? (fov/e->width) : (fov*e->width);
-                if ( reverse )
+                vec3i new_fov = e->reverse ? (fov/e->width) : (fov*e->width);
+                if ( e->reverse )
                 {
                     ZI_ASSERT(new_fov*e->width==fov);
                 }
@@ -198,9 +198,9 @@ private:
             else
             {
                 vec3i new_fov =
-                        reverse ? (fov - e->width)/e->stride + vec3i::one
-                                : (fov - vec3i::one)*e->stride + e->width;
-                if ( reverse )
+                        e->reverse ? (fov - e->width)/e->stride + vec3i::one
+                                   : (fov - vec3i::one)*e->stride + e->width;
+                if ( e->reverse )
                 {
                     ZI_ASSERT((new_fov-vec3i::one)*e->stride+e->width==fov);
                 }
@@ -228,8 +228,8 @@ private:
         {
             if ( e->pool )
             {
-                e->in_fsize = reverse ? (fsize/e->width) : (fsize*e->width);
-                if ( reverse ) ZI_ASSERT(e->in_fsize*e->width==fsize);
+                e->in_fsize = e->reverse ? (fsize/e->width) : (fsize*e->width);
+                if ( e->reverse ) ZI_ASSERT(e->in_fsize*e->width==fsize);
                 fsize_pass(e->in, e->in_fsize);
             }
             else if ( e->crop )
@@ -240,7 +240,7 @@ private:
             else
             {
                 auto diff = (e->width - vec3i::one)*e->in_stride;
-                e->in_fsize = reverse ? (fsize - diff) : (fsize + diff);
+                e->in_fsize = e->reverse ? (fsize - diff) : (fsize + diff);
                 fsize_pass(e->in, e->in_fsize);
             }
         }
@@ -1082,7 +1082,7 @@ public:
         std::vector<options*> edge_groups;
         for ( auto & e: es )
         {
-            auto type = e.require_as<std::string>("type")
+            auto type = e.require_as<std::string>("type");
             if ( type == "conv" || type == "deconv" )
             {
                 edge_groups.push_back(&e);
