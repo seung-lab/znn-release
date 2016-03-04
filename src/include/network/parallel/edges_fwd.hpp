@@ -54,7 +54,7 @@ protected:
 
 public:
     edges( nodes *, nodes *, options const &, vec3i const &, task_manager &,
-           filter_tag );
+           bool, filter_tag );
 
     edges( nodes *, nodes *, options const &, task_manager &,
            dummy_tag );

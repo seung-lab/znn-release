@@ -43,8 +43,9 @@ private:
         vec3i in_stride = vec3i::zero ;
         vec3i in_fsize  = vec3i::zero ;
 
-        bool pool = false;
-        bool crop = false;
+        bool pool       = false;
+        bool crop       = false;
+        bool reverse    = false; // deconv, unpooling, upsampling, etc.
 
         nnodes * in;
         nnodes * out;
@@ -129,50 +130,6 @@ private:
     void dump() { tm_.dump(); }
 #endif
 
-    void fov_pass(nnodes* n, vec3i fov, vec3i fsize )
-    {
-        if ( n->fov != vec3i::zero )
-        {
-            if ( n->fov == fov )
-            {
-                STRONG_ASSERT(n->fsize==fsize);
-                return;
-            }
-        }
-
-        fov[0] = std::max(n->fov[0],fov[0]);
-        fov[1] = std::max(n->fov[1],fov[1]);
-        fov[2] = std::max(n->fov[2],fov[2]);
-        n->fov = fov;
-
-        fsize[0] = std::max(n->fsize[0],fsize[0]);
-        fsize[1] = std::max(n->fsize[1],fsize[1]);
-        fsize[2] = std::max(n->fsize[2],fsize[2]);
-        n->fsize = fsize;
-
-        for ( auto& e: n->in )
-        {
-            if ( e->pool )
-            {
-                vec3i new_fov = fov*e->width;
-                e->in_fsize   = e->width*fsize;
-                fov_pass(e->in, new_fov, e->in_fsize);
-            }
-            else if ( e->crop )
-            {
-                // FoV doesn't change
-                e->in_fsize = fsize + e->width - vec3i::one;
-                fov_pass(e->in, fov, e->in_fsize);
-            }
-            else
-            {
-                vec3i new_fov = (fov - vec3i::one)*e->stride + e->width;
-                e->in_fsize   = (e->width - vec3i::one)*e->in_stride + fsize;
-                fov_pass(e->in, new_fov, e->in_fsize);
-            }
-        }
-    }
-
     void stride_pass(nnodes* n, const vec3i& stride )
     {
         if ( n->stride != vec3i::zero )
@@ -199,6 +156,92 @@ private:
 
                 e->in_stride = real_stride;
                 stride_pass(e->out, real_stride * e->stride );
+            }
+        }
+    }
+
+    // TODO(lee):
+    //
+    //   In front-end v2, FoV will be removed.
+    //
+    void fov_pass( nnodes* n, vec3i fov )
+    {
+        if ( n->fov != vec3i::zero )
+        {
+            if ( n->fov == fov )
+            {
+                return;
+            }
+        }
+
+        fov[0] = std::max(n->fov[0],fov[0]);
+        fov[1] = std::max(n->fov[1],fov[1]);
+        fov[2] = std::max(n->fov[2],fov[2]);
+        n->fov = fov;
+
+        for ( auto& e: n->in )
+        {
+            if ( e->pool )
+            {
+                vec3i new_fov = reverse ? (fov/e->width) : (fov*e->width);
+                if ( reverse )
+                {
+                    ZI_ASSERT(new_fov*e->width==fov);
+                }
+                fov_pass(e->in, new_fov);
+            }
+            else if ( e->crop )
+            {
+                // FoV doesn't change
+                fov_pass(e->in, fov);
+            }
+            else
+            {
+                vec3i new_fov =
+                        reverse ? (fov - e->width)/e->stride + vec3i::one
+                                : (fov - vec3i::one)*e->stride + e->width;
+                if ( reverse )
+                {
+                    ZI_ASSERT((new_fov-vec3i::one)*e->stride+e->width==fov);
+                }
+                fov_pass(e->in, new_fov);
+            }
+        }
+    }
+
+    void fsize_pass( nnodes* n, vec3i fsize )
+    {
+        if ( n->fsize != vec3i::zero )
+        {
+            if ( n->fsize == fsize )
+            {
+                return;
+            }
+        }
+
+        fsize[0] = std::max(n->fsize[0],fsize[0]);
+        fsize[1] = std::max(n->fsize[1],fsize[1]);
+        fsize[2] = std::max(n->fsize[2],fsize[2]);
+        n->fsize = fsize;
+
+        for ( auto& e: n->in )
+        {
+            if ( e->pool )
+            {
+                e->in_fsize = reverse ? (fsize/e->width) : (fsize*e->width);
+                if ( reverse ) ZI_ASSERT(e->in_fsize*e->width==fsize);
+                fsize_pass(e->in, e->in_fsize);
+            }
+            else if ( e->crop )
+            {
+                e->in_fsize = fsize + e->width - vec3i::one;
+                fsize_pass(e->in, e->in_fsize);
+            }
+            else
+            {
+                auto diff = (e->width - vec3i::one)*e->in_stride;
+                e->in_fsize = reverse ? (fsize - diff) : (fsize + diff);
+                fsize_pass(e->in, e->in_fsize);
             }
         }
     }
@@ -239,9 +282,15 @@ private:
         return n->bwd_priority;
     }
 
-    // [kisuklee]
-    // This should be modified later to deal with multiple output layers
-    // with different size.
+    // TODO(lee):
+    //
+    //  This should be modified later to deal with multiple output layers
+    //  with different size.
+    //
+    //  Also, what about deconvolutional nets?
+    //  Deconv nets are not sliding-window nets, so one-to-one correspondence
+    //  between minibatch and output patch does not hold.
+    //
     void set_patch_size( vec3i const& outsz )
     {
         real s = outsz[0]*outsz[1]*outsz[2];
@@ -261,28 +310,31 @@ private:
         for ( auto& o: input_nodes_ )
             stride_pass(o.second, vec3i::one);
         for ( auto& o: output_nodes_ )
-            fov_pass(o.second, vec3i::one, outsz);
+            fsize_pass(o.second, outsz);
+        for ( auto& o: output_nodes_ )
+            fov_pass(o.second, vec3i::one);
 
         for ( auto& o: output_nodes_ )
             fwd_priority_pass(o.second);
         for ( auto& o: input_nodes_ )
             bwd_priority_pass(o.second);
 
-        // for ( auto& o: nodes_ )
-        // {
-        //     std::cout << "NODE GROUP: " << o.first << "\n    "
-        //               << "FOV: " << o.second->fov << "\n    "
-        //               << "STRIDE: " << o.second->stride << "\n    "
-        //               << "SIZE: " << o.second->fsize << '\n';
-        // }
+#       ifndef NDEBUG
+        for ( auto& o: nodes_ )
+        {
+            std::cout << "NODE GROUP: " << o.first << "\n    "
+                      << "FOV: " << o.second->fov << "\n    "
+                      << "STRIDE: " << o.second->stride << "\n    "
+                      << "SIZE: " << o.second->fsize << '\n';
+        }
 
-        // for ( auto& o: edges_ )
-        // {
-        //     std::cout << o.first << ' ' << o.second->width
-        //               << ' ' << o.second->stride
-        //               << ' ' << o.second->in_stride << '\n';
-        // }
-
+        for ( auto& o: edges_ )
+        {
+            std::cout << o.first << ' ' << o.second->width
+                      << ' ' << o.second->stride
+                      << ' ' << o.second->in_stride << '\n';
+        }
+#       endif
     }
 
     void add_nodes( options const & op )
@@ -355,9 +407,6 @@ private:
     {
         for ( auto & e: edges_ )
         {
-            // nodes * in  = e.second->in->dnodes.get();
-            // nodes * out = e.second->out->dnodes.get();
-
             nodes * in  = auto_crop(e.second);
             nodes * out = e.second->out->dnodes.get();
 
@@ -378,7 +427,13 @@ private:
             else if ( type == "conv" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts, e.second->in_stride, tm_,
+                    ( in, out, *opts, e.second->in_stride, tm_, false,
+                      edges::filter_tag() );
+            }
+            else if ( type == "deconv" )
+            {
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, e.second->in_stride, tm_, true,
                       edges::filter_tag() );
             }
             else if ( type == "dropout" )
@@ -518,18 +573,24 @@ private:
 
         if ( type == "max_filter" )
         {
-            es->width  = op.require_as<ovec3i>("size");
-            es->stride = op.require_as<ovec3i>("stride");
+            es->width   = op.require_as<ovec3i>("size");
+            es->stride  = op.require_as<ovec3i>("stride");
         }
         else if ( type == "conv" )
         {
-            es->width  = op.require_as<ovec3i>("size");
-            es->stride = op.optional_as<ovec3i>("stride", "1,1,1");
+            es->width   = op.require_as<ovec3i>("size");
+            es->stride  = op.optional_as<ovec3i>("stride", "1,1,1");
+        }
+        else if ( type == "deconv" )
+        {
+            es->width   = op.require_as<ovec3i>("size");
+            es->stride  = op.optional_as<ovec3i>("stride", "1,1,1");
+            es->reverse = true;
         }
         else if ( type == "max_pool" )
         {
-            es->width  = op.require_as<ovec3i>("size");
-            es->pool   = true;
+            es->width   = op.require_as<ovec3i>("size");
+            es->pool    = true;
         }
         else if ( type == "dropout" )
         {
@@ -566,7 +627,6 @@ private:
         {
             throw std::logic_error(HERE() + "unknown edges type: " + type);
         }
-
     }
 
 
@@ -770,7 +830,8 @@ public:
         std::vector<options*> edge_groups;
         for ( auto & e: es )
         {
-            if ( e.require_as<std::string>("type") == "conv" )
+            auto type = e.require_as<std::string>("type");
+            if ( type == "conv" || type == "deconv" )
             {
                 edge_groups.push_back(&e);
                 e.push("fft",1);
@@ -838,7 +899,6 @@ public:
             std::cout << (tot_time/(rounds-1)) << " secs" << std::endl;
         }
 
-        //std::vector<options*> edge_groups;
         for ( auto & e: edge_groups )
         {
             std::cout << "Trying edge group: "
@@ -891,7 +951,8 @@ public:
         std::vector<options*> edge_groups;
         for ( auto & e: es )
         {
-            if ( e.require_as<std::string>("type") == "conv" )
+            auto type = e.require_as<std::string>("type");
+            if ( type == "conv" || type == "deconv" )
             {
                 edge_groups.push_back(&e);
                 e.push("fft",1);
@@ -956,7 +1017,6 @@ public:
             std::cout << (tot_time/(rounds-1)) << " secs" << std::endl;
         }
 
-        //std::vector<options*> edge_groups;
         for ( auto & e: edge_groups )
         {
             std::cout << "Trying edge group: "
@@ -1004,7 +1064,8 @@ public:
     {
         for ( auto & e: es )
         {
-            if ( e.require_as<std::string>("type") == "conv" )
+            auto type = e.require_as<std::string>("type");
+            if ( type == "conv" || type == "deconv" )
             {
                 e.push("fft",1);
             }
@@ -1021,7 +1082,8 @@ public:
         std::vector<options*> edge_groups;
         for ( auto & e: es )
         {
-            if ( e.require_as<std::string>("type") == "conv" )
+            auto type = e.require_as<std::string>("type")
+            if ( type == "conv" || type == "deconv" )
             {
                 edge_groups.push_back(&e);
                 e.push("fft",1);

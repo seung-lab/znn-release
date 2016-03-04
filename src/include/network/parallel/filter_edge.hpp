@@ -31,11 +31,30 @@ class filter_edge: public edge
 private:
     vec3i    filter_stride;
     filter & filter_;
+    bool     deconv_;
     bool     shared_;
 
     ccube_p<real> last_input;
 
     task_manager::task_handle pending_ = 0;
+
+private:
+    inline cube_p<T> convolve_forward( cube<T> const & a,
+                                       cube<T> const & b,
+                                       vec3i const & s )
+    {
+        return deconv_ ? convolve_sparse_inverse(a,b,s)
+                       : convolve_sparse(a,b,s);
+
+    }
+
+    inline cube_p<T> convolve_backward( cube<T> const & a,
+                                        cube<T> const & b,
+                                        vec3i const & s )
+    {
+        return deconv_ ? convolve_sparse(a,b,s)
+                       : convolve_sparse_inverse(a,b,s);
+    }
 
 private:
     void do_forward( ccube_p<real> const & f )
@@ -45,14 +64,17 @@ private:
         last_input = f;
 
         out_nodes->forward(out_num,
-            convolve_sparse(*f, filter_.W(), filter_stride));
+            convolve_forward(*f, filter_.W(), filter_stride));
     }
 
     void do_update( ccube_p<real> const & g )
     {
         ZI_ASSERT(enabled_);
 
-        auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
+        auto dEdW =
+            deconv_ ? convolve_sparse_flipped(*g, *last_input, filter_stride)
+                    : convolve_sparse_flipped(*last_input, *g, filter_stride);
+
         filter_.update(*dEdW, patch_sz_);
     }
 
@@ -64,10 +86,12 @@ public:
                  task_manager & tm,
                  vec3i const & stride,
                  filter & f,
+                 bool deconv,
                  bool shared = false )
         : edge(in,inn,out,outn,tm)
         , filter_stride(stride)
         , filter_(f)
+        , deconv_(deconv)
         , shared_(shared)
     {
         in->attach_out_edge(inn,this);
@@ -93,13 +117,12 @@ public:
         else
         {
             in_nodes->backward(in_num,
-                convolve_sparse_inverse(*g, filter_.W(), filter_stride));
+                convolve_backward(*g, filter_.W(), filter_stride));
         }
 
         if ( shared_ )
         {
-            // immediate update
-            do_update(g);
+            do_update(g); // immediate update
         }
         else
         {
@@ -115,6 +138,5 @@ public:
         //e->edge_zapped();
     }
 };
-
 
 }}} // namespace znn::v4::parallel_network

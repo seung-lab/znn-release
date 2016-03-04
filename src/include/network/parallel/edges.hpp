@@ -39,12 +39,13 @@
 
 namespace znn { namespace v4 { namespace parallel_network {
 
-// convolution
+// convolution & deconvolution
 inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
                      vec3i const & stride,
                      task_manager & tm,
+                     bool deconv,
                      filter_tag )
     : options_(opts)
     , tm_(tm)
@@ -96,7 +97,7 @@ inline edges::edges( nodes * in,
         }
     }
 
-    STRONG_ASSERT(is_shared||need_init);
+    ZI_ASSERT(is_shared||need_init);
 
     if ( need_init )
     {
@@ -143,6 +144,7 @@ inline edges::edges( nodes * in,
             {
                 if ( does_fft )
                 {
+                    // TODO(lee): deconvolution
                     edges_[k]
                         = std::make_unique<fft_filter_edge>
                         (in, i, out, j, tm_, stride, *filters_[k], is_shared);
@@ -151,13 +153,15 @@ inline edges::edges( nodes * in,
                 {
                     edges_[k]
                         = std::make_unique<filter_edge>
-                        (in, i, out, j, tm_, stride, *filters_[k], is_shared);
+                        (in, i, out, j, tm_, stride, *filters_[k], deconv,
+                            is_shared);
                 }
             }
             else
             {
                 if ( does_fft )
                 {
+                    // TODO(lee): deconvolution
                     edges_[k]
                         = std::make_unique<fft_filter_ds_edge>
                         (in, i, out, j, tm_, stride, repeat, *filters_[k],
@@ -165,6 +169,7 @@ inline edges::edges( nodes * in,
                 }
                 else
                 {
+                    // TODO(lee): deconvolution
                     edges_[k]
                         = std::make_unique<filter_ds_edge>
                         (in, i, out, j, tm_, stride, repeat, *filters_[k],
