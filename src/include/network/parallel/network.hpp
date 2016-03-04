@@ -37,11 +37,11 @@ private:
 
     struct nedges
     {
-        vec3i width     = vec3i::one  ;
-        vec3i stride    = vec3i::one  ;
+        vec3i width     = vec3i::one ;
+        vec3i stride    = vec3i::one ;
 
-        vec3i in_stride = vec3i::zero ;
-        vec3i in_fsize  = vec3i::zero ;
+        vec3i in_stride = vec3i::zero;
+        vec3i in_fsize  = vec3i::zero;
 
         bool pool       = false;
         bool crop       = false;
@@ -57,7 +57,6 @@ private:
 
     struct nnodes
     {
-        vec3i fov       = vec3i::zero;
         vec3i stride    = vec3i::zero;
         vec3i fsize     = vec3i::zero;
 
@@ -156,55 +155,6 @@ private:
 
                 e->in_stride = real_stride;
                 stride_pass(e->out, real_stride * e->stride );
-            }
-        }
-    }
-
-    // TODO(lee):
-    //
-    //   In front-end v2, FoV will be removed.
-    //
-    void fov_pass( nnodes* n, vec3i fov )
-    {
-        if ( n->fov != vec3i::zero )
-        {
-            if ( n->fov == fov )
-            {
-                return;
-            }
-        }
-
-        fov[0] = std::max(n->fov[0],fov[0]);
-        fov[1] = std::max(n->fov[1],fov[1]);
-        fov[2] = std::max(n->fov[2],fov[2]);
-        n->fov = fov;
-
-        for ( auto& e: n->in )
-        {
-            if ( e->pool )
-            {
-                vec3i new_fov = e->reverse ? (fov/e->width) : (fov*e->width);
-                if ( e->reverse )
-                {
-                    ZI_ASSERT(new_fov*e->width==fov);
-                }
-                fov_pass(e->in, new_fov);
-            }
-            else if ( e->crop )
-            {
-                // FoV doesn't change
-                fov_pass(e->in, fov);
-            }
-            else
-            {
-                vec3i new_fov =
-                        e->reverse ? (fov - e->width)/e->stride + vec3i::one
-                                   : (fov - vec3i::one)*e->stride + e->width;
-                if ( e->reverse )
-                {
-                    ZI_ASSERT((new_fov-vec3i::one)*e->stride+e->width==fov);
-                }
-                fov_pass(e->in, new_fov);
             }
         }
     }
@@ -311,8 +261,6 @@ private:
             stride_pass(o.second, vec3i::one);
         for ( auto& o: output_nodes_ )
             fsize_pass(o.second, outsz);
-        for ( auto& o: output_nodes_ )
-            fov_pass(o.second, vec3i::one);
 
         for ( auto& o: output_nodes_ )
             fwd_priority_pass(o.second);
@@ -323,7 +271,6 @@ private:
         for ( auto& o: nodes_ )
         {
             std::cout << "NODE GROUP: " << o.first << "\n    "
-                      << "FOV: " << o.second->fov << "\n    "
                       << "STRIDE: " << o.second->stride << "\n    "
                       << "SIZE: " << o.second->fsize << '\n';
         }
@@ -672,7 +619,19 @@ public:
 
     vec3i fov() const
     {
-        return input_nodes_.begin()->second->fov;
+        vec3i in = vec3i::one;
+        for ( auto& i: input_nodes_ )
+        {
+            in = maximum(in, i.second->fsize);
+        }
+
+        vec3i out = output_nodes_.begin()->second->fsize;
+        for ( auto& o: output_nodes_ )
+        {
+            out = minimum(out, o.second->fsize);
+        }
+
+        return in - out + vec3i::one;
     }
 
     // [kisuklee]
