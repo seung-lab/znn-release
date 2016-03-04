@@ -206,7 +206,7 @@ public:
     virtual void attach_in_edge(size_t, edge*)
     { UNIMPLEMENTED(); }
 
-    virtual size_t attach_out_fft_edge(size_t, edge*)
+    virtual size_t attach_out_fft_edge(size_t, edge*, vec3i const &)
     { UNIMPLEMENTED(); }
 
     virtual size_t attach_in_fft_edge(size_t, edge*, vec3i const &)
@@ -227,10 +227,10 @@ public:
     virtual void enable_in_edge(size_t, bool)
     { UNIMPLEMENTED(); }
 
-    virtual void enable_out_fft_edge(size_t, bool)
+    virtual void enable_out_fft_edge(size_t, bool, vec3i const &)
     { UNIMPLEMENTED(); }
 
-    virtual void enable_in_fft_edge(size_t, vec3i const &, bool)
+    virtual void enable_in_fft_edge(size_t, bool, vec3i const &)
     { UNIMPLEMENTED(); }
 
     virtual void set_eta( real )

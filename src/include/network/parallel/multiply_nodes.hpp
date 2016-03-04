@@ -162,11 +162,11 @@ public:
         fwd_accumulators_[i]->grow(1);
     }
 
-    size_t attach_out_fft_edge(size_t n, edge* e) override
+    size_t attach_out_fft_edge(size_t n, edge* e, vec3i const & s) override
     {
         ZI_ASSERT(n<nodes::size());
-        fwd_dispatch_.sign_up(n,nodes::fsize(),e);
-        return bwd_accumulators_[n]->grow_fft(nodes::fsize(),1);
+        fwd_dispatch_.sign_up(n,s,e);
+        return bwd_accumulators_[n]->grow_fft(s,1);
     }
 
 protected:
@@ -239,10 +239,10 @@ public:
         if ( !s ) disable_fwd(n);
     }
 
-    void enable_out_fft_edge(size_t n, bool b) override
+    void enable_out_fft_edge(size_t n, bool b, vec3i const & s) override
     {
         ZI_ASSERT(n<nodes::size());
-        if ( !bwd_accumulators_[n]->enable_fft(nodes::fsize(),b) )
+        if ( !bwd_accumulators_[n]->enable_fft(s,b) )
             disable_bwd(n);
     }
 

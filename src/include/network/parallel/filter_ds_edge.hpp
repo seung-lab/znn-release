@@ -32,11 +32,30 @@ private:
     vec3i    filter_stride;
     vec3i    repeat_;
     filter & filter_;
+    bool     deconv_;
     bool     shared_;
 
     ccube_p<real> last_input;
 
     task_manager::task_handle pending_ = 0;
+
+private:
+    inline cube_p<real> convolve_forward( cube<real> const & a,
+                                          cube<real> const & b,
+                                          vec3i const & s )
+    {
+        return deconv_ ? convolve_sparse_inverse(a,b,s)
+                       : convolve_sparse(a,b,s);
+
+    }
+
+    inline cube_p<real> convolve_backward( cube<real> const & a,
+                                           cube<real> const & b,
+                                           vec3i const & s )
+    {
+        return deconv_ ? convolve_sparse(a,b,s)
+                       : convolve_sparse_inverse(a,b,s);
+    }
 
 private:
     void do_forward( ccube_p<real> const & f )
@@ -46,14 +65,17 @@ private:
         last_input = f;
 
         out_nodes->forward(out_num,
-            convolve_sparse(*f, filter_.W(), filter_stride));
+            convolve_forward(*f, filter_.W(), filter_stride));
     }
 
     void do_update( ccube_p<real> const & g )
     {
         ZI_ASSERT(enabled_);
 
-        auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
+        auto dEdW =
+            deconv_ ? convolve_sparse_flipped(*g, *last_input, filter_stride)
+                    : convolve_sparse_flipped(*last_input, *g, filter_stride);
+
         filter_.update(*dEdW, patch_sz_);
         flatten(filter_.W(), repeat_);
     }
@@ -67,11 +89,13 @@ public:
                     vec3i const & stride,
                     vec3i const & repeat,
                     filter & f,
+                    bool deconv = false,
                     bool shared = false )
         : edge(in,inn,out,outn,tm)
         , filter_stride(stride)
         , repeat_(repeat)
         , filter_(f)
+        , deconv_(deconv)
         , shared_(shared)
     {
         in->attach_out_edge(inn,this);
@@ -93,46 +117,17 @@ public:
         ZI_ASSERT(last_input);
 
         in_nodes->backward(in_num,
-                       convolve_sparse_inverse(*g,
-                                               filter_.W(),
-                                               filter_stride));
+                       convolve_backward(*g, filter_.W(), filter_stride));
 
         if ( shared_ )
         {
-            // immediate update
-            do_update(g);
+            do_update(g); // immediate update
         }
         else
         {
             pending_ = manager.schedule_unprivileged(&filter_ds_edge::do_update,
                                                      this, g);
         }
-    }
-
-public:
-    void enable(bool b) override
-    {
-        if ( enabled_ == b ) return;
-
-        enabled_ = b;
-        in_nodes->enable_out_fft_edge(in_num,b);
-        out_nodes->enable_in_fft_edge(out_num,in_nodes->fsize(),b);
-    }
-
-    void enable_fwd(bool b) override
-    {
-        if ( enabled_ == b ) return;
-
-        enabled_ = b;
-        out_nodes->enable_in_fft_edge(out_num,in_nodes->fsize(),b);
-    }
-
-    void enable_bwd(bool b) override
-    {
-        if ( enabled_ == b ) return;
-
-        enabled_ = b;
-        in_nodes->enable_out_fft_edge(in_num,b);
     }
 
     void zap(edges* e) override
@@ -142,6 +137,5 @@ public:
         //e->edge_zapped();
     }
 };
-
 
 }}} // namespace znn::v4::parallel_network

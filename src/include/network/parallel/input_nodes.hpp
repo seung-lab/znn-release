@@ -89,11 +89,11 @@ public:
         outputs_.sign_up(i,e);
     }
 
-    size_t attach_out_fft_edge(size_t i, edge* e) override
+    size_t attach_out_fft_edge(size_t i, edge* e, vec3i const & s) override
     {
         ZI_ASSERT(i<nodes::size());
         waiter_.inc();
-        outputs_.sign_up(i,nodes::fsize(),e);
+        outputs_.sign_up(i,s,e);
         return 0;
     }
 
@@ -123,7 +123,7 @@ public:
             enabled_[n] = false;
     }
 
-    void enable_out_fft_edge(size_t n, bool b) override
+    void enable_out_fft_edge(size_t n, bool b, vec3i const &) override
     {
         enable_out_edge(n,b);
     }

@@ -144,7 +144,6 @@ inline edges::edges( nodes * in,
             {
                 if ( does_fft )
                 {
-                    // TODO(lee): deconvolution
                     edges_[k]
                         = std::make_unique<fft_filter_edge>
                         (in, i, out, j, tm_, stride, *filters_[k], is_shared);
@@ -161,7 +160,6 @@ inline edges::edges( nodes * in,
             {
                 if ( does_fft )
                 {
-                    // TODO(lee): deconvolution
                     edges_[k]
                         = std::make_unique<fft_filter_ds_edge>
                         (in, i, out, j, tm_, stride, repeat, *filters_[k],
@@ -169,11 +167,10 @@ inline edges::edges( nodes * in,
                 }
                 else
                 {
-                    // TODO(lee): deconvolution
                     edges_[k]
                         = std::make_unique<filter_ds_edge>
                         (in, i, out, j, tm_, stride, repeat, *filters_[k],
-                            is_shared);
+                            deconv, is_shared);
                 }
             }
         }
