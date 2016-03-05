@@ -62,7 +62,6 @@ public:
     static
     box intersect( box const & a, box const & b )
     {
-        // empty box
         box r;
 
         if ( a.overlaps(b) )
@@ -108,14 +107,14 @@ public:
         return (vmin_ == rhs.vmin_) && (vmax_ == rhs.vmax_);
     }
 
+    bool operator!=( box const & rhs )
+    {
+        return !(*this == rhs);
+    }
+
     box operator+( vec3i const & offset )
     {
         return box(vmin_ + offset, vmax_ + offset);
-    }
-
-    box operator+( box const & rhs )
-    {
-        return this->merge(rhs);
     }
 
     box operator-( vec3i const & offset )
@@ -123,11 +122,17 @@ public:
         return box(vmin_ - offset, vmax_ - offset);
     }
 
+    box operator+( box const & rhs )
+    {
+        return this->merge(rhs);
+    }
+
 public:
     friend std::ostream&
     operator<<( std::ostream & os, box const & rhs )
     {
-        return (os << rhs.vmin_ << " " << rhs.vmax_);
+        return (os << "box(" << rhs.size_ << ")"
+                   << "[" << rhs.vmin_ << "][" << rhs.vmax_ << "]");
     }
 
 
