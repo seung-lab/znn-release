@@ -1,11 +1,11 @@
 # prepare path for core
 import sys
-sys.path.append("../python/core/")
-sys.path.append("core/")
+#sys.path.append("../python/core/")
+#sys.path.append("core/")
 
 import numpy as np
 import h5py
-import pyznn
+from core import pyznn
 import os.path, shutil
 from utils import assert_arglist
 
