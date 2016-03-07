@@ -44,6 +44,10 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
     # your bidding of spot instance
     spot_bid = tncfg.getfloat(sec, 'spot_bid')
 
+    # tag user and project name
+    user = tncfg.get(sec, 'User')
+    prj = tncfg.get(sec, 'Project')
+
     # command
     command = tncfg.get(sec, 'command')
 
@@ -82,7 +86,7 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
             time.sleep(1)
             # run the start in a separate thread
             try:
-                threadRun = ThreadRun(cl)
+                ThreadRun(cl)
                 print "clulster creater thread running..."
                 # wait for the volume mounted
                 print "wait for the volume to attach..."
@@ -112,6 +116,11 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
             time.sleep( 1*60 )
 
             mynode = node_search(cl, node_name)
+            # tag the user and project name
+            print "add tags: User--",user,", Project--",prj
+            mynode.add_tag("User", user)
+            mynode.add_tag("Project", prj)
+
             try:
                 print "run command after node launch."
                 mynode.ssh.execute( command )
