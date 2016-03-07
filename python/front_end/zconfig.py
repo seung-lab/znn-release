@@ -232,7 +232,6 @@ def parser( conf_fname ):
     if config.has_option('parameters','Num_iter_per_dset_swap'):
         pars['Num_iter_per_dset_swap'] = config.getint('parameters', 'Num_iter_per_dset_swap')
 
-
     #FULL FORWARD PASS PARAMETERS
     #Which samples to use
     pars['forward_range'] = parseIntSet( config.get('parameters', 'forward_range') )

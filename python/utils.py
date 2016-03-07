@@ -295,6 +295,7 @@ def mask_dict_vol(dict_vol, mask=None):
     else:
         return dict_vol
 
+<<<<<<< HEAD
 
 def check_dict_nan( d ):
     for v in d.values():
@@ -485,3 +486,5 @@ def rm_sample(config, net, sample_num, active_sample_num):
         else:
             print "%s currently active!" % filename
 
+=======
+>>>>>>> d1992ba933b32c100263c6fc8333ef5a3b23e94d

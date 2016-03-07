@@ -271,13 +271,13 @@ class CAffinitySample(CSample):
                          log=log, is_forward=is_forward)
 
         # precompute the global rebalance weights
-        self.taffs = dict()
-        self.tmsks = dict()
+        taffs = dict()
+        tmsks = dict()
         for k, lbl in self.lbls.iteritems():
-            self.taffs[k] = self._seg2aff( lbl )
-            self.tmsks[k] = self._msk2affmsk( self.msks[k] )
+            taffs[k] = self._seg2aff( lbl )
+            tmsks[k] = self._msk2affmsk( self.msks[k] )
 
-        self._prepare_rebalance_weights( self.taffs, self.tmsks )
+        self._prepare_rebalance_weights( taffs, tmsks )
         return
 
     def _seg2aff( self, lbl ):
@@ -326,6 +326,7 @@ class CAffinitySample(CSample):
         -------
         ret : 4D array, 3 channel for z,y,x direction
         """
+
         if np.size(msk)==0:
             return msk
         C,Z,Y,X = msk.shape
@@ -356,7 +357,6 @@ class CAffinitySample(CSample):
 
         if self.pars['rebalance_mode']:
             for k, aff in taffs.iteritems():
-
                 msk = tmsks[k] if tmsks[k].size != 0 else np.zeros((3,0,0,0))
 
                 self.zwps[k], self.zwzs[k] = self._get_balance_weight_v1(aff[2,:,:,:], msk[2,:,:,:])

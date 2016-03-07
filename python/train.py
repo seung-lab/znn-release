@@ -137,6 +137,7 @@ def main( args ):
         if pars['is_debug']:
             assert not np.all(lbl_outs.values()[0]==0)
         re  += pyznn.get_rand_error( props.values()[0], lbl_outs.values()[0] )
+
         num_mask_voxels += utils.sum_over_dict(msks)
 
         # check whether there is a NaN here!
@@ -230,6 +231,12 @@ def main( args ):
                              grdts, malis_weights, wmsks, elapsed, i)
             # stop training
             return
+
+        if (pars.has_key('Num_iter_per_dset_swap') 
+            and 
+            i%pars['Num_iter_per_dset_swap'] == 0):
+            smp_trn.swap_samples()
+            print "Active sample: %s" % smp_trn.get_active_sample_id()
 
         if (pars.has_key('Num_iter_per_dset_swap') 
             and 
