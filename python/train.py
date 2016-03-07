@@ -56,7 +56,7 @@ def parse_args(args):
     if args['seed']:
         if not os.path.exists(args['seed']):
             import warnings
-            warnings.warn("seed file not found! use train_net of configuration instead.")
+            warnings.warn("seed file not found! use train_net_prefix of configuration instead.")
         else:
             pars['seed'] = args['seed']
     else:
@@ -110,7 +110,7 @@ def main( args ):
 
     #Saving initial/seeded network
     # get file name
-    fname, fname_current = znetio.get_net_fname( pars['train_net'], iter_last, suffix="init" )
+    fname, fname_current = znetio.get_net_fname( pars['train_net_prefix'], iter_last, suffix="init" )
     znetio.save_network(net, fname, pars['is_stdio'])
     lc.save( pars, fname, elapsed=0.0, suffix="init_iter{}".format(iter_last) )
     # no nan detected

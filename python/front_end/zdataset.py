@@ -14,15 +14,15 @@ import utils
 
 class CDataset(object):
 
-    def __init__(self, pars, data, outsz, setsz, fov=None):
+    def __init__(self, pars, data, outsz, setsz, mapsz=None):
 
         # main data
         self.data = data
         # field of view of whole network
-        if fov is None:
-            self.fov = setsz[-3:] - outsz[-3:] + 1
+        if mapsz is None:
+            self.mapsz = setsz[-3:] - outsz[-3:] + 1
         else:
-            self.fov = fov
+            self.mapsz = mapsz
 
         # Desired size of subvolumes returned by this instance
         self.patch_shape = np.asarray(setsz[-3:])
@@ -69,7 +69,7 @@ class CDataset(object):
     def _calculate_patch_bounds(self, output_patch_shape=None, overwrite=True):
         '''
         Finds the bounds for each data patch given the input volume shape,
-        the network fov, and the output patch shape
+        the network mapsz, and the output patch shape
 
         Restricts calculation to 3d shape
         '''
@@ -82,11 +82,11 @@ class CDataset(object):
 
         #Decomposing into a similar problem for each axis
         z_bounds = self._patch_bounds_1d(self.volume_shape[0],
-                        output_patch_shape[0], self.fov[0])
+                        output_patch_shape[0], self.mapsz[0])
         y_bounds = self._patch_bounds_1d(self.volume_shape[1],
-                        output_patch_shape[1], self.fov[1])
+                        output_patch_shape[1], self.mapsz[1])
         x_bounds = self._patch_bounds_1d(self.volume_shape[2],
-                        output_patch_shape[2], self.fov[2])
+                        output_patch_shape[2], self.mapsz[2])
 
         #And then recombining the subproblems
         bounds = []
@@ -108,12 +108,12 @@ class CDataset(object):
         else:
             return bounds
 
-    def _patch_bounds_1d(self, vol_width, patch_width, fov_width):
+    def _patch_bounds_1d(self, vol_width, patch_width, mapsz_width):
 
         bounds = []
 
         beginning = 0
-        ending = patch_width + fov_width - 1
+        ending = patch_width + mapsz_width - 1
 
         while ending < vol_width:
 
@@ -126,7 +126,7 @@ class CDataset(object):
 
         #last bound
         bounds.append(
-            ( vol_width - (patch_width + fov_width - 1), vol_width)
+            ( vol_width - (patch_width + mapsz_width - 1), vol_width)
             )
 
         return bounds
@@ -195,7 +195,7 @@ class CDataset(object):
         Determines the full output volume shape for the network given
         the entire input volume
         '''
-        return self.volume_shape - self.fov + 1
+        return self.volume_shape - self.mapsz + 1
 
 class ConfigImage(CDataset):
     """
@@ -210,7 +210,7 @@ class ConfigImage(CDataset):
     """
 
     def __init__(self, config, pars, sec_name, \
-                 outsz, setsz, fov, is_forward=False):
+                 outsz, setsz, mapsz, is_forward=False):
         """
         Parameters
         ----------
@@ -239,7 +239,7 @@ class ConfigImage(CDataset):
             arr = arr.reshape( (1,) + arr.shape )
 
         # initialize the dataset
-        CDataset.__init__(self, pars, arr, outsz, setsz, fov)
+        CDataset.__init__(self, pars, arr, outsz, setsz, mapsz)
 
 
     def _center_crop(self, vol, shape):
@@ -372,9 +372,9 @@ class ConfigInputImage(ConfigImage):
     '''
 
     def __init__(self, config, pars, sec_name, \
-                 outsz, setsz, fov, is_forward=False ):
+                 outsz, setsz, mapsz, is_forward=False ):
         ConfigImage.__init__(self, config, pars, sec_name, \
-                             outsz, setsz, fov, is_forward=is_forward )
+                             outsz, setsz, mapsz, is_forward=is_forward )
 
         # preprocessing
         pp_types = config.get(sec_name, 'pp_types').split(',')
@@ -385,7 +385,7 @@ class ConfigInputImage(ConfigImage):
         if pars['is_bd_mirror']:
             if self.pars['is_debug']:
                 print "data shape before mirror: ", self.data.shape
-            self.data = utils.boundary_mirror(self.data, self.fov)
+            self.data = utils.boundary_mirror(self.data, self.mapsz)
             #Modifying the deviation boundaries for the modified dataset
             self.calculate_sizes( )
             if self.pars['is_debug']:
@@ -442,9 +442,9 @@ class ConfigOutputLabel(ConfigImage):
     contain masks for sparsely-labelled training
     '''
 
-    def __init__(self, config, pars, sec_name, outsz, setsz, fov ):
+    def __init__(self, config, pars, sec_name, outsz, setsz, mapsz ):
         ConfigImage.__init__(self, config, pars, sec_name, \
-                             outsz, setsz, fov=fov)
+                             outsz, setsz, mapsz=mapsz)
 
         # record and use parameters
         self.pars = pars

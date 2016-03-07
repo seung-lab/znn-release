@@ -305,15 +305,15 @@ class CLearnCurve:
     def save(self, pars, fname=None, elapsed=0, suffix=None):
         if not pars['is_stdio']:
             # change filename
-            fname = pars['train_net']
+            root = pars['train_net_prefix']
             import os
             import shutil
-            root, ext = os.path.splitext(fname)
+            
             #storing in case of a suffix,
             # so 'current' file below isn't duplicated
             orig_root = root
             if suffix is not None:
-                root = "{}_{}".format(root, suffix)
+                root = "{}_{}".format(pars['train_net_prefix'], suffix)
 
             if len(self.tn_it) > 0:
                 fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
@@ -321,7 +321,6 @@ class CLearnCurve:
                 fname = root + '_statistics_0.h5'
             if os.path.exists(fname):
                 os.remove( fname )
-            stdpre = ''
 
         # save variables
         import h5py
