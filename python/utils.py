@@ -250,6 +250,19 @@ def get_total_num(outputs):
         n = n + np.prod(sz)
     return n
 
+
+def get_total_num_mask(masks, props=None):
+    '''Returns the total number of active voxels in a forward pass'''
+    s = 0
+    for name, mask in masks.iteritems():
+        #full mask can correspond to empty array
+        if mask.size == 0 and props is not None:
+            s += props[name].size
+        else:
+            s += np.count_nonzero(mask)
+    return s
+
+
 def sum_over_dict(dict_vol):
     s = 0
     for name, vol in dict_vol.iteritems():
