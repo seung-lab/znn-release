@@ -7,6 +7,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 from front_end import znetio
 import shutil
+from skimage import transform
 
 def timestamp():
     import datetime
@@ -65,6 +66,44 @@ def rft_to_string(rft):
     rft_string = applied_rules.__repr__().replace("'","")
 
     return rft_string
+
+def fast_warp(img, tf, output_shape, mode='reflect'):
+    """
+    This wrapper function is about five times faster than skimage.transform.warp, for our use case.
+    """
+    m = tf.params
+    img_wf = np.empty( output_shape, img.dtype )
+    for i in xrange(0, output_shape[0]):
+	for j in xrange(0, output_shape[1]):
+		x = img[i,j,] 
+		img_wf[i,j,] = transform._warps_cy._warp_fast(x, m, output_shape=x.shape, mode=mode)
+    return img_wf
+
+def data_rotation_flip_transform(data, rft):
+	#print data.shape
+        if data.ndim < 2:
+		return data
+        
+        rotation, flip = rft
+        # y-reflection
+        if flip[0]:
+	   data  = data[:, :,    ::-1, :]	
+	# x-reflection	  
+ 	if flip[1]:
+	    data = data[:,  :,    :,    ::-1]
+	# transpose in XY
+        if flip[2]:
+            data = data.transpose(0,1,3,2) 
+
+	# shift to center, rotate, shift back
+        center_shift = np.array((data.shape[-2], data.shape[-1])) / 2. - 0.5    
+	tform_center = transform.SimilarityTransform(translation=-center_shift)
+        tform_uncenter = transform.SimilarityTransform(translation=center_shift)
+        tform_augment = transform.AffineTransform(rotation=np.deg2rad(rotation))	
+        tform = tform_center + tform_augment + tform_uncenter 
+        data = fast_warp(data, tform, data.shape)
+	
+       	return data
 
 def data_aug_transform(data, rft):
         """

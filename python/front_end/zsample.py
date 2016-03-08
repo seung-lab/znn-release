@@ -119,14 +119,23 @@ class CSample(object):
             self.locs = None
 
     def _data_aug(self, subinputs, subtlbls, submsks):
+        normal_aug = False
         # random transformation roll
         if self.pars['is_data_aug']:
-            rft = (np.random.rand(4)>0.5)
+	    aug_func = None
+	    if normal_aug:
+		aug_func = utils.data_aug_transform
+		rft = (np.random.rand(4)>0.5)
+            else:
+		aug_func = utils.data_rotation_flip_transform 
+	    	angle =  np.random.uniform(360)
+            	flip = (np.random.rand(3) > 0.5)
+		rft = (angle, flip)
             for key, subinput in subinputs.iteritems():
-                subinputs[key] = utils.data_aug_transform(subinput,      rft )
+                subinputs[key] = aug_func(subinput, rft)
             for key, subtlbl in subtlbls.iteritems():
-                subtlbls[key]  = utils.data_aug_transform(subtlbl, rft )
-                submsks[key]   = utils.data_aug_transform(submsks[key],  rft )
+                subtlbls[key]  = aug_func(subtlbl, rft)
+                submsks[key]   = aug_func(submsks[key], rft)
         return subinputs, subtlbls, submsks
 
     def get_random_sample(self):
