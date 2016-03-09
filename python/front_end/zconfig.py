@@ -52,34 +52,53 @@ def parser( conf_fname ):
         pars['train_net_prefix'] = config.get('parameters', 'train_net_prefix')
     elif config.has_option('parameters', 'train_net'):
         pars['train_net_prefix'] = config.get('parameters', 'train_net')
+        # remove the ".h5"
+        import string
+        pars['train_net_prefix'] = string.replace(pars['train_net_prefix'], ".h5", "")
     elif config.has_option('parameters', 'train_save_net'):
         pars['train_net_prefix'] = config.get('parameters', 'train_save_net')
-    # remove the ".h5"
-    import string
-    pars['train_net_prefix'] = string.replace(pars['train_net_prefix'], ".h5", "")
+        # remove the ".h5"
+        import string
+        pars['train_net_prefix'] = string.replace(pars['train_net_prefix'], ".h5", "")
+
     #Whether to write .log and .cfg files
     if config.has_option('parameters', 'logging'):
         pars['logging'] = config.getboolean('parameters', 'logging')
 
     #TRAINING OPTIONS
     #Samples to use for training
-    pars['train_range'] = parseIntSet( config.get('parameters',   'train_range') )
+    if config.has_option('parameters', 'train_range'):
+        pars['train_range'] = parseIntSet( config.get('parameters',   'train_range') )
+
     #Samples to use for cross-validation
-    pars['test_range']  = parseIntSet( config.get('parameters',   'test_range') )
+    if config.has_option('parameters', 'test_range'):
+        pars['test_range']  = parseIntSet( config.get('parameters',   'test_range') )
     #Learning Rate
-    pars['eta']         = config.getfloat('parameters', 'eta')
+    if config.has_option('parameters', 'eta'):
+        pars['eta']         = config.getfloat('parameters', 'eta')
+    else:
+        pars['eta'] = 0.01
     #Learning Rate Annealing Factor
     if config.has_option('parameters', 'anneal_factor'):
         pars['anneal_factor'] = config.getfloat('parameters', 'anneal_factor')
     else:
         pars['anneal_factor'] = 1
     #Momentum Constant
-    pars['momentum']    = config.getfloat('parameters', 'momentum')
+    if config.has_option('parameters', 'momentum'):
+        pars['momentum']    = config.getfloat('parameters', 'momentum')
+    else:
+        pars['momentum'] = 0
     #Weight Decay
-    pars['weight_decay']= config.getfloat('parameters', 'weight_decay')
+    if config.has_option('parameters', 'weight_decay'):
+        pars['weight_decay']= config.getfloat('parameters', 'weight_decay')
+    else:
+        pars['weight_decay'] = 0
     #Training Output Patch Shape
-    pars['train_outsz'] = np.asarray( [x for x in config.get('parameters', \
+    if config.has_option('parameters', 'train_outsz'):
+        pars['train_outsz'] = np.asarray( [x for x in config.get('parameters', \
                                     'train_outsz').split(',') ], dtype=np.int64 )
+    else:
+        pars['train_outsz'] = np.array([1,100,100])
     #Whether to optimize the convolution computation by layer
     # (FFT vs Direct Convolution)
     if config.has_option("parameters", "is_train_optimize"):
@@ -102,9 +121,15 @@ def parser( conf_fname ):
         pars['forward_conv_mode'] = config.get('parameters', 'forward_conv_mode')
 
     #Whether to use data augmentation
-    pars['is_data_aug'] = config.getboolean('parameters', 'is_data_aug')
+    if config.has_option('parameters', 'is_data_aug'):
+        pars['is_data_aug'] = config.getboolean('parameters', 'is_data_aug')
+    else:
+        pars['is_data_aug'] = False
     #Whether to use boundary mirroring
-    pars['is_bd_mirror']= config.getboolean('parameters', 'is_bd_mirror')
+    if config.has_option('parameters', 'is_bd_mirror'):
+        pars['is_bd_mirror'] = config.getboolean('parameters', 'is_bd_mirror')
+    else:
+        pars['is_bd_mirror'] = False
     #Whether to use rebalanced training
     if config.has_option('parameters', 'is_rebalance'):
         if config.getboolean('parameters', 'is_rebalance'):
@@ -162,24 +187,42 @@ def parser( conf_fname ):
         pars["is_check"] = False
 
     #Which Cost Function to Use (as a string)
-    pars['cost_fn_str'] = config.get('parameters', 'cost_fn')
+    if config.has_option('parameters', 'cost_fn'):
+        pars['cost_fn_str'] = config.get('parameters', 'cost_fn')
+    else:
+        pars['cost_fn_str'] = 'square_loss'
 
     #DISPLAY OPTIONS
     #How often to show progress to the screen
-    pars['Num_iter_per_show'] = config.getint('parameters', 'Num_iter_per_show')
+    if config.has_option('parameters', 'Num_iter_per_show'):
+        pars['Num_iter_per_show'] = config.getint('parameters', 'Num_iter_per_show')
+    else:
+        pars['Num_iter_per_show'] = 100
     #How often to check cross-validation error
-    pars['Num_iter_per_test'] = config.getint('parameters', 'Num_iter_per_test')
+    if config.has_option('parameters', 'Num_iter_per_test'):
+        pars['Num_iter_per_test'] = config.getint('parameters', 'Num_iter_per_test')
+    else:
+        pars['Num_iter_per_test'] = 500
     #How many output patches should derive cross-validation error
-    pars['test_num']    = config.getint( 'parameters', 'test_num' )
+    if config.has_option('parameters', 'test_num'):
+        pars['test_num'] = config.getint( 'parameters', 'test_num' )
+    else:
+        pars['test_num'] = 10
     #How often to save the network
-    pars['Num_iter_per_save'] = config.getint('parameters', 'Num_iter_per_save')
+    if config.has_option('parameters', 'Num_iter_per_save'):
+        pars['Num_iter_per_save'] = config.getint('parameters', 'Num_iter_per_save')
+    else:
+        pars['Num_iter_per_save'] = 1000
     #How often to change the learning rate
     if config.has_option('parameters','Num_iter_per_annealing'):
         pars['Num_iter_per_annealing'] = config.getint('parameters', 'Num_iter_per_annealing')
     else:
         pars['Num_iter_per_annealing'] = 100
     #Maximum training updates
-    pars['Max_iter']    = config.getint('parameters', 'Max_iter')
+    if config.has_option('parameters', 'Max_iter'):
+        pars['Max_iter'] = config.getint('parameters', 'Max_iter')
+    else:
+        pars['Max_iter'] = 400000
 
     #FULL FORWARD PASS PARAMETERS
     #Which samples to use
