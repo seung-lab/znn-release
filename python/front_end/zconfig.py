@@ -67,7 +67,7 @@ def parser( conf_fname ):
 
     #TRAINING OPTIONS
     #Samples to use for training
-    if config.has_option('paramesters', 'train_range'):
+    if config.has_option('parameters', 'train_range'):
         pars['train_range'] = parseIntSet( config.get('parameters',   'train_range') )
 
     #Samples to use for cross-validation
