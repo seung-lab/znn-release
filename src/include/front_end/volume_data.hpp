@@ -18,6 +18,7 @@
 #pragma once
 
 #include "../types.hpp"
+#include "../assert.hpp"
 #include "../cube/cube_operators.hpp"
 #include "box.hpp"
 #include "utils.hpp"
@@ -39,16 +40,13 @@ protected:
 
 
 public:
-    cube_p<T> get_patch( vec3i pos ) const
+    cube_p<T> get_patch( vec3i const & pos ) const
     {
         // validity check
         STRONG_ASSERT(range_.contains(pos));
 
-        // transform to local coordinate
-        pos -= off_;
-
         // crop & return patch
-        box patch = box::centered_box(pos, fov_);
+        box patch = box::centered_box(pos - off_, fov_);
         return crop(*data_, patch.min(), patch.size());
     }
 
@@ -63,15 +61,6 @@ public:
 
 
 public:
-    void set_data( cube_p<T> const & data )
-    {
-        data_ = data;
-        dim_  = size(*data);
-
-        set_bbox();
-        set_range();
-    }
-
     void set_fov( vec3i const & fov )
     {
         fov_ = fov == vec3i::zero ? dim_ : minimum(fov, dim_);
@@ -141,18 +130,16 @@ template <typename T>
 class rw_volume_data: public volume_data<T>
 {
 public:
-    void set_patch( vec3i pos, cube_p<T> const & data )
+    void set_patch( vec3i const & pos, cube_p<T> const & data )
     {
-        if ( !data )
+        if ( data )
         {
             // validity check
             STRONG_ASSERT(this->range_.contains(pos));
-
-            // transform to local coordinate
-            pos -= this->off_;
+            STRONG_ASSERT(size(*data)==this->fov_);
 
             // set patch
-            box patch  = box::centered_box(pos, this->fov_);
+            box patch  = box::centered_box(pos - this->off_, this->fov_);
             vec3i vmin = patch.min();
             vec3i vmax = patch.max();
 
@@ -161,6 +148,11 @@ public:
                 [range(vmin[1],vmax[1])]
                 [range(vmin[2],vmax[2])]] = (*data);
         }
+    }
+
+    cube_p<T> get_data()
+    {
+        return this->data_;
     }
 
 public:

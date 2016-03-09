@@ -18,6 +18,7 @@
 #pragma once
 
 #include "volume_data.hpp"
+#include "volume_dataset.hpp"
 #include "../network/parallel/network.hpp"
 
 namespace znn { namespace v4 {
@@ -34,16 +35,15 @@ private:
     typedef std::map<size_t,rw_volume_p>        output_type     ;
     typedef std::pair<vec3i,size_t>             layer_size_type ;
     typedef std::pair<vec3i,std::set<size_t>>   layer_spec_type ;
-    typedef std::vector<cube_p<T>>              tensor_type     ;
 
 private:
-    std::map<std::string, layer_size_type>      inputs_size_ ;
     std::map<std::string, layer_size_type>      outputs_size_;
 
     std::map<std::string, layer_spec_type>      layers_spec_;
     std::vector<std::string>                    layers_name_;
 
-    std::map<std::string, input_type>           inputs_ ;
+    // std::map<std::string, input_type>           inputs_ ;
+    std::share_ptr<volume_dataset<T>>           inputs_ ;
     std::map<std::string, output_type>          outputs_;
 
     // scan parameters
@@ -56,7 +56,6 @@ private:
     box range_;
 
     parallel_network::network * net_;
-
 
 public:
     void scan()
@@ -84,26 +83,14 @@ private:
     }
 
     // pull inputs from the specified location
-    std::map<std::string, tensor_type> pull( vec3i const & loc )
+    std::map<std::string, tensor<T>> pull( vec3i const & loc )
     {
-        std::map<std::string, tensor_type> ret;
-
-        for ( auto& i: inputs_size_ )
-        {
-            auto& name = i.first;
-            auto  size = i.second.second;
-
-            for ( size_t i = 0; i < size; ++i )
-            {
-                ret[name][i] = inputs_[name][i]->get_patch(loc);
-            }
-        }
-
-        return ret;
+        auto sample = inputs_->get_sample(loc);
+        return sample.input;
     }
 
     // push outputs to the specified location
-    void push( vec3i const & loc, std::map<std::string, tensor_type> data )
+    void push( vec3i const & loc, std::map<std::string, tensor<T>> data )
     {
         for ( auto& l: layers_spec_ )
         {
@@ -120,7 +107,7 @@ private:
 
 
 public:
-    std::map<std::string, tensor_type> outputs( bool auto_crop = true )
+    std::map<std::string, tensor<T>> outputs( bool auto_crop = true )
     {
         // TODO(lee): return auto-crop results
     }
@@ -132,30 +119,6 @@ public:
 
 
 public:
-    void add_input( std::string const & name,
-                    tensor_type const & data,
-                    vec3i const & offset = vec3i::zero )
-    {
-        ZI_ASSERT(inputs_size_.count(name)!=0);
-        ZI_ASSERT(inputs_.count(name)==0);
-
-        auto patch_size = inputs_size_[name].first;
-
-        auto& input = inputs_[name];
-        for ( auto& d: data )
-        {
-            input.push_back(
-                std::make_unique<volume_data<T>>(d, patch_size, offset));
-        }
-
-        ZI_ASSERT(input.size()!=0);
-        ZI_ASSERT(input.size()==inputs_size_[name].second);
-
-        // update valid range
-        box const & range = input[0]->range();
-        range_ = range_.empty() ? range : range_.intersect(range);
-    }
-
     // setup after adding inputs
     void setup()
     {
@@ -334,15 +297,23 @@ private:
 public:
     explicit
     volume_forward_scanner( parallel_network::network * net,
+                            std::share_ptr<volume_dataset<T>> dataset,
                             vec3i const & offset = vec3i::zero,
                             vec3i const & grid = vec3i::zero,
                             std::string const & fname = "" )
         : net_(net)
-        , inputs_size_(net->inputs())
+        , inputs_(dataset)
         , outputs_size_(net->outputs())
         , scan_offset_(offset)
         , scan_grid_(grid)
     {
+        // TODO(lee):
+        //
+        //  sanity check
+        //
+        // net->inputs()  == dataset->inputs()
+        // net->outputs() == dataset->outputs()
+
         parse_spec(fname);
     }
 

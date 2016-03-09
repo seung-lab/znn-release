@@ -4,9 +4,7 @@
 
 using namespace znn::v4;
 
-ZiSUITE( Box );
-
-ZiTEST( Construction )
+ZiTEST( BoxConstruction )
 {
     // ---------------------------------------------------------------
     // default
@@ -51,7 +49,7 @@ ZiTEST( Construction )
     EXPECT_EQ( b.empty(),   false       );
 }
 
-ZiTEST( Equality )
+ZiTEST( BoxEquality )
 {
     box b1(vec3i(0,0,0),vec3i(1,1,1)); // box(1,1,1):[0,0,0][1,1,1]
     box b2(vec3i(1,1,1),vec3i(0,0,0)); // box(1,1,1):[0,0,0][1,1,1]
@@ -71,7 +69,7 @@ ZiTEST( Equality )
     EXPECT_EQ( b0 != b4, true );
 }
 
-ZiTEST( Operations )
+ZiTEST( BoxOperations )
 {
     // ---------------------------------------------------------------
     // overlapping
