@@ -152,9 +152,9 @@ public:
 
     virtual ~transfer_nodes() override
     {
-        if ( opts.contains("shared") )
+        if ( nodes::opts().contains("shared") )
         {
-            auto name = opts.require_as<std::string>("shared");
+            auto name = nodes::opts().require_as<std::string>("shared");
             bias::shared_biases_pool.erase(name);
         }
     }

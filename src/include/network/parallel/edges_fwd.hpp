@@ -85,9 +85,9 @@ public:
 
     ~edges()
     {
-        if ( opts.contains("shared") )
+        if ( options_.contains("shared") )
         {
-            auto name = opts.require_as<std::string>("shared");
+            auto name = options_.require_as<std::string>("shared");
             filter::shared_filters_pool.erase(name);
         }
     }
