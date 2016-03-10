@@ -83,6 +83,15 @@ public:
 
     edges( nodes *, nodes *, options const &, task_manager &, scale_tag );
 
+    ~edges()
+    {
+        if ( opts.contains("shared") )
+        {
+            auto name = opts.require_as<std::string>("shared");
+            filter::shared_filters_pool.erase(name);
+        }
+    }
+
     std::string name() const
     {
         return options_.require_as<std::string>("name");
@@ -164,6 +173,7 @@ public:
         }
         waiter_.wait();
     }
+
 };
 
 }}} // namespace znn::v4::parallel_network

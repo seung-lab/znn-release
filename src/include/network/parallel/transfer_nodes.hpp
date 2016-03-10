@@ -150,6 +150,14 @@ public:
         }
     }
 
+    virtual ~transfer_nodes() override
+    {
+        if ( opts.contains("shared") )
+        {
+            auto name = opts.require_as<std::string>("shared");
+            bias::shared_filters_pool.erase(name);
+        }
+    }
 
     void set_eta( real eta ) override
     {
