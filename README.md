@@ -21,29 +21,29 @@ ZNN is the only (reasonable) open source solution
 * FFTs of the feature maps and gradients can fit in RAM, but couldn’t fit on the GPU
 * run out of the box on future MUUUUULTI core machines
 
-Required libraries
-------------------
-Supports Linux and MacOS. When using MKL fftw is not required
-
 Python Interface
 ----------------
 To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python` folder for further information.
 
-Publications
-------------
-* Zlateski, A., Lee, K. & Seung, H. S. (2015) ZNN - A Fast and Scalable Algorithm for Training 3D Convolutional Networks on Multi-Core and Many-Core Shared Memory Machines. ([arXiv link](http://arxiv.org/abs/1510.06706))
-* Lee, K., Zlateski, A., Vishwanathan, A. & Seung, H. S. (2015) Recursive Training of 2D-3D Convolutional Networks for Neuronal Boundary Detection. ([arXiv link](http://arxiv.org/abs/1508.04843))
+Supports Linux and MacOS. When using MKL fftw is not required
+
 
 Resources
 ---------
 * **Documentation**: [http://znn-release.readthedocs.org/en/latest/index.html#](http://znn-release.readthedocs.org/en/latest/index.html#)
 * Slides: [**How to ZNN**](https://docs.google.com/presentation/d/1B5g4lgnHN92fD5bkqDCAHraGZL3lz3Df6G-QiYrEWPg/edit?usp=sharing)
 
+Publications
+------------
+* Zlateski, A., Lee, K. & Seung, H. S. (2015) ZNN - A Fast and Scalable Algorithm for Training 3D Convolutional Networks on Multi-Core and Many-Core Shared Memory Machines. ([arXiv link](http://arxiv.org/abs/1510.06706))
+* Lee, K., Zlateski, A., Vishwanathan, A. & Seung, H. S. (2015) Recursive Training of 2D-3D Convolutional Networks for Neuronal Boundary Detection. ([arXiv link](http://arxiv.org/abs/1508.04843))
+
 Contact
 -------
 C++ core
 * Aleksander Zlateski \<zlateski@mit.edu\>
 * Kisuk Lee \<kisuklee@mit.edu\>
+
 Python Interface
 * Jingpeng Wu \<jingpeng@princeton.edu\>
 * Nicholas Turner \<nturner@cs.princeton.edu\>
