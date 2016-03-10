@@ -100,7 +100,7 @@ public:
 
         int32_t get_optimal(int32_t s) const
         {
-            //return s;
+            return s;
             // SLOW so what, SUE ME!
             if ( s < 10 ) return s;
             if ( s > 384 ) return s;
