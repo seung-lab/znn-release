@@ -155,7 +155,7 @@ public:
         if ( opts.contains("shared") )
         {
             auto name = opts.require_as<std::string>("shared");
-            bias::shared_filters_pool.erase(name);
+            bias::shared_biases_pool.erase(name);
         }
     }
 
