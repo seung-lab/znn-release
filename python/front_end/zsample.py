@@ -558,7 +558,7 @@ class CSamples(object):
             Nloc += len(sample.locs)
         # normalize the number of locations to probability
         for i,p in enumerate(self.smp_prbs):
-            self.smp_prbs[i] = self.smp_prbs / Nloc
+            self.smp_prbs[i] = self.smp_prbs[i] / Nloc
 
         if self.pars['is_debug']:
             # save the candidate locations
