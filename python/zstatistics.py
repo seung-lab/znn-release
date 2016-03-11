@@ -4,7 +4,9 @@ __doc__ = """
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
-from matplotlib.pylab import plt
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 from os import path
 
 class CLearnCurve:
@@ -299,8 +301,8 @@ class CLearnCurve:
             plt.xlabel('iteration (K)'), plt.ylabel( 'malis weighted pixel error' )
 
         plt.legend()
-        plt.show()
-        return
+        #plt.show()
+        return plt
 
     def save(self, pars, fname=None, elapsed=0, suffix=None):
         if not pars['is_stdio']:
@@ -401,19 +403,35 @@ if __name__ == '__main__':
     python statistics.py path/of/statistics.h5 5
     5 is an example of smoothing window size
     """
-    import sys
+    import argparse
+    parser = argparse.ArgumentParser(description="ZNN forward pass.")
+    parser.add_argument("-c", "--config", required=True, \
+                        help="path of configuration file")
+    parser.add_argument("-s", "--statistics", \
+                        help="network statistics path", required=True)
+    parser.add_argument("-w", "--window", help="smoothing window size")
+    parser.add_argument("-p", "--path", help="path to save")
+
+    # make the dictionary of arguments
+    args = vars( parser.parse_args() )
+    
     # default window size
     w = 3
-    assert len(sys.argv) > 1
-    fname = sys.argv[1]
+    fname = args['statistics'] 
 
-    fconfig = path.dirname(fname) + "/config.cfg"
+    fconfig = args['config']
     from front_end import zconfig
     config, pars = zconfig.parser( fconfig )
 
     lc = CLearnCurve( pars, fname )
 
-    if len(sys.argv)==3:
-        w = int( sys.argv[2] )
+    if args['window']:
+        w = int( args['window'] )
         print "window size: ", w
-    lc.show( w )
+    
+    plt = lc.show( w )
+    path = args['path']
+    if path:
+        plt.savefig(path)
+    else:
+	plt.show()
