@@ -67,10 +67,14 @@ private:
     {
         vec3i size = range_.size();
 
-        // TODO(lee): seeding issue
-        auto z = std::rand() % size[0];
-        auto y = std::rand() % size[1];
-        auto x = std::rand() % size[2];
+        // thread-safe random number generation
+        real p[3];
+        uniform_init init(0,1);
+        init.initialize(p,3);
+
+        auto z = static_cast<int64_t>(size[0]*p[0]) % size[0];
+        auto y = static_cast<int64_t>(size[1]*p[1]) % size[1];
+        auto x = static_cast<int64_t>(size[2]*p[2]) % size[2];
 
         return range_.min() + vec3i(z,y,x);
     }
@@ -94,6 +98,7 @@ private:
             auto const & dim  = layer.second.first;
             auto const & size = layer.second.second;
 
+            ZI_ASSERT(data_.count(name)!=0);
             ZI_ASSERT(data_[name]->size()==size);
             ZI_ASSERT(data_[name]->size()!=0);
 
