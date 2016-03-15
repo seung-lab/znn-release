@@ -547,6 +547,8 @@ class CSamples(object):
                 sample = CBoundarySample(config, pars, sid, net, outsz, log)
             elif 'aff' in pars['out_type']:
                 sample = CAffinitySample(config, pars, sid, net, outsz, log)
+            elif 'semantic' in pars['out_type']:
+                sample = CSemanticSample(config, pars, sid, net, outsz, log)
             else:
                 raise NameError('invalid output type')
             self.samples.append( sample )
