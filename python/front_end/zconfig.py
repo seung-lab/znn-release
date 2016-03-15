@@ -239,10 +239,26 @@ def parser( conf_fname ):
     if 'fdata_spec' in pars.keys():
         assert( os.path.exists( pars['fdata_spec'] ) )
         config.read( pars['fdata_spec'] )
-    # checking and automatically correcting parameters
+
+    # automatically filling parameters
+    pars = auto_config(pars)
+    # checking parameters
     config, pars = check_config(config, pars)
 
     return config, pars
+
+def auto_config(pars):
+    if 'auto' in pars['cost_fn_str']:
+        if 'boundary' in pars['out_type']:
+            pars['cost_fn_str'] = 'softmax_loss'
+        elif 'semantic' in pars['out_type']:
+            pars['cost_fn_str' = 'softmax_loss'
+        elif 'affin' in pars['out_type']:
+            pars['cost_fn_str'] = 'affinity'
+        else:
+             raise NameError("invalid cost function")
+
+    return pars
 
 def check_config(config, pars):
     """
@@ -254,15 +270,7 @@ def check_config(config, pars):
     pars : the parameters.
     """
     #PROCESSING COST FUNCTION STRING
-    if 'auto' in pars['cost_fn_str']:
-        # automatic choosing of cost function
-        if 'boundary' in pars['out_type']:
-            pars['cost_fn_str'] = 'softmax_loss'
-            pars['cost_fn'] = cost_fn.softmax_loss
-        elif 'affin' in pars['out_type']:
-            pars['cost_fn_str'] = 'binomial_cross_entropy'
-            pars['cost_fn'] = cost_fn.binomial_cross_entropy
-    elif "square-square" in pars['cost_fn_str']:
+    if "square-square" in pars['cost_fn_str']:
         pars['cost_fn'] = cost_fn.square_square_loss
     elif "square" in pars['cost_fn_str']:
         pars['cost_fn'] = cost_fn.square_loss
@@ -291,17 +299,6 @@ def check_config(config, pars):
     assert(pars['Num_iter_per_save']>0)
     assert(pars['Max_iter']>0)
     assert(pars['Max_iter']>pars['Num_iter_per_save'])
-
-    # check and correct the image and labels
-    for sec in config.sections():
-        if 'label' in sec:
-            pp_types = config.get(sec, 'pp_types')
-            if 'boundary' in pars['out_type']:
-                pp_types = pp_types.replace("auto", "binary_class")
-            elif 'affin' in pars['out_type']:
-                pp_types = pp_types.replace("auto", "affinity")
-            config.set(sec, 'pp_types', value=pp_types)
-
 
     # check malis normalization type
     if pars['is_malis']:

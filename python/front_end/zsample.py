@@ -383,7 +383,6 @@ class CAffinitySample(CSample):
             w[1,:,:,:][subtaff[1,:,:,:]==0] = self.ywzs[k]
             w[0,:,:,:][subtaff[0,:,:,:]==0] = self.xwzs[k]
             subwmsks[k] = w
-
         return subwmsks
 
     def get_random_sample(self):
@@ -487,6 +486,74 @@ class CBoundarySample(CSample):
 
         return subimgs, sublbls, submsks, subwmsks
 
+class CSemanticSample(CSample):
+    """
+    sample for semantic training
+    """
+    def __init__(self, config, pars, sample_id, net, outsz, log=None, is_forward=False):
+
+        self.setsz_ins  = net.get_inputs_setsz()
+        self.setsz_outs = net.get_outputs_setsz()
+
+        # initialize the general sample
+        CSample.__init__(self, config, pars, sample_id, net, \
+                         outsz, self.setsz_ins, self.setsz_outs, \
+                         log=log, is_forward=is_forward)
+
+        # precompute the global rebalance weights
+        #self._prepare_rebalance_weights()
+
+    #def _prepare_rebalance_weights(self):
+        # rebalance weights
+    #    self.wps = dict()
+     #   self.wzs = dict()
+     #for key, lbl in self.lbls.iteritems():
+     #msk = self.msks[key]
+      #      self.wps[key], self.wzs[key] = self._get_balance_weight( lbl,msk )
+
+    def _multi_class(self, lbl):
+        """
+        Multi-Class Label Transformation
+
+        Parameters
+        ----------
+        lbl : 4D array, label volume.
+
+        Return
+        ------
+        ret : 4D array, multiple volume with 0/1 value for each class
+        """
+        assert(lbl.shape[0] == 1)
+        assert(np.all(lbl<7) and np.all(lbl>=0))
+        ret = np.empty((6,)+ lbl.shape[1:4], dtype= self.pars['dtype'])
+        ret[0, :,:,:] = (lbl[0,:,:,:]==0).astype(self.pars['dtype']) # boundary and intra-cellular space
+        ret[1, :,:,:] = (lbl[0,:,:,:]==1).astype(self.pars['dtype']) # soma
+        ret[2, :,:,:] = (lbl[0,:,:,:]==2).astype(self.pars['dtype']) # axon
+        ret[3, :,:,:] = (lbl[0,:,:,:]==3).astype(self.pars['dtype']) # dendrite
+        ret[4, :,:,:] = (lbl[0,:,:,:]==5).astype(self.pars['dtype']) # glia cell
+        ret[5, :,:,:] = (lbl[0,:,:,:]==6).astype(self.pars['dtype']) # others
+        return ret
+
+    def get_random_sample(self):
+        subimgs, sublbls, submsks = super(CSemanticSample, self).get_random_sample()
+
+        # semantic rebalance
+        subwmsks = dict()
+        #for key, sublbl in sublbls.iteritems():
+         #   submsk = submsks[key]
+          #  subwmsks[key] = self._rebalance_bdr( sublbl, submsk, self.wps[key], self.wzs[key] )
+
+        for key,sublbl in sublbls.iteritems():
+            assert sublbl.ndim==3 or (sublbl.ndim==4 and sublbl.shape[0]==1)
+            # make the multi-class ground truth
+            sublbls[key] = self._multi_class( sublbl )
+            # duplicate the maskes
+            submsks[key]  = np.tile(submsks[key], (6,1,1,1))
+            subwmsks[key] = np.tile(subwmsks[key], (6,1,1,1))
+
+        return subimgs, sublbls, submsks, subwmsks
+
+
 class ConfigSampleOutput(object):
     '''Documentation coming soon...'''
 
@@ -551,6 +618,8 @@ class CSamples(object):
                 sample = CBoundarySample(config, pars, sid, net, outsz, log)
             elif 'aff' in pars['out_type']:
                 sample = CAffinitySample(config, pars, sid, net, outsz, log)
+            elif 'semantic' in pars['out_type']:
+                sample = CSemanticSample(config, pars, sid, net, outsz, log)
             else:
                 raise NameError('invalid output type')
             self.samples.append( sample )
