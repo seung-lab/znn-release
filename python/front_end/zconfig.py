@@ -252,7 +252,7 @@ def auto_config(pars):
         if 'boundary' in pars['out_type']:
             pars['cost_fn_str'] = 'softmax_loss'
         elif 'semantic' in pars['out_type']:
-            pars['cost_fn_str' = 'softmax_loss'
+            pars['cost_fn_str'] = 'softmax_loss'
         elif 'affin' in pars['out_type']:
             pars['cost_fn_str'] = 'affinity'
         else:
@@ -284,14 +284,14 @@ def check_config(config, pars):
     # check the single parameters
     assert(pars['num_threads']>=0)
     assert('float32'==pars['dtype'] or 'float64'==pars['dtype'])
-    assert('boundary' in pars['out_type'] or 'affin' in pars['out_type'])
+    assert('boundary' in pars['out_type'] or 'affin' in pars['out_type'] or 'semantic' in pars['out_type'])
     assert( np.size(pars['train_outsz'])==3 )
     assert(pars['anneal_factor']>=0 and pars['anneal_factor']<=1)
     assert(pars['momentum']>=0      and pars['momentum']<=1)
     assert(pars['weight_decay']>=0  and pars['weight_decay']<=1)
 
     # normally, we shoud not use two rebalance technique together
-    assert (pars['rebalance_mode'] is None) or ('global' in pars['rebalance_mode']) or ('patch' in pars['rebalance_mode'])
+    assert (pars['rebalance_mode'] is None) or ('global' in pars['rebalance_mode']) or ('patch' in pars['rebalance_mode'] or 'none' in pars['rebalance_mode'])
 
     assert(pars['Num_iter_per_show']>0)
     assert(pars['Num_iter_per_test']>0)

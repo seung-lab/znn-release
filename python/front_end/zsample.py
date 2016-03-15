@@ -549,7 +549,7 @@ class CSemanticSample(CSample):
             sublbls[key] = self._multi_class( sublbl )
             # duplicate the maskes
             submsks[key]  = np.tile(submsks[key], (6,1,1,1))
-            subwmsks[key] = np.tile(subwmsks[key], (6,1,1,1))
+            subwmsks[key] = np.array([])#np.tile(subwmsks[key], (6,1,1,1))
 
         return subimgs, sublbls, submsks, subwmsks
 
