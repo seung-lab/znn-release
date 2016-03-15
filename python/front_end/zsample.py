@@ -542,6 +542,10 @@ class CSamples(object):
         self.pars = pars
 
         self.samples = list()
+        # probability of choosing this sample
+        self.smp_prbs = list()
+        # total number of candidate locations
+        Nloc = 0.0
         for sid in ids:
             if 'bound' in pars['out_type']:
                 sample = CBoundarySample(config, pars, sid, net, outsz, log)
@@ -552,6 +556,11 @@ class CSamples(object):
             else:
                 raise NameError('invalid output type')
             self.samples.append( sample )
+            self.smp_prbs.append(len(sample.locs))
+            Nloc += len(sample.locs)
+        # normalize the number of locations to probability
+        for i,p in enumerate(self.smp_prbs):
+            self.smp_prbs[i] = self.smp_prbs[i] / Nloc
 
         if self.pars['is_debug']:
             # save the candidate locations
@@ -583,5 +592,8 @@ class CSamples(object):
 
     def get_random_sample(self):
         '''Fetches a random sample from a random CSample object'''
-        i = np.random.randint( len(self.samples) )
+        # get the sequence of multinomial sequence. only one element is 1, others are 0
+        sq = np.random.multinomial(1, self.smp_prbs, size=1)
+        # get the index of non-zero element
+        i = np.nonzero(sq)[1][0]
         return self.samples[i].get_random_sample()

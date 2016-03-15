@@ -190,7 +190,7 @@ def parser( conf_fname ):
     if config.has_option('parameters', 'cost_fn'):
         pars['cost_fn_str'] = config.get('parameters', 'cost_fn')
     else:
-        pars['cost_fn_str'] = 'square_loss'
+        pars['cost_fn_str'] = 'auto'
 
     #DISPLAY OPTIONS
     #How often to show progress to the screen
