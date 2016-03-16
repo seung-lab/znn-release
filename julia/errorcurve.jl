@@ -74,12 +74,12 @@ function main()
 
     # read data
     # read affinity data
-    affs = h5read(faffs, "/main");
+    affs = imread(faffs);
     # exchange X and Z channel
-    exchangeaffxz!(affs)
+    # exchangeaffxz!(affs)
 
     # read label ground truth
-    lbl = h5read(flbl, "/main")
+    lbl = imread(flbl)
 
     # rand error and rand f score curve, both are foreground restricted
     thds, segs, rf, rfm, rfs, re, rem, res = affs_error_curve(affs, lbl, 2, 0.1, seg_method)
