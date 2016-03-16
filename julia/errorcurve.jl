@@ -74,12 +74,13 @@ function main()
 
     # read data
     # read affinity data
-    affs = imread(faffs);
+    affs = EMIRT.imread(faffs);
     # exchange X and Z channel
     # exchangeaffxz!(affs)
 
     # read label ground truth
-    lbl = imread(flbl)
+    lbl = EMIRT.imread(flbl)
+    lbl = Array{UInt32,3}(lbl)
 
     # rand error and rand f score curve, both are foreground restricted
     thds, segs, rf, rfm, rfs, re, rem, res = affs_error_curve(affs, lbl, 2, 0.1, seg_method)
