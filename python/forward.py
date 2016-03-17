@@ -52,6 +52,8 @@ def config_forward_pass( config, params, fnet=None, verbose=True, sample_ids=Non
     # set command line sample ids
     if sample_ids is not None:
         params[range_optionname] = sample_ids
+    if fnet is None:
+        fnet = params['forward_net']
 
     # load network
     net = znetio.load_network( params, train=False, hdf5_filename=fnet )
@@ -220,8 +222,5 @@ if __name__ == '__main__':
 
     if not os.path.exists( args['config'] ):
         raise NameError("config file not exist!")
-    if not args['net']:
-        if os.path.exists( args['net'] ):
-            raise NameError( "net file do not exist!")
 
     main( args )
