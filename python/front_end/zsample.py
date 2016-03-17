@@ -104,8 +104,11 @@ class CSample(object):
             dev_high = np.minimum( dev_high, high )
             dev_low  = np.maximum( dev_low , low  )
 
-        # define output images
-        for name, setsz in self.setsz_outs.iteritems():
+        #if you're mirroring the boundary (only applied to input currently)
+        # you should be able to use the entire label volume unless there's
+        # a mismatch somewhere
+        if not self.pars['is_bd_mirror']:
+          for name, setsz in self.setsz_outs.iteritems():
             low, high = self.outs[name].get_dev_range()
             # Deviation bookkeeping
             dev_high = np.minimum( dev_high, high )
@@ -127,7 +130,8 @@ class CSample(object):
                 subinputs[key] = utils.data_aug_transform(subinput, rft )
             for key, subtlbl in subtlbls.iteritems():
                 subtlbls[key]  = utils.data_aug_transform(subtlbl, rft )
-                submsks[key]   = utils.data_aug_transform(submsks[key], rft )
+            for key, submsk in submsks.iteritems():
+                submsks[key]   = utils.data_aug_transform(submsk, rft )
         return subinputs, subtlbls, submsks
 
     def get_random_sample(self):
