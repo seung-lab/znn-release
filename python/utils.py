@@ -291,6 +291,9 @@ def mask_dict_vol(dict_vol, mask=None):
             elif mask_vol.size == 0:
                 res[name] = np.copy(vol)
 
+            else:
+                raise Exception('Mask vol shape =/= vol shape')
+
         return res
     else:
         return dict_vol
