@@ -420,7 +420,7 @@ private:
             else if ( type == "normalize")
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts, tm_, edges::normalize_tag() );
+                    ( in, out, *opts, tm_, phase_, edges::normalize_tag() );
             }
             else if ( type == "scale")
             {
@@ -563,6 +563,7 @@ private:
         else if ( type == "normalize" )
         {
             phase_dependent_edges_[name] = es;
+            stochastic_edges_[name] = es;
         }
         else if ( type == "scale" )
         {

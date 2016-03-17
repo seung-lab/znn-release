@@ -79,7 +79,8 @@ public:
 
     edges( nodes *, nodes *, options const &, task_manager &, multiply_tag );
 
-    edges( nodes *, nodes *, options const &, task_manager &, normalize_tag );
+    edges( nodes *, nodes *, options const &, task_manager &, phase phs,
+           normalize_tag );
 
     edges( nodes *, nodes *, options const &, task_manager &, scale_tag );
 

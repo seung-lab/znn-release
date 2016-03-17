@@ -404,6 +404,7 @@ inline edges::edges( nodes * in,
                      nodes * out,
                      options const & opts,
                      task_manager & tm,
+                     phase phs,
                      normalize_tag )
     : options_(opts)
     , tm_(tm)
@@ -456,7 +457,7 @@ inline edges::edges( nodes * in,
     for ( size_t i = 0; i < n; ++i )
     {
         edges_[i] = std::make_unique<normalize_edge>
-            (in, i, out, i, tm, gstat, frac, eps, *filters_[i]);
+            (in, i, out, i, tm, gstat, frac, eps, *filters_[i], phs);
     }
 }
 
