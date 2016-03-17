@@ -66,6 +66,7 @@ def parse_args(args):
 def main( args ):
     config, pars, logfile = parse_args(args)
     #%% create and initialize the network
+    pars['seed'] = pars['train_net']
     net, lc = znetio.create_net(pars)
 
     # total voxel number of output volume voxels
@@ -112,7 +113,7 @@ def main( args ):
     # get file name
     fname, fname_current = znetio.get_net_fname( pars['train_net'], iter_last, suffix="init" )
     znetio.save_network(net, fname, pars['is_stdio'])
-    lc.save( pars, fname, elapsed=0.0, suffix="init_iter{}".format(iter_last) )
+    #lc.save( pars, fname, elapsed=0.0, suffix="init_iter{}".format(iter_last) )
     # no nan detected
     nonan = True
 
@@ -167,7 +168,7 @@ def main( args ):
         start = time.time()
 
         # test the net
-        if i%pars['Num_iter_per_test']==0:
+        if i%pars['Num_iter_per_test']-1==0:
             # time accumulation should skip the test
             total_time += time.time() - start
             lc = test.znn_test(net, pars, smp_tst, vn, i, lc)
@@ -186,7 +187,7 @@ def main( args ):
                 cls = cls / num_mask_voxels
             re = re / pars['Num_iter_per_show']
 
-            lc.append_train(i, err, cls)
+            lc.append_train(i, err, cls, re)
 
             if pars['is_malis']:
                 malis_cls = malis_cls / pars['Num_iter_per_show']
@@ -231,24 +232,6 @@ def main( args ):
                              grdts, malis_weights, wmsks, elapsed, i)
             # stop training
             return
-
-        if (pars.has_key('Num_iter_per_dset_swap') 
-            and 
-            i%pars['Num_iter_per_dset_swap'] == 0):
-            smp_trn.swap_samples()
-            print "Active sample: %s" % smp_trn.get_active_sample_id()
-
-        if (pars.has_key('Num_iter_per_dset_swap') 
-            and 
-            i%pars['Num_iter_per_dset_swap'] == 0):
-            smp_trn.swap_samples()
-            print "Active sample: %s" % smp_trn.get_active_sample_id()
-
-        if (pars.has_key('Num_iter_per_dset_swap') 
-            and 
-            i%pars['Num_iter_per_dset_swap'] == 0):
-            smp_trn.swap_samples()
-            print "Active sample: %s" % smp_trn.get_active_sample_id()
 
         if (pars.has_key('Num_iter_per_dset_swap') 
             and 
