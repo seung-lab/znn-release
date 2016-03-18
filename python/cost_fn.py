@@ -56,7 +56,7 @@ def square_loss(props, lbls):
         costs[name] = np.square( grdt )
         grdts[name] = grdt * 2
 
-    return (costs, grdts)
+    return (props, costs, grdts)
 
 def square_square_loss(props, lbls, margin=0.2):
     """
@@ -73,7 +73,7 @@ def square_square_loss(props, lbls, margin=0.2):
         costs[name] = np.square( grdt )
         grdts[name] = grdt * 2
 
-    return (costs, grdts)
+    return (props, costs, grdts)
 
 #@jit(nopython=True)
 def binomial_cross_entropy(props, lbls):
@@ -99,7 +99,7 @@ def binomial_cross_entropy(props, lbls):
         costs[name] = -lbl*np.log(prop) - (1-lbl)*np.log(1-prop)
         grdts[name] = prop - lbl
 
-    return (costs, grdts)
+    return (props, costs, grdts)
 
 #@jit(nopython=True)
 def softmax(props):
@@ -157,7 +157,7 @@ def multinomial_cross_entropy(props, lbls, mask=None):
         costs[name] = -lbl * np.log(prop)
         grdts[name] = prop - lbl
 
-    return (costs, grdts)
+    return (props, costs, grdts)
 
 def softmax_loss(props, lbls):
     props = softmax(props)
@@ -193,7 +193,7 @@ def softmax_loss2(props, lbls):
         print "gradient: ", grdts[name]
         assert(not np.any(np.isnan(grdts[name])))
 
-    return (costs, grdts)
+    return (props, costs, grdts)
 
 #def hinge_loss(props, lbls):
 # TO-DO
