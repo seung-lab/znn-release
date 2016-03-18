@@ -134,15 +134,18 @@ class CSample(object):
                 submsks[key]   = utils.data_aug_transform(submsk, rft )
         return subinputs, subtlbls, submsks
 
-    def get_random_sample(self):
+    def get_random_sample(self, locs=None):
         '''Fetches a matching random sample from all input and output volumes'''
 
+        if locs is None:
+            locs = self.locs
+
         # random deviation
-        ind = np.random.randint( np.size(self.locs[0]) )
+        ind = np.random.randint( np.size(locs[0]) )
         loc = np.empty( 3, dtype=np.uint32 )
-        loc[0] = self.locs[0][ind]
-        loc[1] = self.locs[1][ind]
-        loc[2] = self.locs[2][ind]
+        loc[0] = locs[0][ind]
+        loc[1] = locs[1][ind]
+        loc[2] = locs[2][ind]
         dev = loc - self.outs.values()[0].center
 
         self.write_request_to_log(loc)
@@ -164,11 +167,11 @@ class CSample(object):
 
     def _get_balance_weight(self, arr, mask=None):
         # applying mask
-	mask_empty = mask is None or mask.size == 0
+    	mask_empty = mask is None or mask.size == 0
         if mask_empty:
-             values = arr
+            values = arr
         else:
-             values = arr[ np.nonzero(mask) ]
+            values = arr[ np.nonzero(mask) ]
 
         # number of nonzero elements
         pn = float( np.count_nonzero(values) )
@@ -282,7 +285,39 @@ class CAffinitySample(CSample):
             tmsks[k] = self._msk2affmsk( self.msks[k] )
 
         self._prepare_rebalance_weights( taffs, tmsks )
+
+        if pars['balanced_sampling']:
+            print "classifying candidate locations"
+            # this also won't work with multiple output layers
+            self.pos_locs, self.neg_locs = self.classify_candidate_locs( taffs.values()[0], self.locs )
+        else:
+            self.pos_locs, self.neg_locs = None, None
         return
+
+
+    def classify_candidate_locs( self, labels, locs ):
+        '''
+        labels = 4d volume (3,Z,Y,X)
+        locs = list of tuples
+        '''
+        assert len(labels.shape) == 4 and labels.shape[0] == 3
+
+        #counting a voxel as a negative example if it contains at least one
+        # negative edge
+        edges_all_positive = ((labels[0,:,:,:]>0) &
+                              (labels[1,:,:,:]>0) &
+                              (labels[2,:,:,:]>0))
+
+        loc_values = edges_all_positive[ locs[0],locs[1],locs[2] ]
+
+        pos_indices = np.where( loc_values != 0 )[0]
+        neg_indices = np.where( loc_values == 0 )[0]
+
+        pos_locs = tuple( dimension[pos_indices] for dimension in locs )
+        neg_locs = tuple( dimension[neg_indices] for dimension in locs )
+
+        return pos_locs, neg_locs
+
 
     def _seg2aff( self, lbl ):
         """
@@ -369,6 +404,7 @@ class CAffinitySample(CSample):
 
         return
 
+
     def _rebalance_aff(self, subtaffs, submsks):
         """
         rebalance the affinity labeling with size of (3,Z,Y,X)
@@ -396,7 +432,14 @@ class CAffinitySample(CSample):
         return subwmsks
 
     def get_random_sample(self):
-        subimgs, sublbls, submsks = super(CAffinitySample, self).get_random_sample()
+
+        if self.pars['balanced_sampling']:
+            assert (self.pos_locs is not None) and (self.neg_locs is not None)
+            locs = random.choice((self.pos_locs, self.neg_locs))
+        else:
+            locs = self.locs
+
+        subimgs, sublbls, submsks = super(CAffinitySample, self).get_random_sample(locs=locs)
 
         # shrink the inputs
         for key, subimg in subimgs.iteritems():
@@ -432,6 +475,33 @@ class CBoundarySample(CSample):
 
         # precompute the global rebalance weights
         self._prepare_rebalance_weights()
+
+        if pars['balanced_sampling']:
+            print "classifying candidate locations"
+            # this also won't work with multiple output layers
+            self.pos_locs, self.neg_locs = self.classify_candidate_locs( self.lbls, self.locs )
+        else:
+            self.pos_locs, self.neg_locs = None, None
+
+    def classify_candidate_locs( self, label, locs ):
+        '''
+        label - 4d volume (1,Z,Y,X)
+        locs - list of tuple coords
+        '''
+        assert label.ndim== 4 and label.shape[0]== 1
+
+        candidate_array = np.array(locs)
+
+        loc_values = label[ 0, locs[0],locs[1],locs[2] ]
+
+        pos_indices = np.where( loc_values != 0 )[0]
+        neg_indices = np.where( loc_values == 0 )[0]
+
+        pos_locs = tuple( dimension[pos_indices] for dimension in locs )
+        neg_locs = tuple( dimension[neg_indices] for dimension in locs )
+
+        return pos_locs, neg_locs
+
 
     def _prepare_rebalance_weights(self):
         # rebalance weights
@@ -478,7 +548,14 @@ class CBoundarySample(CSample):
 
 
     def get_random_sample(self):
-        subimgs, sublbls, submsks = super(CBoundarySample, self).get_random_sample()
+
+        if self.pars['balanced_sampling']:
+            assert (self.pos_locs is not None) and (self.neg_locs is not None)
+            locs = random.choice((self.pos_locs, self.neg_locs))
+        else:
+            locs = self.locs
+
+        subimgs, sublbls, submsks = super(CBoundarySample, self).get_random_sample(locs=locs)
 
         # boundary map rebalance
         subwmsks = dict()

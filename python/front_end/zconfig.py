@@ -147,6 +147,13 @@ def parser( conf_fname ):
     pars['is_data_aug'] = config.getboolean('parameters', 'is_data_aug')
     #Whether to use boundary mirroring
     pars['is_bd_mirror']= config.getboolean('parameters', 'is_bd_mirror')
+    
+    #Whether to use balanced sampling (50%pos/neg)
+    if config.has_option('parameters', 'balanced_sampling'):
+        pars['balanced_sampling'] = config.getboolean('parameters','balanced_sampling')
+    else:
+        pars['balanced_sampling'] = False
+
     #Whether to use rebalanced training
     if config.has_option('parameters', 'is_rebalance'):
         if config.getboolean('parameters', 'is_rebalance'):

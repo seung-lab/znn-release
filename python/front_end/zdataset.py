@@ -506,7 +506,7 @@ class ConfigOutputLabel(ConfigImage):
 
         Returns:
         --------
-        ret : a tuple, the coordinate of nonzero elements,
+        locs : a list of tuples, each a coordinate of a nonzero element,
               format is the same with return of numpy.nonzero.
         """
         if np.size(self.msk) == 0:
@@ -529,3 +529,5 @@ class ConfigOutputLabel(ConfigImage):
             raise NameError('no candidate location!')
 
         return locs
+
+    
