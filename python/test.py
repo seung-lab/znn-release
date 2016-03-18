@@ -15,7 +15,7 @@ def _single_test(net, pars, sample):
     props = net.forward( vol_ins )
 
     # cost, gradient, classification error
-    costs, grdts = pars['cost_fn']( props, lbl_outs )
+    props, costs, grdts = pars['cost_fn']( props, lbl_outs )
     cerrs = cost_fn.get_cls( props, lbl_outs )
 
     # apply masks
