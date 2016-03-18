@@ -37,10 +37,15 @@ function parse_commandline()
         arg_type = ASCIIString
         default = "connected_component"
 
+        "--dim"
+        help = "segmentation and evaluation dimention. 2/3"
+        arg_type = Int64
+        default = 2
+
         "--isplot"
         help = "whether plot the curve or not"
         arg_type = Bool
-        default = true
+        default = false
     end
     return parse_args(s)
 end
@@ -52,8 +57,9 @@ function main()
     tag = ""
     step = 0.1
     seg_method = ""
+    dim = 2
     fcurve = ""
-    isplot = true
+    isplot = false
     for pa in parse_commandline()
         if pa[1] == "tag"
             tag = pa[2]
@@ -65,6 +71,8 @@ function main()
             step = pa[2]
         elseif pa[1] == "seg_method"
             seg_method = pa[2]
+        elseif pa[1] == "dim"
+            dim = pa[2]
         elseif pa[1] == "fcurve"
             fcurve = pa[2]
         elseif pa[1] == "isplot"
@@ -72,6 +80,7 @@ function main()
         end
     end
 
+    @assert dim==2 || dim==3
     # read data
     # read affinity data
     affs = EMIRT.imread(faffs);
@@ -83,7 +92,7 @@ function main()
     lbl = Array{UInt32,3}(lbl)
 
     # rand error and rand f score curve, both are foreground restricted
-    thds, segs, rf, rfm, rfs, re, rem, res = affs_error_curve(affs, lbl, 2, 0.1, seg_method)
+    thds, segs, rf, rfm, rfs, re, rem, res = affs_error_curve(affs, lbl, dim, step, seg_method)
 
     # save the curve
     h5write(fcurve, "/$tag/segs", segs)
