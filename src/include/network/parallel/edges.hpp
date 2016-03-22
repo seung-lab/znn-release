@@ -353,6 +353,30 @@ inline edges::edges( nodes * in,
     }
 }
 
+// concat
+inline edges::edges( nodes * in,
+                     nodes * out,
+                     options const & opts,
+                     task_manager & tm,
+                     concat_tag )
+    : options_(opts)
+    , tm_(tm)
+{
+    size_t n = in->num_out_nodes();
+    edges_.resize(n);
+    waiter_.set(n);
+
+    auto offset = opts.require_as<size_t>("offset");
+    ZI_ASSERT(offset+n<=out->num_in_nodes());
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        edges_[i]
+            = std::make_unique<dummy_edge>
+            (in, i, out, i+offset, tm_);
+    }
+}
+
 // maxout
 inline edges::edges( nodes * in,
                      nodes * out,

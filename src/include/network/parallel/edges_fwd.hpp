@@ -38,6 +38,7 @@ public:
     struct dropout_tag {};
     struct nodeout_tag {};
     struct crop_tag {};
+    struct concat_tag {};
     struct softmax_tag {};
     struct maxout_tag {};
     struct multiply_tag {};
@@ -72,6 +73,8 @@ public:
            nodeout_tag );
 
     edges( nodes *, nodes *, options const &, task_manager &, crop_tag );
+
+    edges( nodes *, nodes *, options const &, task_manager &, concat_tag );
 
     edges( nodes *, nodes *, options const &, task_manager &, softmax_tag );
 

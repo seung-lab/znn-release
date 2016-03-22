@@ -39,6 +39,7 @@ private:
     {
         vec3i width     = vec3i::one ;
         vec3i stride    = vec3i::one ;
+        vec3i sparse    = vec3i::one ;
 
         vec3i in_stride = vec3i::zero;
         vec3i in_fsize  = vec3i::zero;
@@ -133,7 +134,7 @@ private:
     {
         if ( n->stride != vec3i::zero )
         {
-            ZI_ASSERT(n->stride==stride);
+            STRONG_ASSERT(n->stride==stride);
         }
         else
         {
@@ -199,7 +200,7 @@ private:
             }
             else
             {
-                auto diff = (e->width - vec3i::one)*e->in_stride;
+                auto diff = (e->width - vec3i::one)*e->in_stride*e->sparse;
                 e->in_fsize = e->reverse ? (fsize - diff) : (fsize + diff);
                 fsize_pass(e->in, e->in_fsize);
             }
@@ -383,14 +384,16 @@ private:
             }
             else if ( type == "conv" )
             {
+                auto sparse = e.second->sparse * e.second->in_stride;
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts, e.second->in_stride, tm_, false,
+                    ( in, out, *opts, sparse, tm_, false,
                       edges::filter_tag() );
             }
             else if ( type == "deconv" )
             {
+                auto sparse = e.second->sparse * e.second->in_stride;
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts, e.second->in_stride, tm_, true,
+                    ( in, out, *opts, sparse, tm_, true,
                       edges::filter_tag() );
             }
             else if ( type == "dropout" )
@@ -413,6 +416,11 @@ private:
             {
                 e.second->dedges = std::make_unique<edges>
                     ( in, out, *opts, tm_, edges::crop_tag() );
+            }
+            else if ( type == "concat" )
+            {
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, tm_, edges::concat_tag() );
             }
             else if ( type == "maxout")
             {
@@ -537,11 +545,13 @@ private:
         {
             es->width   = op.require_as<ovec3i>("size");
             es->stride  = op.optional_as<ovec3i>("stride", "1,1,1");
+            es->sparse  = op.optional_as<ovec3i>("sparse", "1,1,1");
         }
         else if ( type == "deconv" )
         {
             es->width   = op.require_as<ovec3i>("size");
             es->stride  = op.optional_as<ovec3i>("stride", "1,1,1");
+            es->sparse  = op.optional_as<ovec3i>("sparse", "1,1,1");
             es->reverse = true;
         }
         else if ( type == "max_pool" )
@@ -563,6 +573,9 @@ private:
             auto off = op.require_as<ovec3i>("offset");
             es->width   = off + off + vec3i::one;
             es->crop    = true;
+        }
+        else if ( type == "concat" )
+        {
         }
         else if ( type == "maxout" )
         {
