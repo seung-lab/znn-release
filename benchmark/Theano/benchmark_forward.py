@@ -94,12 +94,16 @@ def evaluate_convnet(learning_rate=0.01, n_epochs=100, nlayer=5, width=[10], fxy
     print '\n input size = {} x {} x {}'.format(fmapxy[0], fmapxy[0], fmapz[0])
     print 'output size = {} x {} x {}'.format(outxy, outxy, outz)
 
-    # random input
-    data_x = random_matrix((n_epochs, fmapz[0], 1, fmapxy[0], fmapxy[0]), rng, 'data_x')
-    data_y = random_matrix((n_epochs, outz, width[-1], outxy, outxy), rng, 'data_y')
-    idx = T.lscalar()
-    x = data_x[idx]
-    y = data_y[idx]
+    # # random input
+    # data_x = random_matrix((n_epochs, fmapz[0], 1, fmapxy[0], fmapxy[0]), rng, 'data_x')
+    # data_y = random_matrix((n_epochs, outz, width[-1], outxy, outxy), rng, 'data_y')
+    # idx = T.lscalar()
+    # x = data_x[idx]
+    # y = data_y[idx]
+
+    # derterministic input
+    x = random_matrix((1, fmapz[0], 1, fmapxy[0], fmapxy[0]), rng, 'x')
+    y = random_matrix((1, outz, width[-1], outxy, outxy), rng, 'y')
 
     # patch size
     patch_sz = outxy*outxy*outz
@@ -129,7 +133,11 @@ def evaluate_convnet(learning_rate=0.01, n_epochs=100, nlayer=5, width=[10], fxy
             pool_shape=(pz[i],pxy[i],pxy[i])))
         params = params + layers[-1].params
 
-    train_model = theano.function([idx], layers[-1].output)
+    # # random input
+    # train_model = theano.function([idx], layers[-1].output)
+
+    # deterministic input
+    train_model = theano.function([], layers[-1].output)
 
     # theano.printing.debugprint(train_model, print_type=True)
 
@@ -142,7 +150,8 @@ def evaluate_convnet(learning_rate=0.01, n_epochs=100, nlayer=5, width=[10], fxy
     time_accum = 0
     while (epoch < n_epochs) and (not done_looping):
         start_time = timeit.default_timer()
-        prop = train_model(epoch)
+        #prop = train_model(epoch)# random input
+	prop = train_model() # deterministic iput
         epoch = epoch + 1
         end_time = timeit.default_timer()
         elapsed = end_time - start_time
@@ -154,45 +163,37 @@ def evaluate_convnet(learning_rate=0.01, n_epochs=100, nlayer=5, width=[10], fxy
 
 if __name__ == '__main__':
 
-    # Zi Net
-    #nlayer=7
-    #width=[16, 24, 32, 32, 32, 32, 1]
-    #fxy=[7, 7, 7, 7, 7, 7, 1]
-    #fz=[7, 7, 7, 7, 7, 7, 1]
-    #pxy=[1]
-    #pz=[1]
-
-    # SriniNet 2
+    # m96
     #nlayer=6
-    #width=[10, 10, 10, 10, 10, 1]
-    #fxy=[7, 7, 7, 7, 7, 1]
-    #fz=[7, 7, 7, 7, 7, 1]
-    #pxy=[1]
-    #pz=[1]
+    #width=[80, 80, 80, 80, 80, 3]
+    #fxy=[8, 9, 9, 9, 9, 9]
+    #fz =[8, 9, 9, 9, 9, 9]
+    #pxy=[2, 2, 1, 1, 1, 1]
+    #pz =[2, 2, 1, 1, 1, 1]
 
-    # Architecture 1
-    #nlayer=6
-    #width=[12,24,36,48,48,4]
-    #fxy=[6,4,4,4,4,1]
-    #fz=[1,1,4,2,2,1]
-    #pxy=[2,2,2,2,1,1]
-    #pz=[1,1,2,2,1,1]
-
-    # ReferenceNet
+    # m76
     nlayer=6
-    width=[40,40,40,40,40,3]
-    fxy=[5]
-    fz=[5]
-    pxy=[2,2,1,1,1,1]
-    pz=[2,2,1,1,1,1]
+    width=[80,80,80,80,80, 3]
+    fxy  =[ 6, 7, 7, 7, 7, 7]
+    fz   =[ 6, 7, 7, 7, 7, 7]
+    pxy  =[ 2, 2, 1, 1, 1, 1]
+    pz   =[ 2, 2, 1, 1, 1, 1]
 
-    # 2D ReferenceNet
-    #nlayer=6
-    #width=[40,40,40,40,40,3]
-    #fxy=[20]
-    #fz=[1]
-    #pxy=[2,2,1,1,1,1]
-    #pz=[1,1,1,1,1,1]
+    # m56
+    #nlayer=7
+    #width=[80,80,80,80,80,80, 3]
+    #fxy  =[ 4, 5, 5, 5, 5, 5, 5]
+    #fz   =[ 4, 5, 5, 5, 5, 5, 5]
+    #pxy  =[ 2, 2, 2, 1, 1, 1, 1]
+    #pz   =[ 2, 2, 2, 1, 1, 1, 1]
+
+    # m36
+    #nlayer=7
+    #width=[80,80,80,80,80,80, 3]
+    #fxy  =[ 2, 3, 3, 3, 3, 3, 3]
+    #fz   =[ 2, 3, 3, 3, 3, 3, 3]
+    #pxy  =[ 2, 2, 2, 1, 1, 1, 1]
+    #pz   =[ 2, 2, 2, 1, 1, 1, 1]
 
     # output patch size
     outxy=int(sys.argv[1])
