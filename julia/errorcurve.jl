@@ -92,7 +92,9 @@ function main()
     lbl = Array{UInt32,3}(lbl)
 
     # rand error and rand f score curve, both are foreground restricted
+    print("compute error curves of affinity map ......")
     thds, segs, rf, rfm, rfs, re, rem, res = affs_error_curve(affs, lbl, dim, step, seg_method)
+    print("done :)")
 
     # save the curve
     h5write(fcurve, "/$tag/segs", segs)
@@ -105,11 +107,13 @@ function main()
     h5write(fcurve, "/$tag/res",  res )
 
     # plot
-    subplot(121)
-    plot(thds, re)
-    subplot(122)
-    plot(thds, rf)
-    show()
+    if isplot
+        subplot(121)
+        plot(thds, re)
+        subplot(122)
+        plot(thds, rf)
+        show()
+    end
 end
 
 main()
