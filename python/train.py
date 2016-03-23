@@ -121,12 +121,12 @@ def main( conf_file='config.cfg', logfile=None ):
             malis_cls_dict = utils.get_malis_cls(props, lbl_outs, malis_weights)
             malis_cls += malis_cls_dict.values()[0]
 
+        # run backward pass
+        grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
+        net.backward( grdts )
+
         total_time += time.time() - start
         start = time.time()
-
-        # test the net
-        if i%pars['Num_iter_per_test']==0:
-            lc = test.znn_test(net, pars, smp_tst, vn, i, lc)
 
         if i%pars['Num_iter_per_show']==0:
             # normalize
@@ -173,10 +173,9 @@ def main( conf_file='config.cfg', logfile=None ):
             total_time  = 0
             start = time.time()
 
-        if i%pars['Num_iter_per_annealing']==0:
-            # anneal factor
-            eta = eta * pars['anneal_factor']
-            net.set_eta(eta)
+        # test the net
+        if i%pars['Num_iter_per_test']==0:
+            lc = test.znn_test(net, pars, smp_tst, vn, i, lc)
 
         if i%pars['Num_iter_per_save']==0:
             # save network
@@ -185,9 +184,10 @@ def main( conf_file='config.cfg', logfile=None ):
             if pars['is_malis']:
                 utils.save_malis(malis_weights,  pars['train_save_net'], num_iters=i)
 
-        # run backward pass
-        grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
-        net.backward( grdts )
+        if i%pars['Num_iter_per_annealing']==0:
+            # anneal factor
+            eta = eta * pars['anneal_factor']
+            net.set_eta(eta)
 
 
 if __name__ == '__main__':
