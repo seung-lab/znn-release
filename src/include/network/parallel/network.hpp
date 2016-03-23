@@ -134,7 +134,10 @@ private:
     {
         if ( n->stride != vec3i::zero )
         {
-            STRONG_ASSERT(n->stride==stride);
+            ZI_ASSERT(n->stride==stride);
+            // TODO(lee):
+            //  Conflicting strides should only be allowed
+            //  when 1x1x1 filtering is following.
         }
         else
         {
