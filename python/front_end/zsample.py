@@ -175,7 +175,7 @@ class CSample(object):
 
         # weight of positive and zero
         if pn==0 or zn==0:
-            return 1,1
+            return 0.5,0.5
         else:
             wp = 1 / pn
             wz = 1 / zn
