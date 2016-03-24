@@ -56,7 +56,7 @@ private:
         auto r = get_copy(f);
 
         // use the stored mean/variance estimates
-        if ( use_global_stat_ )
+        if ( use_global_stat_ || phase_ == phase::TEST )
         {
             avg_ = scale()*moving_avg_;
             var_ = scale()*moving_var_;
@@ -78,7 +78,7 @@ private:
         normalized_ = get_copy(*r);
 
         // compute and save moving average
-        if ( !use_global_stat_ )
+        if ( !use_global_stat_ && phase_ != phase::TEST )
         {
             // moving window
             moving_win_ *= moving_avg_frac_;
@@ -100,18 +100,28 @@ private:
 
     cube_p<real> do_backward( ccube<real> const & g )
     {
-        // r = dE/dY - mean(dE/dY * Y) * Y
-        cube<real> & y = *normalized_;
-        y *= mean(*(g*y));
-        auto r = g - y;
+        cube_p<real> r;
 
-        // r = dE/dY - mean(dE/dY) - mean(dE/dY * Y) * Y
-        *r -= mean(g);
+        if ( use_global_stat_ || phase_ == phase::TEST )
+        {
+            r = get_copy(g);
+        }
+        else
+        {
+            // r = dE/dY - mean(dE/dY * Y) * Y
+            cube<real> & y = *normalized_;
+            y *= mean(*(g*y));
+            r = g - y;
 
-        // normalize
-        *r /= std::sqrt(var_ + epsilon_);
+            // r = dE/dY - mean(dE/dY) - mean(dE/dY * Y) * Y
+            *r -= mean(g);
 
-        normalized_.reset();
+            // normalize
+            *r /= std::sqrt(var_ + epsilon_);
+
+            normalized_.reset();
+        }
+
         return r;
     }
 
@@ -138,11 +148,6 @@ public:
     {
         in->attach_out_edge(inn,this);
         out->attach_in_edge(outn,this);
-    }
-
-    void setup() override
-    {
-        use_global_stat_ = (phase_ == phase::TEST) ? true : false;
     }
 
     void forward( ccube_p<real> const & f ) override

@@ -442,7 +442,7 @@ inline edges::edges( nodes * in,
     waiter_.set(n);
 
     auto gstat = opts.optional_as<bool>("gstat", false);
-    auto frac  = opts.optional_as<real>("frac", 0.999);
+    auto frac  = opts.optional_as<real>("frac", 0.9999);
     auto eps   = opts.optional_as<real>("eps", 1e-5f);
 
     // TODO(lee):
