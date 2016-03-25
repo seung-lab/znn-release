@@ -37,15 +37,15 @@ function parse_commandline()
         arg_type = ASCIIString
         default = "connected_component"
 
-        "--is_patch"
-        help = "use patch based segmentation error"
-        arg_type = Bool
-        default = false
-
         "--dim"
         help = "segmentation and evaluation dimention. 2/3"
         arg_type = Int64
         default = 2
+
+        "--is_patch"
+        help = "use patch based segmentation error"
+        arg_type = Bool
+        default = false
 
         "--is_plot"
         help = "whether plot the curve or not"
