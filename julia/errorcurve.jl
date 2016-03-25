@@ -37,12 +37,17 @@ function parse_commandline()
         arg_type = ASCIIString
         default = "connected_component"
 
+        "--is_patch"
+        help = "use patch based segmentation error"
+        arg_type = Bool
+        default = false
+
         "--dim"
         help = "segmentation and evaluation dimention. 2/3"
         arg_type = Int64
         default = 2
 
-        "--isplot"
+        "--is_plot"
         help = "whether plot the curve or not"
         arg_type = Bool
         default = false
@@ -59,7 +64,8 @@ function main()
     seg_method = ""
     dim = 2
     fcurve = ""
-    isplot = false
+    is_plot = false
+    is_patch = false
     for pa in parse_commandline()
         if pa[1] == "tag"
             tag = pa[2]
@@ -75,8 +81,10 @@ function main()
             dim = pa[2]
         elseif pa[1] == "fcurve"
             fcurve = pa[2]
-        elseif pa[1] == "isplot"
-            isplot = pa[2]
+        elseif pa[1] == "is_plot"
+            is_plot = pa[2]
+        elseif pa[1] == "is_patch"
+            is_patch = pa[2]
         end
     end
 
@@ -93,7 +101,7 @@ function main()
 
     # rand error and rand f score curve, both are foreground restricted
     print("compute error curves of affinity map ......")
-    thds, segs, rf, rfm, rfs, re, rem, res = affs_error_curve(affs, lbl, dim, step, seg_method)
+    thds, segs, rf, rfm, rfs, re, rem, res = affs_error_curve(affs, lbl, dim, step, seg_method, is_patch)
     print("done :)")
 
     # save the curve
@@ -107,7 +115,7 @@ function main()
     h5write(fcurve, "/$tag/res",  res )
 
     # plot
-    if isplot
+    if is_plot
         subplot(121)
         plot(thds, re)
         subplot(122)
