@@ -1,7 +1,7 @@
 ZNN
 ======
 
-[![Build Status](https://travis-ci.org/seung-lab/znn-release.svg?branch=master)](https://github.com/seung-lab/znn-release)
+[![Build Status](https://travis-ci.org/seung-lab/znn-release.svg?branch=master)](https://travis-ci.org/seung-lab/znn-release)
 
 Most of current deep learning implementation use GPU, but GPU has some limitations:
 * SIMD (Single Instruction Multiple Data). A single instruction decoder - all cores do same work. 
