@@ -8,13 +8,7 @@ from matplotlib.pylab import plt
 from os import path
 
 class CLearnCurve:
-    def __init__(self, pars, fname=None):
-        self.pars = pars
-        if pars['is_stdio']:
-            self.stdpre = "/processing/znn/train/statistics/"
-        else:
-            self.stdpre = "/"
-
+    def __init__(self, fname=None):
         if fname is None:
             # initialize with empty list
             self.tt_it  = list()
@@ -39,17 +33,16 @@ class CLearnCurve:
         # get the iteration number
         iter_num = self._get_iter_num(fname)
 
-        if (not self.pars['is_stdio']) and ('statistics' not in fname):
-            # it is the network file name
-            fname = find_statistics_file_within_dir(fname)
-            print "find the statistics file: ", fname
-
         assert( path.exists(fname) )
         # read data
         import h5py
         # read into memory
         f = h5py.File(fname, 'r', driver='core')
-        print "stdpre: ", self.stdpre
+        if "/processing/znn/train/statistics/" in f:
+            self.stdpre = "/processing/znn/train/statistics/"
+            print "stdpre: ", self.stdpre
+        else:
+            self.stdpre = "/"
         self.tt_it  = list( f[self.stdpre + 'test/it'].value )
         self.tt_err = list( f[self.stdpre + 'test/err'].value )
         self.tt_cls = list( f[self.stdpre + 'test/cls'].value )
@@ -112,7 +105,6 @@ class CLearnCurve:
             self.tn_cls = self.tn_cls[:ind]
         except StopIteration:
             pass
-
         return
 
     def _get_iter_num(self, fname ):
@@ -302,18 +294,13 @@ class CLearnCurve:
         plt.show()
         return
 
-    def save(self, pars, fname=None, elapsed=0, suffix=None):
+    def save(self, pars, fname=None, elapsed=0):
         if not pars['is_stdio']:
             # change filename
-            root = pars['train_net_prefix']
+            fname = pars['train_save_net']
             import os
             import shutil
-            
-            #storing in case of a suffix,
-            # so 'current' file below isn't duplicated
-            orig_root = root
-            if suffix is not None:
-                root = "{}_{}".format(pars['train_net_prefix'], suffix)
+            root, ext = os.path.splitext(fname)
 
             if len(self.tn_it) > 0:
                 fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
@@ -321,6 +308,7 @@ class CLearnCurve:
                 fname = root + '_statistics_0.h5'
             if os.path.exists(fname):
                 os.remove( fname )
+            stdpre = ''
 
         # save variables
         import h5py
@@ -351,46 +339,6 @@ class CLearnCurve:
                 os.remove( fname2 )
             shutil.copyfile(fname, fname2)
 
-def find_statistics_file_within_dir(seed_filename):
-    '''
-    Looks for the stats file amongst the directory where
-    the loaded network is stored
-    '''
-    import glob
-
-    containing_directory, filename = path.split(seed_filename)
-
-    #First attempt- if there's only one stats file, take it
-    candidate_files = glob.glob( "{}/*statistics*".format(containing_directory) )
-
-    some_stats_files_in_load_directory = len(candidate_files) > 0
-    assert(some_stats_files_in_load_directory)
-
-    #Next attempt- split filename by '_' and search for more specific files
-    # until only one remains
-
-    filename_fields = filename.split('_')
-    filename_fields.reverse()
-
-    first_field = filename_fields.pop()
-    search_expression_head = containing_directory + "/" + first_field
-
-    exact_file = search_expression_head + "_statistics_" + filename_fields.pop()
-    import os
-    if os.path.exists( exact_file ):
-        # have one statistics file matches exactly!
-        return exact_file
-
-    while len(candidate_files) > 1:
-        candidate_files = glob.glob( search_expression_head + "*statistics*" )
-
-        stats_search_found_a_file = len(candidate_files) > 0
-        assert(stats_search_found_a_file)
-
-        search_expression_head += '_' + filename_fields.pop()
-
-    return candidate_files[0]
-
 if __name__ == '__main__':
     """
     show learning curve
@@ -410,7 +358,7 @@ if __name__ == '__main__':
     from front_end import zconfig
     config, pars = zconfig.parser( fconfig )
 
-    lc = CLearnCurve( pars, fname )
+    lc = CLearnCurve( fname )
 
     if len(sys.argv)==3:
         w = int( sys.argv[2] )
