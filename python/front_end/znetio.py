@@ -446,16 +446,16 @@ def init_network( params=None, train=True, network_specfile=None,
 
 def create_net(pars):
     fnet = find_load_net( pars['train_net_prefix'], pars['seed'] )
-    
+
     if fnet and os.path.exists(fnet):
         print "loading network: ", fnet
         net = load_network( pars, fnet )
         # load existing learning curve
-        lc = zstatistics.CLearnCurve( pars, fnet )
+        lc = zstatistics.CLearnCurve( fnet )
     else:
         print "initialize a new network..."
         net = init_network( pars )
-        lc = zstatistics.CLearnCurve( pars )
+        lc = zstatistics.CLearnCurve()
 
     # show field of view
     print "field of view: ", net.get_fov()
