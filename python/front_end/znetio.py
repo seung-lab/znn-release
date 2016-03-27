@@ -1,6 +1,6 @@
-
 # prepare path for core
 import sys
+sys.path.append("../python/core/")
 sys.path.append("core/")
 sys.path.append("./")
 
@@ -8,6 +8,7 @@ import numpy as np
 import h5py
 import pyznn
 import os.path, shutil
+import zstatistics
 
 np_array_fields = ("filters","biases","size","stride")
 
@@ -33,7 +34,6 @@ def assert_arglist(single_arg_option, multi_arg_option):
         ])
 
     assert(params_defined or all_optional_args_defined)
-
 
 def save_opts(opts, filename, is_stdio=False):
     # standard format folder prefix
@@ -107,29 +107,42 @@ def save_opts(opts, filename, is_stdio=False):
 
     f.close()
 
-def get_net_fname( filename, num_iters=None ):
+def find_load_net( train_net_prefix, seed=None ):
+    if seed and os.path.exists(seed):
+        fnet = seed
+    else:
+        fnet = train_net_prefix + "_current.h5"
+    # check whether fnet exists
+    if not os.path.exists(fnet):
+        print "net file not exist: ", fnet
+        return None
+    else:
+        return fnet
+
+def get_net_fname(train_net_prefix, num_iters=None, suffix=None):
     # get directory name from file name
-    archive_directory_name = os.path.dirname( filename )
-#    filename = os.path.basename( filename )
+    archive_directory_name = os.path.dirname( train_net_prefix )
     if not os.path.exists(archive_directory_name) and archive_directory_name != '':
         os.mkdir(archive_directory_name)
 
-#    filename = "{}/{}".format(archive_directory_name, filename)
+    filename_current = train_net_prefix + "_current.h5"
+    filename = train_net_prefix + ".h5"
+    if suffix:
+        root, ext = os.path.splitext(filename)
+        filename = train_net_prefix + "_{}.h5".format( suffix )
 
-    root, ext = os.path.splitext(filename)
-
-    filename_current = "{}{}{}".format(root, '_current', ext)
-
-    if num_iters is not None:
-        filename = "{}{}{}{}".format(root, '_', num_iters, ext)
+    if num_iters:
+        root, ext = os.path.splitext(filename)
+        filename = train_net_prefix + "_{}.h5".format( num_iters )
     return filename, filename_current
 
 def save_network(network, filename, is_stdio=False):
     '''Saves a network under an h5 file. Appends the number
     of iterations if passed, and updates a "current" file with
     the most recent (uncorrupted) information'''
-
     print "save as ", filename
+    if os.path.exists(filename):
+        os.remove(filename)
     save_opts(network.get_opts(), filename, is_stdio=is_stdio)
 
 def load_opts(filename, is_stdio=False):
@@ -210,7 +223,7 @@ def load_opts(filename, is_stdio=False):
 
     return (node_opts, edge_opts)
 
-def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=False):
+def consolidate_opts(source_opts, dest_opts, params=None, layers=None):
     '''
     Takes two option structures, and implants the filters and biases
     from the source struct to the dest version based on node/edge group name
@@ -219,6 +232,7 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=F
     #Makes a dictionary mapping group names to filter/bias arrays
     # (along with the respective key: 'filters' or 'biases')
     src_params = {}
+    src_ffts = {}
     #0=node, 1=edge
     print "defining initial dict"
     for group_type in range(len(source_opts)):
@@ -229,13 +243,17 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=F
             elif opt_dict.has_key('filters'):
                 src_params[opt_dict['name']] = ('filters',opt_dict['filters'])
 
+            # optimized FFT
+            if opt_dict.has_key('fft'):
+                src_ffts[opt_dict['name']] = ('fft',opt_dict['fft'])
+
     print "performing consolidation"
     source_names = src_params.keys()
     #Loops through group names for dest, replaces filter/bias values with source
     for group_type in range(len(dest_opts)):
         for opt_dict in dest_opts[group_type]:
 
-            if is_seed and opt_dict.has_key('seeding') and (opt_dict['seeding'] == "0"):
+            if opt_dict.has_key('seeding') and (opt_dict['seeding'] == "0"):
                 continue
 
             if opt_dict['name'] in source_names:
@@ -247,6 +265,11 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=F
                 # and this allows for warning messages below
                 del src_params[ opt_dict['name'] ]
 
+            # optimized FFT
+            if opt_dict['name'] in src_ffts.keys():
+                key, val = src_ffts[opt_dict['name']]
+                opt_dict[key] = val
+
     layers_not_copied = src_params.keys()
     if len(layers_not_copied) != 0:
         print "WARNING: layer(s) {} not copied!".format(layers_not_copied)
@@ -254,7 +277,7 @@ def consolidate_opts(source_opts, dest_opts, params=None, layers=None, is_seed=F
     return dest_opts
 
 
-def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
+def load_network( params=None, train=True, hdf5_filename=None,
     network_specfile=None, output_patch_shape=None, num_threads=None,
     optimize=None, force_fft=None, is_stdio=None ):
     '''
@@ -272,7 +295,7 @@ def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
 
     #"ALL" optional args excludes train (it has a default)
     assert_arglist(params,
-        [is_seed, hdf5_filename, network_specfile, output_patch_shape,
+        [ hdf5_filename, network_specfile, output_patch_shape,
         num_threads, optimize, force_fft])
 
     #Defining phase argument by train argument
@@ -282,15 +305,31 @@ def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
     if params_defined:
 
         if train:
-            _hdf5_filename = params['train_load_net']
+            if params['seed'] and os.path.exists( params['seed'] ):
+                print "use seed network: ", params['seed']
+                _hdf5_filename = params['seed']
+            else:
+                _hdf5_filename = params['train_net_prefix'] + "_current.h5"
             _output_patch_shape = params['train_outsz']
-            _optimize = params['is_train_optimize']
+            if "optimize" in params['train_conv_mode']:
+                _optimize = True
+            else:
+                _optimize = False
+            if "fft" in params['train_conv_mode']:
+                _force_fft = True
+            else:
+                _force_fft = False
         else:
             _hdf5_filename = params['forward_net']
             _output_patch_shape = params['forward_outsz']
-            _optimize = params['is_forward_optimize']
-
-        _force_fft = params['force_fft']
+            if "optimize" in params['forward_conv_mode']:
+                _optimize = True
+            else:
+                _optimize = False
+            if "fft" in params['forward_conv_mode']:
+                _force_fft = True
+            else:
+                _force_fft = False
         _network_specfile = params['fnet_spec']
         _num_threads = params['num_threads']
         _is_stdio = params['is_stdio']
@@ -321,6 +360,7 @@ def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
                 _num_threads, False, False )
 
     #If the file doesn't exist, init a new network
+    print "try to load network file: ", _hdf5_filename
     if os.path.isfile( _hdf5_filename ):
 
         load_options = load_opts(_hdf5_filename, _is_stdio)
@@ -328,9 +368,10 @@ def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
         del template
 
         print "consolidating options..."
-        final_options = consolidate_opts(load_options, template_options, params, is_seed)
+        final_options = consolidate_opts(load_options, template_options, params)
 
     else:
+        print _hdf5_filename, " do not exist, initialize a new network..."
         final_options = template.get_opts()
         del template
 
@@ -366,12 +407,25 @@ def init_network( params=None, train=True, network_specfile=None,
 
         if train:
             _output_patch_shape = params['train_outsz']
-            _optimize = params['is_train_optimize']
+            if "optimize" in params['train_conv_mode']:
+                _optimize = True
+            else:
+                _optimize = False
+            if "fft" in params['train_conv_mode']:
+                _force_fft = True
+            else:
+                _force_fft = False
         else:
             _output_patch_shape = params['forward_outsz']
-            _optimize = params['is_forward_optimize']
+            if "optimize" in params['forward_conv_mode']:
+                _optimize = True
+            else:
+                _optimize = False
+            if "fft" in params['forward_conv_mode']:
+                _force_fft = True
+            else:
+                _force_fft = False
 
-        _force_fft = params['force_fft']
         _network_specfile = params['fnet_spec']
         _num_threads = params['num_threads']
 
@@ -389,3 +443,27 @@ def init_network( params=None, train=True, network_specfile=None,
 
     return pyznn.CNet(_network_specfile, _output_patch_shape,
                     _num_threads, _optimize, phase, _force_fft)
+
+def create_net(pars):
+    fnet = find_load_net( pars['train_net_prefix'], pars['seed'] )
+    
+    if fnet and os.path.exists(fnet):
+        print "loading network: ", fnet
+        net = load_network( pars, fnet )
+        # load existing learning curve
+        lc = zstatistics.CLearnCurve( pars, fnet )
+    else:
+        print "initialize a new network..."
+        net = init_network( pars )
+        lc = zstatistics.CLearnCurve( pars )
+
+    # show field of view
+    print "field of view: ", net.get_fov()
+
+    # set some parameters
+    print 'setting up the network...'
+    net.set_eta( pars['eta'] )
+    net.set_momentum( pars['momentum'] )
+    net.set_weight_decay( pars['weight_decay'] )
+
+    return net, lc

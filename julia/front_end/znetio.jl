@@ -30,6 +30,8 @@ function load_opts(fname)
     return nodes, edges
 end
 
+
+
 fname = "../../experiments/net_current.h5"
 nodes, edges = load_opts(fname)
 
