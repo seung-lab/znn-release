@@ -16,7 +16,7 @@ raw image       .tif              8
 label image     .tif              32 or RGB
 ============== ================= ===========
 
-* For training, you should prepare pairs of ``tif`` files, one is a stack of raw images, another is a stack of labeled images. 
+* For training, you should prepare pairs of ``tif`` files, one is a stack of raw images, the other is a stack of labeled images. 
 * For forward pass, only the raw image stack was needed.
 
 Image configuration
