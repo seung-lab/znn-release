@@ -299,8 +299,14 @@ class CLearnCurve:
         return
 
     def save(self, pars, fname=None, elapsed=0, suffix=None):
+        if pars['is_stdio']:
+            self.stdpre = "/processing/znn/train/statistics/"
+            print "stdpre: ", self.stdpre
+        else:
+            self.stdpre = "/"
+
         if not pars['is_stdio']:
-            # change filename
+             # change filename
             root = pars['train_net_prefix']
             import os
             import shutil
