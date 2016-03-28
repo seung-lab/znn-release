@@ -364,7 +364,6 @@ if __name__ == '__main__':
 
     fconfig = path.dirname(fname) + "/config.cfg"
     from front_end import zconfig
-    config, pars = zconfig.parser( fconfig )
 
     lc = CLearnCurve( fname )
 
