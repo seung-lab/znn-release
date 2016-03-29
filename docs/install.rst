@@ -16,8 +16,6 @@ Library                                                                         
 =============================================================================================== ===================
 `fftw <http://www.fftw.org>`_                                                                    libfftw3-dev
 `boost1.55 <http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2>`_     libboost-all-dev
-`BoostNumpy <http://github.com/ndarray/Boost.NumPy>`_                                            NA
-`jemalloc <http://www.canonware.com/jemalloc/>`_                                                 libjemalloc-dev
 =============================================================================================== ===================
 
 Note that fftw is not required when using `intel MKL <https://software.intel.com/en-us/intel-mkl>`_.
@@ -71,14 +69,16 @@ Required Packages
 
 Except the libraries required to build the C++ core, we need some more libraries to build the python interface. For normal python libraries, we recommand to use `Anaconda <https://www.continuum.io/downloads>`_ .
 
-=============================================================================================== ====================
-Library                                                                                          Ubuntu package name
-=============================================================================================== ====================
-numpy                                                                                            python-numpy
-boost python                                                                                     libboost-python-dev
-`Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_                                            NA
-`emirt <https://github.com/seung-lab/emirt>`_                                                     NA
-=============================================================================================== ====================
+============================================================== ====================
+Library                                                         Ubuntu package name
+============================================================== ====================
+numpy                                                             python-numpy
+h5py                                                              python-h5py
+matplotlib                                                        python-matplotlib
+boost python                                                    libboost-python-dev
+`Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_                  NA
+`emirt <https://github.com/seung-lab/emirt>`_                           NA
+=============================================================== ====================
 We use `Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_ to facilitate the interaction between python numpy array and the ``cube`` in C++ core. To install it, please refer to `Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_ repository.
 
 `emirt <https://github.com/seung-lab/emirt>`_ is a home-made python library specially for neuron reconstruction from EM images.
