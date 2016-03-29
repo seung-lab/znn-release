@@ -3,10 +3,57 @@ Installation
 
 ZNN Supports Linux and OS X. This guide was developed on Ubuntu 14.04 LTS and OS X Yosemite (10.10.5).
 
+The core of ZNN is written in C++, however we typically control it via a Python interface. We recommend that you follow
+the python build instructions as it will result in the interface and a compiled ZNN shared library. The C++ instructions
+will generate a binary without an actively developed means of control.
+
+
+Python Interface (Recommended)
+------------------------------
+
+To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python <https://github.com/seung-lab/znn-release/tree/master/python>`_ folder for further information.
+
+Required Packages
+`````````````````
+
+We'll need some libraries for both the C++ core and for Python. For acquiring the python libraries, we recommand using `Anaconda <https://www.continuum.io/downloads>`_, a python distribution that comes with everything.
+
+============================================================== ==================== ============
+Library                                                         Ubuntu package name  pip
+============================================================== ==================== ============
+numpy                                                            python-numpy        numpy
+h5py                                                             python-h5py         h5py
+matplotlib                                                       python-matplotlib   matplotlib
+boost python                                                     libboost-python-dev NA
+`Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_           NA                  NA
+`emirt <https://github.com/seung-lab/emirt>`_                    NA                  NA
+=============================================================== ==================== ============
+
+We use `Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_ to facilitate the interaction between python numpy array and the ``cube`` in C++ core. To install it, please refer to `Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_ repository.
+
+`emirt <https://github.com/seung-lab/emirt>`_ is a home-made python library specially for neuron reconstruction from EM images.
+
+To install it for ZNN, simply run the following command in the folder of ``python``:
+::
+    git clone https://github.com/seung-lab/emirt.git
+
+If you find it useful and would like to use it in your other programs, you can also install it in a system path (using your PYTHONPATH environment variable).
+
+
+Compile the core of python interface
+````````````````````````````````````
+in the folder of ``python/core``:
+::
+    make -j number_of_cores
+  
+if you use MKL:
+::
+    make mkl -j number_of_cores
+
 Compilation of C++ core
 -----------------------
 
-The core of ZNN was written with C++ to handle the most computationally expensive forward and backward pass. It is also fully functional and usable to train networks. 
+The core of ZNN was written with C++ to handle the most computationally expensive forward and backward passes. It is fully functional and can be used to train networks. 
 
 Required libraries
 ``````````````````
@@ -21,6 +68,13 @@ Library                                                                         
 Note that fftw is not required when using `intel MKL <https://software.intel.com/en-us/intel-mkl>`_.
 
 For OS X, you can find the above libraries by consulting the table above and using `Homebrew <http://brew.sh/>`_.
+
+
+Compiling ZNN
+-------------
+
+We provide several methods for compilation depending on what tools and libraries you have available to you.
+
 
 Compiler flags
 ```````````````
@@ -57,52 +111,16 @@ Notethat g++ should support c++1y standard. v4.8 and later works.
 
 Compile with icc
 ````````````````
+
+Intel provides their own optimized C compiler called `icc <https://en.wikipedia.org/wiki/Intel_C%2B%2B_Compiler>`_. If you're interested you might be able to get it and MKL through one of `these packages <https://software.intel.com/en-us/qualify-for-free-software>`.
+
 in the folder of ``src``:
 ::
     icc -std=c++1y training_test.cpp -I../../ -I../include -lpthread -lrt -static-intel -DNDEBUG -O3 -mkl=sequential -o training_test
 
-Python Interface
-----------------
-
-To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python <https://github.com/seung-lab/znn-release/tree/master/python>`_ folder for further information.
-
-Required Packages
-`````````````````
-
-Except the libraries required to build the C++ core, we need some more libraries to build the python interface. For normal python libraries, we recommand to use `Anaconda <https://www.continuum.io/downloads>`_ .
-
-============================================================== ====================
-Library                                                         Ubuntu package name
-============================================================== ====================
-numpy                                                             python-numpy
-h5py                                                              python-h5py
-matplotlib                                                        python-matplotlib
-boost python                                                    libboost-python-dev
-`Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_                  NA
-`emirt <https://github.com/seung-lab/emirt>`_                           NA
-=============================================================== ====================
-We use `Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_ to facilitate the interaction between python numpy array and the ``cube`` in C++ core. To install it, please refer to `Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_ repository.
-
-`emirt <https://github.com/seung-lab/emirt>`_ is a home-made python library specially for neuron reconstruction from EM images.
-
-To install it for ZNN, simply run the following command in the folder of ``python``:
-::
-    git clone https://github.com/seung-lab/emirt.git
-If you find it useful and would like to use it in your other programs, you can also install it in a system path (PYTHONPATH).
-
-Compile the core of python interface
-````````````````````````````````````
-in the folder of ``python/core``:
-::
-    make -j number_of_cores
-  
-if you use MKL:
-::
-    make mkl -j number_of_cores
-
 Uninstall ZNN
 -------------
-simply remove the ZNN folder. The packages should be uninstalled separately if you would like to.
+Simply remove the ZNN folder. The packages should be uninstalled separately if you would like to.
 
 Resources
 ---------
