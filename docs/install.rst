@@ -1,7 +1,7 @@
 Installation
 ============
 
-ZNN Supports Linux and MacOS. This guide was developed on Ubuntu 14.04 LTS and OS X Yosemite (10.10.5).
+ZNN Supports Linux and OS X. This guide was developed on Ubuntu 14.04 LTS and OS X Yosemite (10.10.5).
 
 Compilation of C++ core
 -----------------------
