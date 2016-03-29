@@ -23,8 +23,8 @@ Most of current deep learning implementations use GPUs, but that approach has so
     * GPUs have only a single instruction decoder - all cores do same work. You may have heard that CPUs can also use a variation of SIMD, but they can specify it per core.
     * Branching instructions (if statements) force current GPUs to execute both branches, causing exponential decreases in performance.
 2. Parallelization done per convolution
-    * Direct convolution is computationally expensive (quadratic time)
-    * FFT (linearithmic time), which uses a divide and conquer strategy, can’t efficiently utilize all cores
+    * Direct convolution is computationally expensive
+    * FFT can’t efficiently utilize all cores
 3. Memory limitations
     * GPUs can’t cache FFT transforms for reuse
     * Limitations on the dense output size (few alternatives for this feature)
