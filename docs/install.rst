@@ -1,7 +1,7 @@
 Installation
 ============
 
-Supports Linux and MacOS. Here, we only show the installation in Linux, especially Ubuntu.
+ZNN Supports Linux and OS X. This guide was developed on Ubuntu 14.04 LTS and OS X Yosemite (10.10.5).
 
 Compilation of C++ core
 -----------------------
@@ -11,14 +11,16 @@ The core of ZNN was written with C++ to handle the most computationally expensiv
 Required libraries
 ``````````````````
 
-=============================================================================================== ===================
-Library                                                                                          Ubuntu package name
-=============================================================================================== ===================
-`fftw <http://www.fftw.org>`_                                                                    libfftw3-dev
-`boost1.55 <http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2>`_     libboost-all-dev
-=============================================================================================== ===================
+=============================================================================================== ===================== ===========
+Library                                                                                          Ubuntu Package        OS X Homebrew
+=============================================================================================== ===================== ===========
+`fftw <http://www.fftw.org>`_                                                                    libfftw3-dev          fftw
+`boost1.55 <http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2>`_     libboost-all-dev      homebrew/versions/boost155
+=============================================================================================== ===================== ===========
 
 Note that fftw is not required when using `intel MKL <https://software.intel.com/en-us/intel-mkl>`_.
+
+For OS X, you can find the above libraries by consulting the table above and using `Homebrew <http://brew.sh/>`_.
 
 Compiler flags
 ```````````````
