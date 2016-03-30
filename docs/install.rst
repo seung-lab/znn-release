@@ -8,7 +8,16 @@ the python build instructions as it will result in the interface and a compiled 
 will generate a binary without an actively developed means of control.
 
 
-Python Interface (Recommended)
+Acquiring an Amazon Machine Image (AMI) -- Recommended
+------------------------------------------------------
+
+We have some Amazon Machine Images set up and read to go to train on AWS. 
+This is the easiest way to get started. 
+
+Contact `Jingpeng Wu <jingpeng@princeton.edu>`_ to get started.
+
+
+Compiling the Python Interface 
 ------------------------------
 
 To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python <https://github.com/seung-lab/znn-release/tree/master/python>`_ folder for further information.
@@ -24,12 +33,30 @@ Library                                                         Ubuntu package n
 numpy                                                            python-numpy        numpy
 h5py                                                             python-h5py         h5py
 matplotlib                                                       python-matplotlib   matplotlib
-boost python                                                     libboost-python-dev NA
-`Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_           NA                  NA
-`emirt <https://github.com/seung-lab/emirt>`_                    NA                  NA
+boost python                                                     libboost-python-dev See below
+`Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_           NA                  See below
+`emirt <https://github.com/seung-lab/emirt>`_                    NA                  See below
 =============================================================== ==================== ============
 
-We use `Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_ to facilitate the interaction between python numpy array and the ``cube`` in C++ core. To install it, please refer to `Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_ repository.
+We use `Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_ to facilitate the interaction between python numpy array and the ``cube`` in C++ core. 
+To install it, please refer to `Boost.Numpy <http://github.com/ndarray/Boost.NumPy>`_ repository.
+
+Installing Boost.Numpy (OS X)
+`````````````````````````````
+
+For convenience, we've provided the following incomplete instructions for OS X:
+
+To install Boost.Numpy you'll need to get boost with Python:
+
+1. Get `Homebrew <https://brew.sh>`_
+2. ``brew install boost --with-python``
+3. ``brew install boost-python``
+4. ``git clone http://github.com/ndarray/Boost.NumPy``
+5. ...to be completed. Follow the instructions in the Boost.NumPy repository.
+
+
+Installing emirt
+````````````````
 
 `emirt <https://github.com/seung-lab/emirt>`_ is a home-made python library specially for neuron reconstruction from EM images.
 
@@ -49,6 +76,7 @@ in the folder of ``python/core``:
 if you use MKL:
 ::
     make mkl -j number_of_cores
+
 
 Compilation of C++ core
 -----------------------
