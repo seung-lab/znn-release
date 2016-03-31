@@ -12,7 +12,7 @@ Acquiring an Amazon Machine Image (AMI) -- Recommended
 ------------------------------------------------------
 
 We have some Amazon Machine Images set up and read to go to train on AWS. 
-This is the easiest way to get started. 
+This is the easiest method. 
 
 Contact `Jingpeng Wu <jingpeng@princeton.edu>`_ to get started.
 
