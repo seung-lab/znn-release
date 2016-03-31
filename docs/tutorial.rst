@@ -34,7 +34,6 @@ The image pairs are defined as a **Sample**. Start with this `example <https://g
 The ``.spec`` file format allows you to specify multiple files as inputs (stack images) and outputs (ground truth labels) for a given experiment. A binding of inputs to outputs is called a sample.
 
 The file structure looks like this, where "N" in imageN can be any positive integer. Items contained inside angle brackets are <option1, option2> etc.
-
 ::
     [imageN]
     fnames = path/of/image1
@@ -50,17 +49,19 @@ The file structure looks like this, where "N" in imageN can be any positive inte
               path/of/mask1
 
     [sampleN]
-    input = 1 # input image stack of network, the name correpond to the input node name in network configuration file, such as srini.znn
-    output = 1 # 
+    input = 1
+    output = 1  
 
 [imageN] options
 ````````````````
 Declaration of source images to train on.
 
 Required:
+
 1. ``fnames``: Paths to image stack files.
 
 Optional:
+
 1. ``pp_types`` (preprocessing types): none (default), standard2D
     standard2D modifies the image by subtracting the mean and dividing by the standard deviation of the pixel values.
 2. ``is_auto_crop``: no (default), yes 
@@ -72,9 +73,11 @@ Optional:
 Declaration of ground truth labels to evaluate training on.
 
 Required:
+
 1. ``fnames``: Paths to label stack files.
 
 Optional:
+
 1. ``pp_types`` (preprocessing types): none (default), one_class, binary_class, affinity
 
 ==================== =========================================================
@@ -99,6 +102,7 @@ Optional:
 Declaration of binding between images and labels. You'll use the sample number in your training configuration to decide which image sets to train on.
 
 Required:
+
 1. input: (int > 0) should correspond to the N in an [imageN]. e.g. ``input: 1`` 
 2. output: (int > 0) should correspond to the N in a [labelN]. e.g. ``output: 1``
 
