@@ -525,13 +525,13 @@ class CSemanticSample(CSample):
         """
         assert(lbl.shape[0] == 1)
         assert(np.all(lbl<7) and np.all(lbl>=0))
-        ret = np.empty((6,)+ lbl.shape[1:4], dtype= self.pars['dtype'])
+        ret = np.empty((5,)+ lbl.shape[1:4], dtype= self.pars['dtype'])
         ret[0, :,:,:] = (lbl[0,:,:,:]==0).astype(self.pars['dtype']) # boundary and intra-cellular space
         ret[1, :,:,:] = (lbl[0,:,:,:]==1).astype(self.pars['dtype']) # soma
         ret[2, :,:,:] = (lbl[0,:,:,:]==2).astype(self.pars['dtype']) # axon
         ret[3, :,:,:] = (lbl[0,:,:,:]==3).astype(self.pars['dtype']) # dendrite
         ret[4, :,:,:] = (lbl[0,:,:,:]==5).astype(self.pars['dtype']) # glia cell
-        ret[5, :,:,:] = (lbl[0,:,:,:]==6).astype(self.pars['dtype']) # others
+        #ret[5, :,:,:] = (lbl[0,:,:,:]==6).astype(self.pars['dtype']) # others
         return ret
 
     def get_random_sample(self):
@@ -548,9 +548,8 @@ class CSemanticSample(CSample):
             # make the multi-class ground truth
             sublbls[key] = self._multi_class( sublbl )
             # duplicate the maskes
-            submsks[key]  = np.tile(submsks[key], (6,1,1,1))
+            submsks[key]  = np.tile(submsks[key], (5,1,1,1))
             subwmsks[key] = np.array([])#np.tile(subwmsks[key], (6,1,1,1))
-
         return subimgs, sublbls, submsks, subwmsks
 
 

@@ -122,4 +122,4 @@ output output
 nodes output
 type transfer
 function linear
-size 2
+size 5
