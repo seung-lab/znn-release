@@ -12,7 +12,7 @@ When to Use ZNN
 4. FFTs of the feature maps and gradients can fit in RAM, but not on the GPU
 5. Runs out of the box on machines with large numbers of cores (e.g. 144+ circa 2016)
 
-ZNN shines when Filter sizes are large so that FFTs are used.
+ZNN shines when filter sizes are large so that FFTs are used.
 
 CPU vs GPU?
 -----------
@@ -21,7 +21,7 @@ Most of current deep learning implementations use GPUs, but that approach has so
 
 1. SIMD (Single Instruction Multiple Data) 
     * GPUs have only a single instruction decoder - all cores do same work. You may have heard that CPUs can also use a variation of SIMD, but they can specify it per core.
-    * Branching instructions (if statements) force current GPUs to execute both branches, causing exponential decreases in performance.
+    * Branching instructions (if statements) force current GPUs to execute both branches, causing potentially serious decreases in performance.
 2. Parallelization done per convolution
     * Direct convolution is computationally expensive
     * FFT can’t efficiently utilize all cores
