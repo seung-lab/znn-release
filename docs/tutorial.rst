@@ -103,8 +103,8 @@ Declaration of binding between images and labels. You'll use the sample number i
 
 Required:
 
-1. input: (int > 0) should correspond to the N in an [imageN]. e.g. ``input: 1`` 
-2. output: (int > 0) should correspond to the N in a [labelN]. e.g. ``output: 1``
+1. ``input``: (int > 0) should correspond to the N in an [imageN]. e.g. ``input: 1`` 
+2. ``output``: (int > 0) should correspond to the N in a [labelN]. e.g. ``output: 1``
 
 
 2. Network Architecture Configuration
