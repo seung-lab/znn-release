@@ -132,12 +132,12 @@ def main( args ):
         # cost function and accumulate errors
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
         err += cerr
-        cls += cost_fn.get_cls(props, lbl_outs)
+        cls += cost_fn.get_cls(props, lbl_outs, msks)
         # compute rand error
         if pars['is_debug']:
             assert not np.all(lbl_outs.values()[0]==0)
         re  += pyznn.get_rand_error( props.values()[0], lbl_outs.values()[0] )
-        num_mask_voxels += utils.sum_over_dict(msks)
+        num_mask_voxels += utils.get_total_num_mask(msks)
 
         # check whether there is a NaN here!
         if pars['is_debug']:
@@ -182,8 +182,8 @@ def main( args ):
                 err = err / vn / pars['Num_iter_per_show']
                 cls = cls / vn / pars['Num_iter_per_show']
             else:
-                err = err / num_mask_voxels / pars['Num_iter_per_show']
-                cls = cls / num_mask_voxels / pars['Num_iter_per_show']
+                err = err / num_mask_voxels
+                cls = cls / num_mask_voxels
             re = re / pars['Num_iter_per_show']
             lc.append_train(i, err, cls, re)
 

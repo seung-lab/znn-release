@@ -65,9 +65,6 @@ class CSample(object):
         if not is_forward:
             print "\ncreate label image class..."
             for name,setsz_out in self.setsz_outs.iteritems():
-                #Allowing for users to abstain from specifying labels
-                if not config.has_option(self.sec_name, name):
-                    continue
                 #Finding the section of the config file
                 imid = config.getint(self.sec_name, name)
                 imsec_name = "label%d" % (imid,)
