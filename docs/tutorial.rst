@@ -91,7 +91,7 @@ Optional:
 
 3. ``fmasks``: Paths to mask files
     fmasks are used like cosmetics to coverup damaged parts of images so that your neural net
-    doesn't learn useless information. White is on, black is off. The same file types are supported as for regular images.
+    doesn't learn useless information. Pixel values greater than zero are on. That is to say, white is on, black is off. The same file types are supported as for regular images.
 
 [sampleN] options
 `````````````````
