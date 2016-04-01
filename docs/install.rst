@@ -12,6 +12,7 @@ Acquiring a Machine Image -- Recommended
 ------------------------------------------------------
 
 We have some machine images set up and ready to go for training on:
+
 1. `Amazon Web Services <aws.amazon.com>`_ (called AMIs, Amazon Machine Images)
 2. `Google Cloud Platform <cloud.google.com>`_ 
 
