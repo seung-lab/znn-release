@@ -8,11 +8,14 @@ the python build instructions as it will result in the interface and a compiled 
 will generate a binary without an actively developed means of control.
 
 
-Acquiring an Amazon Machine Image (AMI) -- Recommended
+Acquiring a Machine Image -- Recommended
 ------------------------------------------------------
 
-We have some Amazon Machine Images set up and read to go to train on AWS. 
-This is the easiest method. 
+We have some machine images set up and ready to go for training on:
+1. `Amazon Web Services <aws.amazon.com>`_ (called AMIs)
+2. `Google Cloud Platform <cloud.google.com>`_ (called Snapshots)
+
+This is the easiest method as the program's dependencies are loaded and the compilation is fully optimized.
 
 Contact `Jingpeng Wu <jingpeng@princeton.edu>`_ to get started.
 
