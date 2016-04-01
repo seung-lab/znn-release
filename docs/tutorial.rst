@@ -181,9 +181,9 @@ Note: In the Description column for functions, the relevant funciton_args are pr
  nodes            Y           $NAME               Symbolic identifier for other layers to reference. The names "input" and "output" are special and represent the input and output layers of the entire network.
  type             Y           sum                 Perform a simple weighted summing of the inputs to this node.
  ..               ..          transfer            Perform a summation of the input nodes and then apply a transfer function (c.f. function).
- function         N           linear              Line. [ slope,intercept | 1,1 ]
+ function         N           linear              Line. ``[ slope,intercept | 1,1 ]``
  ..               ..          rectify_linear      Rectified Linear Unit (ReLU)
- ..               ..          tanh                Hyperbolic Tangent. [ amplitude,frequency | 1,1 ]
+ ..               ..          tanh                Hyperbolic Tangent. ``[ amplitude,frequency | 1,1 ]``
  ..               ..          soft_sign           x / (1 + abs(x))
  ..               ..          logistics           Logistic function aka sigmoid. Has gradient.
  ..               ..          forward_logistics   Same as "logistics" but without a gradient?
