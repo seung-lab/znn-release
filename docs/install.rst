@@ -140,7 +140,7 @@ Notethat g++ should support c++1y standard. v4.8 and later works.
 Compile with icc
 ````````````````
 
-Intel provides their own optimized C compiler called `icc <https://en.wikipedia.org/wiki/Intel_C%2B%2B_Compiler>`_. If you're interested you might be able to get it and MKL through one of `these packages <https://software.intel.com/en-us/qualify-for-free-software>`.
+Intel provides their own optimized C compiler called `icc <https://en.wikipedia.org/wiki/Intel_C%2B%2B_Compiler>`_. If you're interested you might be able to get it and MKL through one of `these packages <https://software.intel.com/en-us/qualify-for-free-software>`_.
 
 in the folder of ``src``:
 ::
