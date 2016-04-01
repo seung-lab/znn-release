@@ -12,8 +12,8 @@ Acquiring a Machine Image -- Recommended
 ------------------------------------------------------
 
 We have some machine images set up and ready to go for training on:
-1. `Amazon Web Services <aws.amazon.com>`_ (called AMIs)
-2. `Google Cloud Platform <cloud.google.com>`_ (called Snapshots)
+1. `Amazon Web Services <aws.amazon.com>`_ (called AMIs, Amazon Machine Images)
+2. `Google Cloud Platform <cloud.google.com>`_ 
 
 This is the easiest method as the program's dependencies are already loaded and the program is compiled.
 
