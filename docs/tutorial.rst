@@ -65,7 +65,7 @@ Optional:
 1. ``pp_types`` (preprocessing types): none (default), standard2D
     standard2D modifies the image by subtracting the mean and dividing by the standard deviation of the pixel values.
 2. ``is_auto_crop``: no (default), yes 
-    If the corresponding ground truth stack's images are not the same dimension as the image set (e.g. image A is 1000px x 1000pxand label A is 100px x 100px), then the smaller image will be centered in the larger image and the larger image will be cropped around it.
+    If the corresponding ground truth stack's images are not the same dimension as the image set (e.g. image A is 1000px x 1000px and label A is 100px x 100px), then the smaller image will be centered in the larger image and the larger image will be cropped around it.
 
 
 [labelN] options
@@ -90,7 +90,7 @@ Optional:
 ==================== =========================================================
 
 2. ``is_auto_crop``: no (default), yes 
-    If the corresponding ground truth stack's images are not the same dimension as the image set (e.g. image A is 1000px x 1000pxand label A is 100px x 100px), then the smaller image will be centered in the larger image and the larger image will be cropped around it.
+    If the corresponding ground truth stack's images are not the same dimension as the image set (e.g. image A is 1000px x 1000px and label A is 100px x 100px), then the smaller image will be centered in the larger image and the larger image will be cropped around it.
 
 3. ``fmasks``: Paths to mask files
     fmasks are used like cosmetics to coverup damaged parts of images so that your neural net
@@ -108,9 +108,121 @@ Required:
 
 
 2. Network Architecture Configuration
-----------------------------------
+-------------------------------------
 
-Please refer to the `examples <https://github.com/seung-lab/znn-release/tree/master/networks>`_.
+We have a custom file format ``.znn`` for specifying the layout of your neural network. It works based on a few simple concepts. 
+
+1. Each of the input nodes of the network represent an image stack.
+2. The network consists of layers whose size can be individually specified. 
+3. The edge betwen the layers specify not only the data transfer from one layer to another (e.g. one to one, or fully connected), they also prescribe a transformation, e.g. a filter or weight, to be applied. 
+4. After all the weights or filters have been applied, the inputs are summed and a pixel-wise transfer function (e.g. a `sigmoid <https://en.wikipedia.org/wiki/Sigmoid_function>`_ or `ReLU <https://en.wikipedia.org/wiki/Rectifier_(neural_networks)>`_) is applied.
+5. The type of the edges determines if the layers its connecting is a one-to-one mapping or is fully connected. For example, a convolution type will result in fully connected layers.
+6. The output layer represents whatever you're training the network to do. One common output is the predicted labels for an image stack as a single node.
+
+You can find example network N4 `here <https://github.com/seung-lab/znn-release/blob/master/networks/N4.znn>`_.
+
+Here's an example excepted from the N4 network:
+::
+    nodes input
+    type input
+    size 1
+
+    edges conv1
+    type conv
+    init xavier
+    size 1,4,4
+    stride 1,1,1
+    input input
+    output nconv1
+
+    nodes nconv1
+    type transfer
+    function rectify_linear
+    size 48
+
+    edges pool1
+    type max_filter
+    size 1,2,2
+    stride 1,2,2
+    input nconv1
+    output npool1
+
+    nodes npool1
+    type sum
+    size 48
+
+    ....
+
+    edges conv6
+    type conv
+    init xavier
+    size 1,1,1
+    stride 1,1,1
+    input nconv5
+    output output
+
+    nodes output
+    type transfer
+    function linear
+    size 2
+
+
+The ``.znn`` file is comprised of two primary objects -- nodes and edges. An object declaration consists of the type ``nodes`` or ``edges`` followed by its name on a new line followed by its parameters.
+
+``nodes`` type declaration
+``````````````````````````
+
+Note: In the Description column for functions, the relevant funciton_args are presented as:
+``[ comma,seperated,variables | default,values,here ]``
+
+================ =========== =================== ================================================================
+ Property         Required    Options             Description                                                    
+================ =========== =================== ================================================================
+ nodes            Y           $NAME               Symbolic identifier for other layers to reference. The names "input" and "output" are special and represent the input and output layers of the entire network.
+ type             Y           sum                 Perform a simple weighted summing of the inputs to this node.
+ ..               ..          transfer            Perform a summation of the input nodes and then apply a transfer function (c.f. function).
+ function         N           linear              Line. [ slope,intercept | 1,1 ]
+ ..               ..          rectify_linear      Rectified Linear Unit (ReLU)
+ ..               ..          tanh                Hyperbolic Tangent. [ amplitude,frequency | 1,1 ]
+ ..               ..          soft_sign           x / (1 + abs(x))
+ ..               ..          logistics           Logistic function aka sigmoid. Has gradient.
+ ..               ..          forward_logistics   Same as "logistics" but without a gradient?
+ function_args    N           $VALUES             Input comma seperated values of the type appropriate for the selected function.
+ size             Y           $POSTIVE_INTEGER    The number of nodes in this layer.
+================ =========== =================== ================================================================
+
+``edges`` type declaration
+``````````````````````````
+
+Note: In the Description column for functions, the relevant init_args are presented as:
+``[ comma,seperated,variables | default,values,here ]``
+
+================ =========== =================== ================================================================
+ Property         Required    Options             Description                                                    
+================ =========== =================== ================================================================
+ edges            Y           $NAME               Symbolic identifier for other layers to reference
+ type             Y           conv                Layers are fully connected and convolution is applied.
+ ..                           max_filter          Layers are connected one-to-one and max filtering is applied.
+ init             Y           zero                Filters are zeroed out.
+ ..                           constant            Filters are set to a particular constant. ``[ constant | ? ]``
+ ..                           uniform             Filters are uniformly randomly initialized. ``[ min,max | -0.1,0.1 ]``
+ ..                           gaussian            Filters are gaussian randomly initialized. ``[ mean,stddev | 0,0.01 ]``
+ ..                           bernoulli           Filters are bernoulli randomly initialized. ``[ p | 0.5 ]``
+ ..                           xavier              Filters are assigned as described in `Glorot and Bengio 2010 <http://jmlr.org/proceedings/papers/v9/glorot10a/glorot10a.pdf>`_ [1].
+ ..                           msra                Filters are assigned as described in `He, Zhang, Ren and Sun 2015 <http://arxiv.org/abs/1502.01852>`_ [2].
+ init_args        N           $VALUES             Input comma seperated values of the type appropriate for the selected init.
+ size             Y           $X,$Y,$Z            Size of sliding window in pixels. 2D nets can be implemented by setting $Z to 1.
+ stride           Y           $X,$Y,$Z            How far to jump in each direction in pixels when sliding the window.
+ input            Y           $NODES_NAME         Name of source ``nodes`` layer that the edge will be transforming.
+ output           Y           $NODES_NAME         Name of destination ``nodes`` layer that the edge will be transforming.
+================ =========== =================== ================================================================
+
+[1] Glorot and Bengio. "Understanding the difficulty of training deep feedforward neural networks". JMLR 2010. http://jmlr.org/proceedings/papers/v9/glorot10a/glorot10a.pdf
+
+[2] He, Zhang, Ren and Sun. "Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification" CVPR 2015. http://arxiv.org/abs/1502.01852
+ 
+
+For more examples, please refer to the `networks <https://github.com/seung-lab/znn-release/tree/master/networks>`_ directory.
 
 3. Training
 -----------
