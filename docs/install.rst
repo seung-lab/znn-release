@@ -15,7 +15,7 @@ We have some machine images set up and ready to go for training on:
 1. `Amazon Web Services <aws.amazon.com>`_ (called AMIs)
 2. `Google Cloud Platform <cloud.google.com>`_ (called Snapshots)
 
-This is the easiest method as the program's dependencies are loaded and the compilation is fully optimized.
+This is the easiest method as the program's dependencies are already loaded and the program is compiled.
 
 Contact `Jingpeng Wu <jingpeng@princeton.edu>`_ to get started.
 
