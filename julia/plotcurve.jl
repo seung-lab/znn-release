@@ -1,82 +1,72 @@
-using ArgParse
-using HDF5
+doc"""
+`usage`:
+julia plotcurve.jl tag1 fname1 tag2 fname2 tag3 fname3
+"""
 using EMIRT
 using PyPlot
 
 function parse_commandline()
-    s = ArgParseSettings()
+    @assert length(ARGS) % 2 == 0
+    argtbl = reshape(ARGS, 2,Int64( length(ARGS)/2))
 
-    @add_arg_table s begin
-        "--fname"
-        help = "error curve file name"
-        arg_type = ASCIIString
-        default = "/tmp/error_curve.h5"
-
-        "--tag"
-        help = "curve name"
-        arg_type= ASCIIString
-        default = "all"
+    # key is tag, value is file name
+    ret = Dict{ASCIIString, ASCIIString}()
+    for c in 1:size(argtbl,2)
+        ret[ argtbl[1,c] ] = argtbl[2,c]
     end
-    return parse_args(s)
+    return ret
 end
 
 function plotall()
-    fname = ""
-    stag = ""
-    for pa in parse_commandline()
-        if pa[1] == "fname"
-            fname = pa[2]
-        elseif pa[1] == "tag"
-            stag = pa[2]
-        end
-    end
+    # dict of file of evaluation curves
+    # key: tag, value: file name
+    dtf = parse_commandline()
 
     # traverse the tags
-    f = h5open(fname, "r")
-    for tag in names(f)
-        if stag != "all" && tag != stag
-            continue
-        end
-
+    for (tag, fname) in dtf
         println("tag name: $tag")
-        # every error curve
-        thds = read( f[tag]["thds"] )
-        re   = read( f[tag]["re"]   )
-        rem  = read( f[tag]["rem"]  )
-        res  = read( f[tag]["res"]  )
-        rf   = read( f[tag]["rf"]   )
-        rfm  = read( f[tag]["rfm"]  )
-        rfs  = read( f[tag]["rfs"]  )
+
+        # read the evaluation curve file
+        dec = ecread( fname )
 
         # plot
         c = rand(3)
-        subplot(221)
-        plot(thds, re, color=c, "s-", label=tag, linewidth=2, alpha=0.5)
+        subplot(231)
+        plot(dec["thds"], dec["ri"], color=c, "s-", label=tag, linewidth=2, alpha=0.5)
         xlabel("thresholds")
-        ylabel("rand error")
+        ylabel("rand index")
         legend()
-        println("minimum rand error: $(minimum(re))")
+        println("maximum rand index: $(maximum(dec["ri"]))")
 
-        subplot(222)
-        plot(rem, res, color=c, "s-", label=tag, linewidth=2, alpha=0.5)
-        xlabel("rand error merger")
-        ylabel("rand error splitter")
+        subplot(234)
+        plot(dec["rim"], dec["ris"], color=c, "s-", label=tag, linewidth=2, alpha=0.5)
+        xlabel("rand index of merging")
+        ylabel("rand index of splitting")
 
 
-        subplot(223)
-        plot(thds, rf, color=c, "s-", label=tag, linewidth=2, alpha=0.5)
+        subplot(232)
+        plot(dec["thds"], dec["rf"], color=c, "s-", label=tag, linewidth=2, alpha=0.5)
         xlabel("thresholds")
-        ylabel("rand f score")
-        println("maximum rand f score: $(maximum(rf))")
+        ylabel("rand F score")
+        println("maximum rand F score: $(maximum(dec["rf"]))")
 
-        subplot(224)
-        plot(rfm, rfs, color=c, "s-", label=tag, linewidth=2, alpha=0.5)
-        xlabel("rand f score merger")
-        ylabel("rand f score splitter")
+        subplot(235)
+        plot(dec["rfm"], dec["rfs"], color=c, "s-", label=tag, linewidth=2, alpha=0.5)
+        xlabel("rand F score of merging")
+        ylabel("rand F score of splitting")
 
+        subplot(233)
+        plot(dec["thds"], dec["VIFS"], color=c, "s-", label=tag, linewidth=2, alpha=0.5)
+        xlabel("thresholds")
+        ylabel("Variation F score")
+        println("maximum variation F score: $(maximum(dec["VIFS"]))")
+
+        subplot(236)
+        plot(dec["VIFSm"], dec["VIFSs"], color=c, "s-", label=tag, linewidth=2, alpha=0.5)
+        xlabel("Variation F score of merging")
+        ylabel("Variation F score of splitting")
     end
     show()
-    close(f)
 end
 
 plotall()
