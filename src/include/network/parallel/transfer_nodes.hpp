@@ -356,15 +356,17 @@ public:
 public:
     void update(size_t n, cube_p<real>&& f ) override
     {
-        ZI_ASSERT(update_accums_[n].required());
-        if ( update_accums_[n].add(std::move(f)) )
+        if ( update_accums_[n].required() )
         {
-            // Princeton descent
-            auto factor = update_accums_[n].reset();
-            auto numel = gs_[n]->num_elements();
-            auto dEdB = sum(*gs_[n]) - numel*sum(*factor);
+            if ( update_accums_[n].add(std::move(f)) )
+            {
+                // Princeton descent
+                auto factor = update_accums_[n].reset();
+                auto numel = gs_[n]->num_elements();
+                auto dEdB = sum(*gs_[n]) - numel*sum(*factor);
 
-            biases_[n]->update(dEdB,patch_sz_);
+                biases_[n]->update(dEdB,patch_sz_);
+            }
         }
     }
 
@@ -386,7 +388,7 @@ public:
         ZI_ASSERT(n<nodes::size());
 
         // Princeton descent
-        if ( e->trainable() )
+        if ( func_ && e->trainable() )
             update_accums_[n].inc(1);
 
         bwd_dispatch_.sign_up(n,e);
@@ -410,7 +412,7 @@ public:
         ZI_ASSERT(n<nodes::size());
 
         // Princeton descent
-        if ( e->trainable() )
+        if ( func_ && e->trainable() )
             update_accums_[n].inc(1);
 
         bwd_dispatch_.sign_up(n,s,e);
