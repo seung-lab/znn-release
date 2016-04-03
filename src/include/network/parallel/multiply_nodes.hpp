@@ -40,6 +40,11 @@ private:
     std::vector<int>             fwd_done_;
     waiter                       waiter_  ;
 
+    // Princeton descent
+    std::vector<real>           means_   ; // feature map means
+    std::vector<real>           vars_    ; // feature map variances
+    std::vector<int>            norms_   ; // normalize or not
+
 public:
     multiply_nodes( size_t s,
                     vec3i const & fsize,
@@ -56,6 +61,9 @@ public:
         , fs_(s)
         , fwd_done_(s)
         , waiter_(s)
+        , means_(s)
+        , vars_(s)
+        , norms_(s)
     {
         for ( size_t i = 0; i < nodes::size(); ++i )
         {
@@ -84,6 +92,16 @@ public:
         return fs_;
     }
 
+    std::vector<real>& get_means() override
+    {
+        return means_;
+    }
+
+    std::vector<real>& get_variances() override
+    {
+        return vars_;
+    }
+
 private:
     void do_forward(size_t n)
     {
@@ -99,7 +117,26 @@ private:
         }
         else
         {
-            fwd_dispatch_.dispatch(n,fs_[n],nodes::manager());
+            // Princeton descent
+            // TODO(lee):
+            //  running average
+            means_[n] = mean(*fs_[n]);
+            vars_[n]  = variance(*fs_[n]);
+
+            if ( norms_[n] )
+            {
+                const real epsilon = 1e-5f;
+
+                auto f = get_copy(*fs_[n]);
+                *f -= means_[n];
+                *f /= vars_[n] + epsilon;
+
+                fwd_dispatch_.dispatch(n,fs_[n],f,nodes::manager());
+            }
+            else
+            {
+                fwd_dispatch_.dispatch(n,fs_[n],nodes::manager());
+            }
         }
     }
 
@@ -148,23 +185,33 @@ public:
     }
 
 public:
-    void attach_out_edge(size_t i, edge* e) override
+    void attach_out_edge(size_t n, edge* e) override
     {
-        ZI_ASSERT(i<nodes::size());
-        fwd_dispatch_.sign_up(i,e);
-        bwd_accumulators_[i]->grow(1);
+        ZI_ASSERT(n<nodes::size());
+
+        // Princeton descent
+        if ( e->trainable() )
+            norms_[n] = true;
+
+        fwd_dispatch_.sign_up(n,e);
+        bwd_accumulators_[n]->grow(1);
     }
 
-    void attach_in_edge(size_t i, edge* e) override
+    void attach_in_edge(size_t n, edge* e) override
     {
-        ZI_ASSERT(i<nodes::size());
-        bwd_dispatch_.sign_up(i,e);
-        fwd_accumulators_[i]->grow(1);
+        ZI_ASSERT(n<nodes::size());
+        bwd_dispatch_.sign_up(n,e);
+        fwd_accumulators_[n]->grow(1);
     }
 
     size_t attach_out_fft_edge(size_t n, edge* e, vec3i const & s) override
     {
         ZI_ASSERT(n<nodes::size());
+
+        // Princeton descent
+        if ( e->trainable() )
+            norms_[n] = true;
+
         fwd_dispatch_.sign_up(n,s,e);
         return bwd_accumulators_[n]->grow_fft(s,1);
     }

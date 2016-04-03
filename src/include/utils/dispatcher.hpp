@@ -179,6 +179,22 @@ private:
         }
     }
 
+    // Princeton descent
+    void fft_dispatch( ccube_p<real> const & v,
+                       ccube_p<real> const & vv,
+                       vec3i const & s,
+                       std::vector<FFTEdge*> const & targets,
+                       task_manager & manager )
+    {
+        ccube_p<complex> x  = fftw_[s]->forward_pad(v);
+        ccube_p<complex> xx = fftw_[s]->forward_pad(vv);
+        for ( auto& t: targets )
+        {
+            if ( t->trainable() ) t->set_input_for_update(xx);
+            manager.schedule(t->fwd_priority(), [t,x](){t->forward(x);});
+        }
+    }
+
 public:
     void dispatch( ccube_p<real> const & v,
                    task_manager & manager)
@@ -188,6 +204,21 @@ public:
 
         for ( auto& fft_target: fft_targets_ )
             manager.asap(&this_type::fft_dispatch,this,v,fft_target.first,
+                         std::cref(fft_target.second), std::ref(manager));
+    }
+
+    // Princeton descent
+    void dispatch( ccube_p<real> const & v, ccube_p<real> const & vv,
+                   task_manager & manager)
+    {
+        for ( auto& t: targets_ )
+        {
+            if ( t->trainable() ) t->set_input_for_update(vv);
+            manager.schedule(t->fwd_priority(), [t,v](){t->forward(v);});
+        }
+
+        for ( auto& fft_target: fft_targets_ )
+            manager.asap(&this_type::fft_dispatch,this,v,vv,fft_target.first,
                          std::cref(fft_target.second), std::ref(manager));
     }
 

@@ -38,7 +38,7 @@ private:
 #ifndef ZNN_DONT_CACHE_FFTS
     ccube_p<complex> w_fft;
 #endif
-    ccube_p<complex> last_input;
+    ccube_p<complex> input_for_update;
 
     size_t fwd_bucket_;
     size_t bwd_bucket_;
@@ -52,8 +52,6 @@ private:
     {
         ZI_ASSERT(enabled_);
 
-        last_input = f;
-
 #ifdef ZNN_DONT_CACHE_FFTS
         auto w_fft = get_w_fft();
 #endif
@@ -66,7 +64,7 @@ private:
     {
         ZI_ASSERT(enabled_);
 
-        auto dEdW_fft = *last_input * *g;
+        auto dEdW_fft = *input_for_update * *g;
         auto dEdW = fftw_.backward(std::move(dEdW_fft));
         real norm = dEdW->num_elements();
 
@@ -87,6 +85,10 @@ private:
 #ifndef ZNN_DONT_CACHE_FFTS
         initialize();
 #endif
+
+        // Princeton descent
+        dEdW *= in_nodes->get_means()[in_num];
+        out_nodes->update(out_num, dEdW);
     }
 
 #ifndef ZNN_DONT_CACHE_FFTS
@@ -139,7 +141,7 @@ public:
     {
         if ( !enabled_ ) return;
 
-        ZI_ASSERT(last_input);
+        ZI_ASSERT(input_for_update);
 
         if ( in_nodes->is_input() )
         {
@@ -164,6 +166,16 @@ public:
             pending_ = manager.schedule_unprivileged(
                                     &fft_filter_edge::do_update, this, g);
         }
+    }
+
+    void set_input_for_update( ccube_p<complex> const & x ) override
+    {
+        input_for_update = x;
+    }
+
+    void trainable() override
+    {
+        return true;
     }
 
 public:

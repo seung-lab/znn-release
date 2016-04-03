@@ -34,7 +34,7 @@ private:
     bool     deconv_;
     bool     shared_;
 
-    ccube_p<real> last_input;
+    ccube_p<real> input_for_update;
 
     task_manager::task_handle pending_ = 0;
 
@@ -61,8 +61,6 @@ private:
     {
         ZI_ASSERT(enabled_);
 
-        last_input = f;
-
         out_nodes->forward(out_num,
             convolve_forward(*f, filter_.W(), filter_stride));
     }
@@ -71,11 +69,16 @@ private:
     {
         ZI_ASSERT(enabled_);
 
+        auto X = input_for_update;
         auto dEdW =
-            deconv_ ? convolve_sparse_flipped(*g, *last_input, filter_stride)
-                    : convolve_sparse_flipped(*last_input, *g, filter_stride);
+            deconv_ ? convolve_sparse_flipped(*g, *X, filter_stride)
+                    : convolve_sparse_flipped(*X, *g, filter_stride);
 
         filter_.update(*dEdW, patch_sz_);
+
+        // Princeton descent
+        dEdW *= in_nodes->get_means()[in_num];
+        out_nodes->update(out_num, dEdW);
     }
 
 public:
@@ -109,7 +112,8 @@ public:
     {
         if ( !enabled_ ) return;
 
-        ZI_ASSERT(last_input);
+        ZI_ASSERT(input_for_update);
+
         if ( in_nodes->is_input() )
         {
             in_nodes->backward(in_num, cube_p<real>());
@@ -129,6 +133,16 @@ public:
             pending_ = manager.schedule_unprivileged(&filter_edge::do_update,
                                                      this, g);
         }
+    }
+
+    void set_input_for_update( ccube_p<real> const & x ) override
+    {
+        input_for_update = x;
+    }
+
+    void trainable() override
+    {
+        return true;
     }
 
     void zap(edges* e) override

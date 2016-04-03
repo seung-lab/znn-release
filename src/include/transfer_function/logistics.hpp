@@ -45,7 +45,6 @@ struct logistics
         return ret;
     }
 
-
 };
 
 

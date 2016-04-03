@@ -22,6 +22,7 @@
 #include "../bias.hpp"
 #include "../../utils/dispatcher.hpp"
 #include "../../utils/accumulator.hpp"
+#include "../../utils/simple_accumulator.hpp"
 #include "../../utils/waiter.hpp"
 #include "../../initializator/initializators.hpp"
 #include "../../transfer_function/transfer_functions.hpp"
@@ -38,12 +39,20 @@ private:
     dispatcher_group<concurrent_forward_dispatcher<edge,edge>>    fwd_dispatch_;
     dispatcher_group<concurrent_backward_dispatcher<edge,edge>>   bwd_dispatch_;
 
-    std::vector<std::unique_ptr<forward_accumulator>>  fwd_accumulators_;
-    std::vector<std::unique_ptr<backward_accumulator>> bwd_accumulators_;
+    std::vector<std::unique_ptr<forward_accumulator>>   fwd_accums_;
+    std::vector<std::unique_ptr<backward_accumulator>>  bwd_accums_;
+    std::vector<simple_accumulator>                     update_accums_;
 
-    std::vector<cube_p<real>>    fs_      ;
-    std::vector<int>             fwd_done_;
-    waiter                       waiter_  ;
+    std::vector<cube_p<real>>   fs_      ; // feature maps
+    std::vector<int>            fwd_done_;
+    waiter                      waiter_  ;
+
+    // Princeton descent
+    std::vector<real>           means_   ; // feature map means
+    std::vector<real>           vars_    ; // feature map variances
+    std::vector<int>            norms_   ; // normalize or not
+    std::vector<cube_p<real>>   gs_      ; // delta maps
+
 
 public:
     transfer_nodes( size_t s,
@@ -58,18 +67,23 @@ public:
         , func_()
         , fwd_dispatch_(s)
         , bwd_dispatch_(s)
-        , fwd_accumulators_(s)
-        , bwd_accumulators_(s)
+        , fwd_accums_(s)
+        , bwd_accums_(s)
+        , update_accums_(s)
         , fs_(s)
         , fwd_done_(s)
         , waiter_(s)
+        , means_(s)
+        , vars_(s)
+        , norms_(s)
+        , gs_(s)
     {
 
         for ( size_t i = 0; i < nodes::size(); ++i )
         {
-            fwd_accumulators_[i]
+            fwd_accums_[i]
                 = std::make_unique<forward_accumulator>(fsize);
-            bwd_accumulators_[i]
+            bwd_accums_[i]
                 = std::make_unique<backward_accumulator>(fsize);
         }
 
@@ -195,7 +209,6 @@ public:
 
 
 public:
-
     size_t num_out_nodes() override { return nodes::size(); }
     size_t num_in_nodes()  override { return nodes::size(); }
 
@@ -204,12 +217,22 @@ public:
         return fs_;
     }
 
+    std::vector<real>& get_means() override
+    {
+        return means_;
+    }
+
+    std::vector<real>& get_variances() override
+    {
+        return vars_;
+    }
+
 private:
     void do_forward(size_t n)
     {
         ZI_ASSERT(enabled_[n]);
 
-        fs_[n] = fwd_accumulators_[n]->reset();
+        fs_[n] = fwd_accums_[n]->reset();
         //STRONG_ASSERT(!fwd_done_[n]);
         fwd_done_[n] = true;
 
@@ -224,7 +247,26 @@ private:
         }
         else
         {
-            fwd_dispatch_.dispatch(n,fs_[n],nodes::manager());
+            // Princeton descent
+            // TODO(lee):
+            //  running average
+            means_[n] = mean(*fs_[n]);
+            vars_[n]  = variance(*fs_[n]);
+
+            if ( norms_[n] )
+            {
+                const real epsilon = 1e-5f;
+
+                auto f = get_copy(*fs_[n]);
+                *f -= means_[n];
+                *f /= vars_[n] + epsilon;
+
+                fwd_dispatch_.dispatch(n,fs_[n],f,nodes::manager());
+            }
+            else
+            {
+                fwd_dispatch_.dispatch(n,fs_[n],nodes::manager());
+            }
         }
     }
 
@@ -234,7 +276,7 @@ public:
         ZI_ASSERT(n<nodes::size());
         if ( !enabled_[n] ) return;
 
-        if ( fwd_accumulators_[n]->add(std::move(f)) )
+        if ( fwd_accums_[n]->add(std::move(f)) )
         {
             do_forward(n);
         }
@@ -245,7 +287,7 @@ public:
         ZI_ASSERT(n<nodes::size());
         if ( !enabled_[n] ) return;
 
-        if ( fwd_accumulators_[n]->add(b,std::move(f)) )
+        if ( fwd_accums_[n]->add(b,std::move(f)) )
         {
             do_forward(n);
         }
@@ -253,10 +295,11 @@ public:
 
 
 private:
-    void do_backward(size_t n, cube_p<real> const & g)
+    void do_backward(size_t n, cube_p<real> const & g )
     {
         ZI_ASSERT(enabled_[n]);
 
+        gs_[n] = g;
         //STRONG_ASSERT(fwd_done_[n]);
         fwd_done_[n] = false;
 
@@ -270,11 +313,14 @@ private:
             //         ( nodes::is_output() ? " output\n" : "no\n");
             //     STRONG_ASSERT(0);
             // }
-            func_.apply_grad(*g,*fs_[n]);
-            biases_[n]->update(sum(*g),patch_sz_);
+            func_.apply_grad(*gs_[n],*fs_[n]);
             fs_[n].reset();
+
+            // update bias
+            if ( !update_accums_[n].required() )
+                biases_[n]->update(sum(*gs_[n]),patch_sz_);
         }
-        bwd_dispatch_.dispatch(n,g,nodes::manager());
+        bwd_dispatch_.dispatch(n,gs_[n],nodes::manager());
     }
 
 public:
@@ -289,9 +335,9 @@ public:
         }
         else
         {
-            if ( bwd_accumulators_[n]->add(std::move(g)) )
+            if ( bwd_accums_[n]->add(std::move(g)) )
             {
-                do_backward(n,bwd_accumulators_[n]->reset());
+                do_backward(n,bwd_accums_[n]->reset());
             }
         }
     }
@@ -301,38 +347,74 @@ public:
         ZI_ASSERT((n<nodes::size())&&(!nodes::is_output()));
         if ( !enabled_[n] ) return;
 
-        if ( bwd_accumulators_[n]->add(b,std::move(g)) )
+        if ( bwd_accums_[n]->add(b,std::move(g)) )
         {
-            do_backward(n,bwd_accumulators_[n]->reset());
+            do_backward(n,bwd_accums_[n]->reset());
         }
     }
 
-    void attach_out_edge(size_t i, edge* e) override
+public:
+    void update(size_t n, cube_p<real>&& f ) override
     {
-        ZI_ASSERT(i<nodes::size());
-        fwd_dispatch_.sign_up(i,e);
-        bwd_accumulators_[i]->grow(1);
+        ZI_ASSERT(update_accums_[n].required());
+        if ( update_accums_[n].add(std::move(f)) )
+        {
+            // Princeton descent
+            auto factor = update_accums_[n].reset();
+            auto numel = gs_[n]->num_elements();
+            auto dEdB = sum(*gs_[n]) - numel*sum(*factor);
+
+            biases_[n]->update(dEdB,patch_sz_);
+        }
     }
 
-    void attach_in_edge(size_t i, edge* e) override
+public:
+    void attach_out_edge(size_t n, edge* e) override
     {
-        ZI_ASSERT(i<nodes::size());
-        bwd_dispatch_.sign_up(i,e);
-        fwd_accumulators_[i]->grow(1);
+        ZI_ASSERT(n<nodes::size());
+
+        // Princeton descent
+        if ( e->trainable() )
+            norms_[n] = true;
+
+        fwd_dispatch_.sign_up(n,e);
+        bwd_accums_[n]->grow(1);
+    }
+
+    void attach_in_edge(size_t n, edge* e) override
+    {
+        ZI_ASSERT(n<nodes::size());
+
+        // Princeton descent
+        if ( e->trainable() )
+            update_accums_[n].inc(1);
+
+        bwd_dispatch_.sign_up(n,e);
+        fwd_accums_[n]->grow(1);
     }
 
     size_t attach_out_fft_edge(size_t n, edge* e, vec3i const & s) override
     {
         ZI_ASSERT(n<nodes::size());
+
+        // Princeton descent
+        if ( e->trainable() )
+            norms_[n] = true;
+
         fwd_dispatch_.sign_up(n,s,e);
-        return bwd_accumulators_[n]->grow_fft(s,1);
+        return bwd_accums_[n]->grow_fft(s,1);
     }
 
-    size_t attach_in_fft_edge(size_t n, edge* e, vec3i const & s) override
+    size_t attach_in_fft_edge(size_t n, edge* e) override
     {
         ZI_ASSERT(n<nodes::size());
+
+        // Princeton descent
+        if ( e->trainable() )
+            update_accums_[n].inc(1);
+
         bwd_dispatch_.sign_up(n,s,e);
-        return fwd_accumulators_[n]->grow_fft(s,1);
+        return fwd_accums_[n]->grow_fft(s,1);
     }
 
 protected:
@@ -343,7 +425,7 @@ protected:
 
         // diable outgoing edges
         fwd_dispatch_.enable(n,false);
-        bwd_accumulators_[n]->enable_all(false);
+        bwd_accums_[n]->enable_all(false);
 
         // reset feature map
         fs_[n].reset();
@@ -360,7 +442,7 @@ protected:
 
         // disable incoming edges
         bwd_dispatch_.enable(n,false);
-        fwd_accumulators_[n]->enable_all(false);
+        fwd_accums_[n]->enable_all(false);
 
         // reset feature map
         fs_[n].reset();
@@ -379,8 +461,8 @@ public:
         fwd_dispatch_.enable(n,b);
         bwd_dispatch_.enable(n,b);
 
-        fwd_accumulators_[n]->enable_all(b);
-        bwd_accumulators_[n]->enable_all(b);
+        fwd_accums_[n]->enable_all(b);
+        bwd_accums_[n]->enable_all(b);
 
         // reset feature map
         fs_[n].reset();
@@ -393,28 +475,28 @@ public:
     void enable_out_edge(size_t n, bool b) override
     {
         ZI_ASSERT(n<nodes::size());
-        if ( !bwd_accumulators_[n]->enable(b) )
+        if ( !bwd_accums_[n]->enable(b) )
             disable_bwd(n);
     }
 
     void enable_in_edge(size_t n, bool b) override
     {
         ZI_ASSERT(n<nodes::size());
-        if ( !fwd_accumulators_[n]->enable(b) )
+        if ( !fwd_accums_[n]->enable(b) )
             disable_fwd(n);
     }
 
     void enable_out_fft_edge(size_t n, bool b, vec3i const & s) override
     {
         ZI_ASSERT(n<nodes::size());
-        if ( !bwd_accumulators_[n]->enable_fft(s,b) )
+        if ( !bwd_accums_[n]->enable_fft(s,b) )
             disable_bwd(n);
     }
 
     void enable_in_fft_edge(size_t n, bool b, vec3i const & s) override
     {
         ZI_ASSERT(n<nodes::size());
-        if ( !fwd_accumulators_[n]->enable_fft(s,b) )
+        if ( !fwd_accums_[n]->enable_fft(s,b) )
             disable_fwd(n);
     }
 

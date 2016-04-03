@@ -191,7 +191,17 @@ public:
                           ccube_p<complex> const & /* fft(filter) */ )
     { UNIMPLEMENTED(); }
 
+    // update bias, if any, with an optional factor
+    virtual void update(size_t, cube_p<real>&&)
+    { UNIMPLEMENTED(); }
+
     virtual std::vector<cube_p<real>>& get_featuremaps()
+    { UNIMPLEMENTED(); }
+
+    virtual std::vector<real>& get_means()
+    { UNIMPLEMENTED(); }
+
+    virtual std::vector<real>& get_variances()
     { UNIMPLEMENTED(); }
 
     virtual size_t num_out_nodes()

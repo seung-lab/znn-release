@@ -87,6 +87,11 @@ public:
     virtual void backward( ccube_p<complex> const & )
     { UNIMPLEMENTED(); }
 
+    // Princeton descent
+    virtual void set_input_for_update( ccube_p<real> const & )    {}
+    virtual void set_input_for_update( ccube_p<complex> const & ) {}
+    virtual bool trainable() { return false; }
+
     virtual void enable(bool b)
     {
         if ( enabled_ == b ) return;
