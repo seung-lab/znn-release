@@ -38,7 +38,10 @@ private:
 #ifndef ZNN_DONT_CACHE_FFTS
     ccube_p<complex> w_fft;
 #endif
-    ccube_p<complex> input_for_update;
+
+    // Princeton descent
+    ccube_p<complex>    input_for_update;
+    bool                Princeton = false;
 
     size_t fwd_bucket_;
     size_t bwd_bucket_;
@@ -55,6 +58,10 @@ private:
 #ifdef ZNN_DONT_CACHE_FFTS
         auto w_fft = get_w_fft();
 #endif
+
+        if ( !Princeton )
+            input_for_update = f;
+
         auto fw = *w_fft * *f;
         out_nodes->forward(out_num, fwd_bucket_, std::move(fw));
         //out_nodes->forward(out_num, fwd_bucket_, w_fft, f);
@@ -87,8 +94,16 @@ private:
 #endif
 
         // Princeton descent
-        *dEdW *= in_nodes->get_means()[in_num];
-        out_nodes->update(out_num, std::move(dEdW));
+        if ( Princeton  )
+        {
+            *dEdW *= in_nodes->get_means()[in_num];
+            out_nodes->update(out_num, std::move(dEdW));
+            Princeton = false;
+        }
+        else
+        {
+            out_nodes->update(out_num, cube_p<complex>());
+        }
     }
 
 #ifndef ZNN_DONT_CACHE_FFTS
@@ -172,6 +187,7 @@ public:
     {
         if ( !enabled_ ) return;
         input_for_update = x;
+        Princeton = true;
     }
 
     bool trainable() override

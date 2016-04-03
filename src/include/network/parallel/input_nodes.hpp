@@ -28,7 +28,6 @@ class input_nodes: public nodes
 {
 private:
     dispatcher_group<concurrent_forward_dispatcher<edge,edge>> outputs_;
-    dispatcher_group<update_dispatcher<edge,edge>>     update_dispatch_;
     waiter                                                     waiter_ ;
 
 public:
@@ -40,7 +39,6 @@ public:
                  size_t bwd_p )
         : nodes(s,fsize,op,tm,fwd_p,bwd_p,true,false)
         , outputs_(s)
-        , update_dispatch_(s)
         , waiter_()
     {
     }
@@ -62,7 +60,6 @@ public:
         ZI_ASSERT(n<nodes::size());
         if ( !enabled_[n] ) return;
 
-        update_dispatch_.dispatch(n,f);
         outputs_.dispatch(n,f,nodes::manager());
     }
 
@@ -81,9 +78,6 @@ public:
         ZI_ASSERT(n<nodes::size());
         waiter_.inc();
         outputs_.sign_up(n,e);
-
-        if ( e->trainable() )
-            update_dispatch_.sign_up(n,e);
     }
 
     size_t attach_out_fft_edge(size_t n, edge* e, vec3i const & s) override
@@ -91,10 +85,6 @@ public:
         ZI_ASSERT(n<nodes::size());
         waiter_.inc();
         outputs_.sign_up(n,s,e);
-
-        if ( e->trainable() )
-            update_dispatch_.sign_up(n,s,e);
-
         return 0;
     }
 

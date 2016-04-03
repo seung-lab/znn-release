@@ -364,10 +364,16 @@ public:
             {
                 // Princeton descent
                 auto factor = update_accums_[n].reset();
-                auto numel = gs_[n]->num_elements();
-                auto dEdB = sum(*gs_[n]) - numel*sum(*factor);
-
-                biases_[n]->update(dEdB,patch_sz_);
+                if ( factor )
+                {
+                    auto numel = gs_[n]->num_elements();
+                    auto dEdB = sum(*gs_[n]) - numel*sum(*factor);
+                    biases_[n]->update(dEdB,patch_sz_);
+                }
+                else
+                {
+                    biases_[n]->update(sum(*gs_[n]),patch_sz_);
+                }
             }
         }
     }

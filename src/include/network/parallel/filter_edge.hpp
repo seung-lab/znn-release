@@ -34,9 +34,12 @@ private:
     bool     deconv_;
     bool     shared_;
 
-    ccube_p<real> input_for_update;
+    // Princeton descent
+    ccube_p<real>   input_for_update;
+    bool            Princeton = false;
 
     task_manager::task_handle pending_ = 0;
+
 
 private:
     inline cube_p<real> convolve_forward( cube<real> const & a,
@@ -61,6 +64,9 @@ private:
     {
         ZI_ASSERT(enabled_);
 
+        if ( !Princeton )
+            input_for_update = f;
+
         out_nodes->forward(out_num,
             convolve_forward(*f, filter_.W(), filter_stride));
     }
@@ -77,8 +83,16 @@ private:
         filter_.update(*dEdW, patch_sz_);
 
         // Princeton descent
-        *dEdW *= in_nodes->get_means()[in_num];
-        out_nodes->update(out_num, std::move(dEdW));
+        if ( Princeton )
+        {
+            *dEdW *= in_nodes->get_means()[in_num];
+            out_nodes->update(out_num, std::move(dEdW));
+            Princeton = false;
+        }
+        else
+        {
+            out_nodes->update(out_num, cube_p<real>());
+        }
     }
 
 public:
@@ -139,6 +153,7 @@ public:
     {
         if ( !enabled_ ) return;
         input_for_update = x;
+        Princeton = true;
     }
 
     bool trainable() override
