@@ -70,16 +70,7 @@ public:
     void backward(size_t, cube_p<real>&&) override
     { backward(); }
 
-    void backward(size_t, ccube_p<real> const &,
-                  ccube_p<real> const &, vec3i const &) override
-    { backward(); }
-
     void backward(size_t, size_t, cube_p<complex>&&) override
-    { backward(); }
-
-    void backward(size_t, size_t,
-                  ccube_p<complex> const &,
-                  ccube_p<complex> const &) override
     { backward(); }
 
     void attach_out_edge(size_t i, edge* e) override

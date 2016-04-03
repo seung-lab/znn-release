@@ -240,40 +240,12 @@ public:
         }
     }
 
-    void forward(size_t n,
-                 ccube_p<real> const & f,
-                 ccube_p<real> const & w,
-                 vec3i const & stride) override
-    {
-        ZI_ASSERT(n<nodes::size());
-        if ( !enabled_[n] ) return;
-
-        if ( fwd_accumulators_[n]->add(f,w,stride) )
-        {
-            do_forward(n);
-        }
-
-    }
-
     void forward(size_t n, size_t b, cube_p<complex>&& f) override
     {
         ZI_ASSERT(n<nodes::size());
         if ( !enabled_[n] ) return;
 
         if ( fwd_accumulators_[n]->add(b,std::move(f)) )
-        {
-            do_forward(n);
-        }
-    }
-
-    void forward(size_t n, size_t b,
-                 ccube_p<complex> const & f,
-                 ccube_p<complex> const & w ) override
-    {
-        ZI_ASSERT(n<nodes::size());
-        if ( !enabled_[n] ) return;
-
-        if ( fwd_accumulators_[n]->add(b,f,w) )
         {
             do_forward(n);
         }
@@ -324,37 +296,12 @@ public:
         }
     }
 
-    void backward(size_t n, ccube_p<real> const & g,
-                  ccube_p<real> const & w, vec3i const & stride) override
-    {
-        ZI_ASSERT((n<nodes::size())&&(!nodes::is_output()));
-        if ( !enabled_[n] ) return;
-
-        if ( bwd_accumulators_[n]->add(g,w,stride) )
-        {
-            do_backward(n,bwd_accumulators_[n]->reset());
-        }
-    }
-
     void backward(size_t n, size_t b, cube_p<complex>&& g) override
     {
         ZI_ASSERT((n<nodes::size())&&(!nodes::is_output()));
         if ( !enabled_[n] ) return;
 
         if ( bwd_accumulators_[n]->add(b,std::move(g)) )
-        {
-            do_backward(n,bwd_accumulators_[n]->reset());
-        }
-    }
-
-    void backward(size_t n, size_t b,
-                  ccube_p<complex> const & g,
-                  ccube_p<complex> const & w) override
-    {
-        ZI_ASSERT((n<nodes::size())&&(!nodes::is_output()));
-        if ( !enabled_[n] ) return;
-
-        if ( bwd_accumulators_[n]->add(b,g,w) )
         {
             do_backward(n,bwd_accumulators_[n]->reset());
         }
