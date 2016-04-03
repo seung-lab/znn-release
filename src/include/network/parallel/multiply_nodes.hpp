@@ -33,8 +33,11 @@ private:
     dispatcher_group<concurrent_forward_dispatcher<edge,edge>>    fwd_dispatch_;
     dispatcher_group<concurrent_backward_dispatcher<edge,edge>>   bwd_dispatch_;
 
-    std::vector<std::unique_ptr<mult_accumulator>>     fwd_accumulators_;
-    std::vector<std::unique_ptr<backward_accumulator>> bwd_accumulators_;
+    std::vector<std::unique_ptr<mult_accumulator>>      fwd_accumulators_;
+    std::vector<std::unique_ptr<backward_accumulator>>  bwd_accumulators_;
+
+    // Princeton descent
+    dispatcher_group<update_dispatcher<edge,edge>>      update_dispatch_;
 
     std::vector<cube_p<real>>    fs_      ;
     std::vector<int>             fwd_done_;
@@ -58,6 +61,7 @@ public:
         , bwd_dispatch_(s)
         , fwd_accumulators_(s)
         , bwd_accumulators_(s)
+        , update_dispatch_(s)
         , fs_(s)
         , fwd_done_(s)
         , waiter_(s)
@@ -131,12 +135,10 @@ private:
                 *f -= means_[n];
                 *f /= vars_[n] + epsilon;
 
-                fwd_dispatch_.dispatch(n,fs_[n],f,nodes::manager());
+                update_dispatch_.dispatch(n,f);
             }
-            else
-            {
-                fwd_dispatch_.dispatch(n,fs_[n],nodes::manager());
-            }
+
+            fwd_dispatch_.dispatch(n,fs_[n],nodes::manager());
         }
     }
 
@@ -191,7 +193,10 @@ public:
 
         // Princeton descent
         if ( e->trainable() )
+        {
             norms_[n] = true;
+            update_dispatch_.sign_up(n,e);
+        }
 
         fwd_dispatch_.sign_up(n,e);
         bwd_accumulators_[n]->grow(1);
@@ -210,7 +215,10 @@ public:
 
         // Princeton descent
         if ( e->trainable() )
+        {
             norms_[n] = true;
+            update_dispatch_.sign_up(n,s,e);
+        }
 
         fwd_dispatch_.sign_up(n,s,e);
         return bwd_accumulators_[n]->grow_fft(s,1);

@@ -87,8 +87,8 @@ private:
 #endif
 
         // Princeton descent
-        dEdW *= in_nodes->get_means()[in_num];
-        out_nodes->update(out_num, dEdW);
+        *dEdW *= in_nodes->get_means()[in_num];
+        out_nodes->update(out_num, std::move(dEdW));
     }
 
 #ifndef ZNN_DONT_CACHE_FFTS
@@ -170,10 +170,11 @@ public:
 
     void set_input_for_update( ccube_p<complex> const & x ) override
     {
+        if ( !enabled_ ) return;
         input_for_update = x;
     }
 
-    void trainable() override
+    bool trainable() override
     {
         return true;
     }

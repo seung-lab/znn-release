@@ -179,22 +179,6 @@ private:
         }
     }
 
-    // Princeton descent
-    void fft_dispatch( ccube_p<real> const & v,
-                       ccube_p<real> const & vv,
-                       vec3i const & s,
-                       std::vector<FFTEdge*> const & targets,
-                       task_manager & manager )
-    {
-        ccube_p<complex> x  = fftw_[s]->forward_pad(v);
-        ccube_p<complex> xx = fftw_[s]->forward_pad(vv);
-        for ( auto& t: targets )
-        {
-            if ( t->trainable() ) t->set_input_for_update(xx);
-            manager.schedule(t->fwd_priority(), [t,x](){t->forward(x);});
-        }
-    }
-
 public:
     void dispatch( ccube_p<real> const & v,
                    task_manager & manager)
@@ -204,21 +188,6 @@ public:
 
         for ( auto& fft_target: fft_targets_ )
             manager.asap(&this_type::fft_dispatch,this,v,fft_target.first,
-                         std::cref(fft_target.second), std::ref(manager));
-    }
-
-    // Princeton descent
-    void dispatch( ccube_p<real> const & v, ccube_p<real> const & vv,
-                   task_manager & manager)
-    {
-        for ( auto& t: targets_ )
-        {
-            if ( t->trainable() ) t->set_input_for_update(vv);
-            manager.schedule(t->fwd_priority(), [t,v](){t->forward(v);});
-        }
-
-        for ( auto& fft_target: fft_targets_ )
-            manager.asap(&this_type::fft_dispatch,this,v,vv,fft_target.first,
                          std::cref(fft_target.second), std::ref(manager));
     }
 
@@ -332,6 +301,57 @@ public:
 }; // class concurrent_backward_dispatcher
 
 
+// Princeton descent
+template<class Edge, class FFTEdge>
+class update_dispatcher: public dispatcher_base<Edge, FFTEdge>
+{
+private:
+    std::vector<Edge*>                           targets_    ;
+    std::map<vec3i,std::vector<FFTEdge*>>        fft_targets_;
+    std::map<vec3i,std::unique_ptr<fftw::transformer>>  fftw_;
+
+public:
+    void dispatch(const ccube_p<real>& v)
+    {
+        for ( auto& t: targets_ )
+            t->set_input_for_update(v);
+
+        for ( auto& fft_target: fft_targets_ )
+        {
+            ccube_p<complex> x = fftw_[fft_target.first]->forward_pad(v);
+            for ( auto& t: fft_target.second )
+                t->set_input_for_update(x);
+        }
+    }
+
+    void sign_up(Edge* e)
+    {
+        targets_.push_back(e);
+    }
+
+    void sign_up(const vec3i& s, FFTEdge* e)
+    {
+        if ( fftw_.count(s) == 0 )
+        {
+            fftw_[s] = std::make_unique<fftw::transformer>(s);
+        }
+
+        fft_targets_[s].push_back(e);
+    }
+
+    void enable(bool) {}
+
+    size_t size() const
+    {
+        size_t r = targets_.size();
+        for ( auto& fft_target: fft_targets_)
+            r += fft_target.second.size();
+        return r;
+    }
+
+}; // class update_dispatcher
+
+
 template<typename Dispatcher>
 class dispatcher_group
 {
@@ -385,7 +405,6 @@ public:
     }
 
 };
-
 
 
 }} // namespace znn::v4

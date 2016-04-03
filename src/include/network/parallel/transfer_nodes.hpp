@@ -41,6 +41,9 @@ private:
 
     std::vector<std::unique_ptr<forward_accumulator>>   fwd_accums_;
     std::vector<std::unique_ptr<backward_accumulator>>  bwd_accums_;
+
+    // Princeton descent
+    dispatcher_group<update_dispatcher<edge,edge>>      update_dispatch_;
     std::vector<simple_accumulator>                     update_accums_;
 
     std::vector<cube_p<real>>   fs_      ; // feature maps
@@ -69,6 +72,7 @@ public:
         , bwd_dispatch_(s)
         , fwd_accums_(s)
         , bwd_accums_(s)
+        , update_dispatch_(s)
         , update_accums_(s)
         , fs_(s)
         , fwd_done_(s)
@@ -261,12 +265,10 @@ private:
                 *f -= means_[n];
                 *f /= vars_[n] + epsilon;
 
-                fwd_dispatch_.dispatch(n,fs_[n],f,nodes::manager());
+                update_dispatch_.dispatch(n,f);
             }
-            else
-            {
-                fwd_dispatch_.dispatch(n,fs_[n],nodes::manager());
-            }
+
+            fwd_dispatch_.dispatch(n,fs_[n],nodes::manager());
         }
     }
 
@@ -377,7 +379,10 @@ public:
 
         // Princeton descent
         if ( e->trainable() )
+        {
             norms_[n] = true;
+            update_dispatch_.sign_up(n,e);
+        }
 
         fwd_dispatch_.sign_up(n,e);
         bwd_accums_[n]->grow(1);
@@ -401,13 +406,16 @@ public:
 
         // Princeton descent
         if ( e->trainable() )
+        {
             norms_[n] = true;
+            update_dispatch_.sign_up(n,s,e);
+        }
 
         fwd_dispatch_.sign_up(n,s,e);
         return bwd_accums_[n]->grow_fft(s,1);
     }
 
-    size_t attach_in_fft_edge(size_t n, edge* e) override
+    size_t attach_in_fft_edge(size_t n, edge* e, vec3i const & s) override
     {
         ZI_ASSERT(n<nodes::size());
 
@@ -445,7 +453,7 @@ protected:
         // disable incoming edges
         bwd_dispatch_.enable(n,false);
         fwd_accums_[n]->enable_all(false);
-        update_accums_[n]->enable_all(false);
+        update_accums_[n].enable_all(false);
 
         // reset feature map
         fs_[n].reset();
@@ -466,7 +474,7 @@ public:
 
         fwd_accums_[n]->enable_all(b);
         bwd_accums_[n]->enable_all(b);
-        update_accums_[n]->enable_all(b);
+        update_accums_[n].enable_all(b);
 
         // reset feature map
         fs_[n].reset();
@@ -489,7 +497,7 @@ public:
 
         // Princeton descent
         if ( trainable )
-            update_accums_[n]->enable(b);
+            update_accums_[n].enable(b);
 
         if ( !fwd_accums_[n]->enable(b) )
             disable_fwd(n);
@@ -508,7 +516,7 @@ public:
 
         // Princeton descent
         // only trainable edges could be fft edges
-        update_accums_[n]->enable(b);
+        update_accums_[n].enable(b);
 
         if ( !fwd_accums_[n]->enable_fft(s,b) )
             disable_fwd(n);

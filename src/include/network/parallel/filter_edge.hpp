@@ -77,8 +77,8 @@ private:
         filter_.update(*dEdW, patch_sz_);
 
         // Princeton descent
-        dEdW *= in_nodes->get_means()[in_num];
-        out_nodes->update(out_num, dEdW);
+        *dEdW *= in_nodes->get_means()[in_num];
+        out_nodes->update(out_num, std::move(dEdW));
     }
 
 public:
@@ -137,10 +137,11 @@ public:
 
     void set_input_for_update( ccube_p<real> const & x ) override
     {
+        if ( !enabled_ ) return;
         input_for_update = x;
     }
 
-    void trainable() override
+    bool trainable() override
     {
         return true;
     }
