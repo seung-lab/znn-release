@@ -102,7 +102,8 @@ private:
         }
         else
         {
-            out_nodes->update(out_num, cube_p<complex>());
+            fill(*dEdW, 0);
+            out_nodes->update(out_num, std::move(dEdW));
         }
     }
 
