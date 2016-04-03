@@ -234,7 +234,7 @@ public:
     virtual void enable_out_edge(size_t, bool)
     { UNIMPLEMENTED(); }
 
-    virtual void enable_in_edge(size_t, bool)
+    virtual void enable_in_edge(size_t, bool, bool)
     { UNIMPLEMENTED(); }
 
     virtual void enable_out_fft_edge(size_t, bool, vec3i const &)

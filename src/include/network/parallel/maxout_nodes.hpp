@@ -292,7 +292,7 @@ public:
             disable_bwd(n);
     }
 
-    void enable_in_edge(size_t n, bool b) override
+    void enable_in_edge(size_t n, bool b, bool) override
     {
         ZI_ASSERT(n<nodes::size());
         size_t s = b ? fwd_accumulators_[n]->grow(1)

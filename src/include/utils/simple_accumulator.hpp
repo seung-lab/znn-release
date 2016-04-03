@@ -29,6 +29,7 @@ class simple_accumulator
 {
 private:
     size_t required_;
+    size_t disabled_;
     size_t current_ ;
 
     cube_p<real>       sum_;
@@ -44,7 +45,7 @@ private:
                 if ( !sum_ )
                 {
                     sum_ = std::move(to_add);
-                    return ++current_ == required_;
+                    return ++current_ == effectively_required();
                 }
                 previous_sum = std::move(sum_);
             }
@@ -55,6 +56,7 @@ private:
 public:
     explicit simple_accumulator(std::size_t n = 0)
         : required_(n)
+        , disabled_(0)
         , current_(0)
         , sum_()
     {}
@@ -72,18 +74,44 @@ public:
         required_ -= n;
     }
 
+    size_t enable(bool b)
+    {
+        ZI_ASSERT(current_==0);
+
+        if ( required_ )
+        {
+            if ( b )
+            {
+                ZI_ASSERT(effectively_required()<required_);
+                --disabled_;
+            }
+            else
+            {
+                ZI_ASSERT(0<effectively_required());
+                ++disabled_;
+            }
+        }
+        return effectively_required();
+    }
+
+    size_t enable_all(bool b)
+    {
+        disabled_ = b ? 0 : required_;
+        return effectively_required();
+    }
+
     //
     // sum += f
     //
     bool add(cube_p<real>&& f)
     {
-        ZI_ASSERT(current_<required_);
+        ZI_ASSERT(current_<effectively_required());
         return do_add(std::move(f));
     }
 
     cube_p<real> reset()
     {
-        ZI_ASSERT(current_==required_);
+        ZI_ASSERT(current_==effectively_required());
         current_ = 0;
         return std::move(sum_);
     }
@@ -91,6 +119,11 @@ public:
     size_t required() const
     {
         return required_;
+    }
+
+    size_t effectively_required() const
+    {
+        return required_ - disabled_;
     }
 
 };
