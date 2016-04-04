@@ -398,6 +398,46 @@ inline cube_p<T> sparse_explode_slow( cube<T> const & v,
     return r;
 }
 
+template<typename T>
+inline cube_p<T> sparse_explode_x_slow( cube<T> const & v,
+                                        identity_t<T> sparse,
+                                        identity_t<T> s )
+{
+    vec3i vs = size(v);
+    vec3i ss = vs; ss[0] = s;
+
+    cube_p<T> r = get_cube<T>(ss);
+    fill(*r,0);
+
+    cube<T> & rr = *r;
+
+    for ( long_t xv = 0, rx = 0; xv < vs[0]; ++xv, rx += sparse )
+        for ( long_t yv = 0; yv < vs[1]; ++yv )
+            for ( long_t zv = 0; zv < vs[2]; ++zv )
+                rr[rx][yv][zv] = v[xv][yv][zv];
+
+    return r;
+}
+
+template<typename T>
+inline cube_p<T> sparse_implode_x_slow( cube<T> const & r,
+                                        identity_t<T> sparse,
+                                        identity_t<T> s )
+{
+    vec3i vs = size(r);
+    vs[0] = s;
+
+    cube_p<T> vp = get_cube<T>(vs);
+    cube<T> & v = *vp;
+
+    for ( long_t xv = 0, rx = 0; xv < vs[0]; ++xv, rx += sparse )
+        for ( long_t yv = 0; yv < vs[1]; ++yv )
+            for ( long_t zv = 0; zv < vs[2]; ++zv )
+                v[xv][yv][zv] = r[rx][yv][zv];
+
+    return vp;
+}
+
 
 template<typename T>
 inline cube_p<T> sparse_implode_slow( cube<T> const & r,

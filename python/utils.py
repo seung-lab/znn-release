@@ -8,6 +8,52 @@ import numpy as np
 from front_end import znetio
 import shutil
 
+
+def parseIntSet(nputstr=""):
+    """
+    Allows users to specify a comma-delimited list of number ranges as sample selections.
+    Specifically, parses a string which should contain a comma-delimited list of
+    either numerical values (e.g. 3), or a dash-separated range (e.g. 4-5).
+
+    If the ranges are redundant (e.g. 3, 3-5), only one copy of the selection will
+    be added to the result.
+
+    IGNORES ranges which don't fit the desired format (e.g. 3&5)
+
+    http://thoughtsbyclayg.blogspot.com/2008/10/parsing-list-of-numbers-in-python.html
+    """
+    if nputstr is None:
+        return None
+
+    selection = set()
+    invalid = set()
+
+    # tokens are comma seperated values
+    tokens = [x.strip() for x in nputstr.split(',')]
+
+    for i in tokens:
+       try:
+          # typically, tokens are plain old integers
+          selection.add(int(i))
+       except:
+
+          # if not, then it might be a range
+          try:
+             token = [int(k.strip()) for k in i.split('-')]
+             if len(token) > 1:
+                token.sort()
+                # we have items seperated by a dash
+                # try to build a valid range
+                first = token[0]
+                last = token[len(token)-1]
+                for x in range(first, last+1):
+                   selection.add(x)
+          except:
+             # not an int and not a range...
+             invalid.add(i)
+
+    return selection
+
 def timestamp():
     import datetime
 
@@ -274,7 +320,7 @@ def check_dict_nan( d ):
 def inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
                grdts, malis_weights, wmsks, elapsed, it):
     # get file name
-    filename, filename_current = znetio.get_net_fname( pars['train_save_net'], it )
+    filename, filename_current = znetio.get_net_fname( pars['train_net_prefix'], it )
     # save network
     znetio.save_network(net, filename, pars['is_stdio'] )
     if lc is not None:
@@ -293,7 +339,7 @@ def inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
         if pars['is_malis'] and pars['is_stdio']:
             for key, val in malis_weights.iteritems():
                 h5write( filename, stdpre + "malis_weights/", val )
-        if pars['is_rebalance'] or pars['is_patch_rebalance']:
+        if pars['rebalance_mode']:
             for key, val in wmsks.iteritems():
                 h5write( filename, stdpre + "weights/", val )
 

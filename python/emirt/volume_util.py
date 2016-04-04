@@ -160,7 +160,7 @@ def bdm2aff( bdm, Dim = 2 ):
     for z in xrange( bdm.shape[0] ):
         for y in xrange( bdm.shape[1] ):
             for x in xrange( 1, bdm.shape[2] ):
-                affs[2,z,y,x] = min( bdm[z,y,x], bdm[z, y,   x-1] )
+                affs[0,z,y,x] = min( bdm[z,y,x], bdm[z, y,   x-1] )
 
     return affs
 
@@ -186,9 +186,9 @@ def aff2seg( affs, threshold=0.5 ):
     assert affs.ndim==4
 
     # get affinity graphs, copy the array to avoid changing of raw affinity graph
-    xaff = np.copy( affs[2,:,:,:] )
+    xaff = np.copy( affs[0,:,:,:] )
     yaff = np.copy( affs[1,:,:,:] )
-    zaff = np.copy( affs[0,:,:,:] )
+    zaff = np.copy( affs[2,:,:,:] )
 
     # initialize segmentation with individual label of each voxel
     vids = np.arange(xaff.size).reshape( xaff.shape )
@@ -266,7 +266,7 @@ def seg2aff( lbl, affs_dtype='float32' ):
         for y in xrange( affs.shape[2] ):
             for x in xrange( affs.shape[3] ):
                 if (lbl[z,y,x]==lbl[z-1,y,x]) and lbl[z,y,x]>0 :
-                    affs[0,z,y,x] = 1.0
+                    affs[2,z,y,x] = 1.0
 
     # y affinity
     for z in xrange( affs.shape[1] ):
@@ -280,7 +280,7 @@ def seg2aff( lbl, affs_dtype='float32' ):
         for y in xrange( affs.shape[2] ):
             for x in xrange( 1, affs.shape[3] ):
                 if (lbl[z,y,x]==lbl[z,y,x-1]) and lbl[z,y,x]>0 :
-                    affs[2,z,y,x] = 1.0
+                    affs[0,z,y,x] = 1.0
 
     return affs
 

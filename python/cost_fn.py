@@ -173,7 +173,7 @@ def multinomial_cross_entropy(props, lbls, mask=None):
     grdts:  list of gradient volumes
     """
     grdts = dict()
-    err = 0
+    cost = 0
 
     #Taking a slightly different strategy with masking
     # to improve the numerical stability of the error output
@@ -191,9 +191,9 @@ def multinomial_cross_entropy(props, lbls, mask=None):
     entropy = utils.mask_dict_vol(entropy, mask)
 
     for name, vol in entropy.iteritems():
-        err += np.sum( vol )
+        cost += np.sum( vol )
 
-    return (props, err, grdts)
+    return (props, cost, grdts)
 
 def softmax_loss(props, lbls, mask=None):
     props = softmax(props)

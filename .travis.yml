@@ -1,0 +1,73 @@
+language:  python
+
+os: linux
+
+python: "2.7"
+
+before_install:
+        - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        - sudo apt-get -qq update
+        - wget http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2
+        - tar --bzip2 -xf boost_1_55_0.tar.bz2
+        - cd boost_1_55_0
+        - ./bootstrap.sh --help
+        - sudo ./bootstrap.sh --with-libraries="atomic"
+        # Way too much output, so just display the last 50 lines.
+        - sudo ./b2 install | tail -n 50
+        - cd ..
+
+        # configuration for python interface
+        # install mini anaconda
+        - wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+        - bash miniconda.sh -b -p $HOME/miniconda
+        - export PATH="$HOME/miniconda/bin:$PATH"
+        - hash -r
+        - conda config --set always_yes yes --set changeps1 no
+        - conda update -q conda
+        # Useful for debugging any issues with conda
+        - conda info -a
+        # Replace dep1 dep2 ... with your dependencies
+        - conda install python=$TRAVIS_PYTHON_VERSION numpy matplotlib h5py
+
+install:
+        - sudo apt-get install -y libfftw3-dev cmake
+        - sudo apt-get install -y python-numpy python-matplotlib python-h5py libboost-python-dev
+        - sudo apt-get install -qq g++-4.8
+        - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 50
+
+        # install Boost.Numpy for python interface
+        - cd python; git clone https://github.com/ndarray/Boost.NumPy.git
+        - cd Boost.NumPy; cmake ./
+        - make -j 8
+        - sudo make install
+        - cd ../../
+        - export LD_LIBRARY_PATH=$LD_LIBRARY:/usr/local/lib
+
+script:
+        # make znn binary
+       - make --jobs=3 --keep-going
+       - make clean
+       # make python core
+       - cd python/core/; make --jobs=3 --keep-going; cd ../../
+
+       # check patch using single precision, this check will create the net_current.h5 file for testing loading
+       - cd python
+       # test affinity training patch, network initialization, network with even field of view
+       - python train.py -c ../testsuit/affinity/config.cfg -d single -k yes
+       # test boundary map training, patch matching, network initialization
+       - python train.py -c ../testsuit/boundary/config.cfg -d single -k yes
+       # second check to test the network loading
+       - python train.py -c ../testsuit/boundary/config.cfg -d single -k yes
+       # check the double precision
+       # compile the core with double precision
+       - cd core; make double -j 4
+       # return to `python`
+       - cd ..
+       - python train.py -c ../testsuit/boundary/config.cfg -d double -k yes
+       # test forward pass
+       - python forward.py -c ../testsuit/forward/config.cfg
+       # return to root directory
+       - cd ..
+
+notifications:
+        email: false
