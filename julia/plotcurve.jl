@@ -1,9 +1,10 @@
-doc"""
-`usage`:
-julia plotcurve.jl tag1 fname1 tag2 fname2 tag3 fname3
-"""
 using EMIRT
 using PyPlot
+
+"""
+usage:
+julia plotcurve.jl tag1 fname1 tag2 fname2 tag3 fname3
+"""
 
 function parse_commandline()
     @assert length(ARGS) % 2 == 0
