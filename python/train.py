@@ -147,6 +147,11 @@ def main( args ):
             nonan = nonan and utils.check_dict_nan(wmsks)
             nonan = nonan and utils.check_dict_nan(props)
             nonan = nonan and utils.check_dict_nan(grdts)
+            if  not nonan:
+                utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
+                             grdts, malis_weights, wmsks, elapsed, i)
+                # stop training
+                return
 
         # gradient reweighting
         grdts = utils.dict_mul( grdts, msks  )
@@ -163,15 +168,12 @@ def main( args ):
             malis_cls += dmc.values()[0]
             malis_eng += dme.values()[0]
 
+        # run backward pass
+        grdts = utils.make_continuous(grdts)
+        net.backward( grdts )
+
         total_time += time.time() - start
         start = time.time()
-
-        # test the net
-        if i%pars['Num_iter_per_test']==0:
-            # time accumulation should skip the test
-            total_time += time.time() - start
-            lc = test.znn_test(net, pars, smp_tst, vn, i, lc)
-            start = time.time()
 
         if i%pars['Num_iter_per_show']==0:
             # time
@@ -216,24 +218,22 @@ def main( args ):
             total_time  = 0
             start = time.time()
 
-        if i%pars['Num_iter_per_annealing']==0:
-            # anneal factor
-            eta = eta * pars['anneal_factor']
-            net.set_eta(eta)
+        # test the net
+        if i%pars['Num_iter_per_test']==0:
+            # time accumulation should skip the test
+            total_time += time.time() - start
+            lc = test.znn_test(net, pars, smp_tst, vn, i, lc)
+            start = time.time()
 
         if i%pars['Num_iter_per_save']==0:
             utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
                              grdts, malis_weights, wmsks, elapsed, i)
 
-        if  not nonan:
-            utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
-                             grdts, malis_weights, wmsks, elapsed, i)
-            # stop training
-            return
 
-        # run backward pass
-        grdts = utils.make_continuous(grdts)
-        net.backward( grdts )
+        if i%pars['Num_iter_per_annealing']==0:
+            # anneal factor
+            eta = eta * pars['anneal_factor']
+            net.set_eta(eta)
 
         # stop the iteration at checking mode
         if pars['is_check']:
