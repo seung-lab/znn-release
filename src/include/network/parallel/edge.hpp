@@ -98,7 +98,7 @@ public:
 
         enabled_ = b;
         in_nodes->enable_out_edge(in_num,b);
-        out_nodes->enable_in_edge(out_num,b,edge::trainable());
+        out_nodes->enable_in_edge(out_num,b,trainable());
     }
 
     virtual void enable_fwd(bool b)
@@ -106,7 +106,7 @@ public:
         if ( enabled_ == b ) return;
 
         enabled_ = b;
-        out_nodes->enable_in_edge(out_num,b,edge::trainable());
+        out_nodes->enable_in_edge(out_num,b,trainable());
     }
 
     virtual void enable_bwd(bool b)
