@@ -76,6 +76,14 @@ private:
         ZI_ASSERT(enabled_);
 
         auto X = input_for_update;
+
+        // Princeton descent
+        if ( Princeton )
+        {
+            const real epsilon = 1e-5f;
+            *X /= std::sqrt(in_nodes->get_vars()[in_num] + epsilon);
+        }
+
         auto dEdW =
             deconv_ ? convolve_sparse_flipped(*g, *X, filter_stride)
                     : convolve_sparse_flipped(*X, *g, filter_stride);
