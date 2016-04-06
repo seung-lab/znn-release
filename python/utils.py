@@ -266,7 +266,7 @@ def get_total_num_mask(masks, props=None):
         if mask.size == 0 and props is not None:
             s += props[name].size
         else:
-            s += np.count_nonzero(mask)
+            s += np.count_nonzero(mask[0,:]) # mask is repeated for multiple label case
     return s
 
 
