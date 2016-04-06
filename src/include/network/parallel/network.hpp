@@ -611,7 +611,6 @@ public:
              size_t n_threads = 1,
              phase phs = phase::TRAIN )
         : tm_(n_threads)
-        , phase_(phs)
     {
         for ( auto& n: ns ) add_nodes(n);
         for ( auto& e: es ) add_edges(e);
@@ -621,6 +620,9 @@ public:
 
         // minibatch averaging
         set_patch_size(outsz);
+
+        // set phase
+        set_phase(phs);
     }
 
     void set_eta( real eta )
