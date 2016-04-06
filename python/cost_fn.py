@@ -29,8 +29,7 @@ def get_cls(props, lbls, mask=None):
 
     for name, prop in props.iteritems():
         lbl = lbls[name]
-        c += np.count_nonzero( (prop>0.5) != (lbl>0.5) )
-
+        c += np.count_nonzero( (prop[np.where(lbl>0.5)] < 0.5) )
     return c
 
 #@jit(nopython=True)
