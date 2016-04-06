@@ -81,7 +81,7 @@ private:
         if ( Princeton )
         {
             const real epsilon = 1e-5f;
-            *X /= std::sqrt(in_nodes->get_vars()[in_num] + epsilon);
+            *X /= std::sqrt(in_nodes->get_variances()[in_num] + epsilon);
         }
 
         auto dEdW =
