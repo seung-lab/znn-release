@@ -136,9 +136,9 @@ def main( args ):
         # compute rand error
         if pars['is_debug']:
             assert not np.all(lbl_outs.values()[0]==0)
-        re  += pyznn.get_rand_error( props.values()[0], lbl_outs.values()[0] )
+        #re  += pyznn.get_rand_error( props.values()[0], lbl_outs.values()[0] )
         num_mask_voxels += utils.get_total_num_mask(msks)
-
+        #print cls, num_mask_voxels
         # check whether there is a NaN here!
         if pars['is_debug']:
             nonan = nonan and utils.check_dict_nan(vol_ins)
@@ -196,8 +196,8 @@ def main( args ):
                 show_string = "update %d,    cost: %.3f, pixel error: %.3f, rand error: %.3f, me: %.3f, mc: %.3f, elapsed: %.1f s/iter, learning rate: %.4f"\
                               %(i, err, cls, re, malis_eng, malis_cls, elapsed, eta )
             else:
-                show_string = "update %d,    cost: %.3f, pixel error: %.3f, rand error: %.3f, elapsed: %.1f s/iter, learning rate: %.3f"\
-                    %(i, err, cls, re, elapsed, eta )
+                show_string = "update %d,    cost: %.3f, pixel error: %.3f, elapsed: %.1f s/iter, learning rate: %.3f"\
+                    %(i, err, cls, elapsed, eta )
 
             if pars.has_key('logging') and pars['logging']:
                 utils.write_to_log(logfile, show_string)

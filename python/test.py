@@ -20,7 +20,8 @@ def _single_test(net, pars, sample):
     # pixel classification error
     cls = cost_fn.get_cls(props, lbl_outs, msks)
     # rand error
-    re = pyznn.get_rand_error(props.values()[0], lbl_outs.values()[0])
+    # re = pyznn.get_rand_error(props.values()[0], lbl_outs.values()[0])
+    re = 0.0
 
     malis_cls = 0.0
     malis_eng = 0.0
