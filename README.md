@@ -4,6 +4,7 @@ ZNN v4
 [![Build Status](https://travis-ci.org/seung-lab/znn-release.svg?branch=master)](https://travis-ci.org/seung-lab/znn-release)
 
 **Documentation**: [http://znn-release.readthedocs.org/en/latest/index.html#](http://znn-release.readthedocs.org/en/latest/index.html#)
+**Slides**: [How to ZNN](https://docs.google.com/presentation/d/1B5g4lgnHN92fD5bkqDCAHraGZL3lz3Df6G-QiYrEWPg/edit?usp=sharing)
 
 Required libraries
 ------------------
