@@ -103,7 +103,7 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
         mynode = node_search(cl, node_name)
         if mynode is None:
             try:
-                print "add node ", node_name, " with a biding of $", spot_bid
+                print "add node ", node_name, " with a bid of $", spot_bid
                 cl.add_node( alias=node_name, spot_bid=spot_bid )
             except:
                 print "node creation failed."
