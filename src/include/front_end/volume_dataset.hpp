@@ -28,12 +28,13 @@ class volume_dataset: public dataset<T>
 {
 private:
     typedef std::map<std::string, std::pair<vec3i,size_t>>  layers_spec_t;
+    typedef std::map<std::string, vec3i>                    sample_spec_t;
     typedef std::unique_ptr<tensor_data<T>>                 tensor_data_p;
 
 private:
-    std::map<std::string, tensor_data_p>    data_ ;
-    layers_spec_t                           spec_ ;
-    box                                     range_;
+    std::map<std::string, tensor_data_p>    dataset_     ;
+    sample_spec_t                           sample_spec_ ;
+    box                                     sample_range_;
 
 public:
     box const & range() const { return range_; }
@@ -42,11 +43,13 @@ public:
 public:
     sample<T> random_sample() override
     {
+        ZI_ASSERT(!sample_spec_.empty());
         return get_sample(random_location());
     }
 
     sample<T> next_sample() override
     {
+        ZI_ASSERT(!sample_spec_.empty());
         // TODO(lee): temporary implementation
         return random_sample();
     }
@@ -54,10 +57,16 @@ public:
 public:
     sample<T> get_sample( vec3i const & loc )
     {
-        std::map<std::string, tensor<T>> ret;
+        ZI_ASSERT(!sample_spec_.empty());
 
-        for ( auto& s: spec_ )
-            ret[s.first] = data_[s.first]->get_patch(loc);
+        sample<T> ret;
+
+        for ( auto& s: sample_spec_ )
+        {
+            auto const & name = s.first;
+            ZI_ASSERT(dataset_.count(name)!=0);
+            ret[name] = dataset_[name]->get_patch(loc);
+        }
 
         return ret;
     }
@@ -79,7 +88,15 @@ private:
 public:
     void set_spec( layers_spec_t const & spec )
     {
-        spec_ = spec;
+        sample_spec_t ss;
+        for ( auto& s: spec )
+            ss[s.first] = s.second.first;
+        set_spec(ss);
+    }
+
+    void set_spec( sample_spec_t const & spec )
+    {
+        sample_spec_ = spec;
         update_range();
     }
 
@@ -88,20 +105,19 @@ private:
     {
         range_ = box(); // empty box
 
-        for ( auto& layer: spec_ )
+        for ( auto& layer: sample_spec_ )
         {
             auto const & name = layer.first;
-            auto const & dim  = layer.second.first;
-            auto const & size = layer.second.second;
+            auto const & dim  = layer.second;
 
-            ZI_ASSERT(data_[name]->size()==size);
-            ZI_ASSERT(data_[name]->size()!=0);
+            ZI_ASSERT(dataset_.count(name)!=0);
+            ZI_ASSERT(dataset_[name]->size()!=0);
 
             // update patch size
-            data_[name]->set_fov(dim);
+            dataset_[name]->set_fov(dim);
 
             // update valid range
-            box const & range = data_[name]->range();
+            box const & range = dataset_[name]->range();
             range_ = range_.empty() ? range : range_.intersect(range);
         }
     }
@@ -114,7 +130,7 @@ public:
                    vec3i const & offset = vec3i::zero )
     {
         tensor<T> t = {data};
-        add_data(targets, name, t, offset);
+        add_data(name, t, offset);
     }
 
     // tensor
@@ -122,19 +138,15 @@ public:
                    tensor<T> const & data,
                    vec3i const & offset = vec3i::zero )
     {
-        ZI_ASSERT(data_.count(name)==0);
-
-        data_[name] =
+        dataset_[name] =
             std::make_unique<tensor_data<T>>(data, vec3i::zero, offset);
-
-        ZI_ASSERT(target.size()!=0);
     }
 
 
 public:
-    volume_dataset() {}
-
+             volume_dataset() {}
     virtual ~volume_dataset() {}
-};
+
+}; // class volume_dataset
 
 }} // namespace znn::v4
