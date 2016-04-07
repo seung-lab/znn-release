@@ -4,7 +4,7 @@ ZNN
 [![Build Status](https://travis-ci.org/seung-lab/znn-release.svg?branch=master)](https://travis-ci.org/seung-lab/znn-release)
 
 Most of current deep learning implementation use GPU, but GPU has some limitations:
-* SIMD (Single Instruction Multiple Data). A single instruction decoder - all cores do same work. 
+* SIMD (Single Instruction Multiple Data). A single instruction decoder - all cores do same work.
    * divergence kills performance
 * Parallelization done per convolution(s)
     * Direct convolution, computationally expensive
@@ -13,7 +13,7 @@ Most of current deep learning implementation use GPU, but GPU has some limitatio
     * Can’t cache FFT transforms for reuse
     * limit the dense output size (few alternatives for this feature)
 
-ZNN shines when Filter sizes are large so that FFTs are used 
+ZNN shines when Filter sizes are large so that FFTs are used
 * Wide and deep networks
 * Bigger output patch
 ZNN is the only (reasonable) open source solution
@@ -25,13 +25,13 @@ Python Interface
 ----------------
 To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python` folder for further information.
 
-Supports Linux and MacOS. When using MKL fftw is not required
+Supports Linux and MacOS. When using MKL, FFTW is not required
 
 
 Resources
 ---------
-* **Documentation**: [http://znn-release.readthedocs.org/en/latest/index.html#](http://znn-release.readthedocs.org/en/latest/index.html#)
-* Slides: [**How to ZNN**](https://docs.google.com/presentation/d/1B5g4lgnHN92fD5bkqDCAHraGZL3lz3Df6G-QiYrEWPg/edit?usp=sharing)
+* [**Documentation**](http://znn-release.readthedocs.org/en/latest/index.html#)
+* [**Slides: How to ZNN**](https://docs.google.com/presentation/d/1B5g4lgnHN92fD5bkqDCAHraGZL3lz3Df6G-QiYrEWPg/edit?usp=sharing)
 
 Publications
 ------------
