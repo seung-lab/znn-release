@@ -133,7 +133,7 @@ std::shared_ptr<cube<T>> get_cube(const vec3i& s)
 }
 
 template<typename T>
-std::shared_ptr<cube<T>> get_qube(const vec4i& s)
+std::shared_ptr<qube<T>> get_qube(const vec4i& s)
 {
     void*    mem  = znn_aligned_malloc(__znn_aligned_size<qube<T>>::value
                                        + s[0]*s[1]*s[2]*s[3]*sizeof(T));
