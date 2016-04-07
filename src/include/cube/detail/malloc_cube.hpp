@@ -71,7 +71,7 @@ public:
 template <typename T> struct qube: boost::multi_array_ref<T,4>
 {
 private:
-    using base_type =  boost::multi_array_ref<T,3>;
+    using base_type =  boost::multi_array_ref<T,4>;
 
 public:
     explicit qube(const vec4i& s, T* data)
