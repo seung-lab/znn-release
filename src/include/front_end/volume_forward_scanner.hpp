@@ -27,126 +27,123 @@ template <typename T>
 class volume_forward_scanner
 {
 private:
-    typedef std::unique_ptr<volume_data<T>>     volume_p    ;
-    typedef std::unique_ptr<rw_volume_data<T>>  rw_volume_p ;
+    typedef std::unique_ptr<rw_volume_data<T>> rw_volume_p;
 
 private:
-    typedef std::vector<volume_p>               input_type      ;
-    typedef std::map<size_t,rw_volume_p>        output_type     ;
-    typedef std::pair<vec3i,size_t>             layer_size_type ;
-    typedef std::pair<vec3i,std::set<size_t>>   layer_spec_type ;
+    struct output_spec
+    {
+        vec3i               dim;
+        std::set<size_t>    range;
+    };
 
 private:
-    std::map<std::string, layer_size_type>      outputs_size_;
-
-    std::map<std::string, layer_spec_type>      layers_spec_;
-    std::vector<std::string>                    layers_name_;
-
-    // std::map<std::string, input_type>           inputs_ ;
-    std::share_ptr<volume_dataset<T>>           inputs_ ;
-    std::map<std::string, output_type>          outputs_;
+    parallel_network::network *         net_    ;
+    std::shared_ptr<volume_dataset<T>>  inputs_ ;
+    std::map<std::string, rw_volume_p>  outputs_;
+    std::map<std::string, output_spec>  spec_   ;
+    std::vector<std::string>            keys_   ;
 
     // scan parameters
-    vec3i scan_offset_;
-    vec3i scan_stride_;
-    vec3i scan_grid_  ;
+    vec3i                               scan_offset_;
+    vec3i                               scan_stride_;
+    vec3i                               scan_grid_  ;
+    std::vector<std::set<size_t>>       scan_coords_;
 
-    std::vector<std::set<size_t>> scan_coords_;
-
-    box range_;
-
-    parallel_network::network * net_;
 
 public:
     void scan()
     {
+        zi::wall_timer wt;
+
+        size_t i = 1;
+        size_t n = scan_coords_[0].size()*
+                   scan_coords_[1].size()*
+                   scan_coords_[2].size();
+
         for ( auto z: scan_coords_[0] )
             for ( auto y: scan_coords_[1] )
                 for ( auto x: scan_coords_[2] )
-                    scan(vec3i(z,y,x));
+                {
+                    std::cout << "Scanning (" << i << "/" << n << ") ...";
+                    wt.reset();
+                    {
+                        scan(vec3i(z,y,x));
+                    }
+                    auto elapsed = wt.elapsed<double>();
+                    std::cout << "done. (elapsed: " << elapsed << ")\n";
+                }
     }
 
 private:
     void scan( vec3i const & loc )
     {
-        zi::wall_timer wt;
-        std::cout << "Scanning [" << loc - min_corner() << "] ... ";
-
-        wt.reset();
-        {
-            net_->forward(pull(loc));
-            push(loc, net_->get_featuremaps(layers_name_));
-        }
-        auto elapsed = wt.elapsed<double>();
-
-        std::cout << "done. (elapsed: " << elapsed << ")\n";
-    }
-
-    // pull inputs from the specified location
-    std::map<std::string, tensor<T>> pull( vec3i const & loc )
-    {
-        auto sample = inputs_->get_sample(loc);
-        return sample.input;
+        auto ins = inputs_->get_sample(loc);
+        net_->forward(std::move(ins));
+        push(loc, net_->get_featuremaps(keys_));
     }
 
     // push outputs to the specified location
-    void push( vec3i const & loc, std::map<std::string, tensor<T>> data )
+    void push( vec3i const & loc, sample<T> data )
     {
-        for ( auto& l: layers_spec_ )
+        for ( auto& s: spec_ )
         {
-            auto& name  = l.first;
-            auto& range = l.second.second;
+            auto& name  = s.first;
+            auto& range = s.second.range;
 
-            for ( auto& v: range )
+            ZI_ASSERT(data.count(name)!=0);
+
+            for ( auto& i: range )
             {
-                ZI_ASSERT(outputs_[name].count(v)!=0);
-                outputs_[name][v]->set_patch(loc, data[name][v-1]);
+                std::string fmap = name + ":" + std::to_string(i);
+                ZI_ASSERT(outputs_.count(fmap)!=0);
+                outputs_[fmap]->set_patch(loc, data[name][i-1]);
             }
         }
     }
 
 
 public:
-    std::map<std::string, tensor<T>> outputs( bool auto_crop = true )
+    sample<T> outputs( bool auto_crop = true )
     {
         // TODO(lee): return auto-crop results
+        sample<T> ret;
+        for ( auto& o: outputs_ )
+        {
+            tensor<T> t  = {o.second->get_data()};
+            ret[o.first] = t;
+        }
+        return ret;
     }
 
-    std::map<std::string, layer_spec_type> layer_spec()
-    {
-        return layers_spec_;
-    }
 
-
-public:
-    // setup after adding inputs
+private:
     void setup()
     {
+        inputs_->set_spec(net_->inputs());
+
+        // order is important!
         setup_scan_stride();
-
-        setup_scan_coords(0); // z-coordinate
-        setup_scan_coords(1); // y-coordinate
-        setup_scan_coords(2); // x-coordinate
-
+        setup_scan_coords();
         prepare_outputs();
     }
 
-private:
+    // scan stride should be the size of intersection of all outputs
     void setup_scan_stride()
     {
-        vec3i vmin = min_corner();
-
-        box a;
-        for ( auto& o: outputs_size_ )
+        box a; // empty box
+        for ( auto& s: spec_ )
         {
-            vec3i outsz = o.second.first;
-            box b = box::centered_box(vmin, outsz);
-
-            // update output box
+            box b = box::centered_box(vec3i::zero, s.second.dim);
             a = a.empty() ? b : a.intersect(b);
         }
-
         scan_stride_ = a.size();
+    }
+
+    void setup_scan_coords()
+    {
+        setup_scan_coords(0); // z-coordinate
+        setup_scan_coords(1); // y-coordinate
+        setup_scan_coords(2); // x-coordinate
     }
 
     void setup_scan_coords( size_t dim )
@@ -157,39 +154,31 @@ private:
         ZI_ASSERT(dim < 3);
 
         // min & max corners of the scan range
-        vec3i vmin = range_.min() + scan_offset_;
-        vec3i vmax = range_.max();
+        vec3i vmin = inputs_->range().min() + scan_offset_;
+        vec3i vmax = inputs_->range().max();
 
         // min & max coordinates
         auto cmin = vmin[dim];
         auto cmax = vmax[dim];
 
         // dimension-specific parameters
-        auto& offset = scan_offset_[dim];
-        auto& stride = scan_stride_[dim];
-        auto& grid   = scan_grid_[dim];
-        auto& coords = scan_coords_[dim];
-
-        // stride should be minimum output dimension
-        // (assuming outputs with different sizes)
-        std::set<size_t> out_dims;
-        for ( auto& o: outputs_size_ )
-            out_dims.insert(o.second.first[dim]);
-        stride = *out_dims.begin();
+        auto & stride = scan_stride_[dim];
+        auto & grid   = scan_grid_[dim];
+        auto & coords = scan_coords_[dim];
 
         // automatic full spanning
         if ( !grid )
         {
-            grid = (cmax - cmin)/stride;
+            grid = (cmax - cmin - 1)/stride + 1;
             coords.insert(cmax-1); // offcut
         }
 
         // scan coordinates
-        size_t coord = cmin;
         for ( size_t i = 0; i < grid; ++i  )
         {
+            size_t coord = cmin + i*stride;
+            if ( coord >= cmax ) break;
             coords.insert(coord);
-            coord += stride;
         }
 
         // sanity check
@@ -198,98 +187,76 @@ private:
 
     void prepare_outputs()
     {
-        for ( auto& l: layers_spec_ )
+        vec3i rmin;
+        rmin[0] = *(scan_coords_[0].begin());
+        rmin[1] = *(scan_coords_[1].begin());
+        rmin[2] = *(scan_coords_[2].begin());
+
+        vec3i rmax;
+        rmax[0] = *(scan_coords_[0].rbegin());
+        rmax[1] = *(scan_coords_[1].rbegin());
+        rmax[2] = *(scan_coords_[2].rbegin());
+
+        for ( auto& l: spec_ )
         {
-            vec3i outsz = l.second.first;
-            box a = box::centered_box(min_corner(), outsz);
-            box b = box::centered_box(max_corner(), outsz);
-            add_output(l.first, a+b);
+            auto const & name = l.first;
+            auto const & dim  = l.second.dim;
+
+            box a = box::centered_box(rmin, dim);
+            box b = box::centered_box(rmax, dim);
+
+            add_output(name, a+b);
         }
     }
 
     void add_output( std::string const & name, box const & bbox )
     {
-        ZI_ASSERT(layers_spec_.count(name)!=0);
-        ZI_ASSERT(outputs_.count(name)==0);
+        ZI_ASSERT(spec_.count(name)!=0);
 
-        auto patch_size = layers_spec_[name].first;
-        auto range      = layers_spec_[name].second;
+        auto const & dim   = spec_[name].dim;
+        auto const & range = spec_[name].range;
 
-        auto& output = outputs_[name];
-        for ( auto& v: range )
+        for ( auto& i: range )
         {
             auto data = get_cube<T>(bbox.size());
             fill(*data,0);
-            output[v] = std::make_unique<rw_volume_data<T>>
-                                (data, patch_size, bbox.min());
+
+            // assign unique name to each feature map
+            //  "layer_name:feature_map_number"
+            //  e.g. nconv1:1
+            std::string fmap = name + ":" + std::to_string(i);
+            outputs_[fmap] =
+                std::make_unique<rw_volume_data<T>>(data, dim, bbox.min());
         }
-
-        ZI_ASSERT(output.size()!=0);
-        ZI_ASSERT(output.size()==range.size());
-    }
-
-    vec3i min_corner() const
-    {
-        vec3i r;
-
-        r[0] = *scan_coords_[0].begin();
-        r[1] = *scan_coords_[1].begin();
-        r[2] = *scan_coords_[2].begin();
-
-        return r;
-    }
-
-    vec3i max_corner() const
-    {
-        vec3i r;
-
-        r[0] = *scan_coords_[0].rbegin();
-        r[1] = *scan_coords_[1].rbegin();
-        r[2] = *scan_coords_[2].rbegin();
-
-        return r;
     }
 
 
 private:
     void parse_spec( std::string const & fname )
     {
-        auto layers_size = net_->layers();
+        auto layers = net_->layers();
 
         std::vector<options> nodes, edges;
 
-        if ( fname.empty() )
-        {
-            for ( auto& o: outputs_size_ )
-            {
-                options op;
-                op.push("name",o.first);
-                nodes.push_back(op);
-            }
-        }
-        else
-        {
-            parse_net_file(nodes, edges, fname);
-        }
+        parse_net_file(nodes, edges, fname);
 
         for ( auto& n: nodes )
         {
             auto name  = n.require_as<std::string>("name");
             auto range = n.optional_as<std::string>("range","");
 
-            layers_name_.push_back(name);
-            layers_spec_[name].first = layers_size[name].first;
+            ZI_ASSERT(layers.count(name)!=0);
+
+            // parse range
             if ( range.empty() )
             {
-                size_t n = layers_size[name].second;
-                for ( size_t i = 1; i <= n; ++i )
-                    layers_spec_[name].second.insert(i);
+                // default range: 1-n (all nodes)
+                range = "1-" + std::to_string(layers[name].second);
             }
-            else
-            {
-                layers_spec_[name].second =
-                    parse_number_set<size_t>(range);
-            }
+
+            spec_[name].dim   = layers[name].first;
+            spec_[name].range = parse_number_set<size_t>(range);
+            keys_.push_back(name);
         }
     }
 
@@ -297,27 +264,24 @@ private:
 public:
     explicit
     volume_forward_scanner( parallel_network::network * net,
-                            std::share_ptr<volume_dataset<T>> dataset,
+                            std::shared_ptr<volume_dataset<T>> dataset,
+                            std::string const & fname,
                             vec3i const & offset = vec3i::zero,
-                            vec3i const & grid = vec3i::zero,
-                            std::string const & fname = "" )
+                            vec3i const & grid   = vec3i::zero )
         : net_(net)
         , inputs_(dataset)
-        , outputs_size_(net->outputs())
         , scan_offset_(offset)
         , scan_grid_(grid)
     {
         // TODO(lee):
-        //
         //  sanity check
-        //
-        // net->inputs()  == dataset->inputs()
-        // net->outputs() == dataset->outputs()
+        //  net->inputs() == inputs_
 
         parse_spec(fname);
+        setup();
     }
 
-    ~volume_forward_scanner() {}
+    virtual ~volume_forward_scanner() {}
 
 }; // class volume_forward_scanner
 

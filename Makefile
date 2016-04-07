@@ -1,5 +1,5 @@
 ODIR		=	./bin
-SFL			=	src/cpp/malis_test.cpp
+SFL			=	src/cpp/test_volume_forward_scanner.cpp
 CPP		 	=	g++-4.8
 ICC			= 	/opt/intel/bin/icc
 CPP_FLAGS	= 	-g
@@ -29,7 +29,5 @@ malis_debug:
 mkl: $(SFL)
 	$(ICC) -o $(ODIR)/test-mkl $(SFL) $(CPP_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(MKL_FLAGS) $(OPT_FLAGS) $(OTH_FLAGS) $(LIBS)
 
-malis: $(SFL)
-	$(CPP) -o $(ODIR)/malis $(SFL) $(CPP_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(OTH_FLAGS) $(LIBS)
 clean:
 	rm -f $(ODIR)/*

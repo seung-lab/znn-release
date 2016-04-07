@@ -59,18 +59,23 @@ int main(int argc, char** argv)
     input = mirror_boundary(*input, net.fov());
 
     // ---------------------------------------------------------------
+    // construct volume_dataset
+    // ---------------------------------------------------------------
+    volume_dataset<real> data;
+    data.add_data("input",input);
+    auto data_p = std::shared_ptr<volume_dataset<real>>(&data);
+
+    // ---------------------------------------------------------------
     // construct volume_forward_scanner
     // ---------------------------------------------------------------
     auto offset = op.optional_as<ovec3i>("scan_offset","0,0,0");
     auto grid = op.optional_as<ovec3i>("scan_grid","0,0,0");
     auto scan_spec = op.optional_as<std::string>("scan_spec","");
-    volume_forward_scanner<real> scanner(&net, offset, grid, scan_spec);
+    volume_forward_scanner<real> scanner(&net, data_p, scan_spec, offset, grid);
 
     // ---------------------------------------------------------------
     // forward scan
     // ---------------------------------------------------------------
-    scanner.add_input("input",{input});
-    scanner.setup();
     scanner.scan();
 
     // ---------------------------------------------------------------

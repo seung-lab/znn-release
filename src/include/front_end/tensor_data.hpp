@@ -65,9 +65,9 @@ public:
     void print() const
     {
         std::cout << "[tensor_data]" << "\n"
-                  << "dim: " << dim_ << "\n"
-                  << "fov: " << fov_ << "\n"
-                  << "off: " << off_ << "\n";
+                  << "dim: " << dim() << "\n"
+                  << "fov: " << fov() << "\n"
+                  << "off: " << off() << "\n"
                   << "num: " << data_.size() << std::endl;
     }
 
@@ -93,10 +93,10 @@ class rw_tensor_data: public tensor_data<T>
 public:
     void set_patch( vec3i const & pos, tensor<T> const & data )
     {
-        ZI_ASSERT(data_.size()==data.size());
+        ZI_ASSERT(this->data_.size()==data.size());
 
         for ( size_t i = 0; i < data.size(); ++i )
-            data_[i].set_patch(pos, data[i]);
+            this->data_[i].set_patch(pos, data[i]);
     }
 
 public:
