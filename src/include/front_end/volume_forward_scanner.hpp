@@ -266,26 +266,26 @@ private:
             if ( inputs.count(name) != 0 ) continue;
 
             // parse range
-            auto n = layers[name].second;
+            auto nmaps = layers[name].second;
             if ( range.empty() )
             {
                 // default range: 1-n (all nodes)
-                range = "1-" + std::to_string(n);
+                range = "1-" + std::to_string(nmaps);
             }
 
-            auto range = parse_number_set<size_t>(range);
+            auto range_set = parse_number_set<size_t>(range);
 
             // remove out-of-range indices
-            for ( auto it = range.begin(); it != range.end(); )
+            for ( auto it = range_set.begin(); it != range_set.end(); )
             {
-                if ( *it > n )
-                    it = range.erase(it);
+                if ( *it > nmaps )
+                    it = range_set.erase(it);
                 else
                     ++it;
             }
 
             spec_[name].dim   = layers[name].first;
-            spec_[name].range = range;
+            spec_[name].range = range_set;
             keys_.push_back(name);
         }
     }

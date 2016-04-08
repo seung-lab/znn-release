@@ -1,5 +1,5 @@
 ODIR		=	./bin
-SFL		=	src/cpp/training_test.cpp
+SFL		=	src/cpp/test_volume_forward_scanner.cpp
 CPP		=	g++
 ICC		= 	/opt/intel/bin/icc
 CPP_FLAGS	= 	-g
