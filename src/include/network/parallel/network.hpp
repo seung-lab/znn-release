@@ -622,6 +622,7 @@ public:
         for ( auto& key: keys )
         {
             ZI_ASSERT(nodes_.count(key)!=0);
+            if ( input_nodes_.count(key) != 0 ) continue;
             ret[key] = nodes_[key]->dnodes->get_featuremaps();
         }
 

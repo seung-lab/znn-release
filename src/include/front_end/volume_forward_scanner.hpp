@@ -51,7 +51,7 @@ private:
 
 
 public:
-    void scan()
+    sample<T> scan()
     {
         zi::wall_timer wt;
 
@@ -64,7 +64,7 @@ public:
             for ( auto y: scan_coords_[1] )
                 for ( auto x: scan_coords_[2] )
                 {
-                    std::cout << "Scanning (" << i << "/" << n << ") ...";
+                    std::cout << "Scanning (" << i++ << "/" << n << ") ...";
                     wt.reset();
                     {
                         scan(vec3i(z,y,x));
@@ -72,6 +72,8 @@ public:
                     auto elapsed = wt.elapsed<double>();
                     std::cout << "done. (elapsed: " << elapsed << ")\n";
                 }
+
+        return outputs();
     }
 
 private:
@@ -101,8 +103,6 @@ private:
         }
     }
 
-
-public:
     sample<T> outputs( bool auto_crop = true )
     {
         // TODO(lee): return auto-crop results
@@ -243,9 +243,13 @@ private:
         for ( auto& n: nodes )
         {
             auto name  = n.require_as<std::string>("name");
+            auto type  = n.optional_as<std::string>("type","");
             auto range = n.optional_as<std::string>("range","");
 
             ZI_ASSERT(layers.count(name)!=0);
+
+            // skip inputs
+            if ( type == "input" ) continue;
 
             // parse range
             if ( range.empty() )
@@ -272,6 +276,7 @@ public:
         , inputs_(dataset)
         , scan_offset_(offset)
         , scan_grid_(grid)
+        , scan_coords_(3)
     {
         // TODO(lee):
         //  sanity check

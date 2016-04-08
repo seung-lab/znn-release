@@ -20,6 +20,7 @@
 #include "dataset.hpp"
 #include "tensor_data.hpp"
 #include "box.hpp"
+#include "../initializator/uniform_init.hpp"
 
 namespace znn { namespace v4 {
 

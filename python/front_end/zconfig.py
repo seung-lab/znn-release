@@ -158,6 +158,12 @@ def parser( conf_fname ):
     #Output Patch Size
     pars['forward_outsz'] = np.asarray( [x for x in config.get('parameters', 'forward_outsz')\
                                         .split(',') ], dtype=np.int64 )
+    #Output Patch Size
+    pars['forward_offset'] = np.asarray( [x for x in config.get('parameters', 'forward_offset')\
+                                        .split(',') ], dtype=np.int64 )
+    #Output Patch Size
+    pars['forward_grid'] = np.asarray( [x for x in config.get('parameters', 'forward_grid')\
+                                        .split(',') ], dtype=np.int64 )
     #Prefix of the output files
     pars['output_prefix'] = config.get('parameters', 'output_prefix')
 

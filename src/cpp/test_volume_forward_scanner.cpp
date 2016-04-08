@@ -61,9 +61,8 @@ int main(int argc, char** argv)
     // ---------------------------------------------------------------
     // construct volume_dataset
     // ---------------------------------------------------------------
-    volume_dataset<real> data;
-    data.add_data("input",input);
-    auto data_p = std::shared_ptr<volume_dataset<real>>(&data);
+    auto data_p = std::make_shared<volume_dataset<real>>();
+    data_p->add_data("input",input);
 
     // ---------------------------------------------------------------
     // construct volume_forward_scanner
@@ -76,21 +75,24 @@ int main(int argc, char** argv)
     // ---------------------------------------------------------------
     // forward scan
     // ---------------------------------------------------------------
-    scanner.scan();
+    auto outputs = scanner.scan();
 
     // ---------------------------------------------------------------
     // save results
     // ---------------------------------------------------------------
     auto spath = op.require_as<std::string>("save_path");
-    auto outputs = scanner.outputs();
 
     zi::wall_timer wt;
     for ( auto& o: outputs )
     {
         auto& name = o.first;
-        auto oname = spath + name + ".bin";
 
         std::cout << "Writing [" << name << "]...";
+
+        std::vector<std::string> parts;
+        boost::split(parts, name, boost::is_any_of(":"));
+        auto oname = spath + parts[0] + "_" + parts[1] + ".bin";
+
         wt.reset();
         write_tensor<real,real>(oname, o.second);
         std::cout << "done. (elapsed: " << wt.elapsed<double>() << ")\n";
