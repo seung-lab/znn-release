@@ -87,6 +87,9 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 #include "cube/cube.hpp"
 #include <zi/zargs/zargs.hpp>
 
+// forward scan
+#include "front_end/volume_forward_scanner.hpp"
+
 //utils
 #include "pyznn_utils.hpp"
 
@@ -110,10 +113,7 @@ std::shared_ptr< network > CNet_Init(
     std::vector<options> edges;
     std::cout<< "parse_net file: "<<net_config_file<<std::endl;
     parse_net_file(nodes, edges, net_config_file);
-    vec3i out_sz(   reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
-                    reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
-                    reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
-					);
+    vec3i out_sz = ndarry_to_vec3i(outsz_a);
     if ( tc == 0 )
     	tc = std::thread::hardware_concurrency();
 
@@ -172,10 +172,7 @@ std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
 	std::vector<options> node_opts = pyopt_to_znnopt(node_opts_list);
 	std::vector<options> edge_opts = pyopt_to_znnopt(edge_opts_list);
 
-	vec3i out_sz(	reinterpret_cast<std::int64_t*>(outsz_a.get_data())[0],
-					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[1],
-					reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
-					);
+	vec3i out_sz = ndarry_to_vec3i(outsz_a);
 
      // force fft or optimize
     if ( force_fft )
@@ -257,7 +254,7 @@ bp::dict CNet_forward( bp::object const & self, bp::dict& ins )
 
     // run forward and get output
     auto prop = net.forward( std::move( pydict2sample<real>( ins ) ) );
-    return sample2pydict<real>( self, prop);
+    return sample2pydict<real>( self, prop );
 }
 
 //Computes the backward-pass and updates network parameters
@@ -272,6 +269,43 @@ void CNet_backward( bp::object & self, bp::dict& grdts )
 
 	// backward
     net.backward( std::move(gsample) );
+}
+
+bp::dict CNet_get_featuremaps( bp::object & self, bp::dict layers )
+{
+    // extract the class from self
+    network& net = bp::extract<network&>(self)();
+
+    std::vector<std::string> keys = extract_dict_keys(layers);
+
+    auto fmaps = net.get_featuremaps( keys );
+    return sample2pydict<real>( self, fmaps );
+}
+
+//===========================================================================
+//FORWARD SCAN
+bp::dict CNet_forward_scan( bp::object const & self,
+                            bp::dict ins,
+                            std::string const & spec,
+                            np::ndarray const & offset_a,
+                            np::ndarray const & grid_a )
+{
+    // extract the class from self
+    network* net = bp::extract<network*>(self)();
+
+    // create dataset
+    auto dataset = std::make_shared<volume_dataset<real>>();
+    auto inputs = pydict2sample<real>(ins);
+    for ( auto & i: inputs ) dataset->add_data(i.first, i.second);
+
+    // create scanner
+    auto offset = ndarry_to_vec3i(offset_a);
+    auto grid   = ndarry_to_vec3i(grid_a);
+    volume_forward_scanner<real> scanner(net, dataset, spec, offset, grid);
+
+    // scan
+    auto outputs = scanner.scan();
+    return sample2pydict<real>(self, outputs);
 }
 
 //===========================================================================
@@ -336,6 +370,7 @@ bp::dict CNet_get_outputs_setsz( bp::object const & self )
     }
     return ret;
 }
+
 //===========================================================================
 void CNet_set_phase(bp::object const & self, std::uint8_t const phs = 0)
 {
@@ -357,10 +392,12 @@ BOOST_PYTHON_MODULE(pyznn)
         .def("get_fov",     		&CNet_fov)
         .def("forward",     		&CNet_forward)
         .def("backward",			&CNet_backward)
+        .def("forward_scan",        &CNet_forward_scan)
+        .def("get_featuremaps",     &CNet_get_featuremaps)
         .def("set_eta",    		    &network::set_eta)
         .def("set_phase",           &CNet_set_phase)
         .def("set_momentum",		&network::set_momentum)
-        .def("set_weight_decay",	&network::set_weight_decay )
+        .def("set_weight_decay",	&network::set_weight_decay)
         .def("get_inputs_setsz", 	&CNet_get_inputs_setsz)
         .def("get_input_num", 		&CNet_get_input_num)
         .def("get_outputs_setsz", 	&CNet_get_outputs_setsz)

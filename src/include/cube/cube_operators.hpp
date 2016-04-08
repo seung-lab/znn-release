@@ -615,8 +615,6 @@ inline cube_p<T> mirror_boundary( cube<T> const & c,
     auto rp = get_cube<T>(vec3i(rx,ry,rz));
     cube<T>& r = *rp;
 
-    r = 0;
-
     // copy original volume
     for ( long_t x = 0; x < vx; ++x )
         for ( long_t y = 0; y < vy; ++y )
