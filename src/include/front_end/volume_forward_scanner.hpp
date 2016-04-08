@@ -105,11 +105,23 @@ private:
 
     sample<T> outputs( bool auto_crop = true )
     {
-        // TODO(lee): return auto-crop results
+        box bcrop;
+        if ( auto_crop )
+        {
+            for ( auto& o: outputs_ )
+            {
+                auto b = o.second->bbox();
+                bcrop = bcrop.empty() ? b : bcrop.intersect(b);
+            }
+        }
+
         sample<T> ret;
         for ( auto& o: outputs_ )
         {
-            tensor<T> t  = {o.second->get_data()};
+            auto vol = o.second->get_data();
+            if ( auto_crop )
+                vol = crop(*vol, bcrop.min(), bcrop.size());
+            tensor<T> t  = {vol};
             ret[o.first] = t;
         }
         return ret;
@@ -235,6 +247,7 @@ private:
     void parse_spec( std::string const & fname )
     {
         auto layers = net_->layers();
+        auto inputs = net_->inputs();
 
         std::vector<options> nodes, edges;
 
@@ -246,20 +259,33 @@ private:
             auto type  = n.optional_as<std::string>("type","");
             auto range = n.optional_as<std::string>("range","");
 
-            ZI_ASSERT(layers.count(name)!=0);
+            // skip non-existing layers
+            if ( layers.count(name) == 0 ) continue;
 
-            // skip inputs
-            if ( type == "input" ) continue;
+            // skip input layers
+            if ( inputs.count(name) != 0 ) continue;
 
             // parse range
+            auto n = layers[name].second;
             if ( range.empty() )
             {
                 // default range: 1-n (all nodes)
-                range = "1-" + std::to_string(layers[name].second);
+                range = "1-" + std::to_string(n);
+            }
+
+            auto range = parse_number_set<size_t>(range);
+
+            // remove out-of-range indices
+            for ( auto it = range.begin(); it != range.end(); )
+            {
+                if ( *it > n )
+                    it = range.erase(it);
+                else
+                    ++it;
             }
 
             spec_[name].dim   = layers[name].first;
-            spec_[name].range = parse_number_set<size_t>(range);
+            spec_[name].range = range;
             keys_.push_back(name);
         }
     }

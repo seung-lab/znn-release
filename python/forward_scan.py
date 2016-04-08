@@ -23,7 +23,7 @@ grid_optionname   = 'forward_grid'
 def save_outputs( outputs, prefix, sample ):
     for name, data in outputs.iteritems():
         parts = name.split(":")
-        emio.imsave( data[i,:,:,:], \
+        emio.imsave( data[0,:,:,:], \
             "{}_sample{}_{}_{}.tif".format(prefix, sample, parts[0], parts[1]))
 
 def main( config, sample_ids=None, scan_spec=None ):
