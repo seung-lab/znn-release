@@ -41,8 +41,14 @@ def main( config, sample_ids=None, scan_spec=None ):
 
     # options
     outsz  = params[outsz_optionname]
-    offset = params[offset_optionname]
-    grid   = params[grid_optionname]
+    offset = np.array([0,0,0],dtype=np.int64)
+    grid   = np.array([0,0,0],dtype=np.int64)
+
+    if offset_optionname in params:
+        offset = params[offset_optionname]
+
+    if grid_optionname in params:
+        grid = params[grid_optionname]
 
     for sample in sample_ids:
         print "Sample: %d" % sample
@@ -51,9 +57,6 @@ def main( config, sample_ids=None, scan_spec=None ):
                                    outsz=outsz, is_forward=True )
 
         outputs = net.forward_scan( dataset.imgs, scan_spec, offset, grid )
-
-        # TODO(lee):
-        #   softmax
 
         print "Saving Output Volume %d..." % sample
         save_outputs( outputs, params[prefix_optionname], sample )
