@@ -19,34 +19,13 @@
 
 #include "../types.hpp"
 #include "../options/types.hpp"
+#include "../utils.hpp"
 
 #include <algorithm>
 #include <string>
 #include <set>
 
 namespace znn { namespace v4 {
-
-inline vec3i minimum( vec3i const & a, vec3i const & b )
-{
-    vec3i r;
-
-    r[0] = std::min(a[0],b[0]);
-    r[1] = std::min(a[1],b[1]);
-    r[2] = std::min(a[2],b[2]);
-
-    return r;
-}
-
-inline vec3i maximum( vec3i const & a, vec3i const & b )
-{
-    vec3i r;
-
-    r[0] = std::max(a[0],b[0]);
-    r[1] = std::max(a[1],b[1]);
-    r[2] = std::max(a[2],b[2]);
-
-    return r;
-}
 
 template <typename T>
 std::set<T> parse_number_set( std::string const & s )
