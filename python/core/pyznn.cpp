@@ -39,6 +39,9 @@ Functions:
  	of gradient values, implicitly updates the parameters of the
  	network
 
+ CNet.forward_scan() - computes the forward pass given a numpy array,
+    and returns a list of feature maps specified by user
+
  CNet.get_fov() - returns a tuple which describes the field-of-view
  	of the network
 
@@ -63,7 +66,8 @@ Functions:
  	This function is also used for saving networks to disk.
 
 Jingpeng Wu <jingpeng.wu@gmail.com>
-Nicholas Turner <nturner@cs.princeton.edu>, 2015
+Nicholas Turner <nturner@cs.princeton.edu>,
+Kisuk Lee <kisuklee@mit.edu>, 2015-2016
 */
 
 //===========================================================================
@@ -86,6 +90,9 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 #include "network/parallel/network.hpp"
 #include "cube/cube.hpp"
 #include <zi/zargs/zargs.hpp>
+
+// tools
+#include "tools/forward_scan/forward_scanner.hpp"
 
 //utils
 #include "pyznn_utils.hpp"
@@ -276,6 +283,32 @@ void CNet_backward( bp::object & self, bp::dict& grdts )
 }
 
 //===========================================================================
+//FORWARD SCAN
+bp::dict CNet_forward_scan( bp::object const & self,
+                            bp::dict ins,
+                            std::string const & spec,
+                            np::ndarray const & offset_a,
+                            np::ndarray const & grid_a )
+{
+    // extract the class from self
+    network* net = bp::extract<network*>(self)();
+
+    // create dataset
+    auto dataset = std::make_shared<volume_dataset<real>>();
+    auto inputs = pydict2sample<real>(ins);
+    for ( auto & i: inputs ) dataset->add_data(i.first, i.second);
+
+    // create scanner
+    auto offset = ndarry_to_vec3i(offset_a);
+    auto grid   = ndarry_to_vec3i(grid_a);
+    volume_forward_scanner<real> scanner(net, dataset, spec, offset, grid);
+
+    // scan
+    auto outputs = scanner.scan();
+    return sample2pydict<real>(self, outputs);
+}
+
+//===========================================================================
 //NETWORK STATISTIC FUNCTIONS
 
 //Returns the field-of-view as a tuple
@@ -365,18 +398,19 @@ BOOST_PYTHON_MODULE(pyznn)
     bp::class_<network, boost::shared_ptr<network>, boost::noncopyable>("CNet",bp::no_init)
         .def("__init__", bp::make_constructor(&CNet_Init))
         .def("__init__", bp::make_constructor(&CNet_loadopts))
-        .def("get_fov",  &CNet_fov)
-        .def("forward",  &CNet_forward)
-        .def("backward", &CNet_backward)
-        .def("set_eta",                 &network::set_eta)
-        .def("set_phase",               &CNet_set_phase)
+        .def("get_fov",             &CNet_fov)
+        .def("forward",             &CNet_forward)
+        .def("backward",            &CNet_backward)
+        .def("forward_scan",        &CNet_forward_scan)
+        .def("set_eta",             &network::set_eta)
+        .def("set_phase",           &CNet_set_phase)
         .def("set_momentum",		&network::set_momentum)
         .def("set_weight_decay",	&network::set_weight_decay )
         .def("get_inputs_setsz", 	&CNet_get_inputs_setsz)
         .def("get_input_num", 		&CNet_get_input_num)
         .def("get_outputs_setsz", 	&CNet_get_outputs_setsz)
         .def("get_output_num", 		&CNet_get_output_num)
-        .def("get_opts",		&CNet_getopts)
+        .def("get_opts",            &CNet_getopts)
         ;
     def("get_rand_error", pyget_rand_error);
 }

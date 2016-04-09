@@ -234,6 +234,14 @@ def parser( conf_fname ):
                                         .split(',') ], dtype=np.int64 )
     #Prefix of the output files
     pars['output_prefix'] = config.get('parameters', 'output_prefix')
+    #Scan offset
+    if config.has_option('parameters', 'forward_offset'):
+        pars['forward_offset'] = np.asarray( [x for x in config.get('parameters', 'forward_offset')\
+                                             .split(',') ], dtype=np.int64 )
+    #Scan grid
+    if config.has_option('parameters', 'forward_grid'):
+        pars['forward_grid'] = np.asarray( [x for x in config.get('parameters', 'forward_grid')\
+                                           .split(',') ], dtype=np.int64 )
 
 
     if 'fdata_spec' in pars.keys():
