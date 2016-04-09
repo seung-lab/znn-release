@@ -27,7 +27,7 @@ def main( config, sample_ids=None, scan_spec=None ):
         sample_ids = params['forward_range']
 
     if scan_spec is None:
-        scan_spec = params['forward_net']
+        scan_spec = params['fnet_spec']
 
     # network
     net = znetio.load_network( params, train=False )
