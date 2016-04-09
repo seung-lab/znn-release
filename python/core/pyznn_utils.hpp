@@ -35,6 +35,12 @@ bp::tuple vec_to_tuple( std::vector<std::size_t> vec )
 	}
 };
 
+vec3i ndarry_to_vec3i( np::ndarray const & a )
+{
+	auto data = reinterpret_cast<std::int64_t*>(a.get_data());
+	return vec3i(data[0],data[1],data[2]);
+};
+
 //Takes a comma delimited string (from option object), and converts it into
 // a vector
 // Used to convert strings like "1,7,7" to a numeric represenstation
