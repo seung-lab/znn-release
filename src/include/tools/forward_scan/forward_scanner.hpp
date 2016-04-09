@@ -288,16 +288,21 @@ private:
             spec_[name].range = range_set;
             keys_.push_back(name);
         }
+
+        if ( !spec_.size() )
+        {
+            throw std::logic_error(HERE() + "nothing to scan");
+        }
     }
 
 
 public:
     explicit
     forward_scanner( parallel_network::network * net,
-                            std::shared_ptr<volume_dataset<T>> dataset,
-                            std::string const & fname,
-                            vec3i const & offset = vec3i::zero,
-                            vec3i const & grid   = vec3i::zero )
+                     std::shared_ptr<volume_dataset<T>> dataset,
+                     std::string const & fname,
+                     vec3i const & offset = vec3i::zero,
+                     vec3i const & grid   = vec3i::zero )
         : net_(net)
         , inputs_(dataset)
         , scan_offset_(offset)
