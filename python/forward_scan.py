@@ -6,6 +6,8 @@ ZNN Forward Scanner
 Kisuk Lee <kisuklee@mit.edu>, 2016
 """
 
+import numpy as np
+
 from front_end import *
 import utils
 
