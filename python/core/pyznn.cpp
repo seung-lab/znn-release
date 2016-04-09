@@ -301,7 +301,7 @@ bp::dict CNet_forward_scan( bp::object const & self,
     // create scanner
     auto offset = ndarry_to_vec3i(offset_a);
     auto grid   = ndarry_to_vec3i(grid_a);
-    volume_forward_scanner<real> scanner(net, dataset, spec, offset, grid);
+    forward_scanner<real> scanner(net, dataset, spec, offset, grid);
 
     // scan
     auto outputs = scanner.scan();
