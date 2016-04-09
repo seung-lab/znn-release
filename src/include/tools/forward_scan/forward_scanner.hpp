@@ -118,9 +118,10 @@ private:
         sample<T> ret;
         for ( auto& o: outputs_ )
         {
+            auto off = o.second->off();
             auto vol = o.second->get_data();
             if ( auto_crop )
-                vol = crop(*vol, bcrop.min(), bcrop.size());
+                vol = crop(*vol, bcrop.min() - off, bcrop.size());
             tensor<T> t  = {vol};
             ret[o.first] = t;
         }
