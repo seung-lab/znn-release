@@ -36,7 +36,7 @@ function plotall()
         plot(dec["thds"], dec["ri"], color=c, "s-", label=tag, linewidth=2, alpha=0.5)
         xlabel("thresholds")
         ylabel("rand index")
-        legend()
+        legend(loc=0)
         println("maximum rand index: $(maximum(dec["ri"]))")
 
         subplot(234)
