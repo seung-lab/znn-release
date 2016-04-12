@@ -379,6 +379,30 @@ inline edges::edges( nodes * in,
     }
 }
 
+// split
+inline edges::edges( nodes * in,
+                     nodes * out,
+                     options const & opts,
+                     task_manager & tm,
+                     split_tag )
+    : options_(opts)
+    , tm_(tm)
+{
+    size_t n = out->num_in_nodes();
+    edges_.resize(n);
+    waiter_.set(n);
+
+    auto offset = opts.require_as<size_t>("offset");
+    ZI_ASSERT(offset+n<=in->num_out_nodes());
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        edges_[i]
+            = std::make_unique<dummy_edge>
+            (in, i+offset, out, i, tm_);
+    }
+}
+
 // maxout
 inline edges::edges( nodes * in,
                      nodes * out,

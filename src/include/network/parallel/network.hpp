@@ -425,6 +425,11 @@ private:
                 e.second->dedges = std::make_unique<edges>
                     ( in, out, *opts, tm_, edges::concat_tag() );
             }
+            else if ( type == "split" )
+            {
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, tm_, edges::split_tag() );
+            }
             else if ( type == "maxout")
             {
                 // sanity check
@@ -578,6 +583,9 @@ private:
             es->crop    = true;
         }
         else if ( type == "concat" )
+        {
+        }
+        else if ( type == "split" )
         {
         }
         else if ( type == "maxout" )
