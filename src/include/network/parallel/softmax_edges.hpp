@@ -48,7 +48,7 @@ public:
             accum_.dec();
         }
 
-        void add_to_the_sum(cube_p<real>&& f)
+        void forward(cube_p<real>&& f)
         {
             if ( accum_.add(std::move(f)) )
             {
@@ -57,7 +57,21 @@ public:
                 {
                     if ( e )
                         tm_.schedule(e->fwd_priority(),
-                                    [e,sum](){e->shoot(sum);});
+                                    [e,sum](){e->do_forward(sum);});
+                }
+            }
+        }
+
+        void backward(cube_p<real>&& g)
+        {
+            if ( accum_.add(std::move(g)) )
+            {
+                auto sum = accum_.reset();
+                for ( auto & e: edges_ )
+                {
+                    if ( e )
+                        tm_.schedule(e->bwd_priority(),
+                                    [e,sum](){e->do_backward(sum);});
                 }
             }
         }
@@ -74,18 +88,29 @@ public:
 
 
 private:
-    std::shared_ptr<layer> layer_data;
-    cube_p<real>           last_input = nullptr;
+    std::shared_ptr<layer>  layer_data;
+    cube_p<real>            last_f = nullptr;
+    cube_p<real>            last_g = nullptr;
+    bool                    fwd_only = false;
 
-public:
-    void shoot( ccube_p<real> const & sum )
+private:
+    void do_forward( ccube_p<real> const & sum )
     {
         ZI_ASSERT(enabled_);
-        *last_input /= *sum;
-        out_nodes->forward(out_num,get_copy(*last_input));
+        *last_f /= *sum;
+        out_nodes->forward(out_num,get_copy(*last_f));
+    }
+
+    void do_backward( ccube_p<real> const & sum )
+    {
+        ZI_ASSERT(enabled_);
+        auto g = *last_g - *sum;
+        *g *= *last_f;
+        in_nodes->backward(in_num,std::move(g));
     }
 
     friend class layer;
+
 
 public:
     softmax_edge( nodes * in,
@@ -93,9 +118,11 @@ public:
                   nodes * out,
                   size_t outn,
                   task_manager & tm,
-                  std::shared_ptr<layer> const & layer )
+                  std::shared_ptr<layer> const & layer,
+                  bool fwd )
         : edge(in,inn,out,outn,tm)
         , layer_data(layer)
+        , fwd_only(fwd)
     {
         ZI_ASSERT(inn==outn);
         in->attach_out_edge(inn,this);
@@ -107,55 +134,66 @@ public:
     {
         if ( !enabled_ ) return;
 
-        last_input = exp(*f);
-        layer_data->add_to_the_sum(get_copy(*last_input));
+        last_f = exp(*f);
+        layer_data->forward(get_copy(*last_f));
     }
 
     void backward( ccube_p<real> const & g ) override
     {
         if ( !enabled_ ) return;
+
+        if ( fwd_only )
+        {
+            in_nodes->backward(in_num,copy(*g));
+        }
+        else
+        {
+            last_g = g;
+            layer_data->backward(*last_f * *g);
+        }
     }
 
-    void enable(bool b) override
+private:
+    void enable_layer(bool b)
     {
         if ( enabled_ == b ) return;
-
-        edge::enable(b);
 
         if ( enabled_ )
             layer_data->attach(in_num,this);
         else
             layer_data->detach(in_num);
+    }
+
+public:
+    void enable(bool b) override
+    {
+        if ( enabled_ == b ) return;
+
+        enable_layer(b);
+        edge::enable(b);
     }
 
     void enable_fwd(bool b) override
     {
         if ( enabled_ == b ) return;
 
+        enable_layer(b);
         edge::enable_fwd(b);
-
-        if ( enabled_ )
-            layer_data->attach(in_num,this);
-        else
-            layer_data->detach(in_num);
     }
 
     void enable_bwd(bool b) override
     {
         if ( enabled_ == b ) return;
 
+        enable_layer(b);
         edge::enable_bwd(b);
-
-        if ( enabled_ )
-            layer_data->attach(in_num,this);
-        else
-            layer_data->detach(in_num);
     }
 
     void zap(edges* e) override
     {
         e->edge_zapped();
     }
+
 };
 
 }}} // namespace znn::v4::parallel_network

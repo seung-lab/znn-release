@@ -214,12 +214,14 @@ inline edges::edges( nodes * in,
     edges_.resize(n);
     waiter_.set(n);
 
+    auto fwd = opts.optional_as<bool>("fwd",false);
+
     auto layer = std::make_shared<softmax_edge::layer>(n,tm);
 
     for ( size_t i = 0; i < n; ++i )
     {
         edges_[i] = std::make_unique<softmax_edge>
-            (in, i, out, i, tm, layer);
+            (in, i, out, i, tm, layer, fwd);
     }
 }
 
