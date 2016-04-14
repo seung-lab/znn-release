@@ -88,7 +88,7 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 #include <zi/zargs/zargs.hpp>
 
 // forward scan
-#include "front_end/volume_forward_scanner.hpp"
+#include "front_end/forward_scanner.hpp"
 
 //utils
 #include "pyznn_utils.hpp"
@@ -301,7 +301,7 @@ bp::dict CNet_forward_scan( bp::object const & self,
     // create scanner
     auto offset = ndarry_to_vec3i(offset_a);
     auto grid   = ndarry_to_vec3i(grid_a);
-    volume_forward_scanner<real> scanner(net, dataset, spec, offset, grid);
+    forward_scanner<real> scanner(net, dataset, spec, offset, grid);
 
     // scan
     auto outputs = scanner.scan();

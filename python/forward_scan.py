@@ -13,13 +13,6 @@ import utils
 
 from emirt import emio
 
-# CONSTANTS - configuration file option names
-prefix_optionname = 'output_prefix'
-range_optionname  = 'forward_range'
-outsz_optionname  = 'forward_outsz'
-offset_optionname = 'forward_offset'
-grid_optionname   = 'forward_grid'
-
 def save_outputs( outputs, prefix, sample ):
     for name, data in outputs.iteritems():
         parts = name.split(":")
@@ -31,24 +24,24 @@ def main( config, sample_ids=None, scan_spec=None ):
     config, params = zconfig.parser(config)
 
     if sample_ids is None:
-        sample_ids = params[range_optionname]
+        sample_ids = params['forward_range']
 
     if scan_spec is None:
-        scan_spec = ""
+        scan_spec = params['fnet_spec']
 
     # network
     net = znetio.load_network( params, train=False )
 
     # options
-    outsz  = params[outsz_optionname]
+    outsz  = params['forward_outsz']
     offset = np.array([0,0,0],dtype=np.int64)
     grid   = np.array([0,0,0],dtype=np.int64)
 
-    if offset_optionname in params:
-        offset = params[offset_optionname]
+    if 'forward_offset' in params:
+        offset = params['forward_offset']
 
-    if grid_optionname in params:
-        grid = params[grid_optionname]
+    if 'forward_grid' in params:
+        grid = params['forward_grid']
 
     for sample in sample_ids:
         print "Sample: %d" % sample
@@ -59,7 +52,7 @@ def main( config, sample_ids=None, scan_spec=None ):
         outputs = net.forward_scan( dataset.imgs, scan_spec, offset, grid )
 
         print "Saving Output Volume %d..." % sample
-        save_outputs( outputs, params[prefix_optionname], sample )
+        save_outputs( outputs, params['output_prefix'], sample )
 
 if __name__ == '__main__':
     """
