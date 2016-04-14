@@ -87,6 +87,7 @@ public:
         : edge(in,inn,out,outn,tm)
         , ratio_(p)
         , phase_(phs)
+        , force_(force)
     {
         insize = in->fsize();
 
