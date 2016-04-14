@@ -134,7 +134,7 @@ def softmax(props):
 
     return ret
 
-def multinomial_cross_entropy(props, lbls, mask=None):
+def multinomial_cross_entropy(props, lbls):
     """
     compute multinomial cross entropy
 
