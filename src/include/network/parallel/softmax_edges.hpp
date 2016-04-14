@@ -144,7 +144,7 @@ public:
 
         if ( fwd_only )
         {
-            in_nodes->backward(in_num,copy(*g));
+            in_nodes->backward(in_num,get_copy(*g));
         }
         else
         {
