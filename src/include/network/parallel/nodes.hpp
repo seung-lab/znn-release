@@ -250,5 +250,4 @@ public:
 
 };
 
-
 }}} // namespace znn::v4::parallel_network
