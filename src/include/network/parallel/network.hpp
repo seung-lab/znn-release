@@ -453,6 +453,11 @@ private:
                 e.second->dedges = std::make_unique<edges>
                     ( in, out, *opts, tm_, edges::scale_tag() );
             }
+            else if ( type == "softmax" )
+            {
+                e.second->dedges = std::make_unique<softmax_edges>
+                    ( in, out, *opts, tm_, edges::softmax_tag() );
+            }
             else if ( type == "dummy" )
             {
                 e.second->dedges = std::make_unique<edges>
