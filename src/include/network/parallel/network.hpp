@@ -607,6 +607,9 @@ private:
         else if ( type == "scale" )
         {
         }
+        else if ( type == "softmax" )
+        {
+        }
         else if ( type == "dummy" )
         {
         }
