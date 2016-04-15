@@ -108,11 +108,14 @@ private:
         box bcrop;
         if ( auto_crop )
         {
-            for ( auto& o: outputs_ )
-            {
-                auto b = o.second->bbox();
-                bcrop = bcrop.empty() ? b : bcrop.intersect(b);
-            }
+            // for ( auto& o: outputs_ )
+            // {
+            //     auto b = o.second->bbox();
+            //     bcrop = bcrop.empty() ? b : bcrop.intersect(b);
+            // }
+            box a = box::centered_box(min_coord(), scan_stride_);
+            box b = box::centered_box(max_coord(), scan_stride_);
+            bcrop = a + b;
         }
 
         sample<T> ret;
@@ -143,10 +146,12 @@ private:
     // scan stride should be the size of intersection of all outputs
     void setup_scan_stride()
     {
+        auto outputs = net_->outputs();
+
         box a; // empty box
-        for ( auto& s: spec_ )
+        for ( auto& o: outputs )
         {
-            box b = box::centered_box(vec3i::zero, s.second.dim);
+            box b = box::centered_box(vec3i::zero, o.second.first);
             a = a.empty() ? b : a.intersect(b);
         }
         scan_stride_ = a.size();
@@ -169,6 +174,7 @@ private:
         // min & max corners of the scan range
         vec3i vmin = inputs_->range().min() + scan_offset_;
         vec3i vmax = inputs_->range().max();
+        ZI_ASSERT(minimum(vmin,vmax)==vmin&&vmin!=vmax);
 
         // min & max coordinates
         auto cmin = vmin[dim];
@@ -200,15 +206,8 @@ private:
 
     void prepare_outputs()
     {
-        vec3i rmin;
-        rmin[0] = *(scan_coords_[0].begin());
-        rmin[1] = *(scan_coords_[1].begin());
-        rmin[2] = *(scan_coords_[2].begin());
-
-        vec3i rmax;
-        rmax[0] = *(scan_coords_[0].rbegin());
-        rmax[1] = *(scan_coords_[1].rbegin());
-        rmax[2] = *(scan_coords_[2].rbegin());
+        vec3i rmin = min_coord();
+        vec3i rmax = max_coord();
 
         for ( auto& l: spec_ )
         {
@@ -241,6 +240,37 @@ private:
             outputs_[fmap] =
                 std::make_unique<rw_volume_data<T>>(data, dim, bbox.min());
         }
+    }
+
+private:
+    vec3i min_coord() const
+    {
+        ZI_ASSERT(scan_coords_[0].size());
+        ZI_ASSERT(scan_coords_[1].size());
+        ZI_ASSERT(scan_coords_[2].size());
+
+        vec3i ret = vec3i::zero;
+
+        ret[0] = *(scan_coords_[0].begin());
+        ret[1] = *(scan_coords_[1].begin());
+        ret[2] = *(scan_coords_[2].begin());
+
+        return ret;
+    }
+
+    vec3i max_coord() const
+    {
+        ZI_ASSERT(scan_coords_[0].size());
+        ZI_ASSERT(scan_coords_[1].size());
+        ZI_ASSERT(scan_coords_[2].size());
+
+        vec3i ret = vec3i::zero;
+
+        ret[0] = *(scan_coords_[0].rbegin());
+        ret[1] = *(scan_coords_[1].rbegin());
+        ret[2] = *(scan_coords_[2].rbegin());
+
+        return ret;
     }
 
 
