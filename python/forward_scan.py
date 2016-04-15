@@ -13,6 +13,8 @@ import utils
 
 from emirt import emio
 
+import numpy as np
+
 def save_outputs( outputs, prefix, sample ):
     for name, data in outputs.iteritems():
         parts = name.split(":")
