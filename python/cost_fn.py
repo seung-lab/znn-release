@@ -163,6 +163,38 @@ def softmax_loss(props, lbls):
     props = softmax(props)
     return multinomial_cross_entropy(props, lbls)
 
+def softmax_loss2(props, lbls):
+    costs = dict()
+    grdts = dict()
+
+    for name, prop in props.iteritems():
+        # make sure that it is the output of binary class
+        assert(prop.shape[0]==2)
+
+        # print "original prop: ", prop
+
+        # rebase the prop for numerical stability
+        # mathimatically, this do not affect the softmax result!
+        # http://ufldl.stanford.edu/tutorial/supervised/SoftmaxRegression/
+        # prop = prop - np.max(prop)
+        propmax = np.max(prop, axis=0)
+        prop[0,:,:,:] -= propmax
+        prop[1,:,:,:] -= propmax
+
+        log_softmax = np.empty(prop.shape, dtype=prop.dtype)
+        log_softmax[0,:,:,:] = prop[0,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
+        log_softmax[1,:,:,:] = prop[1,:,:,:] - np.logaddexp( prop[0,:,:,:], prop[1,:,:,:] )
+        prop = np.exp(log_softmax)
+        props[name] = prop
+
+        lbl = lbls[name]
+        costs[name] = -lbl * log_softmax
+        grdts[name] = prop - lbl
+        # print "gradient: ", grdts[name]
+        assert(not np.any(np.isnan(grdts[name])))
+
+    return (props, costs, grdts)
+
 def log_softmax_loss(props, lbls):
     costs = dict()
     grdts = dict()
@@ -194,6 +226,7 @@ def log_softmax_loss(props, lbls):
         assert(not np.any(np.isnan(grdts[name])))
 
     return (props, costs, grdts)
+
 
 #def hinge_loss(props, lbls):
 # TO-DO
@@ -533,14 +566,16 @@ def malis_weight(pars, props, lbls):
 
 #     return (new_props, new_lbls, new_msks, new_wmsks)
 
-def softmax_affinity( keys, lbls, msks, wmsks ):
+def softmax_affinity( props, lbls, msks, wmsks ):
     """
     softmax-based affinity representation
     """
+    new_props = dict()
     new_lbls  = dict()
     new_msks  = dict()
     new_wmsks = dict()
 
+    prop = props['output']
     lbl  = lbls['output']
     msk  = msks['output']
     wmsk = wmsks['output']
@@ -549,9 +584,11 @@ def softmax_affinity( keys, lbls, msks, wmsks ):
     pwmsk = wmsk * lbl
     nwmsk = wmsk * lbli
 
-    idx = 0
+    names = ['zaff','yaff','xaff']:
+    for idx in xrange(3):
+        # prop
+        new_prop = np.concatenate((prop[np.newaxis,idx,...],prop[np.newaxis,idx+3,...]))
 
-    for name in keys:
         # label
         new_lbl = np.concatenate((lbl[np.newaxis,idx,...],lbli[np.newaxis,idx,...]))
 
@@ -567,10 +604,25 @@ def softmax_affinity( keys, lbls, msks, wmsks ):
         else:
             new_wmsk = np.concatenate((pwmsk[np.newaxis,idx,...],nwmsk[np.newaxis,idx,...]))
 
-        new_lbls[name]  = new_lbl
-        new_msks[name]  = new_msk
-        new_wmsks[name] = new_wmsk
+        new_props[names[idx]] = new_prop
+        new_lbls[names[idx]]  = new_lbl
+        new_msks[names[idx]]  = new_msk
+        new_wmsks[names[idx]] = new_wmsk
 
-        idx = idx + 1
+    return (new_props, new_lbls, new_msks, new_wmsks)
 
-    return (new_lbls, new_msks, new_wmsks)
+def revert_softmax_affinity_gradient( grdts ):
+    """
+    softmax-based affinity representation
+    """
+    t = ()
+    t = t + (grdts['zaff'][np.newaxis,0,...],)
+    t = t + (grdts['yaff'][np.newaxis,0,...],)
+    t = t + (grdts['xaff'][np.newaxis,0,...],)
+    t = t + (grdts['zaff'][np.newaxis,1,...],)
+    t = t + (grdts['yaff'][np.newaxis,1,...],)
+    t = t + (grdts['xaff'][np.newaxis,1,...],)
+
+    new_grdts['output'] = np.concatenate(t)
+
+    return new_grdts
