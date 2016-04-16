@@ -557,7 +557,7 @@ def malis_weight(pars, props, lbls):
 #         if np.size(wmsk) == 0:
 #             new_wmsk = wmsk
 #         else:
-#             new_wmsk = np.concatenate((wmsk*lbl,wmsk*lbli))
+#             new_wmsk = np.concatenate((wmsk,wmsk))
 
 #         new_props[name] = new_prop
 #         new_lbls[name]  = new_lbl
@@ -581,8 +581,6 @@ def softmax_affinity( props, lbls, msks, wmsks ):
     wmsk = wmsks['output']
 
     lbli  = 1 - lbl
-    pwmsk = wmsk * lbl
-    nwmsk = wmsk * lbli
 
     names = ['zaff','yaff','xaff']
     for idx in xrange(3):
@@ -602,7 +600,7 @@ def softmax_affinity( props, lbls, msks, wmsks ):
         if np.size(wmsk) == 0:
             new_wmsk = wmsk
         else:
-            new_wmsk = np.concatenate((pwmsk[np.newaxis,idx,...],nwmsk[np.newaxis,idx,...]))
+            new_wmsk = np.concatenate((wmsk[np.newaxis,idx,...],wmsk[np.newaxis,idx,...]))
 
         new_props[names[idx]] = new_prop
         new_lbls[names[idx]]  = new_lbl
