@@ -474,3 +474,61 @@ def malis_weight(pars, props, lbls):
 
     return (malis_weights, rand_errors)
 
+def softmax_affinity( props, lbls, msks, wmsks ):
+    """
+    softmax-based affinity representation
+    """
+    new_props = dict()
+    new_lbls  = dict()
+    new_msks  = dict()
+    new_wmsks = dict()
+
+    for name, prop in props.iteritems():
+
+        lbl  = lbls[name]
+        msk  = msks[name]
+        wmsk = wmsks[name]
+
+        # apply softmax
+        assert(prop.shape[0]==6)
+        d = dict()
+        d['z'] = np.concatenate((prop[np.newaxis,0,...],prop[np.newaxis,3,...]))
+        d['y'] = np.concatenate((prop[np.newaxis,1,...],prop[np.newaxis,4,...]))
+        d['x'] = np.concatenate((prop[np.newaxis,2,...],prop[np.newaxis,5,...]))
+        d = softmax(d)
+
+        # rearrange
+        t = ()
+        t = t + (d['z'][np.newaxis,0,...],)
+        t = t + (d['y'][np.newaxis,0,...],)
+        t = t + (d['x'][np.newaxis,0,...],)
+        t = t + (d['z'][np.newaxis,1,...],)
+        t = t + (d['y'][np.newaxis,1,...],)
+        t = t + (d['x'][np.newaxis,1,...],)
+        new_prop = np.concatenate(t)
+
+        # label
+        lbli = 1 - lbl
+        if np.size(lbl) == 0:
+            new_lbl = lbl
+        else:
+            new_lbl = np.concatenate((lbl,lbli))
+
+        # mask
+        if np.size(msk) == 0:
+            new_msk = msk
+        else:
+            new_msk = np.concatenate((msk,msk))
+
+        # weight mask
+        if np.size(wmsk) == 0:
+            new_wmsk = wmsk
+        else:
+            new_wmsk = np.concatenate((wmsk*lbl,wmsk*lbli))
+
+        new_props[name] = new_prop
+        new_lbls[name]  = new_lbl
+        new_msks[name]  = new_msk
+        new_wmsks[name] = new_wmsk
+
+    return (new_props, new_lbls, new_msks, new_wmsks)

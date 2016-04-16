@@ -248,7 +248,7 @@ public:
     {
         ZI_ASSERT(n<nodes::size());
         size_t s = b ? fwd_accumulators_[n]->grow(1)
-                     : fwd_accumulators_[n]->shirink(1);
+                     : fwd_accumulators_[n]->shrink(1);
         if ( !s ) disable_fwd(n);
     }
 

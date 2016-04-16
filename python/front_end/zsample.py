@@ -380,7 +380,7 @@ class CAffinitySample(CSample):
             submsks[key]  = self._msk2affmsk( submsks[key] )
 
         # affinity map rebalance
-        subwmsks = self._rebalance_aff(  subtaffs )
+        subwmsks = self._rebalance_aff( subtaffs )
 
         return subimgs, subtaffs, submsks, subwmsks
 

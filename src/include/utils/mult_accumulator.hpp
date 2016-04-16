@@ -64,7 +64,7 @@ public:
         return required_;
     }
 
-    size_t shirink(size_t n = 1)
+    size_t shrink(size_t n = 1)
     {
         ZI_ASSERT(current_==0);
         ZI_ASSERT(n<=required_);

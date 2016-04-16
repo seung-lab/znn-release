@@ -87,16 +87,16 @@ def main( conf_file='config.cfg', logfile=None ):
 
     for i in xrange(iter_last+1, pars['Max_iter']+1):
         # get random sub volume from sample
-        vol_ins, lbl_outs, msks, wmsks = smp_trn.get_random_sample()
+        imgs, lbls, msks, wmsks = smp_trn.get_random_sample()
 
         # forward pass
         # apply the transformations in memory rather than array view
-        vol_ins = utils.make_continuous(vol_ins, dtype=pars['dtype'])
-        props = net.forward(vol_ins)
+        imgs  = utils.make_continuous(imgs, dtype=pars['dtype'])
+        props = net.forward(imgs)
 
         # cost, gradient, classification error
-        props, costs, grdts = pars['cost_fn']( props, lbl_outs )
-        cerrs = cost_fn.get_cls( props, lbl_outs )
+        props, costs, grdts = pars['cost_fn']( props, lbls )
+        cerrs = cost_fn.get_cls( props, lbls )
 
         # apply masks
         costs = utils.dict_mul( costs, msks )
@@ -114,11 +114,11 @@ def main( conf_file='config.cfg', logfile=None ):
         num_mask_voxels += utils.sum_over_dict(msks)
 
         if pars['is_malis'] :
-            malis_weights, rand_errors = cost_fn.malis_weight(pars, props, lbl_outs)
+            malis_weights, rand_errors = cost_fn.malis_weight(pars, props, lbls)
             grdts = utils.dict_mul(grdts, malis_weights)
             # accumulate the rand error
             re += rand_errors.values()[0]
-            malis_cls_dict = utils.get_malis_cls(props, lbl_outs, malis_weights)
+            malis_cls_dict = utils.get_malis_cls(props, lbls, malis_weights)
             malis_cls += malis_cls_dict.values()[0]
 
         # run backward pass
