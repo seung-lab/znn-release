@@ -95,7 +95,8 @@ def main( conf_file='config.cfg', logfile=None ):
         props,lbls,msks,wmsks = cost_fn.softmax_affinity(props,lbls,msks,wmsks)
 
         # cost, gradient, classification error
-        props, costs, grdts = cost_fn.log_softmax_loss( props, lbls )
+        # props, costs, grdts = cost_fn.log_softmax_loss( props, lbls )
+        props, costs, grdts = cost_fn.multinomial_cross_entropy( props, lbls )
         cerrs = cost_fn.get_cls( props, lbls )
 
         # apply masks
@@ -114,7 +115,7 @@ def main( conf_file='config.cfg', logfile=None ):
         num_mask_voxels += utils.sum_over_dict(msks)
 
         # run backward pass
-        grdts = cost_fn.revert_softmax_affinity_gradient( grdts )
+        # grdts = cost_fn.revert_softmax_affinity_gradient( grdts )
         grdts = utils.make_continuous(grdts, dtype=pars['dtype'])
         net.backward( grdts )
 
