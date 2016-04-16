@@ -95,7 +95,7 @@ def main( conf_file='config.cfg', logfile=None ):
         props,lbls,msks,wmsks = cost_fn.softmax_affinity(props,lbls,msks,wmsks)
 
         # cost, gradient, classification error
-        props, costs, grdts = cont_fn.log_softmax_loss( props, lbls )
+        props, costs, grdts = cost_fn.log_softmax_loss( props, lbls )
         cerrs = cost_fn.get_cls( props, lbls )
 
         # apply masks
