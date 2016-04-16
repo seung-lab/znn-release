@@ -92,10 +92,10 @@ def main( conf_file='config.cfg', logfile=None ):
         props = net.forward(imgs)
 
         # convert to softmax affinity
-        props,lbls,msks,wmsks = cost_fn.softmax_affinity(props,lbls,msks,wmsks)
+        lbls,msks,wmsks = cost_fn.softmax_affinity(props.keys(),lbls,msks,wmsks)
 
         # cost, gradient, classification error
-        props, costs, grdts = pars['cost_fn']( props, lbls )
+        props, costs, grdts = cont_fn.log_softmax_loss( props, lbls )
         cerrs = cost_fn.get_cls( props, lbls )
 
         # apply masks
