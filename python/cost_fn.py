@@ -584,7 +584,7 @@ def softmax_affinity( props, lbls, msks, wmsks ):
     pwmsk = wmsk * lbl
     nwmsk = wmsk * lbli
 
-    names = ['zaff','yaff','xaff']:
+    names = ['zaff','yaff','xaff']
     for idx in xrange(3):
         # prop
         new_prop = np.concatenate((prop[np.newaxis,idx,...],prop[np.newaxis,idx+3,...]))
