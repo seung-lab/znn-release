@@ -623,6 +623,7 @@ def revert_softmax_affinity_gradient( grdts ):
     t = t + (grdts['yaff'][np.newaxis,1,...],)
     t = t + (grdts['xaff'][np.newaxis,1,...],)
 
+    new_grdts = dict()
     new_grdts['output'] = np.concatenate(t)
 
     return new_grdts
