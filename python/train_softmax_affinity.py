@@ -136,6 +136,9 @@ def main( conf_file='config.cfg', logfile=None ):
             # time
             elapsed = total_time / pars['Num_iter_per_show']
 
+            show_string = "iteration %d,    err: %.3f, cls: %.3f, elapsed: %.1f s/iter, learning rate: %.6f"\
+                    %(i, err, cls, elapsed, eta )
+
             if pars.has_key('logging') and pars['logging']:
                 utils.write_to_log(logfile, show_string)
             print show_string
