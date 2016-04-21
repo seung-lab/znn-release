@@ -37,6 +37,7 @@ private:
     std::vector<std::unique_ptr<backward_accumulator>> bwd_accumulators_;
 
     std::vector<cube_p<real>>    fs_      ;
+    std::vector<cube_p<real>>    gs_      ;
     std::vector<int>             fwd_done_;
     waiter                       waiter_  ;
 
@@ -54,6 +55,7 @@ public:
         , fwd_accumulators_(s)
         , bwd_accumulators_(s)
         , fs_(s)
+        , gs_(s)
         , fwd_done_(s)
         , waiter_(s)
     {
@@ -81,7 +83,18 @@ public:
 
     std::vector<cube_p<real>>& get_featuremaps() override
     {
+        for ( size_t i = 0; i < nodes::size(); ++i )
+            if( !enabled_[i] ) fs_[i] = nullptr;
+
         return fs_;
+    }
+
+    std::vector<cube_p<real>>& get_gradientmaps() override
+    {
+        for ( size_t i = 0; i < nodes::size(); ++i )
+            if( !enabled_[i] ) gs_[i] = nullptr;
+
+        return gs_;
     }
 
 private:
@@ -120,6 +133,7 @@ private:
     {
         ZI_ASSERT(enabled_[n]);
 
+        gs_[n] = g;
         //STRONG_ASSERT(fwd_done_[n]);
         fwd_done_[n] = false;
 
@@ -181,6 +195,7 @@ protected:
 
         // reset feature map
         fs_[n].reset();
+        gs_[n].reset();
 
         enabled_[n] = false;
         if ( nodes::is_output() )
@@ -198,6 +213,7 @@ protected:
 
         // reset feature map
         fs_[n].reset();
+        gs_[n].reset();
 
         enabled_[n] = false;
         if ( nodes::is_output() )
@@ -218,6 +234,7 @@ public:
 
         // reset feature map
         fs_[n].reset();
+        gs_[n].reset();
 
         enabled_[n] = b;
         if ( nodes::is_output() )

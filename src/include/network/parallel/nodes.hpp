@@ -194,6 +194,9 @@ public:
     virtual std::vector<cube_p<real>>& get_featuremaps()
     { UNIMPLEMENTED(); }
 
+    virtual std::vector<cube_p<real>>& get_gradientmaps()
+    { UNIMPLEMENTED(); }
+
     virtual size_t num_out_nodes()
     { UNIMPLEMENTED(); }
 
