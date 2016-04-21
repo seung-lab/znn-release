@@ -6,7 +6,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import time
 from front_end import *
 import cost_fn
-import test
+import test_softmax_affinity
 import utils
 import zstatistics
 import os
@@ -157,7 +157,7 @@ def main( conf_file='config.cfg', logfile=None ):
 
         # test the net
         if i%pars['Num_iter_per_test']==0:
-            lc = test.znn_test(net, pars, smp_tst, vn, i, lc)
+            lc = test_softmax_affinity.znn_test(net, pars, smp_tst, vn, i, lc)
 
         if i%pars['Num_iter_per_save']==0:
             # save network
