@@ -69,7 +69,7 @@ is_auto_crop = yes
 fmasks =
 
 [label4]
-fnames = ../dataset/Piriform/stack4-label.tif
+fnames = ../dataset/test/stack4-label.tif
 pp_types = binary_class
 is_auto_crop = yes
 fmasks =
