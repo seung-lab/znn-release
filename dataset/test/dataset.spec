@@ -31,39 +31,39 @@
 # output2 = 2
 
 [image1]
-fnames = ../dataset/Piriform/stack1-image.tif
+fnames = ../dataset/test/stack1-image.tif
 pp_types = standard2D
 is_auto_crop = yes
 
 [image2]
-fnames = ../dataset/Piriform/stack2-image.tif
+fnames = ../dataset/test/stack2-image.tif
 pp_types = standard2D
 is_auto_crop = yes
 
 [image3]
-fnames = ../dataset/Piriform/stack3-image.tif
+fnames = ../dataset/test/stack3-image.tif
 pp_types = standard2D
 is_auto_crop = yes
 
 [image4]
-fnames = ../dataset/Piriform/stack4-image.tif
+fnames = ../dataset/test/stack4-image.tif
 pp_types = standard2D
 is_auto_crop = yes
 
 [label1]
-fnames = ../dataset/Piriform/stack1-label.tif
+fnames = ../dataset/test/stack1-label.tif
 pp_types = binary_class
 is_auto_crop = yes
 fmasks =
 
 [label2]
-fnames = ../dataset/Piriform/stack2-label.tif
+fnames = ../dataset/test/stack2-label.tif
 pp_types = binary_class
 is_auto_crop = yes
 fmasks =
 
 [label3]
-fnames = ../dataset/Piriform/stack3-label.tif
+fnames = ../dataset/test/stack3-label.tif
 pp_types = binary_class
 is_auto_crop = yes
 fmasks =
