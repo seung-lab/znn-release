@@ -21,13 +21,6 @@ ZNN is the only (reasonable) open source solution
 * FFTs of the feature maps and gradients can fit in RAM, but couldn’t fit on the GPU
 * run out of the box on future MUUUUULTI core machines
 
-Python Interface
-----------------
-To facilitate the usage of ZNN, we have built a python interface. It supports training of boundary and affinity map. Please refer to the `python` folder for further information.
-
-Supports Linux and MacOS. When using MKL, FFTW is not required
-
-
 Resources
 ---------
 * [**Documentation**](http://znn-release.readthedocs.org/en/latest/index.html#)
