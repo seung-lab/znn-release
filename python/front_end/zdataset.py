@@ -14,17 +14,20 @@ import utils
 
 class CDataset(object):
 
-    def __init__(self, pars, data, outsz, setsz, fov=None ):
+    def __init__(self, pars, data, outsz, setsz, mapsz=None):
 
         # main data
         self.data = data
-        # field of view
-        if fov is None:
-            self.fov = setsz[-3:] - outsz[-3:] + 1
+        # field of view of whole network
+        if mapsz is None:
+            self.mapsz = setsz[-3:] - outsz[-3:] + 1
         else:
-            self.fov = fov
+            self.mapsz = mapsz
+
         # Desired size of subvolumes returned by this instance
         self.patch_shape = np.asarray(setsz[-3:])
+        if pars['is_debug']:
+            print "patch shape: ", self.patch_shape
 
         # (see check_patch_bounds, or _calculate_patch_bounds)
         self.net_output_patch_shape = outsz
@@ -59,66 +62,14 @@ class CDataset(object):
         # get_sub_volume)
         self.patch_margin_high = self.patch_shape / 2
 
-    def get_dev_range(self):
-        """
-        Subvolumes can be specified in terms of 'deviation' from the center voxel
-        (see get_subvolume below)
-
-        This function specifies the valid range of those deviations in terms of
-        xyz coordinates
-        """
-
-        # Number of voxels within index lower than the center
-        volume_margin_low  = (self.volume_shape - 1) / 2
-        # Number of voxels within index higher than the center
-        volume_margin_high = self.volume_shape / 2
-
-        lower_bound  = -( volume_margin_low - self.patch_margin_low )
-        upper_bound  =   volume_margin_high - self.patch_margin_high
-
-        print "deviation range:     ", lower_bound, "--", upper_bound
-
-        return lower_bound, upper_bound
-
-    def get_subvolume(self, dev, data=None):
-        """
-        Returns a 4d subvolume of the data volume, specified
-        by deviation from the center voxel.
-
-        Can also retrieve subvolume of a passed 4d array
-
-        Parameters
-        ----------
-        dev : the deviation from the whole volume center
-
-        Return
-        -------
-        subvol : the transformed sub volume.
-        """
-
-        if data is None:
-            data = self.data
-
-        loc = self.center + dev
-
-        # extract volume
-        subvol  = np.copy(data[ :,
-            loc[0]-self.patch_margin_low[0]  : loc[0] + self.patch_margin_high[0]+1,\
-            loc[1]-self.patch_margin_low[1]  : loc[1] + self.patch_margin_high[1]+1,\
-            loc[2]-self.patch_margin_low[2]  : loc[2] + self.patch_margin_high[2]+1])
-
-        return subvol
-
     def _check_patch_bounds(self):
         if self.patch_bounds is None:
-            print "Calculating patch bounds..."
             self._calculate_patch_bounds()
-            print "Done"
 
     def _calculate_patch_bounds(self, output_patch_shape=None, overwrite=True):
         '''
         Finds the bounds for each data patch given the input volume shape,
-        the network fov, and the output patch shape
+        the network mapsz, and the output patch shape
 
         Restricts calculation to 3d shape
         '''
@@ -131,11 +82,11 @@ class CDataset(object):
 
         #Decomposing into a similar problem for each axis
         z_bounds = self._patch_bounds_1d(self.volume_shape[0],
-                        output_patch_shape[0], self.fov[0])
+                        output_patch_shape[0], self.mapsz[0])
         y_bounds = self._patch_bounds_1d(self.volume_shape[1],
-                        output_patch_shape[1], self.fov[1])
+                        output_patch_shape[1], self.mapsz[1])
         x_bounds = self._patch_bounds_1d(self.volume_shape[2],
-                        output_patch_shape[2], self.fov[2])
+                        output_patch_shape[2], self.mapsz[2])
 
         #And then recombining the subproblems
         bounds = []
@@ -157,12 +108,12 @@ class CDataset(object):
         else:
             return bounds
 
-    def _patch_bounds_1d(self, vol_width, patch_width, fov_width):
+    def _patch_bounds_1d(self, vol_width, patch_width, mapsz_width):
 
         bounds = []
 
         beginning = 0
-        ending = patch_width + fov_width - 1
+        ending = patch_width + mapsz_width - 1
 
         while ending < vol_width:
 
@@ -175,7 +126,7 @@ class CDataset(object):
 
         #last bound
         bounds.append(
-            ( vol_width - (patch_width + fov_width - 1), vol_width)
+            ( vol_width - (patch_width + mapsz_width - 1), vol_width)
             )
 
         return bounds
@@ -244,7 +195,7 @@ class CDataset(object):
         Determines the full output volume shape for the network given
         the entire input volume
         '''
-        return self.volume_shape - self.fov + 1
+        return self.volume_shape - self.mapsz + 1
 
 class ConfigImage(CDataset):
     """
@@ -259,7 +210,7 @@ class ConfigImage(CDataset):
     """
 
     def __init__(self, config, pars, sec_name, \
-                 outsz, setsz, fov, is_forward=False):
+                 outsz, setsz, mapsz, is_forward=False):
         """
         Parameters
         ----------
@@ -288,7 +239,7 @@ class ConfigImage(CDataset):
             arr = arr.reshape( (1,) + arr.shape )
 
         # initialize the dataset
-        CDataset.__init__(self, pars, arr, outsz, setsz, fov)
+        CDataset.__init__(self, pars, arr, outsz, setsz, mapsz)
 
 
     def _center_crop(self, vol, shape):
@@ -362,6 +313,58 @@ class ConfigImage(CDataset):
             ret.append( vol )
         return ret
 
+    def get_dev_range(self):
+        """
+        Subvolumes can be specified in terms of 'deviation' from the center voxel
+        (see get_subvolume below)
+
+        This function specifies the valid range of those deviations in terms of
+        xyz coordinates
+        """
+
+        # Number of voxels within index lower than the center
+        volume_margin_low  = (self.volume_shape - 1) / 2
+        # Number of voxels within index higher than the center
+        volume_margin_high = self.volume_shape / 2
+
+        lower_bound  = -( volume_margin_low - self.patch_margin_low )
+        upper_bound  =   volume_margin_high - self.patch_margin_high
+
+        if self.pars['is_debug']:
+            print "vlome margin low: ", volume_margin_low
+            print "patch_margin_low: ", self.patch_margin_low
+            print "deviation range:     ", lower_bound, "--", upper_bound
+
+        return lower_bound, upper_bound
+
+    def get_subvolume(self, dev, data=None):
+        """
+        Returns a 4d subvolume of the data volume, specified
+        by deviation from the center voxel.
+
+        Can also retrieve subvolume of a passed 4d array
+
+        Parameters
+        ----------
+        dev : the deviation from the whole volume center
+
+        Return
+        -------
+        subvol : the transformed sub volume.
+        """
+
+        if data is None:
+            data = self.data
+
+        loc = self.center + dev
+
+        # extract volume
+        subvol  = np.copy(data[ :,
+            loc[0]-self.patch_margin_low[0]  : loc[0] + self.patch_margin_high[0]+1,\
+            loc[1]-self.patch_margin_low[1]  : loc[1] + self.patch_margin_high[1]+1,\
+            loc[2]-self.patch_margin_low[2]  : loc[2] + self.patch_margin_high[2]+1])
+        return subvol
+
 class ConfigInputImage(ConfigImage):
     '''
     Subclass of ConfigImage which represents the type of input data seen
@@ -369,19 +372,24 @@ class ConfigInputImage(ConfigImage):
     '''
 
     def __init__(self, config, pars, sec_name, \
-                 outsz, setsz, fov, is_forward=False ):
+                 outsz, setsz, mapsz, is_forward=False ):
         ConfigImage.__init__(self, config, pars, sec_name, \
-                             outsz, setsz, fov, is_forward=is_forward )
+                             outsz, setsz, mapsz, is_forward=is_forward )
 
         # preprocessing
         pp_types = config.get(sec_name, 'pp_types').split(',')
+        assert self.data.shape[0]==1 and self.data.ndim==4
         for c in xrange( self.data.shape[0] ):
             self.data[c,:,:,:] = self._preprocess(self.data[c,:,:,:], pp_types[c])
 
         if pars['is_bd_mirror']:
-            self.data = utils.boundary_mirror(self.data, self.fov)
+            if self.pars['is_debug']:
+                print "data shape before mirror: ", self.data.shape
+            self.data = utils.boundary_mirror(self.data, self.mapsz)
             #Modifying the deviation boundaries for the modified dataset
             self.calculate_sizes( )
+            if self.pars['is_debug']:
+                print "data shape after mirror: ", self.data.shape
 
     def _preprocess( self, vol3d , pp_type ):
 
@@ -395,7 +403,7 @@ class ConfigInputImage(ConfigImage):
             vol3d -= vol3d.min()
             vol3d = vol3d / vol3d.max()
             vol3d = vol3d * 2 - 1
-        elif 'none' == pp_type or "None" in pp_type:
+        elif 'none' in pp_type or "None" in pp_type:
             return vol3d
         else:
             raise NameError( 'invalid preprocessing type' )
@@ -419,6 +427,11 @@ class ConfigInputImage(ConfigImage):
         assert(subvol.ndim==4)
         return subvol
 
+    def get_dataset(self):
+        """
+        return complete volume for examination
+        """
+        return self.data
 
 class ConfigOutputLabel(ConfigImage):
     '''
@@ -429,9 +442,9 @@ class ConfigOutputLabel(ConfigImage):
     contain masks for sparsely-labelled training
     '''
 
-    def __init__(self, config, pars, sec_name, outsz, setsz, fov ):
+    def __init__(self, config, pars, sec_name, outsz, setsz, mapsz ):
         ConfigImage.__init__(self, config, pars, sec_name, \
-                             outsz, setsz, fov)
+                             outsz, setsz, mapsz=mapsz)
 
         # record and use parameters
         self.pars = pars
@@ -476,20 +489,11 @@ class ConfigOutputLabel(ConfigImage):
 
         return sublbl, submsk
 
-    def _patch_rebalance(self, lbl):
+    def get_dataset(self):
         """
-        rebalance based on output patch
+        return the whole label for examination
         """
-        weight = np.empty(lbl.shape, self.pars['dtype'])
-        for c in xrange(lbl.shape[0]):
-            # wp, wz = self._get_balance_weight( lbl[c,:,:,:] )
-            wp, wz = self._get_balance_weight_v1( lbl[c,:,:,:] )
-            weight[c,:,:,:][lbl[c,:,:,:] > 0] = wp
-            weight[c,:,:,:][lbl[c,:,:,:] ==0] = wz
-
-        # keep the weight mask separately
-        # (from the label mask [self.msk])
-        return weight
+        return self.data
 
     def get_candidate_loc( self, low, high ):
         """

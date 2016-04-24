@@ -1,6 +1,6 @@
 ODIR		=	./bin
 SFL			=	src/cpp/malis_test.cpp
-CPP		 	=	g++-4.8
+CPP		 	=	g++
 ICC			= 	/opt/intel/bin/icc
 CPP_FLAGS	= 	-g
 INC_FLAGS	=	-I./src/include -I./zi -I.
@@ -8,7 +8,7 @@ LIB_FLAGS	=
 MKL_FLAGS	=	-static-intel -mkl=sequential -DZNN_USE_MKL_FFT -DZNN_USE_MKL_NATIVE_FFT
 OPT_FLAGS	=	-DNDEBUG -O3 -std=c++1y -DZNN_CUBE_POOL_LOCKFREE -DZNN_USE_FLOATS
 OTH_FLAGS	=
-LIBS		=	-lfftw3 -lfftw3f -lpthread -pthread -lrt
+LIBS		=	-lfftw3 -lfftw3f -lpthread -pthread
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)

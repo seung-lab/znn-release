@@ -44,18 +44,26 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
     # your bidding of spot instance
     spot_bid = tncfg.getfloat(sec, 'spot_bid')
 
+    # tag user and project name
+    user = tncfg.get(sec, 'User')
+    prj = tncfg.get(sec, 'Project')
+
     # command
     command = tncfg.get(sec, 'command')
 
     # instance type
     instance_type = tncfg.get(sec, 'instance_type')
 
+    # sleep interval (secs)
+    if tncfg.has_option(sec, 'node_check_interval'):
+        node_check_interval = tncfg.getint(sec, 'node_check_interval')
+    else:
+        node_check_interval = 10 * 60
+
     # if there are several cluster template in config file,
     # you have to set the cluster id to a specific cluster template
     cluster_id = 0
 
-    # sleep interval (secs)
-    sleep_interval = 10 * 60
 
     #%% configuration
     cfg = config.get_config( sc_cfg )
@@ -78,7 +86,7 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
             time.sleep(1)
             # run the start in a separate thread
             try:
-                threadRun = ThreadRun(cl)
+                ThreadRun(cl)
                 print "clulster creater thread running..."
                 # wait for the volume mounted
                 print "wait for the volume to attach..."
@@ -95,7 +103,7 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
         mynode = node_search(cl, node_name)
         if mynode is None:
             try:
-                print "add node ", node_name, " with a biding of $", spot_bid
+                print "add node ", node_name, " with a bid of $", spot_bid
                 cl.add_node( alias=node_name, spot_bid=spot_bid )
             except:
                 print "node creation failed."
@@ -108,6 +116,11 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
             time.sleep( 1*60 )
 
             mynode = node_search(cl, node_name)
+            # tag the user and project name
+            print "add tags: User--",user,", Project--",prj
+            mynode.add_tag("User", user)
+            mynode.add_tag("Project", prj)
+
             try:
                 print "run command after node launch."
                 mynode.ssh.execute( command )
@@ -116,8 +129,8 @@ def main(sec, train_cfg='train.cfg', sc_cfg='~/.starcluster/config'):
 
         f.write('wait for cluster...\n')
         # sleep for a while
-        print "node {} is running, wait for {} secs to check.".format( node_name, sleep_interval )
-        time.sleep( sleep_interval )
+        print "node {} is running, wait for {} secs to check.".format( node_name, node_check_interval )
+        time.sleep( node_check_interval )
 
     f.close()
 

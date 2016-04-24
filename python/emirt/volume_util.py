@@ -117,49 +117,6 @@ def norm(vol):
     vol = vol / np.max(vol)
     return vol
 
-def find_root(ind, seg):
-    """
-    quick find with path compression
-    Parameters
-    ----------
-    ind:   index of node. start from 1
-    seg:   segmenation ID, should be flat
-    Return
-    ------
-    ind: root index of input node
-    seg:  updated segmentation
-    """
-    path = list()
-    while seg[ind-1]!=ind:
-        path.append( ind )
-        # get the parent index
-        ind = seg[ind-1]
-    # path compression
-    for node in path:
-        seg[node-1] = ind
-    return (ind, seg)
-
-#@autojit(nopython=True)
-def union_tree(r1, r2, seg, tsz):
-    """
-    union-find algorithm: tree_sizeed quick union with path compression
-    Parameters
-    ----------
-    r1,r2:  index of two root nodes.
-    seg:   the segmenation volume with segment id. this array should be flatterned.
-    tree_size: the size of tree.
-    Return
-    ------
-    seg:    updated segmentation
-    tsz:    updated tree size
-    """
-    # merge small tree to big tree according to size
-    if tsz[r1-1] < tsz[r2-1]:
-        r1, r2 = r2, r1
-    seg[r2-1] = r1
-    tsz[r1-1] = tsz[r1-1] + tsz[r2-1]
-    return (seg, tsz)
-
 def mark_bd(seg):
     unique, indices, counts = np.unique(seg, return_index=True, return_counts=True)
     # binary affinity graphs
@@ -203,7 +160,7 @@ def bdm2aff( bdm, Dim = 2 ):
     for z in xrange( bdm.shape[0] ):
         for y in xrange( bdm.shape[1] ):
             for x in xrange( 1, bdm.shape[2] ):
-                affs[2,z,y,x] = min( bdm[z,y,x], bdm[z, y,   x-1] )
+                affs[0,z,y,x] = min( bdm[z,y,x], bdm[z, y,   x-1] )
 
     return affs
 
@@ -229,9 +186,9 @@ def aff2seg( affs, threshold=0.5 ):
     assert affs.ndim==4
 
     # get affinity graphs, copy the array to avoid changing of raw affinity graph
-    xaff = np.copy( affs[2,:,:,:] )
+    xaff = np.copy( affs[0,:,:,:] )
     yaff = np.copy( affs[1,:,:,:] )
-    zaff = np.copy( affs[0,:,:,:] )
+    zaff = np.copy( affs[2,:,:,:] )
 
     # initialize segmentation with individual label of each voxel
     vids = np.arange(xaff.size).reshape( xaff.shape )
@@ -309,7 +266,7 @@ def seg2aff( lbl, affs_dtype='float32' ):
         for y in xrange( affs.shape[2] ):
             for x in xrange( affs.shape[3] ):
                 if (lbl[z,y,x]==lbl[z-1,y,x]) and lbl[z,y,x]>0 :
-                    affs[0,z,y,x] = 1.0
+                    affs[2,z,y,x] = 1.0
 
     # y affinity
     for z in xrange( affs.shape[1] ):
@@ -323,7 +280,7 @@ def seg2aff( lbl, affs_dtype='float32' ):
         for y in xrange( affs.shape[2] ):
             for x in xrange( 1, affs.shape[3] ):
                 if (lbl[z,y,x]==lbl[z,y,x-1]) and lbl[z,y,x]>0 :
-                    affs[2,z,y,x] = 1.0
+                    affs[0,z,y,x] = 1.0
 
     return affs
 

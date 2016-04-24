@@ -29,56 +29,75 @@ Main Outputs:
 Nicholas Turner <nturner@cs.princeton.edu>
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
-#TODO- Better argument handling
-
 import numpy as np
-
+import os
 from front_end import *
 import utils
-
 from emirt import emio
 
-#CONSTANTS
-# (configuration file option names)
-output_prefix_optionname = 'output_prefix'
-range_optionname = 'forward_range'
-outsz_optionname = 'forward_outsz'
+def parse_args( args ):
+    config, params = zconfig.parser( args['config'] )
 
+    if args['net']:
+        # overwrite the network in config file
+        params['forward_net'] = args['net']
 
-def config_forward_pass( config, params, verbose=True, sample_ids=None ):
+    if args['range']:
+        params['forward_range'] = utils.parseIntSet( args['range'] )
+
+    return config, params
+
+def batch_forward_pass( config, params, net, verbose=True, sample_ids=None ):
     '''
     Performs a full forward pass for all samples specified within
     a configuration file
 
     sample_ids should be a list of ints describing the samples to run
     '''
-    # set command line sample ids
-    if sample_ids is not None:
-        params[range_optionname] = sample_ids
 
-    # load network
-    net = znetio.load_network( params, train=False )
-    output_patch_shape = params[outsz_optionname]
+    output_patch_shape = params['forward_outsz']
     sample_outputs = {}
     #Loop over sample range
-    for sample in params[range_optionname]:
+    for sample in params['forward_range']:
         print "Sample: %d" % sample
-
         # read image stacks
         # Note: preprocessing included within CSamples
         # See CONSTANTS section above for optionname values
         Dataset = zsample.CSample(config, params, sample, net, \
                                   outsz = output_patch_shape, is_forward=True )
-
-        sample_outputs[sample] = generate_full_output(Dataset, net,
-						      params, params['dtype'],
-                                                      verbose=True)
-
-        # softmax if using softmax_loss
-        if 'softmax' in params['cost_fn_str']:
-            sample_outputs[sample] = run_softmax(sample_outputs[sample])
-
+        sample_outputs[sample] = forward_pass( params, Dataset, net )
     return sample_outputs
+
+def forward_pass( params, Dataset, network, verbose=True ):
+    '''
+    Performs a full forward pass for a given ConfigSample object (Dataset) and
+    a given network object.
+    '''
+    # Making sure loaded images expect same size output volume
+    output_vol_shapes = Dataset.output_volume_shape()
+    assert output_volume_shape_consistent(output_vol_shapes)
+    output_vol_shape = output_vol_shapes.values()[0]
+    Output = zsample.ConfigSampleOutput( params, network, output_vol_shape)
+    input_num_patches = Dataset.num_patches()
+    output_num_patches = Output.num_patches()
+    assert num_patches_consistent(input_num_patches, output_num_patches)
+    num_patches = output_num_patches.values()[0]
+
+    for i in xrange( num_patches ):
+        if verbose:
+	    print "Output patch #{} of {}".format(i+1, num_patches) # i is just an index
+        input_patches, junk = Dataset.get_next_patch()
+	vol_ins = utils.make_continuous(input_patches)
+	output = network.forward( vol_ins )
+        Output.set_next_patch( output )
+        if params['is_check']:
+            break
+    # softmax if using softmax_loss
+    if 'softmax' in params['cost_fn_str']:
+        print "softmax filter..."
+        Output = run_softmax( Output )
+
+    return Output
 
 def run_softmax( sample_output ):
     '''
@@ -89,49 +108,12 @@ def run_softmax( sample_output ):
 
     for dname, dataset in sample_output.output_volumes.iteritems():
 
-		props = {'dataset':dataset.data}
-		props = softmax(props)
-		dataset.data = props.values()[0]
-		sample_output.output_volumes[dname] = dataset
+        props = {'dataset':dataset.data}
+        props = softmax(props)
+        dataset.data = props.values()[0]
+        sample_output.output_volumes[dname] = dataset
 
     return sample_output
-
-def generate_full_output( Dataset, network, params,
-                          dtype='float32', verbose=True ):
-	'''
-	Performs a full forward pass for a given ConfigSample object (Dataset) and
-	a given network object.
-	'''
-
-	# Making sure loaded images expect same size output volume
-	output_vol_shapes = Dataset.output_volume_shape()
-	assert output_volume_shape_consistent(output_vol_shapes)
-	output_vol_shape = output_vol_shapes.values()[0]
-
-	Output = zsample.ConfigSampleOutput( params, network,
-                                               output_vol_shape, dtype )
-
-	input_num_patches = Dataset.num_patches()
-	output_num_patches = Output.num_patches()
-
-	assert num_patches_consistent(input_num_patches, output_num_patches)
-
-	num_patches = output_num_patches.values()[0]
-
-	for i in xrange( num_patches ):
-
-		if verbose:
-			print "Output patch #{} of {}".format(i+1, num_patches) # i is just an index
-
-		input_patches, junk = Dataset.get_next_patch()
-
-		vol_ins = utils.make_continuous(input_patches, dtype=dtype)
-
-		output = network.forward( vol_ins )
-
-		Output.set_next_patch( output )
-
-	return Output
 
 def output_volume_shape_consistent( output_vol_shapes ):
 	'''
@@ -174,6 +156,7 @@ def save_sample_outputs(sample_outputs, prefix):
             #Consolidated 4d volume
             # hdf5 output for watershed
             h5name = "{}_sample{}_{}.h5".format(prefix, sample_num,	dataset_name)
+            print "save output to ", h5name
             import os
             if os.path.exists( h5name ):
                 os.remove( h5name )
@@ -185,35 +168,44 @@ def save_sample_outputs(sample_outputs, prefix):
                 emio.imsave(dataset.data[i,:,:,:],\
                     "{}_sample{}_{}_{}.tif".format(prefix, sample_num, dataset_name, i))
 
-def main( config_filename, sample_ids=None ):
+def main( args ):
     '''
     Script functionality - runs config_forward_pass and saves the
     output volumes
     '''
-    config, params = zconfig.parser( config_filename )
+    config, params = parse_args( args )
 
-    if sample_ids is None:
-    	sample_ids = params[range_optionname]
+    # load network
+    net = znetio.load_network( params, train=False, hdf5_filename=params['forward_net'] )
 
-    for sample_id in sample_ids:
+    sample_outputs = batch_forward_pass( config, params, net, verbose=True, sample_ids=params['forward_range'])
 
-    	output_volume = config_forward_pass( config, params, verbose=True, sample_ids=[sample_id])
+    save_sample_outputs( sample_outputs, params['output_prefix'] )
 
-    	print "Saving Output Volume %d..." % sample_id
-    	save_sample_outputs( output_volume, params[output_prefix_optionname] )
+    return sample_outputs
 
 if __name__ == '__main__':
     """
     usage
     ----
-    python forward.py path/of/config.cfg forward_range
+    python forward.py -c path/of/config.cfg -r forward_range
     forward_range: the sample ids, such as 1-3,5
     """
-    from sys import argv
-    if len(argv)==2:
-        main( argv[1] )
-    elif len(argv) > 2:
-        sample_ids = zconfig.parseIntSet(argv[2])
-        main( argv[1], sample_ids )
-    else:
-        main('config.cfg')
+    import argparse
+    parser = argparse.ArgumentParser(description="ZNN forward pass.")
+    parser.add_argument("-c", "--config", required=True, \
+                        help="path of configuration file")
+    parser.add_argument("-n", "--net", \
+                        help="network path")
+    parser.add_argument("-r", "--range", help="sample id range, et.al 1-3,5")
+
+    # make the dictionary of arguments
+    args = vars( parser.parse_args() )
+
+    if not os.path.exists( args['config'] ):
+        raise NameError("config file not exist!")
+    if args['net'] is not None:
+        if not os.path.exists( args['net'] ):
+            raise NameError( "net file do not exist!")
+
+    main( args )

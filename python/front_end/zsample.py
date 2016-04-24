@@ -12,6 +12,8 @@ import numpy as np
 import emirt
 import utils
 from zdataset import *
+import os
+import h5py
 
 class CSample(object):
     """
@@ -29,6 +31,7 @@ class CSample(object):
         # Parameter object (dict)
         self.pars = pars
 
+        self.sid = sample_id
         # Name of the sample within the configuration file
         # Also used for logging
         self.sec_name = "sample%d" % sample_id
@@ -41,7 +44,6 @@ class CSample(object):
         else:
             self.setsz_ins  = setsz_ins
             self.setsz_outs = setsz_outs
-
         fov = np.asarray(net.get_fov(), dtype='uint32')
 
         # Loading input images
@@ -59,6 +61,7 @@ class CSample(object):
         self.lbls = dict()
         self.msks = dict()
         self.outs = dict()
+
         if not is_forward:
             print "\ncreate label image class..."
             for name,setsz_out in self.setsz_outs.iteritems():
@@ -78,6 +81,11 @@ class CSample(object):
 
         #Filename for log
         self.log = log
+
+    def get_dataset(self):
+        raw = self.ins.values()[0].get_dataset()
+        lbl = self.outs.values()[0].get_dataset()
+        return raw, lbl
 
     def _prepare_training(self):
         """
@@ -131,7 +139,7 @@ class CSample(object):
         loc[2] = self.locs[2][ind]
         dev = loc - self.outs.values()[0].center
 
-        self.write_request_to_log(dev)
+        self.write_request_to_log(loc)
 
         # get input and output 4D sub arrays
         subinputs = dict()
@@ -148,11 +156,17 @@ class CSample(object):
 
         return ( subinputs, subtlbls, submsks )
 
-    def _get_balance_weight(self, arr):
+    def _get_balance_weight(self, arr, msk=None):
+        mask_empty = msk is None or msk.size == 0
+        if mask_empty:
+            values = arr
+        else:
+            values = arr[ np.nonzero(msk) ]
+
         # number of nonzero elements
-        pn = float( np.count_nonzero(arr) )
+        pn = float( np.count_nonzero(values) )
         # total number of elements
-        num = float( np.size(arr) )
+        num = float( np.size(values) )
         # number of zero elements
         zn = num - pn
 
@@ -162,15 +176,22 @@ class CSample(object):
             # weight of positive and zero
             wp = 0.5 * num / pn
             wz = 0.5 * num / zn
+
             return wp, wz
 
     # ZNNv1 uses different normalization
     # This method is only temporary (for reproducing paper results)
-    def _get_balance_weight_v1(self, arr):
+    def _get_balance_weight_v1(self, arr, msk=None):
+        mask_empty = msk is None or msk.size == 0
+        if mask_empty:
+            values = arr
+        else:
+            values = arr[ np.nonzero(msk) ]
+
         # number of nonzero elements
-        pn = float( np.count_nonzero(arr) )
+        pn = float( np.count_nonzero(values) )
         # total number of elements
-        num = float( np.size(arr) )
+        num = float( np.size(values) )
         zn = num - pn
 
         # weight of positive and zero
@@ -246,10 +267,12 @@ class CAffinitySample(CSample):
 
         # precompute the global rebalance weights
         self.taffs = dict()
+        self.tmsks = dict()
         for k, lbl in self.lbls.iteritems():
             self.taffs[k] = self._seg2aff( lbl )
+            self.tmsks[k] = self._msk2affmsk( self.msks[k] )
 
-        self._prepare_rebalance_weights( self.taffs )
+        self._prepare_rebalance_weights( self.taffs, self.tmsks )
         return
 
     def _seg2aff( self, lbl ):
@@ -275,14 +298,14 @@ class CAffinitySample(CSample):
         aff_size = np.asarray(lbl.shape)-1
         aff_size[0] = 3
 
-        aff = np.zeros( tuple(aff_size) , dtype=lbl.dtype  )
+        aff = np.zeros( tuple(aff_size) , dtype=self.pars['dtype'] )
 
-        #x-affinity
-        aff[0,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,:-1, 1:  ,1: ]) & (lbl[0,1:,1:,1:]>0)
-        #y-affinity
-        aff[1,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , :-1 ,1: ]) & (lbl[0,1:,1:,1:]>0)
         #z-affinity
-        aff[2,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0,1: , 1:  ,:-1]) & (lbl[0,1:,1:,1:]>0)
+        aff[2,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0, :-1, 1:  ,1: ]) & (lbl[0,1:,1:,1:]>0)
+        #y-affinity
+        aff[1,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0, 1: , :-1 ,1: ]) & (lbl[0,1:,1:,1:]>0)
+        #x-affinity
+        aff[0,:,:,:] = (lbl[0,1:,1:,1:] == lbl[0, 1: , 1:  ,:-1]) & (lbl[0,1:,1:,1:]>0)
 
         return aff
 
@@ -303,24 +326,17 @@ class CAffinitySample(CSample):
         C,Z,Y,X = msk.shape
         ret = np.zeros((3, Z-1, Y-1, X-1), dtype=self.pars['dtype'])
 
-        for z in xrange(Z-1):
-            for y in xrange(Y-1):
-                for x in xrange(X-1):
-                    #Current affinity convention
-                    if msk[0,z+1,y+1,x+1]>0:
-                        ret[:,z,y,x] = 1
+        #Z mask
+        ret[2,:,:,:] = (msk[0,1:,1:,1:]>0) | (msk[0,:-1,1:,1:]>0)
+        #Y mask
+        ret[1,:,:,:] = (msk[0,1:,1:,1:]>0) | (msk[0,1:,:-1,1:]>0)
+        #X mask
+        ret[0,:,:,:] = (msk[0,1:,1:,1:]>0) | (msk[0,1:,1:,:-1]>0)
 
-                    if msk[0,z,y+1,x+1]>0:
-                        ret[0,z,y,x] = 1
-
-                    if msk[0,z+1,y,x+1]>0:
-                        ret[1,z,y,x] = 1
-
-                    if msk[0,z+1,y+1,x]>0:
-                        ret[2,z,y,x] = 1
         return ret
 
-    def _prepare_rebalance_weights(self, taffs):
+
+    def _prepare_rebalance_weights(self, taffs, tmsks):
         """
         get rebalance tree_size of gradient.
         make the nonboundary and boundary region have same contribution of training.
@@ -333,34 +349,41 @@ class CAffinitySample(CSample):
         self.xwps = dict()
         self.xwzs = dict()
 
-        if self.pars['is_rebalance'] or self.pars['is_patch_rebalance']:
+        if self.pars['rebalance_mode']:
             for k, aff in taffs.iteritems():
-                self.zwps[k], self.zwzs[k] = self._get_balance_weight_v1(aff[0,:,:,:])
-                self.ywps[k], self.ywzs[k] = self._get_balance_weight_v1(aff[1,:,:,:])
-                self.xwps[k], self.xwzs[k] = self._get_balance_weight_v1(aff[2,:,:,:])
+
+                msk = tmsks[k] if tmsks[k].size != 0 else np.zeros((3,0,0,0))
+
+                self.zwps[k], self.zwzs[k] = self._get_balance_weight_v1(aff[2,:,:,:], msk[2,:,:,:])
+                self.ywps[k], self.ywzs[k] = self._get_balance_weight_v1(aff[1,:,:,:], msk[1,:,:,:])
+                self.xwps[k], self.xwzs[k] = self._get_balance_weight_v1(aff[0,:,:,:], msk[0,:,:,:])
+
         return
 
-    def _rebalance_aff(self, subtaffs):
+    def _rebalance_aff(self, subtaffs, submsks):
         """
         rebalance the affinity labeling with size of (3,Z,Y,X)
         """
-        if self.pars['is_patch_rebalance']:
+        if self.pars['rebalance_mode'] is None:
+            return dict()
+        elif 'patch' in self.pars['rebalance_mode']:
             # recompute the weights
-            self._prepare_rebalance_weights( subtaffs )
+            self._prepare_rebalance_weights( subtaffs, submsks )
 
         subwmsks = dict()
         for k, subtaff in subtaffs.iteritems():
             assert subtaff.ndim==4 and subtaff.shape[0]==3
             w = np.zeros(subtaff.shape, dtype=self.pars['dtype'])
 
-            w[0,:,:,:][subtaff[0,:,:,:] >0] = self.zwps[k]
+            w[2,:,:,:][subtaff[2,:,:,:] >0] = self.zwps[k]
             w[1,:,:,:][subtaff[1,:,:,:] >0] = self.ywps[k]
-            w[2,:,:,:][subtaff[2,:,:,:] >0] = self.xwps[k]
+            w[0,:,:,:][subtaff[0,:,:,:] >0] = self.xwps[k]
 
-            w[0,:,:,:][subtaff[0,:,:,:]==0] = self.zwzs[k]
+            w[2,:,:,:][subtaff[2,:,:,:]==0] = self.zwzs[k]
             w[1,:,:,:][subtaff[1,:,:,:]==0] = self.ywzs[k]
-            w[2,:,:,:][subtaff[2,:,:,:]==0] = self.xwzs[k]
+            w[0,:,:,:][subtaff[0,:,:,:]==0] = self.xwzs[k]
             subwmsks[k] = w
+
         return subwmsks
 
     def get_random_sample(self):
@@ -380,7 +403,7 @@ class CAffinitySample(CSample):
             submsks[key]  = self._msk2affmsk( submsks[key] )
 
         # affinity map rebalance
-        subwmsks = self._rebalance_aff(  subtaffs )
+        subwmsks = self._rebalance_aff( subtaffs, submsks )
 
         return subimgs, subtaffs, submsks, subwmsks
 
@@ -406,7 +429,8 @@ class CBoundarySample(CSample):
         self.wps = dict()
         self.wzs = dict()
         for key, lbl in self.lbls.iteritems():
-            self.wps[key], self.wzs[key] = self._get_balance_weight( lbl )
+            msk = self.msks[key]
+            self.wps[key], self.wzs[key] = self._get_balance_weight( lbl,msk )
 
     def _binary_class(self, lbl):
         """
@@ -428,16 +452,16 @@ class CBoundarySample(CSample):
 
         return ret
 
-    def _rebalance_bdr(self, sublbl, wp, wz):
+    def _rebalance_bdr(self, sublbl, submsk, wp, wz):
         assert sublbl.ndim==4 and sublbl.shape[0]==1
 
         weight = np.ones( sublbl.shape, dtype=self.pars['dtype'] )
 
         # recompute weight for patch rebalance
-        if self.pars['is_patch_rebalance']:
-            wp, wz = self._get_balance_weight_v1( sublbl )
+        if self.pars['rebalance_mode'] and 'patch' in self.pars['rebalance_mode']:
+            wp, wz = self._get_balance_weight_v1( sublbl,submsk )
 
-        if self.pars['is_patch_rebalance'] or self.pars['is_rebalance']:
+        if self.pars['rebalance_mode']:
             weight[0,:,:,:][sublbl[0,:,:,:]> 0] = wp
             weight[0,:,:,:][sublbl[0,:,:,:]==0] = wz
 
@@ -450,7 +474,8 @@ class CBoundarySample(CSample):
         # boudary map rebalance
         subwmsks = dict()
         for key, sublbl in sublbls.iteritems():
-            subwmsks[key] = self._rebalance_bdr(  sublbl, self.wps[key], self.wzs[key] )
+            submsk = submsks[key]
+            subwmsks[key] = self._rebalance_bdr( sublbl, submsk, self.wps[key], self.wzs[key] )
 
         for key,sublbl in sublbls.iteritems():
             assert sublbl.ndim==3 or (sublbl.ndim==4 and sublbl.shape[0]==1)
@@ -465,7 +490,7 @@ class CBoundarySample(CSample):
 class ConfigSampleOutput(object):
     '''Documentation coming soon...'''
 
-    def __init__(self, pars, net, output_volume_shape3d, dtype):
+    def __init__(self, pars, net, output_volume_shape3d):
 
         output_patch_shapes = net.get_outputs_setsz()
 
@@ -474,11 +499,12 @@ class ConfigSampleOutput(object):
 
             num_volumes = shape[0]
 
-            volume_shape = np.hstack((num_volumes,output_volume_shape3d)).astype('uint32')
+            volume_shape = np.hstack((num_volumes, output_volume_shape3d)).astype('uint32')
 
-            empty_bin = np.zeros(volume_shape, dtype=dtype)
+            empty_bin = np.zeros(volume_shape, dtype=pars['dtype'])
 
-            self.output_volumes[name] = CDataset(pars, empty_bin, shape[-3:], shape[-3:])
+
+            self.output_volumes[name] = CDataset(pars, empty_bin, shape[-3:], shape[-3:] )
 
     def set_next_patch(self, output):
 
@@ -516,16 +542,58 @@ class CSamples(object):
         self.pars = pars
 
         self.samples = list()
+        # probability of choosing this sample
+        self.smp_prbs = list()
+        # total number of candidate locations
+        Nloc = 0.0
         for sid in ids:
             if 'bound' in pars['out_type']:
                 sample = CBoundarySample(config, pars, sid, net, outsz, log)
             elif 'aff' in pars['out_type']:
                 sample = CAffinitySample(config, pars, sid, net, outsz, log)
+            elif 'semantic' in pars['out_type']:
+                sample = CSemanticSample(config, pars, sid, net, outsz, log)
             else:
                 raise NameError('invalid output type')
             self.samples.append( sample )
+            self.smp_prbs.append(len(sample.locs))
+            Nloc += len(sample.locs)
+        # normalize the number of locations to probability
+        for i,p in enumerate(self.smp_prbs):
+            self.smp_prbs[i] = self.smp_prbs[i] / Nloc
+
+        if self.pars['is_debug']:
+            # save the candidate locations
+            self._save_dataset
+            self._save_candidate_locs()
+
+    def _save_candidate_locs(self):
+        for sample in self.samples:
+            fname = '../testsuit/candidate_locs_{}.h5'.format(sample.sid)
+            if os.path.exists( fname ):
+                os.remove(fname)
+            f = h5py.File( fname, 'w' )
+            f.create_dataset('locs', data=sample.locs)
+            f.close()
+
+    def _save_dataset(self):
+        from emirt.emio import imsave
+        for sample in self.samples:
+            # save sample images
+            raw, lbl = sample.get_dataset()
+            fname = '../testsuit/sample_{}_raw.h5'.format(sample.sid)
+            if os.path.exists( fname ):
+                os.remove( fname )
+            imsave(raw, fname)
+            fname = '../testsuit/sample_{}_lbl.h5'.format(sample.sid)
+            if os.path.exists( fname ):
+                os.remove( fname )
+            imsave(lbl, fname )
 
     def get_random_sample(self):
         '''Fetches a random sample from a random CSample object'''
-        i = np.random.randint( len(self.samples) )
+        # get the sequence of multinomial sequence. only one element is 1, others are 0
+        sq = np.random.multinomial(1, self.smp_prbs, size=1)
+        # get the index of non-zero element
+        i = np.nonzero(sq)[1][0]
         return self.samples[i].get_random_sample()
