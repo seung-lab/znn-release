@@ -363,6 +363,21 @@ inline cube_p<T> exp( cube<T> const & c )
 }
 
 template<typename T>
+inline cube_p<T> sqrt( cube<T> const & c )
+{
+    auto r = get_cube<T>(size(c));
+    T* dest = r->data();
+    const T* src = c.data();
+
+    for ( size_t i = 0; i < c.num_elements(); ++i )
+    {
+        dest[i] = std::sqrt(src[i]);
+    }
+
+    return r;
+}
+
+template<typename T>
 inline cube_p<T> sparse_explode( cube<T> const & v,
                                  vec3i const & sparse,
                                  vec3i const & s )

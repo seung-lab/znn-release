@@ -18,7 +18,7 @@
 #pragma once
 
 #include "edges_fwd.hpp"
-#include "softmax_edges.hpp"
+#include "softmax_edge.hpp"
 #include "filter_edge.hpp"
 #include "fft_filter_edge.hpp"
 #include "filter_ds_edge.hpp"
@@ -31,6 +31,7 @@
 #include "maxout_edge.hpp"
 #include "multiply_edge.hpp"
 #include "normalize_edge.hpp"
+#include "L2_norm_edge.hpp"
 #include "nodes.hpp"
 #include "../../utils/waiter.hpp"
 #include "../../options/options.hpp"
@@ -508,6 +509,30 @@ inline edges::edges( nodes * in,
     {
         edges_[i] = std::make_unique<normalize_edge>
             (in, i, out, i, tm, gstat, frac, eps, *filters_[i], phs);
+    }
+}
+
+// L2 norm
+inline edges::edges( nodes * in,
+                     nodes * out,
+                     options const & opts,
+                     task_manager & tm,
+                     L2_norm_tag )
+    : options_(opts)
+    , tm_(tm)
+{
+    ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
+
+    size_t n = in->num_out_nodes();
+    edges_.resize(n);
+    waiter_.set(n);
+
+    auto layer = std::make_shared<L2_norm_edge::layer>(n,tm);
+
+    for ( size_t i = 0; i < n; ++i )
+    {
+        edges_[i] = std::make_unique<L2_norm_edge>
+            (in, i, out, i, tm, layer);
     }
 }
 

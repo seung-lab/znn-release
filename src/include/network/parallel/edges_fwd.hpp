@@ -44,6 +44,7 @@ public:
     struct maxout_tag {};
     struct multiply_tag {};
     struct normalize_tag {};
+    struct L2_norm_tag {};
     struct scale_tag {};
 
 protected:
@@ -87,6 +88,8 @@ public:
 
     edges( nodes *, nodes *, options const &, task_manager &, phase phs,
            normalize_tag );
+
+    edges( nodes *, nodes *, options const &, task_manager &, L2_norm_tag );
 
     edges( nodes *, nodes *, options const &, task_manager &, scale_tag );
 

@@ -448,6 +448,11 @@ private:
                 e.second->dedges = std::make_unique<edges>
                     ( in, out, *opts, tm_, phase_, edges::normalize_tag() );
             }
+            else if ( type == "L2_norm")
+            {
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, tm_, edges::L2_norm_tag() );
+            }
             else if ( type == "scale")
             {
                 e.second->dedges = std::make_unique<edges>
@@ -603,6 +608,9 @@ private:
         {
             phase_dependent_edges_[name] = es;
             stochastic_edges_[name] = es;
+        }
+        else if ( type == "L2_norm" )
+        {
         }
         else if ( type == "scale" )
         {
