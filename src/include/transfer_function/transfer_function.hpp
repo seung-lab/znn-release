@@ -173,6 +173,10 @@ transfer_function get_transfer_function( const options& op )
         ovec2d p = op.optional_as<ovec2d>("function_args", "1,1");
         return transfer_function(functions::hyperbolic_tangent(p[0],p[1]));
     }
+    else if ( fn == "gating" )
+    {
+        return transfer_function(functions::gating());
+    }
     else if ( fn == "linear" )
     {
         ovector<real> p =
