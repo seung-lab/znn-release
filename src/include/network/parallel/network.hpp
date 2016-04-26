@@ -168,7 +168,7 @@ private:
                 if ( e->reverse )
                 {
                     real_stride = real_stride / e->stride;
-                    ZI_ASSERT(new_stride*e->stride==real_stride);
+                    // ZI_ASSERT(new_stride*e->stride==real_stride);
                 }
 
                 e->in_stride = real_stride;
