@@ -339,7 +339,7 @@ private:
             // create nodes
             {
                 options op;
-                op.push("nodes",name);
+                op.push("name",name);
                 op.push("type","sum");
                 op.push("size",in->size());
 
@@ -353,7 +353,7 @@ private:
             // create crop edges
             {
                 options op;
-                op.push("edges",in_out);
+                op.push("name",in_out);
                 op.push("type","crop");
                 op.push("offset",diff/vec3i(2,2,2));
                 op.push("input",iname);
@@ -735,6 +735,8 @@ public:
         {
             // revert to complete graph
             for ( auto & n: nodes_ )
+                n.second->dnodes->enable(true);
+            for ( auto & n: implicit_nodes_ )
                 n.second->dnodes->enable(true);
 
             // inject randomness to stochastic nodes
