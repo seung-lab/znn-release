@@ -148,7 +148,15 @@ private:
                 real_stride = vec3i::one;
             }
 
-            n->stride = real_stride;
+            // force sparseness
+            if ( n->opts->contains("sparse") )
+            {
+                n->stride = n->opts->require_as<ovec3i>("sparse");
+            }
+            else
+            {
+                n->stride = real_stride;
+            }
 
             for ( auto& e: n->out )
             {
