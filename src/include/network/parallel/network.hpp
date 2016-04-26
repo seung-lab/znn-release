@@ -134,7 +134,7 @@ private:
     {
         if ( n->stride != vec3i::zero )
         {
-            ZI_ASSERT(n->stride==stride);
+            // ZI_ASSERT(n->stride==stride);
             // TODO(lee):
             //  Conflicting strides should only be allowed
             //  when 1x1x1 filtering is following.
@@ -151,12 +151,10 @@ private:
             // force sparseness
             if ( n->opts->contains("sparse") )
             {
-                n->stride = n->opts->require_as<ovec3i>("sparse");
+                real_stride = n->opts->require_as<ovec3i>("sparse");
             }
-            else
-            {
-                n->stride = real_stride;
-            }
+
+            n->stride = real_stride;
 
             for ( auto& e: n->out )
             {
