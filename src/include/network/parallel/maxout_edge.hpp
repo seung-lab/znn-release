@@ -57,7 +57,7 @@ public:
                  task_manager & tm )
         : edge(in,inn,out,outn,tm)
     {
-        ZI_ASSERT(inn=outn);
+        ZI_ASSERT(inn==outn);
         in->attach_out_edge(inn,this);
 
         // TODO(lee): any better solution?
