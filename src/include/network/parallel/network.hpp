@@ -737,7 +737,7 @@ public:
             for ( auto & n: nodes_ )
                 n.second->dnodes->enable(true);
             for ( auto & n: implicit_nodes_ )
-                n.second->dnodes->enable(true);
+                n.second->enable(true);
 
             // inject randomness to stochastic nodes
             for ( auto & n: nodes_ )
