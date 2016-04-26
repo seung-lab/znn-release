@@ -21,6 +21,7 @@
 #include "logistics.hpp"
 #include "rectify_linear.hpp"
 #include "hyperbolic_tangent.hpp"
+#include "gating.hpp"
 #include "soft_sign.hpp"
 
 #include "transfer_function.hpp"
