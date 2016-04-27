@@ -43,7 +43,7 @@ private:
     size_t const   fwd_priority_;
     size_t const   bwd_priority_;
 
-    phase          phase_       ; // TRAIN/TEST
+    phase          phase_       ; // TRAIN/TEST/OPTIMIZE
 
 protected:
     real           patch_sz_ = 1; // minibatch averaging
@@ -85,7 +85,6 @@ public:
         return !std::accumulate(enabled_.begin(), enabled_.end(), 0);
     }
 
-
     vec3i const &  fsize() const { return fsize_;        }
     task_manager & manager()     { return task_manager_; }
     size_t         size() const  { return size_;         }
@@ -104,14 +103,17 @@ public:
         return options_.require_as<std::string>("name");
     }
 
+#   ifndef NDEBUG
     void display() const
     {
         std::cout << "[" << nodes::name() << "]\n";
+
         for ( auto& e: enabled_ )
             std::cout << e;
 
         std::cout << std::endl;
     }
+#   endif
 
 protected:
     // propagate disable dynamics forward
@@ -132,7 +134,7 @@ public:
 
     virtual void setup()
     {
-        // stochasitc enable/disable
+        // stochasitcally enable/disable the whole nodes
         if ( phase_ == phase::TRAIN )
         {
             if ( options_.contains("ratio") )

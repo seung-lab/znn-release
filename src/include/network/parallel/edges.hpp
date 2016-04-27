@@ -435,18 +435,21 @@ inline edges::edges( nodes * in,
     : options_(opts)
     , tm_(tm)
 {
-    ZI_ASSERT(in->num_out_nodes()==out->num_in_nodes());
-
     size_t n = in->num_out_nodes();
-    edges_.resize(n);
-    waiter_.set(n);
+    size_t m = out->num_in_nodes();
+
+    ZI_ASSERT(n==m||n==1);
+
+    edges_.resize(m);
+    waiter_.set(m);
 
     auto eps = opts.optional_as<real>("eps", 1e-5f);
 
-    for ( size_t i = 0; i < n; ++i )
+    for ( size_t i = 0; i < m; ++i )
     {
+        size_t inn = (n==1) ? 0 : i;
         edges_[i] = std::make_unique<multiply_edge>
-            (in, i, out, i, tm, eps);
+            (in, inn, out, i, tm, eps);
     }
 }
 

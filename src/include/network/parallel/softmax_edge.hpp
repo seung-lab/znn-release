@@ -38,6 +38,7 @@ public:
     private:
         void attach(size_t n, softmax_edge* e)
         {
+            ZI_ASSERT(n<edges_.size());
             edges_[n] = e;
             accum_.inc();
         }
@@ -153,6 +154,7 @@ public:
             layer_data->backward(*last_f * *g);
         }
     }
+
 
 private:
     void enable_layer(bool b)
