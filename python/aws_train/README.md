@@ -25,6 +25,8 @@ this script can create a cluster including an on-demand master node and several 
 ##Tutorial
 now, you are almost ready. 
 * create a volume using starcluster (it won't work for volume created in web console!): `starcluster createvolume 50 us-east-1c`, you can get a volume ID from this step. This volume will be your persistent storage for all the training files.
+* check your cluster: `starcluster listclusters`
+* terminate your volume-creator cluster by: `starcluster terminate -f volumecreator`
 * setup the volume id in starcluster configure file.
 * launch a cluster only has the `master`: `starcluster start mycluster`
 * set the `node_name` in script to choose the command you want to run. (normally, we use network name as node name)
