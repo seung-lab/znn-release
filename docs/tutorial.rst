@@ -317,3 +317,4 @@ Forward Pass
 run the following command:
 ::
     python forward.py -c path/of/config.cfg
+if you are running forward pass intensively for a large image stack, it is recommanded to recompile python core using `DZNN_DONT_CACHE_FFTS`. Without caching FFTS, you can use a large output size, which reuse a lot of computation and speed up your forward pass.
