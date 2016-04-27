@@ -137,7 +137,8 @@ VOLUMES = data
 
 # list of plugins to load after StarCluster's default setup routines (OPTIONAL)
 # see "Configuring StarCluster Plugins" below on how to define plugin sections
-PLUGINS = sge
+PLUGINS = 
+#sge
 #anaconda_plugin, ipcluster  #This sets the number of slots to equal the number of nodes
 
 # list of permissions (or firewall rules) to apply to the cluster's security
@@ -269,10 +270,10 @@ MOUNT_PATH = /home
 # SOME_PARAM_FOR_MY_PLUGIN = 1
 # SOME_OTHER_PARAM = 2
 
-[plugin sge]
-setup_class = starcluster.plugins.sge.SGEPlugin
-slots_per_host = 1
-master_is_exec_host = False
+# [plugin sge]
+# setup_class = starcluster.plugins.sge.SGEPlugin
+# slots_per_host = 1
+# master_is_exec_host = False
 
 # [plugin anaconda_plugin]
 # # myplugin module either lives in ~/.starcluster/plugins or is
