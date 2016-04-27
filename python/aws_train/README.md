@@ -24,6 +24,9 @@ this script can create a cluster including an on-demand master node and several 
 
 ##Tutorial
 now, you are almost ready.
+* create a volume using starcluster (it won't work for volume created in web console!): `starcluster createvolume 50 us-east-1c` 
+* setup the volume id in starcluster configure file.
+* launch a cluster: `starcluster start mycluster`
 * set the `node_name` in script to choose the command you want to run. (normally, we use network name as node name)
 * modify the command dict to execute training commands after the node was launched. the `node_name` is the key of command dict.
 * run the main script: `python aws_train.py N4`, N4 is the node name
