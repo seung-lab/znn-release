@@ -33,5 +33,9 @@ now, you are almost ready.
 * modify the command dict to execute training commands after the node was launched. the `node_name` is the key of command dict.
 * run the main script: `python aws_train.py N4`, N4 is the node name
 
-## Check your cluster
-* `starcluster listclusters`
+## Usage
+* Check your cluster: `starcluster listclusters`
+* ssh: `starcluster sshmaster mycluster`
+* upload: `starcluster put mycluster myfile clusterfile`
+* download: `starcluster get mycluster clusterfile myfile`
+* get help: `starcluster help`
