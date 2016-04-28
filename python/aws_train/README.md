@@ -31,7 +31,16 @@ now, you are almost ready.
 * launch a cluster only has the `master`: `starcluster start mycluster`
 * set the `node_name` in script to choose the command you want to run. (normally, we use network name as node name)
 * modify the command dict to execute training commands after the node was launched. the `node_name` is the key of command dict.
-* run the main script: `python aws_train.py N4`, N4 is the node name
+
+# compile and run
+for the first time, you'd better update the code and compile
+* run the main script: `python aws_train.py mynode`, `mynode` is the node name
+* use `starcluster sshnode mycluster mynode` to login your node. 
+* go to the persistent volume: `cd /home`
+* clone the latest znn code: `git clone https://github.com/seung-lab/znn-release.git`
+* compile the python core: `cd znn-release/python/core`; `make mkl -j 32`. all the libraries should be available.
+* start training and have fun!
+once setup, you don't need to compile it anymore.
 
 ## Usage
 * Check your cluster: `starcluster listclusters`
