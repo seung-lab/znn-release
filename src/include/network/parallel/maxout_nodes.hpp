@@ -174,6 +174,17 @@ public:
         }
     }
 
+    void backward(size_t n, size_t b, cube_p<complex>&& g) override
+    {
+        ZI_ASSERT((n<nodes::size())&&(!nodes::is_output()));
+        if ( !enabled_[n] ) return;
+
+        if ( bwd_accumulators_[n]->add(b,std::move(g)) )
+        {
+            do_backward(n,bwd_accumulators_[n]->reset());
+        }
+    }
+
 public:
     size_t attach_maxout_edge(size_t i, edge* e)
     {
