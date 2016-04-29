@@ -337,7 +337,7 @@ bp::dict edge_opt_to_dict( options const opt,
 			std::size_t nodes_in  = layer_sizes[input_layer];
 			std::size_t nodes_out = layer_sizes[output_layer];
 
-			if ( type == "conv" || "deconv" )
+			if ( type == "conv" || type == "deconv" )
 			{
 				res[p.first] = filter_string_to_np( p.second, size,
 													nodes_in, nodes_out, self );
