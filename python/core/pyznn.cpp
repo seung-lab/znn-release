@@ -162,7 +162,7 @@ std::shared_ptr< network > CNet_Init(
 std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
 	std::string const net_config_file,
 	np::ndarray const & outsz_a,
-	std::size_t const tc,
+	std::size_t tc,
 	bool const is_optimize = true,
 	std::uint8_t const phs = 0,
     bool const force_fft = false )
