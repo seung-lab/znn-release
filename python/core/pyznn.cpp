@@ -114,8 +114,7 @@ std::shared_ptr< network > CNet_Init(
     std::cout<< "parse_net file: "<<net_config_file<<std::endl;
     parse_net_file(nodes, edges, net_config_file);
     vec3i out_sz = ndarry_to_vec3i(outsz_a);
-    if ( tc == 0 )
-    	tc = std::thread::hardware_concurrency();
+    if ( tc == 0 ) tc = std::thread::hardware_concurrency();
 
     // force fft or optimize
     if ( force_fft )
@@ -164,6 +163,7 @@ std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
 	std::uint8_t const phs = 0,
     bool const force_fft = false )
 {
+    if ( tc == 0 ) tc = std::thread::hardware_concurrency();
 
 	bp::list node_opts_list = bp::extract<bp::list>( opts[0] );
 	bp::list edge_opts_list = bp::extract<bp::list>( opts[1] );
