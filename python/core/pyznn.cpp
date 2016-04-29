@@ -114,7 +114,11 @@ std::shared_ptr< network > CNet_Init(
     std::cout<< "parse_net file: "<<net_config_file<<std::endl;
     parse_net_file(nodes, edges, net_config_file);
     vec3i out_sz = ndarry_to_vec3i(outsz_a);
-    if ( tc == 0 ) tc = std::thread::hardware_concurrency();
+    if ( tc == 0 )
+    {
+        tc = std::thread::hardware_concurrency();
+        std::cout << "thread number: " << tc << std::endl;
+    }
 
     // force fft or optimize
     if ( force_fft )
