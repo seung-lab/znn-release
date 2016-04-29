@@ -45,7 +45,7 @@ public:
     vec3i const & fov() const { return data_[0].fov(); }
     vec3i const & off() const { return data_[0].off(); }
 
-    vec3i const & size() const { return data_.size(); }
+    size_t size() const { return data_.size(); }
 
     box const & bbox()  const { return data_[0].bbox(); }
     box const & range() const { return data_[0].range(); }
