@@ -23,24 +23,48 @@ def main( conf_file='config.cfg', logfile=None ):
 
         logfile = zlog.make_logfile_name( pars )
 
-    #%% create and initialize the network
-    if pars['train_load_net'] and os.path.exists(pars['train_load_net']):
-        print "loading network..."
-        net = znetio.load_network( pars )
+    # #%% create and initialize the network
+    # if pars['train_load_net'] and os.path.exists(pars['train_load_net']):
+    #     print "loading network..."
+    #     net = znetio.load_network( pars )
+    #     # load existing learning curve
+    #     lc = zstatistics.CLearnCurve( pars['train_load_net'] )
+    #     # the last iteration we want to continue training
+    #     iter_last = lc.get_last_it()
+    # else:
+    #     if pars['train_seed_net'] and os.path.exists(pars['train_seed_net']):
+    #         print "seeding network..."
+    #         net = znetio.load_network( pars, is_seed=True )
+    #     else:
+    #         print "initializing network..."
+    #         net = znetio.init_network( pars )
+    #     # initalize a learning curve
+    #     lc = zstatistics.CLearnCurve()
+    #     iter_last = lc.get_last_it()
+
+    if pars['train_seed_net'] and os.path.exists(pars['train_seed_net']):
+        print "seeding network..."
+        seed_path = pars['train_seed_net']
+        net = znetio.load_network( pars, is_seed=True, hdf5_filename=seed_path )
         # load existing learning curve
-        lc = zstatistics.CLearnCurve( pars['train_load_net'] )
+        lc = zstatistics.CLearnCurve( seed_path )
         # the last iteration we want to continue training
         iter_last = lc.get_last_it()
     else:
-        if pars['train_seed_net'] and os.path.exists(pars['train_seed_net']):
-            print "seeding network..."
-            net = znetio.load_network( pars, is_seed=True )
+        if pars['train_load_net'] and os.path.exists(pars['train_load_net']):
+            print "loading network..."
+            load_path = pars['train_load_net']
+            net = znetio.load_network( pars, hdf5_filename=load_path )
+            # load existing learning curve
+            lc = zstatistics.CLearnCurve( load_path )
+            # the last iteration we want to continue training
+            iter_last = lc.get_last_it()
         else:
             print "initializing network..."
             net = znetio.init_network( pars )
-        # initalize a learning curve
-        lc = zstatistics.CLearnCurve()
-        iter_last = lc.get_last_it()
+            # initalize a learning curve
+            lc = zstatistics.CLearnCurve()
+            iter_last = lc.get_last_it()
 
     # show field of view
     print "field of view: ", net.get_fov()
