@@ -18,8 +18,8 @@ We have some machine images set up and ready to go for training on:
 
 This is the easiest method as the program's dependencies are already loaded and the program is compiled.
 
-Contact `Jingpeng Wu <jingpeng@princeton.edu>`_ to get started.
-
+Contact `William Wong <william.wong@princeton.edu>`_ to get an AWS account or share the ZNN AMI with your account.
+You should find `ZNN` in `/opt/znn-release`. Contact `Jingpeng Wu <jingpeng@princeton.edu>`_ if there is any issue of the AMI.
 
 Compiling the Python Interface 
 ------------------------------
