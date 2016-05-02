@@ -20,7 +20,7 @@ This is the easiest method as the program's dependencies are already loaded and 
 
 Contact `William Wong <william.wong@princeton.edu>`_ to get an AWS account or share the ZNN AMI with your account.
 
-You should find `ZNN` in `/opt/znn-release`. Contact `Jingpeng Wu <jingpeng@princeton.edu>`_ if there is any issue of the AMI. The AMI was tested using `C4.8xlarge` instance.
+You should find `ZNN` in `/opt/znn-release`. Contact `Jingpeng Wu <jingpeng@princeton.edu>`_ if there is any issue of the AMI. Note that you should run training as `root`. `sudo` is not enough.
 
 Compiling the Python Interface 
 ------------------------------
