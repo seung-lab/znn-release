@@ -368,9 +368,6 @@ if __name__ == '__main__':
     assert len(sys.argv) > 1
     fname = sys.argv[1]
 
-    fconfig = path.dirname(fname) + "/config.cfg"
-    from front_end import zconfig
-
     lc = CLearnCurve( fname )
 
     if len(sys.argv)==3:
