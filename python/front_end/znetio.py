@@ -295,7 +295,7 @@ def load_network( params=None, is_seed=False, train=True, hdf5_filename=None,
         del template
 
         print "consolidating options..."
-        final_options = consolidate_opts(load_options, template_options, params, is_seed)
+        final_options = consolidate_opts(load_options, template_options, params, is_seed=is_seed)
 
     else:
         final_options = template.get_opts()

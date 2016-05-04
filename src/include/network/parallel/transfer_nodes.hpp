@@ -263,7 +263,7 @@ private:
 
                 auto f = get_copy(*fs_[n]);
                 *f -= means_[n];
-                *f /= vars_[n] + epsilon;
+                // *f /= vars_[n] + epsilon;
 
                 update_dispatch_.dispatch(n,f);
             }

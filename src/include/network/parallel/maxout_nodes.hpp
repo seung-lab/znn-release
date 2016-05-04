@@ -146,7 +146,7 @@ private:
 
                 auto f = get_copy(*fs_[n]);
                 *f -= means_[n];
-                *f /= vars_[n] + epsilon;
+                // *f /= vars_[n] + epsilon;
 
                 update_dispatch_.dispatch(n,f);
             }
@@ -194,6 +194,17 @@ public:
             {
                 do_backward(n,bwd_accumulators_[n]->reset());
             }
+        }
+    }
+
+    void backward(size_t n, size_t b, cube_p<complex>&& g) override
+    {
+        ZI_ASSERT((n<nodes::size())&&(!nodes::is_output()));
+        if ( !enabled_[n] ) return;
+
+        if ( bwd_accumulators_[n]->add(b,std::move(g)) )
+        {
+            do_backward(n,bwd_accumulators_[n]->reset());
         }
     }
 

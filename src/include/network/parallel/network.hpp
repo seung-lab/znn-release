@@ -160,7 +160,7 @@ private:
                 if ( e->reverse )
                 {
                     real_stride = real_stride / e->stride;
-                    ZI_ASSERT(new_stride*e->stride==real_stride);
+                    // ZI_ASSERT(new_stride*e->stride==real_stride);
                 }
 
                 e->in_stride = real_stride;
@@ -333,7 +333,7 @@ private:
             // create nodes
             {
                 options op;
-                op.push("nodes",name);
+                op.push("name",name);
                 op.push("type","sum");
                 op.push("size",in->size());
 
@@ -347,7 +347,7 @@ private:
             // create crop edges
             {
                 options op;
-                op.push("edges",in_out);
+                op.push("name",in_out);
                 op.push("type","crop");
                 op.push("offset",diff/vec3i(2,2,2));
                 op.push("input",iname);
@@ -621,6 +621,9 @@ public:
 
         // minibatch averaging
         set_patch_size(outsz);
+
+        // set phase
+        set_phase(phs);
     }
 
     void set_eta( real eta )
@@ -704,6 +707,8 @@ public:
             // revert to complete graph
             for ( auto & n: nodes_ )
                 n.second->dnodes->enable(true);
+            for ( auto & n: implicit_nodes_ )
+                n.second->enable(true);
 
             // inject randomness to stochastic nodes
             for ( auto & n: nodes_ )
