@@ -62,6 +62,7 @@ public:
     void inc(size_t n = 1)
     {
         ZI_ASSERT(current_==0);
+        guard g(mutex_);
         required_ += n;
     }
 
