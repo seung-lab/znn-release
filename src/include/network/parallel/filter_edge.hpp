@@ -64,8 +64,14 @@ private:
     {
         ZI_ASSERT(enabled_);
 
-        if ( !Princeton )
+        if ( Princeton )
+        {
+            out_nodes->inc_update(out_num);
+        }
+        else
+        {
             input_for_update = f;
+        }
 
         out_nodes->forward(out_num,
             convolve_forward(*f, filter_.W(), filter_stride));
@@ -140,15 +146,15 @@ public:
                 convolve_backward(*g, filter_.W(), filter_stride));
         }
 
-        // if ( shared_ )
-        // {
+        if ( shared_ )
+        {
             do_update(g); // immediate update
-        // }
-        // else
-        // {
-        //     pending_ = manager.schedule_unprivileged(&filter_edge::do_update,
-        //                                              this, g);
-        // }
+        }
+        else
+        {
+            pending_ = manager.schedule_unprivileged(&filter_edge::do_update,
+                                                     this, g);
+        }
     }
 
     void set_input_for_update( ccube_p<real> const & x ) override

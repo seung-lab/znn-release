@@ -319,7 +319,7 @@ private:
             fs_[n].reset();
 
             // update bias
-            if ( !update_accums_[n].effectively_required() )
+            if ( !update_accums_[n].required() )
                 biases_[n]->update(sum(*gs_[n]),patch_sz_);
         }
         bwd_dispatch_.dispatch(n,gs_[n],nodes::manager());
@@ -358,7 +358,7 @@ public:
 public:
     void update(size_t n, cube_p<real>&& f ) override
     {
-        if ( update_accums_[n].effectively_required() )
+        if ( update_accums_[n].required() )
         {
             if ( update_accums_[n].add(std::move(f)) )
             {
@@ -367,8 +367,15 @@ public:
                 auto numel = gs_[n]->num_elements();
                 auto dEdB = sum(*gs_[n]) - numel*sum(*factor);
                 biases_[n]->update(dEdB,patch_sz_);
+
+                update_accums_[n].initialize();
             }
         }
+    }
+
+    void inc_update(size_t n) override
+    {
+        update_accums_[n].inc(1);
     }
 
 public:
@@ -390,10 +397,6 @@ public:
     void attach_in_edge(size_t n, edge* e) override
     {
         ZI_ASSERT(n<nodes::size());
-
-        // Princeton descent
-        if ( func_ && e->trainable() )
-            update_accums_[n].inc(1);
 
         bwd_dispatch_.sign_up(n,e);
         fwd_accums_[n]->grow(1);
@@ -417,10 +420,6 @@ public:
     size_t attach_in_fft_edge(size_t n, edge* e, vec3i const & s) override
     {
         ZI_ASSERT(n<nodes::size());
-
-        // Princeton descent
-        if ( func_ && e->trainable() )
-            update_accums_[n].inc(1);
 
         bwd_dispatch_.sign_up(n,s,e);
         return fwd_accums_[n]->grow_fft(s,1);
@@ -452,7 +451,6 @@ protected:
         // disable incoming edges
         bwd_dispatch_.enable(n,false);
         fwd_accums_[n]->enable_all(false);
-        update_accums_[n].enable_all(false);
 
         // reset feature map
         fs_[n].reset();
@@ -473,7 +471,6 @@ public:
 
         fwd_accums_[n]->enable_all(b);
         bwd_accums_[n]->enable_all(b);
-        update_accums_[n].enable_all(b);
 
         // reset feature map
         fs_[n].reset();
@@ -494,10 +491,6 @@ public:
     {
         ZI_ASSERT(n<nodes::size());
 
-        // Princeton descent
-        if ( trainable )
-            update_accums_[n].enable(b);
-
         if ( !fwd_accums_[n]->enable(b) )
             disable_fwd(n);
     }
@@ -512,10 +505,6 @@ public:
     void enable_in_fft_edge(size_t n, bool b, vec3i const & s) override
     {
         ZI_ASSERT(n<nodes::size());
-
-        // Princeton descent
-        // only trainable edges could be fft edges
-        update_accums_[n].enable(b);
 
         if ( !fwd_accums_[n]->enable_fft(s,b) )
             disable_fwd(n);

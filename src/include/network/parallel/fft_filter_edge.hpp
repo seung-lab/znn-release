@@ -59,7 +59,9 @@ private:
         auto w_fft = get_w_fft();
 #endif
 
-        if ( !Princeton )
+        if ( Princeton )
+            out_nodes->inc_update(out_num);
+        else
             input_for_update = f;
 
         auto fw = *w_fft * *f;
@@ -172,15 +174,16 @@ public:
             in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
         }
 
-        // if ( shared_ )
-        // {
-            do_update(g); // immediate update
-        // }
-        // else
-        // {
-        //     pending_ = manager.schedule_unprivileged(
-        //                             &fft_filter_edge::do_update, this, g);
-        // }
+        if ( shared_ )
+        {
+            // immediate upate
+            do_update(g);
+        }
+        else
+        {
+            pending_ = manager.schedule_unprivileged(
+                                    &fft_filter_edge::do_update, this, g);
+        }
     }
 
     void set_input_for_update( ccube_p<complex> const & x ) override

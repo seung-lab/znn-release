@@ -119,15 +119,15 @@ public:
         in_nodes->backward(in_num,
                        convolve_backward(*g, filter_.W(), filter_stride));
 
-        // if ( shared_ )
-        // {
+        if ( shared_ )
+        {
             do_update(g); // immediate update
-        // }
-        // else
-        // {
-        //     pending_ = manager.schedule_unprivileged(&filter_ds_edge::do_update,
-        //                                              this, g);
-        // }
+        }
+        else
+        {
+            pending_ = manager.schedule_unprivileged(&filter_ds_edge::do_update,
+                                                     this, g);
+        }
     }
 
     void zap(edges* e) override

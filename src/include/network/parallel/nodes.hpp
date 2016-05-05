@@ -195,6 +195,9 @@ public:
     virtual void update(size_t, cube_p<real>&&)
     { UNIMPLEMENTED(); }
 
+    virtual void inc_update(size_t)
+    { UNIMPLEMENTED(); }
+
     virtual std::vector<cube_p<real>>& get_featuremaps()
     { UNIMPLEMENTED(); }
 
