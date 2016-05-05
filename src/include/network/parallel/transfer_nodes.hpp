@@ -263,7 +263,7 @@ private:
 
                 auto f = get_copy(*fs_[n]);
                 *f -= means_[n];
-                *f /= std::sqrt(vars_[n] + epsilon);
+                // *f /= std::sqrt(vars_[n] + epsilon);
 
                 update_dispatch_.dispatch(n,f);
             }
@@ -364,8 +364,11 @@ public:
             {
                 // Princeton descent
                 auto factor = update_accums_[n].reset();
-                auto numel = gs_[n]->num_elements();
-                auto dEdB = sum(*gs_[n]) - numel*sum(*factor);
+
+                // auto numel = gs_[n]->num_elements();
+                // auto dEdB = sum(*gs_[n]) - numel*sum(*factor);
+                auto dEdB = sum(*gs_[n]) - sum(*factor);
+
                 biases_[n]->update(dEdB,patch_sz_);
 
                 update_accums_[n].initialize();
