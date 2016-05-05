@@ -514,6 +514,25 @@ public:
 
     void zap() override {}
 
+public:
+    void display() const override
+    {
+        if ( func_ )
+        {
+            std::cout << "[" << nodes::name() << "] ";
+
+            real bmin = biases_[0]->b();
+            real bmax = biases_[0]->b();
+            for ( auto& b: biases_ )
+            {
+                bmin = std::min(bmin,b->b());
+                bmax = std::max(bmax,b->b())
+            }
+
+            std::cout << bmin << "," bmax << std::endl;
+        }
+    }
+
 }; // class transfer_nodes
 
 }}} // namespace znn::v4::parallel_network

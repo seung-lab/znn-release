@@ -104,13 +104,13 @@ public:
         return options_.require_as<std::string>("name");
     }
 
-    void display() const
+    virtual void display() const
     {
-        std::cout << "[" << nodes::name() << "]\n";
-        for ( auto& e: enabled_ )
-            std::cout << e;
+        // std::cout << "[" << nodes::name() << "]\n";
+        // for ( auto& e: enabled_ )
+        //     std::cout << e;
 
-        std::cout << std::endl;
+        // std::cout << std::endl;
     }
 
 protected:
