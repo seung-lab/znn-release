@@ -701,6 +701,10 @@ public:
     {
         zap();
 
+        // diagnostic debug print
+        for ( auto & n: nodes_ )
+            n.second->dnodes->display();
+
         bool ready = false;
         while ( !ready )
         {

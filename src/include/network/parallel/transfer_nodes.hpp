@@ -526,7 +526,7 @@ public:
             for ( auto& b: biases_ )
             {
                 bmin = std::min(bmin,b->b());
-                bmax = std::max(bmax,b->b())
+                bmax = std::max(bmax,b->b());
             }
 
             std::cout << bmin << "," << bmax << std::endl;
