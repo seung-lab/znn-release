@@ -529,7 +529,7 @@ public:
                 bmax = std::max(bmax,b->b())
             }
 
-            std::cout << bmin << "," bmax << std::endl;
+            std::cout << bmin << "," << bmax << std::endl;
         }
     }
 
