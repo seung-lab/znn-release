@@ -44,11 +44,18 @@ int main(int argc, char** argv)
 
     size_t tc = std::thread::hardware_concurrency();
 
-    if ( argc == 6 )
+    if ( argc >= 6 )
     {
         tc = atoi(argv[5]);
     }
 
-    parallel_network::network::optimize(nodes, edges, {z,y,x}, tc , 10);
+    size_t n = 10;
+
+    if ( argc == 7 )
+    {
+        n = atoi(argv[6]);
+    }
+
+    parallel_network::network::optimize(nodes, edges, {z,y,x}, tc , n);
 
 }
