@@ -96,11 +96,6 @@ private:
             out_nodes->update(out_num, std::move(dEdW));
             Princeton = false;
         }
-        else
-        {
-            fill(*dEdW, 0);
-            out_nodes->update(out_num, std::move(dEdW));
-        }
     }
 
 public:

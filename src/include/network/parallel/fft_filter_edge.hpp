@@ -102,11 +102,6 @@ private:
             out_nodes->update(out_num, std::move(dEdW));
             Princeton = false;
         }
-        else
-        {
-            fill(*dEdW, 0);
-            out_nodes->update(out_num, std::move(dEdW));
-        }
     }
 
 #ifndef ZNN_DONT_CACHE_FFTS
