@@ -305,6 +305,11 @@ private:
         //STRONG_ASSERT(fwd_done_[n]);
         fwd_done_[n] = false;
 
+        if ( norms_[n] )
+        {
+            *gs_[n] -= mean(g);
+        }
+
         if ( func_ )
         {
             //STRONG_ASSERT(g);
