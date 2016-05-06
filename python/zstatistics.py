@@ -9,22 +9,10 @@ from os import path
 
 class CLearnCurve:
     def __init__(self, fname=None):
-        if fname is None:
-            # initialize with empty list
-            self.tt_it  = list()
-            self.tt_err = list()
-            self.tt_cls = list()
-            self.tt_re  = list()
-            self.tt_mc  = list() # malis weighted cls
-            self.tt_me  = list() # malis weighted cost energy
-
-            self.tn_it  = list()
-            self.tn_err = list()
-            self.tn_cls = list()
-            self.tn_re  = list()
-            self.tn_mc  = list() # malis weighted cls
-            self.tn_me  = list() # malis weighted cost energy
-        else:
+        # initialize the key-value store
+        self.train = dict()
+        self.test  = dict()
+        if fname is not None:
             self._read_curve( fname )
         return
 
@@ -46,39 +34,13 @@ class CLearnCurve:
             self.stdpre = "/"
 
         print "stdpre: ", self.stdpre
-        self.tt_it  = list( f[self.stdpre + 'test/it'].value )
-        self.tt_err = list( f[self.stdpre + 'test/err'].value )
-        self.tt_cls = list( f[self.stdpre + 'test/cls'].value )
-        if self.stdpre+'/test/re' in f:
-            self.tt_re = list( f[self.stdpre + 'test/re'].value )
-        else:
-            self.tt_re = list()
-        if self.stdpre + '/test/mc' in f:
-            self.tt_mc = list( f[self.stdpre + 'test/mc'].value )
-        else:
-            self.tt_mc = list()
-        if self.stdpre + '/test/me' in f:
-            self.tt_me = list( f[self.stdpre + '/test/me'].value )
-        else:
-            self.tt_me = list()
+        ft = f[self.stdpre + 'test']
+        for key in ft:
+            self.test[key] = ft[key].value
 
-        self.tn_it  = list( f[self.stdpre + '/train/it'].value )
-        self.tn_err = list( f[self.stdpre + '/train/err'].value )
-        self.tn_cls = list( f[self.stdpre + '/train/cls'].value )
-        if self.stdpre + '/train/re' in f:
-            self.tn_re = list( f[self.stdpre + '/train/re'].value )
-        else:
-            self.tn_re = list()
-
-        if self.stdpre + '/train/mc' in f:
-            self.tn_mc = list( f[self.stdpre + '/train/mc'].value )
-        else:
-            self.tn_mc = list()
-
-        if self.stdpre + '/train/me' in f:
-            self.tn_me = list( f[self.stdpre + '/train/me'].value )
-        else:
-            self.tn_me = list()
+        ft = f[self.stdpre + 'train/']
+        for  key in ft:
+            self.train[key] = ft[key].value
 
         f.close()
 
@@ -90,22 +52,20 @@ class CLearnCurve:
     def _crop_iters(self, iter_num):
 
         # test iterations
-        gen = (i for i,v in enumerate(self.tt_it) if v>iter_num)
+        gen = (i for i,v in enumerate(self.test['it']) if v>iter_num)
         try:
             ind = next(gen)
-            self.tt_it  = self.tt_it[:ind]
-            self.tt_err = self.tt_err[:ind]
-            self.tt_cls = self.tt_cls[:ind]
+            for key,value in self.test.items():
+                self.test[key] = self.test[key][:ind]
         except StopIteration:
             pass
 
         # train iterations
-        gen = (i for i,v in enumerate(self.tn_it) if v>iter_num)
+        gen = (i for i,v in enumerate(self.train['it']) if v>iter_num)
         try:
             ind = next(gen)
-            self.tn_it  = self.tn_it[:ind]
-            self.tn_err = self.tn_err[:ind]
-            self.tn_cls = self.tn_cls[:ind]
+            for key, value in self.train.items():
+                self.train[key] = self.train[key][:ind]
         except StopIteration:
             pass
 
@@ -124,57 +84,22 @@ class CLearnCurve:
 
     def append_test(self, it, err, cls, re):
         # add a test result
-        self.tt_it.append(it)
-        self.tt_err.append(err)
-        self.tt_cls.append(cls)
-        self._append_test_rand_error( re )
+        self.test['it'].append(it)
+        self.test['err'].append(err)
+        self.test['cls'].append(cls)
+        self.test['re'].append(re)
 
     def append_train(self, it, err, cls, re):
         # add a training result
-        self.tn_it.append(it)
-        self.tn_err.append(err)
-        self.tn_cls.append(cls)
-        self._append_train_rand_error( re )
-
-    def _append_train_rand_error( self, re ):
-        while len( self.tn_re ) < len(self.tn_it)-1:
-            # fill with nan
-            self.tn_re.append( np.nan )
-        self.tn_re.append( re )
-        assert len(self.tn_it) == len(self.tn_re)
-
-    def append_train_malis_cls( self, mc ):
-        while len( self.tn_mc ) < len(self.tn_it)-1:
-            # fill with nan
-            self.tn_mc.append( np.nan )
-        self.tn_mc.append( mc )
-        assert len(self.tn_it) == len(self.tn_mc)
-    def append_train_malis_eng( self, me ):
-        while len( self.tn_me ) < len( self.tn_it )-1:
-            self.tn_me.append( np.nan )
-        self.tn_me.append( me )
-
-    def _append_test_rand_error( self, re ):
-        while len( self.tt_re ) < len(self.tt_it)-1:
-            self.tt_re.append( np.nan )
-        self.tt_re.append( re )
-        assert len(self.tt_it) == len(self.tt_re)
-
-    def append_test_malis_cls( self, mc ):
-        while len( self.tt_mc ) < len(self.tt_it)-1:
-            self.tt_mc.append( np.nan )
-        self.tt_mc.append( mc )
-        assert len(self.tt_it) == len(self.tt_mc)
-
-    def append_test_malis_eng( self, me ):
-        while len( self.tt_me ) < len( self.tt_it )-1:
-            self.tt_me.append( np.nan )
-        self.tt_me.append( me )
+        self.train['it'].append(it)
+        self.train['err'].append(err)
+        self.train['cls'].append(cls)
+        self.train['re'].append(re)
 
     def get_last_it(self):
         # return the last iteration number
-        if len(self.tt_it)>0 and len(self.tn_it)>0:
-            last_it = max( self.tt_it[-1], self.tn_it[-1] )
+        if len(self.test['it'])>0 and len(self.train['it'])>0:
+            last_it = max( self.test['it'][-1], self.train['it'][-1] )
             print "inherit last iteration: ", last_it
             return last_it
         else:
@@ -212,9 +137,9 @@ class CLearnCurve:
         return 0
 
     def print_max_update(self):
-        print "max iter: ", self._find_max_update( self.tn_it, self.tn_cls )
+        print "max iter: ", self._find_max_update( self.train['it'], self.train['cls'] )
 
-    def show(self, w):
+    def plot(self, w=3):
         """
         illustrate the learning curve
 
@@ -222,77 +147,36 @@ class CLearnCurve:
         ----------
         w : int, window size for smoothing the curve
         """
-        if len(self.tn_mc) > 0:
-            # malis training, increase number of subplots
-            nsp = 5
-        else:
-            nsp = 3
+        # number of subplots
+        nsp = len(self.train)-1
+        print "number of subplots: {}".format(nsp)
 
         # print the maximum iteration
         self.print_max_update()
 
         # using K as iteration unit
-        tn_it = self.tn_it
+        tn_it = self.train['it']
         for i in xrange(len(tn_it)):
             tn_it[i] = tn_it[i] / float(1000)
-        tt_it = self.tt_it
+        tt_it = self.test['it']
         for i in xrange(len(tt_it)):
             tt_it[i] = tt_it[i] / float(1000)
 
         # plot data
-        plt.subplot(1,nsp, 1)
-        plt.plot(tn_it, self.tn_err, 'b.', alpha=0.2)
-        plt.plot(tt_it, self.tt_err, 'r.', alpha=0.2)
-        # plot smoothed line
-        xne,yne = self._smooth( tn_it, self.tn_err, w )
-        xte,yte = self._smooth( tt_it, self.tt_err, w )
-        plt.plot(xne, yne, 'b')
-        plt.plot(xte, yte, 'r')
-        plt.xlabel('iteration (K)'), plt.ylabel('cost energy')
-
-        plt.subplot(1,nsp,2)
-        plt.plot(tn_it, self.tn_cls, 'b.', alpha=0.2)
-        plt.plot(tt_it, self.tt_cls, 'r.', alpha=0.2)
-        # plot smoothed line
-        xnc, ync = self._smooth( tn_it, self.tn_cls, w )
-        xtc, ytc = self._smooth( tt_it, self.tt_cls, w )
-        plt.plot(xnc, ync, 'b', label='train')
-        plt.plot(xtc, ytc, 'r', label='test')
-        plt.xlabel('iteration (K)'), plt.ylabel( 'classification error' )
-
-        if len(tn_it) == len( self.tn_re ):
-            plt.subplot(1, nsp, 3)
-            plt.plot(tn_it, self.tn_re, 'b.', alpha=0.2)
-            plt.plot(tt_it, self.tt_re, 'r.', alpha=0.2)
+        idx = 0
+        for key in self.train.keys():
+            if key == 'it':
+                continue
+            idx += 1
+            plt.subplot(1,nsp, idx)
+            plt.plot(self.train['it'], self.train[key], 'b.', alpha=0.2)
+            plt.plot(self.test['it'],  self.test[key],  'r.', alpha=0.2)
             # plot smoothed line
-            xnr, ynr = self._smooth( tn_it, self.tn_re, w )
-            xtr, ytr = self._smooth( tt_it, self.tt_re, w )
-            plt.plot(xnr, ynr, 'b', label='train')
-            plt.plot(xtr, ytr, 'r', label='test')
-            plt.xlabel('iteration (K)'), plt.ylabel( 'rand error' )
-
-
-        if len(tn_it) == len( self.tn_mc ):
-            plt.subplot(1, nsp, 4)
-            plt.plot(tn_it, self.tn_mc, 'b.', alpha=0.2)
-            plt.plot(tt_it, self.tt_mc, 'r.', alpha=0.2)
-            # plot smoothed line
-            xnm, ynm = self._smooth( tn_it, self.tn_mc, w )
-            xtm, ytm = self._smooth( tt_it, self.tt_mc, w )
-            plt.plot(xnm, ynm, 'b', label='train')
-            plt.plot(xtm, ytm, 'r', label='test')
-            plt.xlabel('iteration (K)'), plt.ylabel( 'malis weighted cost energy' )
-
-        if len(tn_it) == len( self.tn_me ):
-            plt.subplot(1, nsp, 5)
-            plt.plot(tn_it, self.tn_me, 'b.', alpha=0.2)
-            plt.plot(tt_it, self.tt_me, 'r.', alpha=0.2)
-            # plot smoothed line
-            xng, yng = self._smooth( tn_it, self.tn_me, w )
-            xtg, ytg = self._smooth( tt_it, self.tt_me, w )
-            plt.plot(xng, yng, 'b', label='train')
-            plt.plot(xtg, ytg, 'r', label='test')
-            plt.xlabel('iteration (K)'), plt.ylabel( 'malis weighted pixel error' )
+            xne,yne = self._smooth( self.train['it'], self.train[key], w )
+            xte,yte = self._smooth( self.test['it'],  self.test[key],  w )
+            plt.plot(xne, yne, 'b')
+            plt.plot(xte, yte, 'r')
+            plt.xlabel('iteration (K)'), plt.ylabel(key)
 
         plt.legend()
         plt.show()
@@ -317,8 +201,8 @@ class CLearnCurve:
             if suffix is not None:
                 root = "{}_{}".format(pars['train_net_prefix'], suffix)
 
-            if len(self.tn_it) > 0:
-                fname = root + '_statistics_{}.h5'.format( self.tn_it[-1] )
+            if len(self.train['it']) > 0:
+                fname = root + '_statistics_{}.h5'.format( self.train['it'][-1] )
             else:
                 fname = root + '_statistics_0.h5'
             if os.path.exists(fname):
@@ -327,21 +211,10 @@ class CLearnCurve:
         # save variables
         import h5py
         f = h5py.File( fname, 'a' )
-        f.create_dataset(self.stdpre + '/train/it',  data=self.tn_it )
-        f.create_dataset(self.stdpre + '/train/err', data=self.tn_err)
-        f.create_dataset(self.stdpre + '/train/cls', data=self.tn_cls)
-        if pars['is_malis'] :
-            f.create_dataset(self.stdpre + '/train/re',  data=self.tn_re )
-            f.create_dataset(self.stdpre + '/train/mc',  data=self.tn_mc )
-            f.create_dataset(self.stdpre + '/train/me',  data=self.tn_me )
-
-        f.create_dataset(self.stdpre + '/test/it',   data=self.tt_it )
-        f.create_dataset(self.stdpre + '/test/err',  data=self.tt_err)
-        f.create_dataset(self.stdpre + '/test/cls',  data=self.tt_cls)
-        if pars['is_malis'] :
-            f.create_dataset(self.stdpre + '/test/re',   data=self.tt_re )
-            f.create_dataset(self.stdpre + '/test/mc',   data=self.tt_mc )
-            f.create_dataset(self.stdpre + '/test/me',   data=self.tt_me )
+        for key, value in self.train.items():
+            f.create_dataset(self.stdpre + '/train/' + key,  data=value )
+        for key, value in self.test.items():
+            f.create_dataset(self.stdpre + '/test/' + key,  data=value)
 
         f.create_dataset(self.stdpre + '/elapsed',   data=elapsed)
         f.close()
@@ -373,4 +246,4 @@ if __name__ == '__main__':
     if len(sys.argv)==3:
         w = int( sys.argv[2] )
         print "window size: ", w
-    lc.show( w )
+    lc.plot( w )
