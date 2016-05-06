@@ -8,7 +8,9 @@ import cost_fn
 import numpy as np
 from core import pyznn
 
-def _single_test(net, pars, sample):
+def _single_test(net, pars, sample, vn):
+    # return errors as a dictionary
+    derr = dict()
     vol_ins, lbl_outs, msks, wmsks = sample.get_random_sample()
 
     # forward pass
@@ -16,22 +18,22 @@ def _single_test(net, pars, sample):
     props = net.forward( vol_ins )
 
     # cost function and accumulate errors
-    props, err, grdts = pars['cost_fn']( props, lbl_outs )
+    props, derr['err'], grdts = pars['cost_fn']( props, lbl_outs )
     # pixel classification error
-    cls = cost_fn.get_cls(props, lbl_outs)
+    derr['cls'] = cost_fn.get_cls(props, lbl_outs)
     # rand error
-    re = pyznn.get_rand_error(props.values()[0], lbl_outs.values()[0])
-
-    malis_cls = 0.0
-    malis_eng = 0.0
+    derr['re'] = pyznn.get_rand_error(props.values()[0], lbl_outs.values()[0])
 
     if pars['is_malis']:
         malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight( pars, props, lbl_outs )
         # dictionary of malis classification error
         dmc, dme = utils.get_malis_cost( props, lbl_outs, malis_weights )
-        malis_cls = dmc.values()[0]
-        malis_eng = dme.values()[0]
-    return props, err, cls, re, malis_cls, malis_eng
+        derr['mc'] = dmc.values()[0]
+        derr['me'] = dme.values()[0]
+    # normalization
+    derr['err'] /= vn
+    derr['cls'] /= vn
+    return props, derr
 
 def znn_test(net, pars, samples, vn, it, lc):
     """
@@ -50,38 +52,29 @@ def znn_test(net, pars, samples, vn, it, lc):
     -------
     lc : updated learning curve
     """
-    err = 0.0
-    cls = 0.0
-    re = 0.0
-    # malis classification error
-    mc = 0.0
-    me = 0.0
+    derr = dict()
+    derr['it'] = it
 
     net.set_phase(1)
     test_num = pars['test_num']
     for i in xrange( test_num ):
-        props, cerr, ccls, cre, cmc, cme = _single_test(net, pars, samples)
-        err += cerr
-        cls += ccls
-        re  += cre
-        mc  += cmc
-        me  += cme
+        props, derr1 = _single_test(net, pars, samples, vn)
+        for key, value in derr1.items():
+            if derr.has_key(key):
+                derr[key] += value
+            else:
+                derr[key] = value
+
     net.set_phase(0)
     # normalize
-    err = err / vn / test_num
-    cls = cls / vn / test_num
-    # rand error only need to be normalized by testing time
-    re  = re  / test_num
-    mc  = mc  / test_num
-    me  = me  / test_num
+    for key, value in derr.items():
+        derr[key] = value / test_num
     # update the learning curve
-    lc.append_test( it, err, cls, re )
-    lc.append_test_malis_cls( mc )
-    lc.append_test_malis_eng( me )
+    lc.append_test( derr )
 
     if pars['is_malis']:
         print "test iter: %d,     cost: %.3f, pixel error: %.3f, rand error: %.6f, malis cost: %.3f, malis error: %.3f"\
-                %(it, err, cls, re, me, mc)
+                %(derr['it'], derr['err'], derr['cls'], derr['re'], derr['me'], derr['mc'])
     else:
-        print "test iter: %d,     cost: %.3f, pixel error: %.3f" %(it, err, cls)
+        print "test iter: %d,     cost: %.3f, pixel error: %.3f" %(derr['it'], derr['err'], derr['cls'])
     return lc

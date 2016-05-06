@@ -5,7 +5,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
 from matplotlib.pylab import plt
-from os import path
+import os
 
 class CLearnCurve:
     def __init__(self, fname=None):
@@ -21,7 +21,7 @@ class CLearnCurve:
         # get the iteration number
         iter_num = self._get_iter_num(fname)
 
-        assert( path.exists(fname) )
+        assert( os.path.exists(fname) )
         # read data
         import h5py
         # read into memory
@@ -36,11 +36,11 @@ class CLearnCurve:
         print "stdpre: ", self.stdpre
         ft = f[self.stdpre + 'test']
         for key in ft:
-            self.test[key] = ft[key].value
+            self.test[key] = list(ft[key].value)
 
         ft = f[self.stdpre + 'train/']
         for  key in ft:
-            self.train[key] = ft[key].value
+            self.train[key] = list(ft[key].value)
 
         f.close()
 
@@ -48,6 +48,20 @@ class CLearnCurve:
         if iter_num is not None:
             self._crop_iters(iter_num)
         return
+
+    # fetch the latest parameter
+    def fetch(self, key):
+        if self.train.has_key(key):
+            return self.train[key][end]
+        else:
+            return None
+
+    # push an item to training
+    def push(self, key, value):
+        if self.train.has_key(key):
+            self.train[key].append(value)
+        else:
+            self.train[key] = [value]
 
     def _crop_iters(self, iter_num):
 
@@ -74,7 +88,7 @@ class CLearnCurve:
     def _get_iter_num(self, fname ):
         if '.h5' not in fname:
             return None
-        root, ext = path.splitext(fname)
+        root, ext = os.path.splitext(fname)
         str_num = root.split('_')[-1]
         if 'current' in str_num :
             # the last network
@@ -82,23 +96,43 @@ class CLearnCurve:
         else:
             return int(str_num)
 
-    def append_test(self, it, err, cls, re):
+    def append_test(self, derr):
+        # add the iter first
+        if not self.test.has_key('it'):
+            self.test['it'] = [ derr['it'] ]
+        else:
+            self.test['it'].append(derr['it'])
         # add a test result
-        self.test['it'].append(it)
-        self.test['err'].append(err)
-        self.test['cls'].append(cls)
-        self.test['re'].append(re)
+        for key in derr.keys():
+            if key=='it':
+                continue
+            if not self.test.has_key(key):
+                self.test[key] = list()
+            while len( self.test[key] ) < len(self.test['it'])-1:
+                # fill with nan
+                self.test[key].append( np.nan )
+            self.test[key].append(derr[key])
 
-    def append_train(self, it, err, cls, re):
-        # add a training result
-        self.train['it'].append(it)
-        self.train['err'].append(err)
-        self.train['cls'].append(cls)
-        self.train['re'].append(re)
+    def append_train(self, history):
+        # add the iter first
+        if not self.train.has_key('it'):
+            self.train['it'] = [ history['it'] ]
+        else:
+            self.train['it'].append(history['it'])
+        # add a test result
+        for key in history.keys():
+            if key=='it':
+                continue
+            if not self.train.has_key(key):
+                self.train[key] = list()
+            while len( self.train[key] ) < len(self.train['it'])-1:
+                # fill with nan
+                self.train[key].append( np.nan )
+            self.train[key].append(history[key])
 
     def get_last_it(self):
         # return the last iteration number
-        if len(self.test['it'])>0 and len(self.train['it'])>0:
+        if self.train.has_key('it') and len(self.test['it'])>0 and len(self.train['it'])>0:
             last_it = max( self.test['it'][-1], self.train['it'][-1] )
             print "inherit last iteration: ", last_it
             return last_it
@@ -212,11 +246,10 @@ class CLearnCurve:
         import h5py
         f = h5py.File( fname, 'a' )
         for key, value in self.train.items():
-            f.create_dataset(self.stdpre + '/train/' + key,  data=value )
+            f.create_dataset(self.stdpre + '/train/' + key,  data=np.asarray(value) )
         for key, value in self.test.items():
-            f.create_dataset(self.stdpre + '/test/' + key,  data=value)
+            f.create_dataset(self.stdpre + '/test/' + key,  data=np.asarray(value) )
 
-        f.create_dataset(self.stdpre + '/elapsed',   data=elapsed)
         f.close()
 
         if not pars['is_stdio']:
@@ -225,6 +258,20 @@ class CLearnCurve:
             if os.path.exists( fname2 ):
                 os.remove( fname2 )
             shutil.copyfile(fname, fname2)
+
+
+def show_history(history):
+    if history.has_key('mc'):
+        show_string = "update %d,    cost: %.3f, pixel error: %.3f, rand error: %.3f, me: %.3f, mc: %.3f, elapsed: %.1f s/iter, learning rate: %.4f" %(history['it'], history['err'], history['cls'], history['re'], history['me'], hostory['mc'], history['elapsed'], history['eta'] )
+    else:
+        show_string = "update %d,    cost: %.3f, pixel error: %.3f, rand error: %.3f, elapsed: %.1f s/iter, learning rate: %.3f" %(history['it'], history['err'], history['cls'], history['re'], history['elapsed'], history['eta'] )
+    print show_string
+
+def reset_history(history):
+    for key in history.keys():
+        history[key] = 0
+    return history
+
 
 if __name__ == '__main__':
     """

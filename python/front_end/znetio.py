@@ -462,7 +462,11 @@ def create_net(pars):
 
     # set some parameters
     print 'setting up the network...'
-    net.set_eta( pars['eta'] )
+    lceta = lc.fetch('eta')
+    if lceta is None:
+        net.set_eta( pars['eta'] )
+    else:
+        net.set_eta( lceta )
     net.set_momentum( pars['momentum'] )
     net.set_weight_decay( pars['weight_decay'] )
 
