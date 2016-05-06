@@ -164,7 +164,7 @@ private:
 
         if ( norms_[n] )
         {
-            *g -= mean(g);
+            *g -= mean(*g);
         }
 
         *g *= *fs_[n];

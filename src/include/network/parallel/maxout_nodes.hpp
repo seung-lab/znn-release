@@ -177,7 +177,7 @@ private:
 
         if ( norms_[n] )
         {
-            *g -= mean(g);
+            *g -= mean(*g);
         }
 
         bwd_dispatch_.dispatch(n,g,nodes::manager());

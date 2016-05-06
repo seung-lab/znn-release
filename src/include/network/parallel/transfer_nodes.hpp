@@ -307,7 +307,7 @@ private:
 
         if ( norms_[n] )
         {
-            *gs_[n] -= mean(g);
+            *gs_[n] -= mean(*g);
         }
 
         if ( func_ )
