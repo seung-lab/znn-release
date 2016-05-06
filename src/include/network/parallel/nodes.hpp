@@ -104,13 +104,13 @@ public:
         return options_.require_as<std::string>("name");
     }
 
-    void display() const
+    virtual void display() const
     {
-        std::cout << "[" << nodes::name() << "]\n";
-        for ( auto& e: enabled_ )
-            std::cout << e;
+        // std::cout << "[" << nodes::name() << "]\n";
+        // for ( auto& e: enabled_ )
+        //     std::cout << e;
 
-        std::cout << std::endl;
+        // std::cout << std::endl;
     }
 
 protected:
@@ -193,6 +193,9 @@ public:
 
     // update bias, if any, with an optional factor
     virtual void update(size_t, cube_p<real>&&)
+    { UNIMPLEMENTED(); }
+
+    virtual void inc_update(size_t)
     { UNIMPLEMENTED(); }
 
     virtual std::vector<cube_p<real>>& get_featuremaps()

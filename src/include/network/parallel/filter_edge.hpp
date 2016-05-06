@@ -64,8 +64,14 @@ private:
     {
         ZI_ASSERT(enabled_);
 
-        if ( !Princeton )
+        if ( Princeton )
+        {
+            out_nodes->inc_update(out_num);
+        }
+        else
+        {
             input_for_update = f;
+        }
 
         out_nodes->forward(out_num,
             convolve_forward(*f, filter_.W(), filter_stride));
@@ -89,11 +95,6 @@ private:
             *dEdW *= in_nodes->get_means()[in_num];
             out_nodes->update(out_num, std::move(dEdW));
             Princeton = false;
-        }
-        else
-        {
-            fill(*dEdW, 0);
-            out_nodes->update(out_num, std::move(dEdW));
         }
     }
 

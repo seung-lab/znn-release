@@ -59,7 +59,9 @@ private:
         auto w_fft = get_w_fft();
 #endif
 
-        if ( !Princeton )
+        if ( Princeton )
+            out_nodes->inc_update(out_num);
+        else
             input_for_update = f;
 
         auto fw = *w_fft * *f;
@@ -99,11 +101,6 @@ private:
             *dEdW *= in_nodes->get_means()[in_num];
             out_nodes->update(out_num, std::move(dEdW));
             Princeton = false;
-        }
-        else
-        {
-            fill(*dEdW, 0);
-            out_nodes->update(out_num, std::move(dEdW));
         }
     }
 
