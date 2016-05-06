@@ -168,12 +168,17 @@ public:
     }
 
 private:
-    void do_backward(size_t n, cube_p<real> const & g)
+    void do_backward(size_t n, cube_p<real> & g)
     {
         ZI_ASSERT(enabled_[n]);
 
         //STRONG_ASSERT(fwd_done_[n]);
         fwd_done_[n] = false;
+
+        if ( norms_[n] )
+        {
+            *g -= mean(g);
+        }
 
         bwd_dispatch_.dispatch(n,g,nodes::manager());
     }

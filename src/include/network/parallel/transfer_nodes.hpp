@@ -297,7 +297,7 @@ public:
 
 
 private:
-    void do_backward(size_t n, cube_p<real> const & g )
+    void do_backward(size_t n, cube_p<real> & g )
     {
         ZI_ASSERT(enabled_[n]);
 
