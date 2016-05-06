@@ -125,6 +125,11 @@ protected:
 public:
     virtual ~nodes() {}
 
+    phase get_phase() const
+    {
+        return phase_;
+    }
+
     virtual void set_phase( phase phs )
     {
         phase_ = phs;

@@ -383,7 +383,10 @@ public:
 
     void inc_update(size_t n) override
     {
-        update_accums_[n].inc(1);
+        if ( nodes::get_phase() != phase::TEST )
+        {
+            update_accums_[n].inc(1);
+        }
     }
 
 public:
