@@ -29,7 +29,6 @@ class CLearnCurve:
 
         if "/processing/znn/train/statistics/" in f:
             self.stdpre = "/processing/znn/train/statistics/"
-            print "stdpre: ", self.stdpre
         else:
             self.stdpre = "/"
 
@@ -216,12 +215,13 @@ class CLearnCurve:
         plt.show()
         return
 
-    def save(self, pars, fname=None, elapsed=0, suffix=None):
+    def save(self, pars, fname=None, suffix=None):
         if pars['is_stdio']:
             self.stdpre = "/processing/znn/train/statistics/"
-            print "stdpre: ", self.stdpre
         else:
             self.stdpre = "/"
+        print "stdpre of saving: ", self.stdpre
+        print "fname: {}".format(fname)
 
         if not pars['is_stdio']:
              # change filename
@@ -245,10 +245,12 @@ class CLearnCurve:
         # save variables
         import h5py
         f = h5py.File( fname, 'a' )
-        for key, value in self.train.items():
-            f.create_dataset(self.stdpre + '/train/' + key,  data=np.asarray(value) )
-        for key, value in self.test.items():
-            f.create_dataset(self.stdpre + '/test/' + key,  data=np.asarray(value) )
+
+        for key, value in self.train.iteritems():
+            f.create_dataset("{}train/{}".format(self.stdpre, key),  data=value )
+
+        for key, value in self.test.iteritems():
+            f.create_dataset(self.stdpre + "test/" + key,  data=np.asarray(value) )
 
         f.close()
 

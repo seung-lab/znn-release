@@ -115,7 +115,7 @@ def main( args ):
     # get file name
     fname, fname_current = znetio.get_net_fname( pars['train_net_prefix'], iter_last, suffix="init" )
     znetio.save_network(net, fname, pars['is_stdio'])
-    lc.save( pars, fname, elapsed=0.0, suffix="init_iter{}".format(iter_last) )
+    lc.save( pars, fname, suffix="init_iter{}".format(iter_last) )
     # no nan detected
     nonan = True
 
@@ -132,10 +132,10 @@ def main( args ):
         vol_ins = utils.make_continuous(vol_ins)
         props = net.forward( vol_ins )
 
-        # cost function and accumulate errors
+        # cost function and accumulate errors with normalization
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
-        history['err'] += cerr
-        history['cls'] += cost_fn.get_cls(props, lbl_outs)
+        history['err'] += cerr / vn
+        history['cls'] += cost_fn.get_cls(props, lbl_outs) / vn
         # compute rand error
         if pars['is_debug']:
             assert not np.all(lbl_outs.values()[0]==0)
@@ -152,7 +152,7 @@ def main( args ):
             nonan = nonan and utils.check_dict_nan(grdts)
             if  not nonan:
                 utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
-                             grdts, malis_weights, wmsks, elapsed, i)
+                             grdts, malis_weights, wmsks, history['elapsed'], i)
                 # stop training
                 return
 
@@ -186,8 +186,8 @@ def main( args ):
 
             # normalize
             if utils.dict_mask_empty(msks):
-                history['err'] /= vn / pars['Num_iter_per_show']
-                history['cls'] /= vn / pars['Num_iter_per_show']
+                history['err'] /= pars['Num_iter_per_show']
+                history['cls'] /= pars['Num_iter_per_show']
             else:
                 history['err'] /= history['num_mask_voxels'] / pars['Num_iter_per_show']
                 history['cls'] /= history['num_mask_voxels'] / pars['Num_iter_per_show']

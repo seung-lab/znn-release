@@ -323,8 +323,7 @@ def inter_save(pars, lc, net, vol_ins, props, lbl_outs, grdts, wmsks, it):
     if os.path.exists(filename):
         os.remove( filename )
 
-    if lc is not None:
-        lc.save( pars, filename )
+    lc.save( pars, filename )
     # save network
     znetio.save_network(net, filename, pars['is_stdio'] )
     if pars['is_debug'] and pars['is_stdio']:
