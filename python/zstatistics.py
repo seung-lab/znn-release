@@ -4,7 +4,6 @@ __doc__ = """
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
-from matplotlib.pylab import plt
 import os
 
 class CLearnCurve:
@@ -172,14 +171,18 @@ class CLearnCurve:
     def print_max_update(self):
         print "max iter: ", self._find_max_update( self.train['it'], self.train['cls'] )
 
-    def plot(self, w=3):
+    def plot(self, w=3, plotmode='matplotlib'):
         """
         illustrate the learning curve
 
         Parameters
         ----------
         w : int, window size for smoothing the curve
+        plotmode: string, options: matplotlib | plotly
         """
+        import matplotlib.pylab as plt
+        fig = plt.figure()
+
         # number of subplots
         nsp = len(self.train)-1
         print "number of subplots: {}".format(nsp)
@@ -195,24 +198,43 @@ class CLearnCurve:
         for i in xrange(len(tt_it)):
             tt_it[i] = tt_it[i] / float(1000)
 
+
+        # dictionary of key and meaning
+        kd = {'err':'cost', 'cls':'pixel error', 'mc':'malis cost', 'me':'malis error','re':'rand error'}
         # plot data
         idx = 0
         for key in self.train.keys():
             if key == 'it':
                 continue
             idx += 1
-            plt.subplot(1,nsp, idx)
-            plt.plot(self.train['it'], self.train[key], 'b.', alpha=0.2)
-            plt.plot(self.test['it'],  self.test[key],  'r.', alpha=0.2)
+            ax = fig.add_subplot(1,nsp,idx)
+            ax.plot(self.train['it'], self.train[key], 'b.', alpha=0.2)
+            ax.plot(self.test['it'],  self.test[key],  'r.', alpha=0.2)
             # plot smoothed line
             xne,yne = self._smooth( self.train['it'], self.train[key], w )
             xte,yte = self._smooth( self.test['it'],  self.test[key],  w )
-            plt.plot(xne, yne, 'b')
-            plt.plot(xte, yte, 'r')
-            plt.xlabel('iteration (K)'), plt.ylabel(key)
+            ax.plot(xne, yne, 'b')
+            ax.plot(xte, yte, 'r')
+            #ax.set_
+            ax.set_xlabel('iteration (K)')
+            ax.set_ylabel(kd[key])
 
+        plt.tight_layout()
         plt.legend()
-        plt.show()
+        fig = plt.gcf()
+        if 'matplot' in plotmode:
+            plt.show()
+        elif 'plotly' in plotmode:
+            # transform to plotly fig
+            import plotly.plotly as py
+            import plotly.tools as tls
+            plotly_fig = tls.mpl_to_plotly( fig )
+            plotly_fig['layout']['title'] = 'Learning Curve'
+            plotly_fig['layout']['margin'].update({'t':40})
+            plot_url = py.plot(plotly_fig, filename='znn-learning-curve')
+            print plot_url
+        else:
+            raise NameError("invalid plot mode! should be either matplotlib or plotly")
         return
 
     def save(self, pars, fname=None, suffix=None):
@@ -292,7 +314,13 @@ if __name__ == '__main__':
 
     lc = CLearnCurve( fname )
 
-    if len(sys.argv)==3:
+    if len(sys.argv) >2:
         w = int( sys.argv[2] )
         print "window size: ", w
-    lc.plot( w )
+    else:
+        w = 3
+    if len(sys.argv) >3:
+        plotmode = sys.argv[3]
+    else:
+        plotmode = 'maplotlib'
+    lc.plot( w, plotmode )
