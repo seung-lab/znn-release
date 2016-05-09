@@ -317,6 +317,15 @@ def check_dict_nan( d ):
             return False
     return True
 
+# save the initial network for further examination
+def init_save(pars, lc, net, iter_last):
+    fname = "init_iter_{}.h5".format(iter_last)
+    if os.path.exists(fname):
+        os.remove( fname )
+    lc.save(pars, fname)
+    znetio.save_network(net, fname, pars['is_stdio'])
+
+# save the intermediate networks while training
 def inter_save(pars, lc, net, vol_ins, props, lbl_outs, grdts, wmsks, it):
     # get file name
     filename, filename_current = znetio.get_net_fname( pars['train_net_prefix'], it )

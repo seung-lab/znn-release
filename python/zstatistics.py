@@ -51,7 +51,7 @@ class CLearnCurve:
     # fetch the latest parameter
     def fetch(self, key):
         if self.train.has_key(key):
-            return self.train[key][end]
+            return self.train[key][-1]
         else:
             return None
 
@@ -264,9 +264,9 @@ class CLearnCurve:
 
 def show_history(history):
     if history.has_key('mc'):
-        show_string = "update %d,    cost: %.3f, pixel error: %.3f, rand error: %.3f, me: %.3f, mc: %.3f, elapsed: %.1f s/iter, learning rate: %.4f" %(history['it'], history['err'], history['cls'], history['re'], history['me'], hostory['mc'], history['elapsed'], history['eta'] )
+        show_string = "update %d,    cost: %.3f, pixel error: %.3f, rand error: %.3f, me: %.3f, mc: %.3f, elapse: %.1f s/iter, learning rate: %.4f" %(history['it'], history['err'], history['cls'], history['re'], history['me'], hostory['mc'], history['elapse'], history['eta'] )
     else:
-        show_string = "update %d,    cost: %.3f, pixel error: %.3f, rand error: %.3f, elapsed: %.1f s/iter, learning rate: %.3f" %(history['it'], history['err'], history['cls'], history['re'], history['elapsed'], history['eta'] )
+        show_string = "update %d,    cost: %.3f, pixel error: %.3f, rand error: %.3f, elapse: %.1f s/iter, learning rate: %.3f" %(history['it'], history['err'], history['cls'], history['re'], history['elapse'], history['eta'] )
     print show_string
 
 def reset_history(history):

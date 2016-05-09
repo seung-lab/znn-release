@@ -114,8 +114,7 @@ def main( args ):
     #Saving initial/seeded network
     # get file name
     fname, fname_current = znetio.get_net_fname( pars['train_net_prefix'], iter_last, suffix="init" )
-    znetio.save_network(net, fname, pars['is_stdio'])
-    lc.save( pars, fname, suffix="init_iter{}".format(iter_last) )
+    utils.init_save(pars, lc, net, iter_last)
     # no nan detected
     nonan = True
 
@@ -152,7 +151,7 @@ def main( args ):
             nonan = nonan and utils.check_dict_nan(grdts)
             if  not nonan:
                 utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
-                             grdts, malis_weights, wmsks, history['elapsed'], i)
+                             grdts, malis_weights, wmsks, history['elapse'], i)
                 # stop training
                 return
 
@@ -182,7 +181,7 @@ def main( args ):
             # iter number
             history['it'] = i
             # time
-            history['elapsed'] = total_time / pars['Num_iter_per_show']
+            history['elapse'] = total_time / pars['Num_iter_per_show']
 
             # normalize
             if utils.dict_mask_empty(msks):

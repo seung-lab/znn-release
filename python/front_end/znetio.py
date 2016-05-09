@@ -141,8 +141,6 @@ def save_network(network, filename, is_stdio=False):
     of iterations if passed, and updates a "current" file with
     the most recent (uncorrupted) information'''
     print "save as ", filename
-    if os.path.exists(filename):
-        os.remove(filename)
     save_opts(network.get_opts(), filename, is_stdio=is_stdio)
 
 def load_opts(filename, is_stdio=False):
