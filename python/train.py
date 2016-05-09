@@ -105,6 +105,9 @@ def main( args ):
 
     # the last iteration we want to continue training
     iter_last = lc.get_last_it()
+    # load existing learning rate
+    if lc.get_last_eta():
+        history['eta'] = lc.get_last_eta()
 
     print "start training..."
     start = time.time()
