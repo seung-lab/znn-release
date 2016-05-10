@@ -240,7 +240,7 @@ class CLearnCurve:
             plotly_fig = tls.mpl_to_plotly( fig )
             plotly_fig['layout']['title'] = 'Learning Curve'
             plotly_fig['layout']['margin'].update({'t':40})
-            plot_url = py.plot(plotly_fig, filename='znn-learning-curve')
+            plot_url = py.plot(plotly_fig, filename='znn-learning-curve', validate=False)
             print plot_url
         else:
             raise NameError("invalid plot mode! should be either matplotlib or plotly")
@@ -390,5 +390,5 @@ if __name__ == '__main__':
     if len(sys.argv) >3:
         plotmode = sys.argv[3]
     else:
-        plotmode = 'maplotlib'
+        plotmode = 'matplotlib'
     lc.plot( w, plotmode )
