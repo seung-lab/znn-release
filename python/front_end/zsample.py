@@ -153,7 +153,7 @@ class CSample(object):
 
         # data augmentation
         subinputs, subtlbls, submsks = self._data_aug( subinputs, subtlbls, submsks )
-
+        subinputs = utils.make_continuous(subinputs)
         return ( subinputs, subtlbls, submsks )
 
     def _get_balance_weight(self, arr, msk=None):
@@ -597,3 +597,8 @@ class CSamples(object):
         # get the index of non-zero element
         i = np.nonzero(sq)[1][0]
         return self.samples[i].get_random_sample()
+
+# constantly put random sample to queue
+def put_random_sample(samples, q):
+    while True:
+        q.put( samples.get_random_sample() )

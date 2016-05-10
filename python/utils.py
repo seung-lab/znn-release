@@ -328,6 +328,8 @@ def init_save(pars, lc, net, iter_last):
 
 # save the intermediate networks while training
 def inter_save(pars, lc, net, vol_ins, props, lbl_outs, grdts, wmsks, it):
+    if it%pars['Num_iter_per_save']!=0:
+        return
     # get file name
     filename, filename_current = znetio.get_net_fname( pars['train_net_prefix'], it )
     if os.path.exists(filename):
