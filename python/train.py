@@ -86,7 +86,6 @@ def main( args ):
 
     # initialization
     history = dict()
-    history['eta'] = pars['eta']
     history['elapse'] = 0
     history['err'] = 0.0 # cost energy
     history['cls'] = 0.0 # pixel classification error
@@ -106,8 +105,10 @@ def main( args ):
     # the last iteration we want to continue training
     iter_last = lc.get_last_it()
     # load existing learning rate
-    if lc.get_last_eta():
+    if pars['eta']<=0 and lc.get_last_eta():
         history['eta'] = lc.get_last_eta()
+    else:
+        history['eta'] = pars['eta']
 
     print "start training..."
     start = time.time()
