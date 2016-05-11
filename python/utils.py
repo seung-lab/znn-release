@@ -7,7 +7,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 from front_end import znetio
 import shutil
-
+import os
 
 def parseIntSet(nputstr=""):
     """
@@ -317,14 +317,25 @@ def check_dict_nan( d ):
             return False
     return True
 
-def inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
-               grdts, malis_weights, wmsks, elapsed, it):
+# save the initial network for further examination
+def init_save(pars, lc, net, iter_last):
+    dirname = os.path.dirname(pars['train_net_prefix'])
+    fname = os.path.join( dirname, "init_iter_{}.h5".format(iter_last) )
+    if os.path.exists(fname):
+        os.remove( fname )
+    lc.save(pars, fname)
+    znetio.save_network(net, fname, pars['is_stdio'])
+
+# save the intermediate networks while training
+def inter_save(pars, lc, net, vol_ins, props, lbl_outs, grdts, wmsks, it):
     # get file name
     filename, filename_current = znetio.get_net_fname( pars['train_net_prefix'], it )
+    if os.path.exists(filename):
+        os.remove( filename )
+
+    lc.save( pars, filename )
     # save network
     znetio.save_network(net, filename, pars['is_stdio'] )
-    if lc is not None:
-        lc.save( pars, filename, elapsed )
     if pars['is_debug'] and pars['is_stdio']:
         stdpre = "/processing/znn/train/patch/"
         from emirt.emio import h5write
@@ -336,9 +347,6 @@ def inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
             h5write( filename, stdpre + "lbls/"+key, val)
         for key, val in grdts.iteritems():
             h5write( filename, stdpre + "grdts/"+key, val )
-        if pars['is_malis'] and pars['is_stdio']:
-            for key, val in malis_weights.iteritems():
-                h5write( filename, stdpre + "malis_weights/", val )
         if pars['rebalance_mode']:
             for key, val in wmsks.iteritems():
                 h5write( filename, stdpre + "weights/", val )

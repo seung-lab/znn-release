@@ -85,23 +85,30 @@ def main( args ):
         # zcheck.check_gradient(pars, net, smp_trn)
 
     # initialization
-    eta = pars['eta']
-    elapsed = 0
-    err = 0.0 # cost energy
-    cls = 0.0 # pixel classification error
-    re = 0.0  # rand error
+    history = dict()
+    history['elapse'] = 0
+    history['err'] = 0.0 # cost energy
+    history['cls'] = 0.0 # pixel classification error
+    history['re'] = 0.0  # rand error
     # number of voxels which accumulate error
     # (if a mask exists)
-    num_mask_voxels = 0
+    history['num_mask_voxels'] = 0
 
     if pars['is_malis']:
-        malis_cls = 0.0
-        malis_eng = 0.0
-    else:
-        malis_weights = None
+        # malis cost
+        history['mc'] = 0.0
+        # malis error
+        history['me'] = 0.0
+        # malis weight
+        # history['mw'] = 0.0
 
     # the last iteration we want to continue training
     iter_last = lc.get_last_it()
+    # load existing learning rate
+    if pars['eta']<=0 and lc.get_last_eta():
+        history['eta'] = lc.get_last_eta()
+    else:
+        history['eta'] = pars['eta']
 
     print "start training..."
     start = time.time()
@@ -111,8 +118,7 @@ def main( args ):
     #Saving initial/seeded network
     # get file name
     fname, fname_current = znetio.get_net_fname( pars['train_net_prefix'], iter_last, suffix="init" )
-    znetio.save_network(net, fname, pars['is_stdio'])
-    lc.save( pars, fname, elapsed=0.0, suffix="init_iter{}".format(iter_last) )
+    utils.init_save(pars, lc, net, iter_last)
     # no nan detected
     nonan = True
 
@@ -129,15 +135,15 @@ def main( args ):
         vol_ins = utils.make_continuous(vol_ins)
         props = net.forward( vol_ins )
 
-        # cost function and accumulate errors
+        # cost function and accumulate errors with normalization
         props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
-        err += cerr
-        cls += cost_fn.get_cls(props, lbl_outs)
+        history['err'] += cerr / vn
+        history['cls'] += cost_fn.get_cls(props, lbl_outs) / vn
         # compute rand error
         if pars['is_debug']:
             assert not np.all(lbl_outs.values()[0]==0)
-        re  += pyznn.get_rand_error( props.values()[0], lbl_outs.values()[0] )
-        num_mask_voxels += utils.sum_over_dict(msks)
+        history['re']  += pyznn.get_rand_error( props.values()[0], lbl_outs.values()[0] )
+        history['num_mask_voxels'] += utils.sum_over_dict(msks)
 
         # check whether there is a NaN here!
         if pars['is_debug']:
@@ -149,7 +155,7 @@ def main( args ):
             nonan = nonan and utils.check_dict_nan(grdts)
             if  not nonan:
                 utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
-                             grdts, malis_weights, wmsks, elapsed, i)
+                             grdts, malis_weights, wmsks, history['elapse'], i)
                 # stop training
                 return
 
@@ -165,8 +171,8 @@ def main( args ):
                 continue
             grdts = utils.dict_mul(grdts, malis_weights)
             dmc, dme = utils.get_malis_cost( props, lbl_outs, malis_weights )
-            malis_cls += dmc.values()[0]
-            malis_eng += dme.values()[0]
+            history['mc'] += dmc.values()[0]
+            history['me'] += dme.values()[0]
 
         # run backward pass
         grdts = utils.make_continuous(grdts)
@@ -176,43 +182,33 @@ def main( args ):
         start = time.time()
 
         if i%pars['Num_iter_per_show']==0:
+            # iter number
+            history['it'] = i
             # time
-            elapsed = total_time / pars['Num_iter_per_show']
+            history['elapse'] = total_time / pars['Num_iter_per_show']
 
             # normalize
             if utils.dict_mask_empty(msks):
-                err = err / vn / pars['Num_iter_per_show']
-                cls = cls / vn / pars['Num_iter_per_show']
+                history['err'] /= pars['Num_iter_per_show']
+                history['cls'] /= pars['Num_iter_per_show']
             else:
-                err = err / num_mask_voxels / pars['Num_iter_per_show']
-                cls = cls / num_mask_voxels / pars['Num_iter_per_show']
-            re = re / pars['Num_iter_per_show']
-            lc.append_train(i, err, cls, re)
+                history['err'] /= history['num_mask_voxels'] / pars['Num_iter_per_show']
+                history['cls'] /= history['num_mask_voxels'] / pars['Num_iter_per_show']
+            history['re'] /= pars['Num_iter_per_show']
 
             if pars['is_malis']:
-                malis_cls = malis_cls / pars['Num_iter_per_show']
-                malis_eng = malis_eng / pars['Num_iter_per_show']
-                lc.append_train_malis_cls( malis_cls )
-                lc.append_train_malis_eng( malis_eng )
+                history['mc'] /= pars['Num_iter_per_show']
+                history['me'] /= pars['Num_iter_per_show']
 
-                show_string = "update %d,    cost: %.3f, pixel error: %.3f, rand error: %.3f, me: %.3f, mc: %.3f, elapsed: %.1f s/iter, learning rate: %.4f"\
-                              %(i, err, cls, re, malis_eng, malis_cls, elapsed, eta )
-            else:
-                show_string = "update %d,    cost: %.3f, pixel error: %.3f, rand error: %.3f, elapsed: %.1f s/iter, learning rate: %.3f"\
-                    %(i, err, cls, re, elapsed, eta )
+            lc.append_train(history)
+
+            zstatistics.show_history(history)
 
             if pars.has_key('logging') and pars['logging']:
                 utils.write_to_log(logfile, show_string)
-            print show_string
 
-            # reset err and cls
-            err = 0
-            cls = 0
-            re = 0
-            num_mask_voxels = 0
-
-            if pars['is_malis']:
-                malis_cls = 0
+            # reset history
+            history = zstatistics.reset_history(history)
 
             # reset time
             total_time  = 0
@@ -226,14 +222,12 @@ def main( args ):
             start = time.time()
 
         if i%pars['Num_iter_per_save']==0:
-            utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
-                             grdts, malis_weights, wmsks, elapsed, i)
-
+            utils.inter_save(pars, lc, net, vol_ins, props, lbl_outs, grdts, wmsks, i)
 
         if i%pars['Num_iter_per_annealing']==0:
             # anneal factor
-            eta = eta * pars['anneal_factor']
-            net.set_eta(eta)
+            history['eta'] *= pars['anneal_factor']
+            net.set_eta(history['eta'])
 
         # stop the iteration at checking mode
         if pars['is_check']:
