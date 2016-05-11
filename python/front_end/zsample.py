@@ -1,7 +1,10 @@
-#!/usr/bin/env python
 __doc__ = """
 
-Dataset Class Interface (CSamples)
+Sample Class Interface (CSamples)
+
+Sample Class, which represents a pair of input and output volume structures(as CImage and CLabel respectively)
+
+Allows simple interface for procuring matched random samples from all volume structures at once
 
 Jingpeng Wu <jingpeng.wu@gmail.com>,
 Nicholas Turner <nturner@cs.princeton.edu>, 2015
@@ -13,28 +16,29 @@ import emirt
 import utils
 from zdataset import *
 import os
-import h5py
 
 class CSample(object):
-    """
-    Sample Class, which represents a pair of input and output volume structures
-    (as CInputImage and COutputImage respectively)
-
-    Allows simple interface for procuring matched random samples from all volume
-    structures at once
-
-    """
-    def __init__(self, config, pars, sample_id, net, \
+    def __init__(self, dspec, pars, sample_id, net, \
                  outsz, setsz_ins=None, setsz_outs=None,\
                  log=None, is_forward=False):
 
         # Parameter object (dict)
         self.pars = pars
 
+        # initialize the datasets
+        self.lbls = dict()
+        self.msks = dict()
+        self.outs = dict()
+
+        # initialize the patches
+        self.subimgs = dict()
+        self.sublbls = dict()
+        self.submsks  = dict()
+
         self.sid = sample_id
         # Name of the sample within the configuration file
         # Also used for logging
-        self.sec_name = "sample%d" % sample_id
+        self.sec = "sample%d" % sample_id
 
         # temporary layer names
         if is_forward and setsz_ins is None and setsz_outs is None:
@@ -51,27 +55,21 @@ class CSample(object):
         self.imgs = dict()
         self.ins = dict()
         for name,setsz_in in self.setsz_ins.iteritems():
-            #Finding the section of the config file
-            imid = config.getint(self.sec_name, name)
-            imsec_name = "image%d" % (imid,)
-            self.ins[name] = ConfigInputImage( config, pars, imsec_name, \
+            # section name of image
+            imsec = dspec[self.sec][name]
+            self.ins[name] = CImage( dspec, pars, imsec, \
                                       outsz, setsz_in, fov, is_forward=is_forward )
             self.imgs[name] = self.ins[name].data
-
-        self.lbls = dict()
-        self.msks = dict()
-        self.outs = dict()
 
         if not is_forward:
             print "\ncreate label image class..."
             for name,setsz_out in self.setsz_outs.iteritems():
                 #Allowing for users to abstain from specifying labels
-                if not config.has_option(self.sec_name, name):
+                if not (dspec.has_key(self.sec) and dspec[self.sec].has_key(name)):
                     continue
                 #Finding the section of the config file
-                imid = config.getint(self.sec_name, name)
-                imsec_name = "label%d" % (imid,)
-                self.outs[name] = ConfigOutputLabel( config, pars, imsec_name, \
+                imsec = dspec[self.sec][name]
+                self.outs[name] = CLabel( dspec, pars, imsec, \
                                                      outsz, setsz_out, fov)
                 self.lbls[name] = self.outs[name].data
                 self.msks[name] = self.outs[name].msk
@@ -117,20 +115,19 @@ class CSample(object):
             print "\nWARNING: No output volumes defined!\n"
             self.locs = None
 
-    def _data_aug(self, subinputs, subtlbls, submsks):
+    def _data_aug(self):
         # random transformation roll
         if self.pars['is_data_aug']:
             rft = (np.random.rand(4)>0.5)
-            for key, subinput in subinputs.iteritems():
-                subinputs[key] = utils.data_aug_transform(subinput,      rft )
-            for key, subtlbl in subtlbls.iteritems():
-                subtlbls[key]  = utils.data_aug_transform(subtlbl, rft )
-                submsks[key]   = utils.data_aug_transform(submsks[key],  rft )
-        return subinputs, subtlbls, submsks
+            for key, subinput in self.subimgs.iteritems():
+                self.subimgs[key] = utils.data_aug_transform(subinput,      rft )
+            for key, sublbl in self.sublbls.iteritems():
+                submsk = self.submsks[key]
+                self.sublbls[key]  = utils.data_aug_transform(sublbl, rft )
+                self.submsks[key]  = utils.data_aug_transform(submsk, rft )
 
     def get_random_sample(self):
         '''Fetches a matching random sample from all input and output volumes'''
-
         # random deviation
         ind = np.random.randint( np.size(self.locs[0]) )
         loc = np.empty( 3, dtype=np.uint32 )
@@ -142,19 +139,17 @@ class CSample(object):
         self.write_request_to_log(loc)
 
         # get input and output 4D sub arrays
-        subinputs = dict()
         for key, img in self.ins.iteritems():
-            subinputs[key] = self.ins[key].get_subvolume(dev)
-
-        subtlbls = dict()
-        submsks  = dict()
+            self.subimgs[key] = self.ins[key].get_subvolume(dev)
         for key, lbl in self.outs.iteritems():
-            subtlbls[key], submsks[key] = self.outs[key].get_subvolume(dev)
+            self.sublbls[key], self.submsks[key] = self.outs[key].get_subvolume(dev)
 
         # data augmentation
-        subinputs, subtlbls, submsks = self._data_aug( subinputs, subtlbls, submsks )
-        subinputs = utils.make_continuous(subinputs)
-        return ( subinputs, subtlbls, submsks )
+        self._data_aug()
+        # make sure that the input image is continuous in memory
+        # the C++ core can not deal with numpy view
+        self.subimgs = utils.make_continuous(self.subimgs)
+        return ( self.subimgs, self.sublbls, self.submsks )
 
     def _get_balance_weight(self, arr, msk=None):
         mask_empty = msk is None or msk.size == 0
@@ -237,7 +232,7 @@ class CSample(object):
     def write_request_to_log(self, dev):
         '''Records the subvolume requested of this sample in a log'''
         if self.log is not None:
-            log_line1 = self.sec_name
+            log_line1 = self.sec
             log_line2 = "subvolume: [{},{},{}] requested".format(dev[0],dev[1],dev[2])
             utils.write_to_log(self.log, log_line1)
             utils.write_to_log(self.log, log_line2)
@@ -247,7 +242,7 @@ class CAffinitySample(CSample):
     sample for affinity training
     """
 
-    def __init__(self, config, pars, sample_id, net, outsz, log=None, is_forward=False):
+    def __init__(self, dspec, pars, sample_id, net, outsz, log=None, is_forward=False):
         self.setsz_ins  = net.get_inputs_setsz()
         self.setsz_outs = net.get_outputs_setsz()
 
@@ -261,7 +256,7 @@ class CAffinitySample(CSample):
                 self.setsz_outs[key][-3:] += 1
 
         # initialize the general sample
-        CSample.__init__(self, config, pars, sample_id, net, \
+        CSample.__init__(self, dspec, pars, sample_id, net, \
                          outsz, setsz_ins = self.setsz_ins, setsz_outs = self.setsz_outs, \
                          log=log, is_forward=is_forward)
 
@@ -411,13 +406,13 @@ class CBoundarySample(CSample):
     """
     sample for boundary map training
     """
-    def __init__(self, config, pars, sample_id, net, outsz, log=None, is_forward=False):
+    def __init__(self, dspec, pars, sample_id, net, outsz, log=None, is_forward=False):
 
         self.setsz_ins  = net.get_inputs_setsz()
         self.setsz_outs = net.get_outputs_setsz()
 
         # initialize the general sample
-        CSample.__init__(self, config, pars, sample_id, net, \
+        CSample.__init__(self, dspec, pars, sample_id, net, \
                          outsz, self.setsz_ins, self.setsz_outs, \
                          log=log, is_forward=is_forward)
 
@@ -522,7 +517,7 @@ class ConfigSampleOutput(object):
 
 class CSamples(object):
 
-    def __init__(self, config, pars, ids, net, outsz, log=None):
+    def __init__(self, dspec, pars, ids, net, outsz, log=None):
         """
         Samples Class - which represents a collection of data samples
 
@@ -532,8 +527,8 @@ class CSamples(object):
 
         Parameters
         ----------
-        config : python parser object, read the config file
-        pars : parameters
+        dspec :  dict, the dataset specifications
+        pars : dict, parameters
         ids : set of sample ids
         net: network for which this samples object should be tailored
         """
@@ -548,11 +543,11 @@ class CSamples(object):
         Nloc = 0.0
         for sid in ids:
             if 'bound' in pars['out_type']:
-                sample = CBoundarySample(config, pars, sid, net, outsz, log)
+                sample = CBoundarySample(dspec, pars, sid, net, outsz, log)
             elif 'aff' in pars['out_type']:
-                sample = CAffinitySample(config, pars, sid, net, outsz, log)
+                sample = CAffinitySample(dspec, pars, sid, net, outsz, log)
             elif 'semantic' in pars['out_type']:
-                sample = CSemanticSample(config, pars, sid, net, outsz, log)
+                sample = CSemanticSample(dspec, pars, sid, net, outsz, log)
             else:
                 raise NameError('invalid output type')
             self.samples.append( sample )
@@ -572,6 +567,7 @@ class CSamples(object):
             fname = '../testsuit/candidate_locs_{}.h5'.format(sample.sid)
             if os.path.exists( fname ):
                 os.remove(fname)
+            import h5py
             f = h5py.File( fname, 'w' )
             f.create_dataset('locs', data=sample.locs)
             f.close()

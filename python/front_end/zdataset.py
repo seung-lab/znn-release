@@ -197,7 +197,7 @@ class CDataset(object):
         '''
         return self.volume_shape - self.mapsz + 1
 
-class ConfigImage(CDataset):
+class CImage(CDataset):
     """
     A class which represents a stack of images (up to 4 dimensions)
 
@@ -209,12 +209,12 @@ class ConfigImage(CDataset):
     (in voxels) from the center.
     """
 
-    def __init__(self, config, pars, sec_name, \
+    def __init__(self, dspec, pars, sec_name, \
                  outsz, setsz, mapsz, is_forward=False):
         """
         Parameters
         ----------
-        config: data specification file parser
+        dspec: dict, dataset specification
         pars: dict, parameters
         sec_name: string, section name in data spec file
         setsz: array, data patch shape
@@ -225,12 +225,11 @@ class ConfigImage(CDataset):
         self.pars = pars
 
         #Reading in data
-        fnames = config.get(sec_name, 'fnames').split(',\n')
+        fnames = dspec[sec_name]['fnames'].split(',\n')
         arrlist = self._read_files( fnames );
 
         #Auto crop - constraining 3d vols to be the same size
-        self._is_auto_crop = config.getboolean(sec_name, 'is_auto_crop')
-        if self._is_auto_crop:
+        if dspec[sec_name].has_key('is_auto_crop') and dspec[sec_name]['is_auto_crop']:
             arrlist = self._auto_crop( arrlist )
 
         #4d array of all data
@@ -365,19 +364,18 @@ class ConfigImage(CDataset):
             loc[2]-self.patch_margin_low[2]  : loc[2] + self.patch_margin_high[2]+1])
         return subvol
 
-class ConfigInputImage(ConfigImage):
+class CInputImage(CImage):
     '''
-    Subclass of ConfigImage which represents the type of input data seen
-    by ZNN neural networks
+    Subclass of CImage which represents the type of input image stack
     '''
 
-    def __init__(self, config, pars, sec_name, \
+    def __init__(self, dspec, pars, sec_name, \
                  outsz, setsz, mapsz, is_forward=False ):
-        ConfigImage.__init__(self, config, pars, sec_name, \
+        CImage.__init__(self, dspec, pars, sec_name, \
                              outsz, setsz, mapsz, is_forward=is_forward )
 
         # preprocessing
-        pp_types = config.get(sec_name, 'pp_types').split(',')
+        pp_types = dspec[sec_name]['pp_types'].split(',')
         assert self.data.shape[0]==1 and self.data.ndim==4
         for c in xrange( self.data.shape[0] ):
             self.data[c,:,:,:] = self._preprocess(self.data[c,:,:,:], pp_types[c])
@@ -392,7 +390,6 @@ class ConfigInputImage(ConfigImage):
                 print "data shape after mirror: ", self.data.shape
 
     def _preprocess( self, vol3d , pp_type ):
-
         if 'standard2D' == pp_type:
             for z in xrange( vol3d.shape[0] ):
                 vol3d[z,:,:] = (vol3d[z,:,:] - np.mean(vol3d[z,:,:])) / np.std(vol3d[z,:,:])
@@ -423,7 +420,7 @@ class ConfigInputImage(ConfigImage):
         -------
         subvol : the transformed sub volume.
         """
-        subvol = super(ConfigInputImage, self).get_subvolume(dev, data=data)
+        subvol = super(CInputImage, self).get_subvolume(dev, data=data)
         assert(subvol.ndim==4)
         return subvol
 
@@ -433,7 +430,7 @@ class ConfigInputImage(ConfigImage):
         """
         return self.data
 
-class ConfigOutputLabel(ConfigImage):
+class CLabel(CImage):
     '''
     Subclass of CImage which represents output labels for
     ZNN neural networks
@@ -442,17 +439,21 @@ class ConfigOutputLabel(ConfigImage):
     contain masks for sparsely-labelled training
     '''
 
-    def __init__(self, config, pars, sec_name, outsz, setsz, mapsz ):
-        ConfigImage.__init__(self, config, pars, sec_name, \
+    def __init__(self, dspec, pars, sec_name, outsz, setsz, mapsz ):
+        CImage.__init__(self, dspec, pars, sec_name, \
                              outsz, setsz, mapsz=mapsz)
 
         # record and use parameters
         self.pars = pars
 
+        # initialize sub volume
+        self.sublbl = None
+        self.submsk = None
+
         # deal with mask
         self.msk = np.array([])
-        if config.has_option(sec_name, 'fmasks'):
-            fmasks = config.get(sec_name, 'fmasks').split(',\n')
+        if dspec[sec_name].has_key('fmasks'):
+            fmasks = dspec[sec_name]['fmasks'].split(',\n')
             if fmasks[0]:
                 msklist = self._read_files( fmasks )
                 if self._is_auto_crop:
@@ -463,7 +464,7 @@ class ConfigOutputLabel(ConfigImage):
                 assert(self.data.shape == self.msk.shape)
 
         # preprocessing
-        self.pp_types = config.get(sec_name, 'pp_types').split(',')
+        self.pp_types = dspec[sec_name]['pp_types'].split(',')
 
     def get_subvolume(self, dev):
         """
@@ -479,11 +480,11 @@ class ConfigOutputLabel(ConfigImage):
         submsk  : 4D array, label mask
         """
 
-        sublbl = super(ConfigOutputLabel, self).get_subvolume(dev)
+        sublbl = super(CLabel, self).get_subvolume(dev)
         assert sublbl.shape[0]==1
 
         if np.size(self.msk)>0:
-            submsk = super(ConfigOutputLabel, self).get_subvolume(dev, data=self.msk)
+            submsk = super(CLabel, self).get_subvolume(dev, data=self.msk)
         else:
             submsk = np.array([])
 
@@ -506,7 +507,7 @@ class ConfigOutputLabel(ConfigImage):
 
         Returns:
         --------
-        ret : a tuple, the coordinate of nonzero elements,
+        locs : a tuple, the coordinate of nonzero elements,
               format is the same with return of numpy.nonzero.
         """
         if np.size(self.msk) == 0:

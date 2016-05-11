@@ -20,7 +20,7 @@ def parse_args(args):
         raise NameError("config file not exist!")
     else:
         print "reading config parameters..."
-        config, pars = zconfig.parser( args["config"] )
+        dspec, pars = zconfig.parser( args["config"] )
 
     # overwrite the config file parameters from command line
     if args["is_check"]:
@@ -60,7 +60,7 @@ def parse_args(args):
             pars['seed'] = args['seed']
     else:
         pars['seed'] = None
-    return config, pars, logfile
+    return dspec, pars, logfile
 
 # operations after backward pass
 def post_backward(history, i, pars, lc, net, vol_ins, props, lbl_outs, grdts, wmsks, start, total_time):
@@ -71,7 +71,7 @@ def post_backward(history, i, pars, lc, net, vol_ins, props, lbl_outs, grdts, wm
     return history, lc, start, total_time
 
 def main( args ):
-    config, pars, logfile = parse_args(args)
+    dspec, pars, logfile = parse_args(args)
     #%% create and initialize the network
     net, lc = znetio.create_net(pars)
 
@@ -80,9 +80,9 @@ def main( args ):
 
     # initialize samples
     print "\n\ncreate train samples..."
-    smp_trn = zsample.CSamples(config, pars, pars['train_range'], net, pars['train_outsz'], logfile)
+    smp_trn = zsample.CSamples(dspec, pars, pars['train_range'], net, pars['train_outsz'], logfile)
     print "\n\ncreate test samples..."
-    smp_tst = zsample.CSamples(config, pars, pars['test_range'],  net, pars['train_outsz'], logfile)
+    smp_tst = zsample.CSamples(dspec, pars, pars['test_range'],  net, pars['train_outsz'], logfile)
 
     # create a queue for storing samples
     qtrn_smp = Queue(1)
