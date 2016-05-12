@@ -450,6 +450,9 @@ class CLabel(CImageBase):
         self.sublbl = None
         self.submsk = None
 
+        # rename data as lbl
+        self.lbl = self.data
+
         # deal with mask
         self.msk = np.array([])
         if dspec[sec_name].has_key('fmasks'):

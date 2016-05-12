@@ -26,8 +26,7 @@ class CSample(object):
         self.pars = pars
 
         # initialize the datasets
-        self.lbls = dict()
-        self.msks = dict()
+        self.ins = dict()
         self.outs = dict()
 
         # initialize the patches
@@ -51,14 +50,11 @@ class CSample(object):
 
         # Loading input images
         print "\ncreate input image class..."
-        self.imgs = dict()
-        self.ins = dict()
         for name,setsz_in in self.setsz_ins.iteritems():
             # section name of image
             imsec = dspec[self.name][name]
             self.ins[name] = CImage( dspec, pars, imsec, \
                                      outsz, setsz_in, fov, is_forward=is_forward )
-            self.imgs[name] = self.ins[name].data
 
         if not is_forward:
             print "\ncreate label image class..."
@@ -69,11 +65,7 @@ class CSample(object):
                 #Finding the section of the config file
                 imsec = dspec[self.name][name]
                 self.outs[name] = CLabel( dspec, pars, imsec, \
-                                                     outsz, setsz_out, fov)
-                self.lbls[name] = self.outs[name].data
-                self.msks[name] = self.outs[name].msk
-
-        if not is_forward:
+                                          outsz, setsz_out, fov)
             self._prepare_training()
 
         #Filename for log
@@ -262,9 +254,9 @@ class CAffinitySample(CSample):
         # precompute the global rebalance weights
         self.taffs = dict()
         self.tmsks = dict()
-        for k, lbl in self.lbls.iteritems():
-            self.taffs[k] = self._seg2aff( lbl )
-            self.tmsks[k] = self._msk2affmsk( self.msks[k] )
+        for k, out in self.outs.iteritems():
+            self.taffs[k] = self._seg2aff( out.lbl )
+            self.tmsks[k] = self._msk2affmsk( out.msk )
 
         self._prepare_rebalance_weights( self.taffs, self.tmsks )
         return
@@ -422,9 +414,8 @@ class CBoundarySample(CSample):
         # rebalance weights
         self.wps = dict()
         self.wzs = dict()
-        for key, lbl in self.lbls.iteritems():
-            msk = self.msks[key]
-            self.wps[key], self.wzs[key] = self._get_balance_weight( lbl,msk )
+        for key, out in self.outs.iteritems():
+            self.wps[key], self.wzs[key] = self._get_balance_weight( out.lbl,out.msk )
 
     def _binary_class(self, lbl):
         """

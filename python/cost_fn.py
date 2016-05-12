@@ -394,10 +394,16 @@ def get_grdt(pars, history, props, lbl_outs, msks, wmsks, vn):
     # compute rand error
     if pars['is_debug']:
         assert not np.all(lbl_outs.values()[0]==0)
-    history['re']  += pyznn.get_rand_error( props.values()[0], lbl_outs.values()[0] )
+
+    #print 'props: {}'.format( props )
+    #print "lbl_outs: {}".format( lbl_outs )
+    #if 'affinity' in pars['out_type']:
+     #   taff = emirt.seg2aff( lbl_outs.values()[0] )
+      #  history['re']  += pyznn.get_rand_error( props.values(), lbl_outs.values() )
+       # print  're: {}'.format( history['re'] )
+
     num_mask_voxels = utils.sum_over_dict(msks)
-    history['num_mask_voxels'] += num_mask_voxels
-    if history['num_mask_voxels'] > 0:
+    if num_mask_voxels > 0:
         history['err'] += cerr / num_mask_voxels
         history['cls'] += get_cls(props, lbl_outs) / num_mask_voxels
     else:

@@ -89,7 +89,7 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 
 //utils
 #include "pyznn_utils.hpp"
-#include "rand_error.hpp"
+//#include "rand_error.hpp"
 
 namespace bp = boost::python;
 namespace np = boost::numpy;
@@ -345,6 +345,7 @@ void CNet_set_phase(bp::object const & self, std::uint8_t const phs = 0)
     return;
 }
 
+/*
 //===========================================================================
 real pyget_rand_error(np::ndarray& affs_arr, np::ndarray& taffs_arr)
 {
@@ -354,6 +355,7 @@ real pyget_rand_error(np::ndarray& affs_arr, np::ndarray& taffs_arr)
     real re = get_rand_error( affs, taffs);
     return re;
 }
+*/
 
 //===========================================================================
 //BOOST PYTHON INTERFACE DEFINITION
@@ -378,5 +380,5 @@ BOOST_PYTHON_MODULE(pyznn)
         .def("get_output_num", 		&CNet_get_output_num)
         .def("get_opts",		&CNet_getopts)
         ;
-    def("get_rand_error", pyget_rand_error);
+    //def("get_rand_error", pyget_rand_error);
 }

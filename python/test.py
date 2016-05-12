@@ -23,7 +23,7 @@ def _single_test(net, pars, sample, vn):
     # pixel classification error
     derr['cls'] = cost_fn.get_cls(props, lbl_outs)
     # rand error
-    derr['re'] = pyznn.get_rand_error(props.values()[0], lbl_outs.values()[0])
+    #derr['re'] = pyznn.get_rand_error(props.values()[0], lbl_outs.values()[0])
 
     if pars['is_malis']:
         malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight( pars, props, lbl_outs )
@@ -74,8 +74,8 @@ def znn_test(net, pars, samples, vn, it, lc):
     lc.append_test( derr )
 
     if pars['is_malis']:
-        print "test iter: %d,     cost: %.3f, pixel error: %.3f, rand error: %.6f, malis cost: %.3f, malis error: %.3f"\
-                %(derr['it'], derr['err'], derr['cls'], derr['re'], derr['me'], derr['mc'])
+        print "test iter: %d,     cost: %.3f, pixel error: %.3f, malis cost: %.3f, malis error: %.3f"\
+                %(derr['it'], derr['err'], derr['cls'],  derr['me'], derr['mc'])
     else:
         print "test iter: %d,     cost: %.3f, pixel error: %.3f" %(derr['it'], derr['err'], derr['cls'])
     return lc
