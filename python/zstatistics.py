@@ -318,9 +318,9 @@ def init_history(pars, lc):
 
 def show_history(history):
     if history.has_key('mc'):
-        show_string = "update %d,    cost: %.3f, pixel error: %.3f, me: %.3f, mc: %.3f, elapse: %.2f s/iter, learning rate: %.5f" %(history['it'], history['err'], history['cls'],  history['me'], hostory['mc'], history['elapse'], history['eta'] )
+        show_string = "update %d,    cost: %.3f, pixel error: %.3f, me: %.3f, mc: %.3f, elapse: %.3f s/iter, learning rate: %.5f" %(history['it'], history['err'], history['cls'],  history['me'], hostory['mc'], history['elapse'], history['eta'] )
     else:
-        show_string = "update %d,    cost: %.3f, pixel error: %.3f, elapse: %.2f s/iter, learning rate: %.5f" %(history['it'], history['err'], history['cls'], history['elapse'], history['eta'] )
+        show_string = "update %d,    cost: %.3f, pixel error: %.3f, elapse: %.3f s/iter, learning rate: %.5f" %(history['it'], history['err'], history['cls'], history['elapse'], history['eta'] )
     print show_string
 
 def reset_history(history):
