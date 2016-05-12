@@ -96,15 +96,15 @@ def main( args ):
     fname, fname_current = znetio.get_net_fname( pars['train_net_prefix'], iter_last, suffix="init" )
     utils.init_save(pars, lc, net, iter_last)
 
-    # start data provider and monitor the interuption
-    ptrn_smp.start()
+    # start time cumulation
+    print "start training..."
+    start = time.time()
+    total_time = 0.0
+    print "start from ", iter_last+1
 
     try:
-        # start time cumulation
-        print "start training..."
-        start = time.time()
-        total_time = 0.0
-        print "start from ", iter_last+1
+        # start data provider and monitor the interuption
+        ptrn_smp.start()
         for it in xrange(iter_last+1, pars['Max_iter']+1):
             # get random sub volume from sample
             vol_ins, lbl_outs, msks, wmsks = qtrn_smp.get()
@@ -132,6 +132,11 @@ def main( args ):
                 print "only need one iteration for checking, stop program..."
                 break
     except:
+        print "training was interrupted, terminating dataprovider..."
+        ptrn_smp.terminate()
+        ptrn_smp.join()
+        print "data provider process was terminated."
+    else:
         print "training was interrupted, terminating dataprovider..."
         ptrn_smp.terminate()
         ptrn_smp.join()
