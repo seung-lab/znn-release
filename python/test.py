@@ -7,6 +7,7 @@ import utils
 import cost_fn
 import numpy as np
 from core import pyznn
+import time
 
 def _single_test(net, pars, sample, vn):
     # return errors as a dictionary
@@ -78,3 +79,12 @@ def znn_test(net, pars, samples, vn, it, lc):
     else:
         print "test iter: %d,     cost: %.3f, pixel error: %.3f" %(derr['it'], derr['err'], derr['cls'])
     return lc
+
+def run_test(net, pars, smp_tst, vn, i, lc, start, total_time):
+    # test the net
+    if i%pars['Num_iter_per_test']==0:
+        # time accumulation should skip the test
+        total_time += time.time() - start
+        lc = znn_test(net, pars, smp_tst, vn, i, lc)
+        start = time.time()
+    return lc, start, total_time

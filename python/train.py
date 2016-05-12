@@ -6,13 +6,12 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import time
 from front_end import *
 import cost_fn
-import test
 import utils
 import zstatistics
 import os
 import numpy as np
-from core import pyznn
-import shutil
+import test
+from multiprocessing import Process, Queue
 
 def parse_args(args):
     # parse args
@@ -72,168 +71,71 @@ def main( args ):
     vn = utils.get_total_num(net.get_outputs_setsz())
 
     # initialize samples
-    outsz = pars['train_outsz']
     print "\n\ncreate train samples..."
-    smp_trn = zsample.CSamples(config, pars, pars['train_range'], net, outsz, logfile)
+    smp_trn = zsample.CSamples(config, pars, pars['train_range'], net, pars['train_outsz'], logfile)
     print "\n\ncreate test samples..."
-    smp_tst = zsample.CSamples(config, pars, pars['test_range'],  net, outsz, logfile)
+    smp_tst = zsample.CSamples(config, pars, pars['test_range'],  net, pars['train_outsz'], logfile)
+
+    # create a queue for storing samples
+    qtrn_smp = Queue(1)
+    ptrn_smp = Process(target=zsample.put_random_sample, args=(smp_trn, qtrn_smp,))
+    ptrn_smp.daemon = True
 
     if pars['is_check']:
         import zcheck
         zcheck.check_patch(pars, smp_trn)
-        # gradient check is not working now.
-        # zcheck.check_gradient(pars, net, smp_trn)
 
-    # initialization
-    history = dict()
-    history['elapse'] = 0
-    history['err'] = 0.0 # cost energy
-    history['cls'] = 0.0 # pixel classification error
-    history['re'] = 0.0  # rand error
-    # number of voxels which accumulate error
-    # (if a mask exists)
-    history['num_mask_voxels'] = 0
-
-    if pars['is_malis']:
-        # malis cost
-        history['mc'] = 0.0
-        # malis error
-        history['me'] = 0.0
-        # malis weight
-        # history['mw'] = 0.0
+    # initialize history recording
+    history = zstatistics.init_history(pars, lc)
 
     # the last iteration we want to continue training
     iter_last = lc.get_last_it()
-    # load existing learning rate
-    if pars['eta']<=0 and lc.get_last_eta():
-        history['eta'] = lc.get_last_eta()
-    else:
-        history['eta'] = pars['eta']
-
-    print "start training..."
-    start = time.time()
-    total_time = 0.0
-    print "start from ", iter_last+1
 
     #Saving initial/seeded network
     # get file name
     fname, fname_current = znetio.get_net_fname( pars['train_net_prefix'], iter_last, suffix="init" )
     utils.init_save(pars, lc, net, iter_last)
-    # no nan detected
-    nonan = True
 
-    for i in xrange(iter_last+1, pars['Max_iter']+1):
-        # time cumulation
-        total_time += time.time() - start
+    # start data provider and monitor the interuption
+    ptrn_smp.start()
+
+    try:
+        # start time cumulation
+        print "start training..."
         start = time.time()
+        total_time = 0.0
+        print "start from ", iter_last+1
+        for it in xrange(iter_last+1, pars['Max_iter']+1):
+            # get random sub volume from sample
+            vol_ins, lbl_outs, msks, wmsks = qtrn_smp.get()
 
-        # get random sub volume from sample
-        vol_ins, lbl_outs, msks, wmsks = smp_trn.get_random_sample()
+            # forward pass
+            props = net.forward( vol_ins )
 
-        # forward pass
-        # apply the transformations in memory rather than array view
-        vol_ins = utils.make_continuous(vol_ins)
-        props = net.forward( vol_ins )
+            # get gradient and record history
+            history, grdts = cost_fn.get_grdt(pars, history, props, lbl_outs, msks, wmsks, vn)
 
-        # cost function and accumulate errors with normalization
-        props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
-        history['err'] += cerr / vn
-        history['cls'] += cost_fn.get_cls(props, lbl_outs) / vn
-        # compute rand error
-        if pars['is_debug']:
-            assert not np.all(lbl_outs.values()[0]==0)
-        history['re']  += pyznn.get_rand_error( props.values()[0], lbl_outs.values()[0] )
-        history['num_mask_voxels'] += utils.sum_over_dict(msks)
+            # run backward pass
+            net.backward( grdts )
 
-        # check whether there is a NaN here!
-        if pars['is_debug']:
-            nonan = nonan and utils.check_dict_nan(vol_ins)
-            nonan = nonan and utils.check_dict_nan(lbl_outs)
-            nonan = nonan and utils.check_dict_nan(msks)
-            nonan = nonan and utils.check_dict_nan(wmsks)
-            nonan = nonan and utils.check_dict_nan(props)
-            nonan = nonan and utils.check_dict_nan(grdts)
-            if  not nonan:
-                utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
-                             grdts, malis_weights, wmsks, history['elapse'], i)
-                # stop training
-                return
+            # post backward pass processing
+            history, net, lc, start, total_time = zstatistics.process_history(pars, history, \
+                                                            lc, net, it, start, total_time)
+            utils.inter_save(pars, lc, net, vol_ins, props, \
+                             lbl_outs, grdts, wmsks, it)
 
-        # gradient reweighting
-        grdts = utils.dict_mul( grdts, msks  )
-        if pars['rebalance_mode']:
-            grdts = utils.dict_mul( grdts, wmsks )
+            lc, start, total_time = test.run_test(net, pars, smp_tst, \
+                                              vn, it, lc, start, total_time)
 
-        if pars['is_malis'] :
-            malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
-            if num_non_bdr<=1:
-                # skip this iteration
-                continue
-            grdts = utils.dict_mul(grdts, malis_weights)
-            dmc, dme = utils.get_malis_cost( props, lbl_outs, malis_weights )
-            history['mc'] += dmc.values()[0]
-            history['me'] += dme.values()[0]
-
-        # run backward pass
-        grdts = utils.make_continuous(grdts)
-        net.backward( grdts )
-
-        total_time += time.time() - start
-        start = time.time()
-
-        if i%pars['Num_iter_per_show']==0:
-            # iter number
-            history['it'] = i
-            # time
-            history['elapse'] = total_time / pars['Num_iter_per_show']
-
-            # normalize
-            if utils.dict_mask_empty(msks):
-                history['err'] /= pars['Num_iter_per_show']
-                history['cls'] /= pars['Num_iter_per_show']
-            else:
-                history['err'] /= history['num_mask_voxels'] / pars['Num_iter_per_show']
-                history['cls'] /= history['num_mask_voxels'] / pars['Num_iter_per_show']
-            history['re'] /= pars['Num_iter_per_show']
-
-            if pars['is_malis']:
-                history['mc'] /= pars['Num_iter_per_show']
-                history['me'] /= pars['Num_iter_per_show']
-
-            lc.append_train(history)
-
-            zstatistics.show_history(history)
-
-            if pars.has_key('logging') and pars['logging']:
-                utils.write_to_log(logfile, show_string)
-
-            # reset history
-            history = zstatistics.reset_history(history)
-
-            # reset time
-            total_time  = 0
-            start = time.time()
-
-        # test the net
-        if i%pars['Num_iter_per_test']==0:
-            # time accumulation should skip the test
-            total_time += time.time() - start
-            lc = test.znn_test(net, pars, smp_tst, vn, i, lc)
-            start = time.time()
-
-        if i%pars['Num_iter_per_save']==0:
-            utils.inter_save(pars, lc, net, vol_ins, props, lbl_outs, grdts, wmsks, i)
-
-        if i%pars['Num_iter_per_annealing']==0:
-            # anneal factor
-            history['eta'] *= pars['anneal_factor']
-            net.set_eta(history['eta'])
-
-        # stop the iteration at checking mode
-        if pars['is_check']:
-            print "only need one iteration for checking, stop program..."
-            break
-
+            # stop the iteration at checking mode
+            if pars['is_check']:
+                print "only need one iteration for checking, stop program..."
+                break
+    except:
+        print "training was interrupted, terminating dataprovider..."
+        ptrn_smp.terminate()
+        ptrn_smp.join()
+        print "data provider process was terminated."
 if __name__ == '__main__':
     """
     usage

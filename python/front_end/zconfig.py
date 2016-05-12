@@ -12,8 +12,6 @@ import numpy as np
 import os
 import cost_fn
 import utils
-from utils import parseIntSet
-
 from emirt import volume_util
 
 def parser( conf_fname ):
@@ -68,11 +66,11 @@ def parser( conf_fname ):
     #TRAINING OPTIONS
     #Samples to use for training
     if config.has_option('parameters', 'train_range'):
-        pars['train_range'] = parseIntSet( config.get('parameters',   'train_range') )
+        pars['train_range'] = utils.parseIntSet( config.get('parameters',   'train_range') )
 
     #Samples to use for cross-validation
     if config.has_option('parameters', 'test_range'):
-        pars['test_range']  = parseIntSet( config.get('parameters',   'test_range') )
+        pars['test_range']  = utils.parseIntSet( config.get('parameters',   'test_range') )
     #Learning Rate
     if config.has_option('parameters', 'eta'):
         pars['eta']         = config.getfloat('parameters', 'eta')
@@ -226,7 +224,7 @@ def parser( conf_fname ):
 
     #FULL FORWARD PASS PARAMETERS
     #Which samples to use
-    pars['forward_range'] = parseIntSet( config.get('parameters', 'forward_range') )
+    pars['forward_range'] = utils.parseIntSet( config.get('parameters', 'forward_range') )
     #Which network file to load
     pars['forward_net']   = config.get('parameters', 'forward_net')
     #Output Patch Size
