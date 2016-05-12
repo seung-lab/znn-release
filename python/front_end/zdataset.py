@@ -197,7 +197,7 @@ class CDataset(object):
         '''
         return self.volume_shape - self.mapsz + 1
 
-class CImage(CDataset):
+class CImageBase(CDataset):
     """
     A class which represents a stack of images (up to 4 dimensions)
 
@@ -364,14 +364,14 @@ class CImage(CDataset):
             loc[2]-self.patch_margin_low[2]  : loc[2] + self.patch_margin_high[2]+1])
         return subvol
 
-class CInputImage(CImage):
+class CImage(CImageBase):
     '''
     Subclass of CImage which represents the type of input image stack
     '''
 
     def __init__(self, dspec, pars, sec_name, \
                  outsz, setsz, mapsz, is_forward=False ):
-        CImage.__init__(self, dspec, pars, sec_name, \
+        CImageBase.__init__(self, dspec, pars, sec_name, \
                              outsz, setsz, mapsz, is_forward=is_forward )
 
         # preprocessing
@@ -420,7 +420,7 @@ class CInputImage(CImage):
         -------
         subvol : the transformed sub volume.
         """
-        subvol = super(CInputImage, self).get_subvolume(dev, data=data)
+        subvol = super(CImage, self).get_subvolume(dev, data=data)
         assert(subvol.ndim==4)
         return subvol
 
@@ -430,9 +430,9 @@ class CInputImage(CImage):
         """
         return self.data
 
-class CLabel(CImage):
+class CLabel(CImageBase):
     '''
-    Subclass of CImage which represents output labels for
+    Subclass of CImageBase which represents output labels for
     ZNN neural networks
 
     Internally handles preprocessing of the data, and can
@@ -440,7 +440,7 @@ class CLabel(CImage):
     '''
 
     def __init__(self, dspec, pars, sec_name, outsz, setsz, mapsz ):
-        CImage.__init__(self, dspec, pars, sec_name, \
+        CImageBase.__init__(self, dspec, pars, sec_name, \
                              outsz, setsz, mapsz=mapsz)
 
         # record and use parameters
