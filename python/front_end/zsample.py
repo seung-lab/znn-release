@@ -18,7 +18,7 @@ from zdataset import *
 import os
 
 class CSample(object):
-    def __init__(self, dspec, pars, sample_id, net, \
+    def __init__(self, dspec, pars, name, net, \
                  outsz, setsz_ins=None, setsz_outs=None,\
                  log=None, is_forward=False):
 
@@ -35,10 +35,9 @@ class CSample(object):
         self.sublbls = dict()
         self.submsks  = dict()
 
-        self.sid = sample_id
         # Name of the sample within the configuration file
         # Also used for logging
-        self.sec = "sample%d" % sample_id
+        self.name = name
 
         # temporary layer names
         if is_forward and setsz_ins is None and setsz_outs is None:
@@ -56,19 +55,19 @@ class CSample(object):
         self.ins = dict()
         for name,setsz_in in self.setsz_ins.iteritems():
             # section name of image
-            imsec = dspec[self.sec][name]
+            imsec = dspec[self.name][name]
             self.ins[name] = CImage( dspec, pars, imsec, \
-                                      outsz, setsz_in, fov, is_forward=is_forward )
+                                     outsz, setsz_in, fov, is_forward=is_forward )
             self.imgs[name] = self.ins[name].data
 
         if not is_forward:
             print "\ncreate label image class..."
             for name,setsz_out in self.setsz_outs.iteritems():
                 #Allowing for users to abstain from specifying labels
-                if not (dspec.has_key(self.sec) and dspec[self.sec].has_key(name)):
+                if not (dspec.has_key(self.name) and dspec[self.name].has_key(name)):
                     continue
                 #Finding the section of the config file
-                imsec = dspec[self.sec][name]
+                imsec = dspec[self.name][name]
                 self.outs[name] = CLabel( dspec, pars, imsec, \
                                                      outsz, setsz_out, fov)
                 self.lbls[name] = self.outs[name].data
@@ -232,7 +231,7 @@ class CSample(object):
     def write_request_to_log(self, dev):
         '''Records the subvolume requested of this sample in a log'''
         if self.log is not None:
-            log_line1 = self.sec
+            log_line1 = self.name
             log_line2 = "subvolume: [{},{},{}] requested".format(dev[0],dev[1],dev[2])
             utils.write_to_log(self.log, log_line1)
             utils.write_to_log(self.log, log_line2)
@@ -412,9 +411,9 @@ class CBoundarySample(CSample):
         self.setsz_outs = net.get_outputs_setsz()
 
         # initialize the general sample
-        CSample.__init__(self, dspec, pars, sample_id, net, \
-                         outsz, self.setsz_ins, self.setsz_outs, \
-                         log=log, is_forward=is_forward)
+        CSample.__init__(self, dspec, pars, sample_id, \
+                        net, outsz, self.setsz_ins, \
+                        self.setsz_outs, log=log, is_forward=is_forward)
 
         # precompute the global rebalance weights
         self._prepare_rebalance_weights()
@@ -542,12 +541,14 @@ class CSamples(object):
         # total number of candidate locations
         Nloc = 0.0
         for sid in ids:
+            # sample name section
+            sample_name = "sample{}".format(sid)
             if 'bound' in pars['out_type']:
-                sample = CBoundarySample(dspec, pars, sid, net, outsz, log)
+                sample = CBoundarySample(dspec, pars, sample_name, net, outsz, log)
             elif 'aff' in pars['out_type']:
-                sample = CAffinitySample(dspec, pars, sid, net, outsz, log)
+                sample = CAffinitySample(dspec, pars, sample_name, net, outsz, log)
             elif 'semantic' in pars['out_type']:
-                sample = CSemanticSample(dspec, pars, sid, net, outsz, log)
+                sample = CSemanticSample(dspec, pars, sample_name, net, outsz, log)
             else:
                 raise NameError('invalid output type')
             self.samples.append( sample )
@@ -559,12 +560,12 @@ class CSamples(object):
 
         if self.pars['is_debug']:
             # save the candidate locations
-            self._save_dataset
+            self._save_dataset()
             self._save_candidate_locs()
 
     def _save_candidate_locs(self):
         for sample in self.samples:
-            fname = '../testsuit/candidate_locs_{}.h5'.format(sample.sid)
+            fname = '../testsuit/candidate_locs_{}.h5'.format(sample.name)
             if os.path.exists( fname ):
                 os.remove(fname)
             import h5py
@@ -577,11 +578,11 @@ class CSamples(object):
         for sample in self.samples:
             # save sample images
             raw, lbl = sample.get_dataset()
-            fname = '../testsuit/sample_{}_raw.h5'.format(sample.sid)
+            fname = '../testsuit/{}_raw.h5'.format(sample.name)
             if os.path.exists( fname ):
                 os.remove( fname )
             imsave(raw, fname)
-            fname = '../testsuit/sample_{}_lbl.h5'.format(sample.sid)
+            fname = '../testsuit/{}_lbl.h5'.format(sample.name)
             if os.path.exists( fname ):
                 os.remove( fname )
             imsave(lbl, fname )

@@ -350,3 +350,52 @@ def autoset_dspec(pars, dspec):
                 pp_types = pp_types.replace("auto", "affinity")
             dspec[sec]['pp_types'] = pp_types
     return dspec
+
+# parse args
+def parse_args(args):
+    #%% parameters
+    if not os.path.exists( args['config'] ):
+        raise NameError("config file not exist!")
+    else:
+        print "reading config parameters..."
+        dspec, pars = parser( args["config"] )
+
+    # overwrite the config file parameters from command line
+    if args["is_check"]:
+        if "yes" == args["is_check"]:
+            pars["is_check"] = True
+        elif "no" == args["is_check"]:
+            pars["is_check"] = False
+        else:
+            raise NameError("invalid checking option in command line")
+    # data type
+    if args["dtype"]:
+        if "single" in args["dtype"] or "float32" in args["dtype"]:
+            pars["dtype"] = "float32"
+        elif "double" in args["dtype"] or "float64" in args["dtype"]:
+            pars["dtype"] = "float64"
+        else:
+            raise NameError("invalid data type defined in command line.")
+
+    # random seed
+    if pars['is_debug'] or pars['is_check']:
+        # use fixed index
+        np.random.seed(1)
+
+    if pars.has_key('logging') and pars['logging']:
+        print "recording configuration file..."
+        zlog.record_config_file( pars )
+        logfile = zlog.make_logfile_name( pars )
+    else:
+        logfile = None
+
+    # check the seed file
+    if args['seed']:
+        if not os.path.exists(args['seed']):
+            import warnings
+            warnings.warn("seed file not found! use train_net_prefix of configuration instead.")
+        else:
+            pars['seed'] = args['seed']
+    else:
+        pars['seed'] = None
+    return dspec, pars, logfile
