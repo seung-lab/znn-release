@@ -64,7 +64,7 @@ def main( args ):
             props = net.forward( vol_ins )
 
             # get gradient and record history
-            history, grdts = cost_fn.get_grdt(pars, history, props, lbl_outs, msks, wmsks, vn)
+            props, grdts, history = cost_fn.get_grdt(pars, history, props, lbl_outs, msks, wmsks, vn)
 
             # run backward pass
             net.backward( grdts )

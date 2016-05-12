@@ -452,7 +452,6 @@ class CBoundarySample(CSample):
 
         return weight
 
-
     def get_random_sample(self):
         subimgs, sublbls, submsks = super(CBoundarySample, self).get_random_sample()
 
@@ -460,14 +459,14 @@ class CBoundarySample(CSample):
         subwmsks = dict()
         for key, sublbl in sublbls.iteritems():
             submsk = submsks[key]
-            subwmsks[key] = self._rebalance_bdr( sublbl, submsk, self.wps[key], self.wzs[key] )
+            subwmsk = self._rebalance_bdr( sublbl, submsk, self.wps[key], self.wzs[key] )
+            subwmsks[key] = subwmsk
 
-        for key,sublbl in sublbls.iteritems():
             assert sublbl.ndim==3 or (sublbl.ndim==4 and sublbl.shape[0]==1)
             # binarize the true lable
             sublbls[key] = self._binary_class( sublbl )
-            # duplicate the maskes
-            submsks[key]  = np.tile(submsks[key], (2,1,1,1))
+            # duplicate the masks
+            submsks[key]  = np.tile(submsk, (2,1,1,1))
             subwmsks[key] = np.tile(subwmsks[key], (2,1,1,1))
 
         return subimgs, sublbls, submsks, subwmsks

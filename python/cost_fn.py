@@ -182,13 +182,10 @@ def multinomial_cross_entropy(props, lbls, mask=None):
 
     for name, prop in props.iteritems():
         lbl = lbls[name]
-
         grdts[name] = prop - lbl
-
         entropy[name] = -lbl * np.log(prop)
 
     #Applying mask if it exists
-    grdts = utils.mask_dict_vol(grdts, mask)
     entropy = utils.mask_dict_vol(entropy, mask)
 
     for name, vol in entropy.iteritems():
@@ -436,4 +433,4 @@ def get_grdt(pars, history, props, lbl_outs, msks, wmsks, vn):
         history['me'] += dme.values()[0]
 
     grdts = utils.make_continuous(grdts)
-    return history, grdts
+    return props, grdts, history
