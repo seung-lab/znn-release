@@ -429,8 +429,12 @@ def get_grdt(pars, history, props, lbl_outs, msks, wmsks, vn):
         malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
         grdts = utils.dict_mul(grdts, malis_weights)
         dmc, dme = utils.get_malis_cost( props, lbl_outs, malis_weights )
-        history['mc'] += dmc.values()[0]
-        history['me'] += dme.values()[0]
+        if num_mask_voxels > 0:
+            history['mc'] += dmc.values()[0] / num_mask_voxels
+            history['me'] += dme.values()[0] / num_mask_voxels
+        else:
+            history['mc'] += dmc.values()[0] / vn
+            history['me'] += dme.values()[0] / vn
 
     grdts = utils.make_continuous(grdts)
     return props, grdts, history

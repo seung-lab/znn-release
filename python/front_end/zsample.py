@@ -584,8 +584,3 @@ class CSamples(object):
         # get the index of non-zero element
         i = np.nonzero(sq)[1][0]
         return self.samples[i].get_random_sample()
-
-# constantly put random sample to queue
-def put_random_sample(samples, q):
-    while True:
-        q.put( samples.get_random_sample() )
