@@ -25,10 +25,10 @@
 # the name should be the same with the one in the network config file
 #
 # [sample1]
-# input1 = 1
-# input2 = 2
-# output1 = 1
-# output2 = 2
+# input1 = image1
+# input2 = image2
+# output1 = label1
+# output2 = label2
 
 [image1]
 fnames = ../dataset/test/stack1-image.tif
@@ -75,17 +75,17 @@ is_auto_crop = yes
 fmasks =
 
 [sample1]
-input = 1
-output = 1
+input = image1
+output = label1
 
 [sample2]
-input = 2
-output = 2
+input = image2
+output = label2
 
 [sample3]
-input = 3
-output = 3
+input = image3
+output = label3
 
 [sample4]
-input = 4
-output = 4
+input = image4
+output = label4

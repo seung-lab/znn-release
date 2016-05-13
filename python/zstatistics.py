@@ -4,7 +4,9 @@ __doc__ = """
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
+import time
 import os
+import utils
 
 class CLearnCurve:
     def __init__(self, fname=None):
@@ -32,9 +34,10 @@ class CLearnCurve:
             self.stdpre = "/"
 
         print "stdpre: ", self.stdpre
-        ft = f[self.stdpre + 'test']
-        for key in ft:
-            self.test[key] = list(ft[key].value)
+        if self.stdpre + "test" in f:
+            ft = f[self.stdpre + 'test']
+            for key in ft:
+                self.test[key] = list(ft[key].value)
 
         ft = f[self.stdpre + 'train/']
         for  key in ft:
@@ -137,8 +140,8 @@ class CLearnCurve:
 
     def get_last_it(self):
         # return the last iteration number
-        if self.train.has_key('it') and len(self.test['it'])>0 and len(self.train['it'])>0:
-            last_it = max( self.test['it'][-1], self.train['it'][-1] )
+        if self.train.has_key('it') and len(self.train['it'])>0:
+            last_it = self.train['it'][-1]
             print "inherit last iteration: ", last_it
             return last_it
         else:
@@ -238,7 +241,7 @@ class CLearnCurve:
             plotly_fig = tls.mpl_to_plotly( fig )
             plotly_fig['layout']['title'] = 'Learning Curve'
             plotly_fig['layout']['margin'].update({'t':40})
-            plot_url = py.plot(plotly_fig, filename='znn-learning-curve')
+            plot_url = py.plot(plotly_fig, filename='znn-learning-curve', validate=False)
             print plot_url
         else:
             raise NameError("invalid plot mode! should be either matplotlib or plotly")
@@ -249,8 +252,6 @@ class CLearnCurve:
             self.stdpre = "/processing/znn/train/statistics/"
         else:
             self.stdpre = "/"
-        print "stdpre of saving: ", self.stdpre
-        print "fname: {}".format(fname)
 
         if not pars['is_stdio']:
              # change filename
@@ -290,12 +291,37 @@ class CLearnCurve:
                 os.remove( fname2 )
             shutil.copyfile(fname, fname2)
 
+def init_history(pars, lc):
+    # initialization
+    history = dict()
+    history['elapse'] = 0
+    history['err'] = 0.0 # cost energy
+    history['cls'] = 0.0 # pixel classification error
+    history['re'] = 0.0  # rand error
+    # number of voxels which accumulate error
+    # (if a mask exists)
+    history['num_mask_voxels'] = 0
+
+    if pars['is_malis']:
+        # malis cost
+        history['mc'] = 0.0
+        # malis error
+        history['me'] = 0.0
+        # malis weight
+        # history['mw'] = 0.0
+    # load existing learning rate
+    if pars['eta']<=0 and lc.get_last_eta():
+        history['eta'] = lc.get_last_eta()
+    else:
+        history['eta'] = pars['eta']
+
+    return history
 
 def show_history(history):
     if history.has_key('mc'):
-        show_string = "update %d,    cost: %.3f, pixel error: %.3f, rand error: %.3f, me: %.3f, mc: %.3f, elapse: %.2f s/iter, learning rate: %.5f" %(history['it'], history['err'], history['cls'], history['re'], history['me'], hostory['mc'], history['elapse'], history['eta'] )
+        show_string = "update %d,    cost: %.3f, pixel error: %.3f, me: %.3f, mc: %.3f, elapse: %.3f s/iter, learning rate: %.5f" %(history['it'], history['err'], history['cls'],  history['me'], hostory['mc'], history['elapse'], history['eta'] )
     else:
-        show_string = "update %d,    cost: %.3f, pixel error: %.3f, rand error: %.3f, elapse: %.2f s/iter, learning rate: %.5f" %(history['it'], history['err'], history['cls'], history['re'], history['elapse'], history['eta'] )
+        show_string = "update %d,    cost: %.3f, pixel error: %.3f, elapse: %.3f s/iter, learning rate: %.5f" %(history['it'], history['err'], history['cls'], history['elapse'], history['eta'] )
     print show_string
 
 def reset_history(history):
@@ -303,6 +329,40 @@ def reset_history(history):
         if not 'eta' in key:
             history[key] = 0
     return history
+
+def process_history(pars, history, lc, net, it, start, total_time):
+    if it%pars['Num_iter_per_show']==0:
+        # iter number
+        history['it'] = it
+        # time
+        history['elapse'] = total_time / pars['Num_iter_per_show']
+        # reset the start time
+        total_time = 0.0
+        start = time.time()
+
+        # normalize
+        history['err'] /= pars['Num_iter_per_show']
+        history['cls'] /= pars['Num_iter_per_show']
+        if pars['is_malis']:
+            history['mc'] /= pars['Num_iter_per_show']
+            history['me'] /= pars['Num_iter_per_show']
+
+        lc.append_train(history)
+
+        show_history(history)
+
+        if pars.has_key('logging') and pars['logging']:
+            utils.write_to_log(logfile, show_string)
+
+        # reset history
+        history = reset_history(history)
+
+    if it%pars['Num_iter_per_annealing']==0:
+        # anneal factor
+        history['eta'] *= pars['anneal_factor']
+        net.set_eta(history['eta'])
+
+    return history, net, lc, start, total_time
 
 
 if __name__ == '__main__':
@@ -330,5 +390,5 @@ if __name__ == '__main__':
     if len(sys.argv) >3:
         plotmode = sys.argv[3]
     else:
-        plotmode = 'maplotlib'
+        plotmode = 'matplotlib'
     lc.plot( w, plotmode )

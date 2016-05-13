@@ -6,6 +6,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 import emirt
 import utils
+from core import pyznn
 
 def get_cls(props, lbls, mask=None):
     """
@@ -181,13 +182,10 @@ def multinomial_cross_entropy(props, lbls, mask=None):
 
     for name, prop in props.iteritems():
         lbl = lbls[name]
-
         grdts[name] = prop - lbl
-
         entropy[name] = -lbl * np.log(prop)
 
     #Applying mask if it exists
-    grdts = utils.mask_dict_vol(grdts, mask)
     entropy = utils.mask_dict_vol(entropy, mask)
 
     for name, vol in entropy.iteritems():
@@ -386,3 +384,54 @@ def malis_weight(pars, props, lbls):
             malis_weights[name], merr, serr = malis_weight_bdm(prop, lbl)
 
     return (malis_weights, rand_errors, num_non_bdr)
+
+def get_grdt(pars, history, props, lbl_outs, msks, wmsks, vn):
+    # cost function and accumulate errors with normalization
+    props, cerr, grdts = pars['cost_fn']( props, lbl_outs, msks )
+    # compute rand error
+    if pars['is_debug']:
+        assert not np.all(lbl_outs.values()[0]==0)
+
+    #print 'props: {}'.format( props )
+    #print "lbl_outs: {}".format( lbl_outs )
+    #if 'affinity' in pars['out_type']:
+     #   taff = emirt.seg2aff( lbl_outs.values()[0] )
+      #  history['re']  += pyznn.get_rand_error( props.values(), lbl_outs.values() )
+       # print  're: {}'.format( history['re'] )
+
+    num_mask_voxels = utils.sum_over_dict(msks)
+    if num_mask_voxels > 0:
+        history['err'] += cerr / num_mask_voxels
+        history['cls'] += get_cls(props, lbl_outs) / num_mask_voxels
+    else:
+        history['err'] += cerr / vn
+        history['cls'] += get_cls(props, lbl_outs) / vn
+
+    if pars['is_debug']:
+        c2 = utils.check_dict_nan(lbl_outs)
+        c3 = utils.check_dict_nan(msks)
+        c4 = utils.check_dict_nan(wmsks)
+        c5 = utils.check_dict_nan(props)
+        c6 = utils.check_dict_nan(grdts)
+        if  not ( c2 and c3 and c4 and c5 and c6):
+            # stop training
+            raise NameError('nan encountered!')
+
+    # gradient reweighting
+    grdts = utils.dict_mul( grdts, msks  )
+    if pars['rebalance_mode']:
+        grdts = utils.dict_mul( grdts, wmsks )
+
+    if pars['is_malis'] :
+        malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
+        grdts = utils.dict_mul(grdts, malis_weights)
+        dmc, dme = utils.get_malis_cost( props, lbl_outs, malis_weights )
+        if num_mask_voxels > 0:
+            history['mc'] += dmc.values()[0] / num_mask_voxels
+            history['me'] += dme.values()[0] / num_mask_voxels
+        else:
+            history['mc'] += dmc.values()[0] / vn
+            history['me'] += dme.values()[0] / vn
+
+    grdts = utils.make_continuous(grdts)
+    return props, grdts, history

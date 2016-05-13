@@ -36,18 +36,20 @@ import utils
 from emirt import emio
 
 def parse_args( args ):
-    config, params = zconfig.parser( args['config'] )
+    dspec, params = zconfig.parser( args['config'] )
 
     if args['net']:
         # overwrite the network in config file
         params['forward_net'] = args['net']
+    # check the existence of network
+    assert( os.path.exists( params['forward_net'] ) )
 
     if args['range']:
         params['forward_range'] = utils.parseIntSet( args['range'] )
 
-    return config, params
+    return dspec, params
 
-def batch_forward_pass( config, params, net, verbose=True, sample_ids=None ):
+def batch_forward_pass( dspec, params, net, verbose=True, sample_ids=None ):
     '''
     Performs a full forward pass for all samples specified within
     a configuration file
@@ -58,14 +60,15 @@ def batch_forward_pass( config, params, net, verbose=True, sample_ids=None ):
     output_patch_shape = params['forward_outsz']
     sample_outputs = {}
     #Loop over sample range
-    for sample in params['forward_range']:
-        print "Sample: %d" % sample
+    for sampleid in params['forward_range']:
+        print "Sample: %d" % sampleid
+        samplename = "sample{}".format(sampleid)
         # read image stacks
         # Note: preprocessing included within CSamples
         # See CONSTANTS section above for optionname values
-        Dataset = zsample.CSample(config, params, sample, net, \
+        Dataset = zsample.CSample(dspec, params, samplename, net, \
                                   outsz = output_patch_shape, is_forward=True )
-        sample_outputs[sample] = forward_pass( params, Dataset, net )
+        sample_outputs[sampleid] = forward_pass( params, Dataset, net )
     return sample_outputs
 
 def forward_pass( params, Dataset, network, verbose=True ):
@@ -173,12 +176,12 @@ def main( args ):
     Script functionality - runs config_forward_pass and saves the
     output volumes
     '''
-    config, params = parse_args( args )
+    dspec, params = parse_args( args )
 
     # load network
     net = znetio.load_network( params, train=False, hdf5_filename=params['forward_net'] )
 
-    sample_outputs = batch_forward_pass( config, params, net, verbose=True, sample_ids=params['forward_range'])
+    sample_outputs = batch_forward_pass( dspec, params, net, verbose=True, sample_ids=params['forward_range'])
 
     save_sample_outputs( sample_outputs, params['output_prefix'] )
 
