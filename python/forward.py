@@ -60,12 +60,13 @@ def batch_forward_pass( dspec, params, net, verbose=True, sample_ids=None ):
     output_patch_shape = params['forward_outsz']
     sample_outputs = {}
     #Loop over sample range
-    for sample in params['forward_range']:
-        print "Sample: %d" % sample
+    for sampleid in params['forward_range']:
+        print "Sample: %d" % sampleid
+        samplename = "sample{}".format(sampleid)
         # read image stacks
         # Note: preprocessing included within CSamples
         # See CONSTANTS section above for optionname values
-        Dataset = zsample.CSample(dspec, params, sample, net, \
+        Dataset = zsample.CSample(dspec, params, samplename, net, \
                                   outsz = output_patch_shape, is_forward=True )
         sample_outputs[sample] = forward_pass( params, Dataset, net )
     return sample_outputs
