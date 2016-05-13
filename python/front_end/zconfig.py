@@ -278,6 +278,10 @@ def autoset_pars(pars):
     else:
         raise NameError('unknown type of cost function')
 
+    # aws s3 filehandling
+    pars['fnet_spec']  = zaws.s3download( pars['fnet_spec'] )
+    pars['fdata_spec'] = zaws.s3download( pars['fdata_spec'] )
+
     return pars
 
 def check_pars(pars):

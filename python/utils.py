@@ -321,10 +321,21 @@ def check_dict_nan( d ):
 def init_save(pars, lc, net, iter_last):
     dirname = os.path.dirname(pars['train_net_prefix'])
     fname = os.path.join( dirname, "init_iter_{}.h5".format(iter_last) )
-    if os.path.exists(fname):
-        os.remove( fname )
-    lc.save(pars, fname)
-    znetio.save_network(net, fname, pars['is_stdio'])
+    if "s3://" in fname:
+        # local file name
+        lcfname = "/tmp/"+ os.path.basename(fname)
+        if os.path.exists(lcfname):
+            os.remove( lcfname )
+        lc.save(pars, lcfname)
+        znetio.save_network(net, lcfname, pars['is_stdio'])
+        # copy file to s3
+        os.system("aws cp {} {}".format(lcfname, fname))
+    else:
+        if os.path.exists(fname):
+            os.remove( fname )
+        lc.save(pars, fname)
+        znetio.save_network(net, fname, pars['is_stdio'])
+
 
 # save the intermediate networks while training
 def inter_save(pars, lc, net, vol_ins, props, lbl_outs, grdts, wmsks, it):
