@@ -336,7 +336,6 @@ def inter_save(pars, lc, net, vol_ins, props, lbl_outs, grdts, wmsks, it):
         return
     # get file name
     filename, filename_current = znetio.get_net_fname( pars['train_net_prefix'], it )
-    if filename
     if os.path.exists(filename):
         os.remove( filename )
 
