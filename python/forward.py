@@ -68,7 +68,7 @@ def batch_forward_pass( dspec, params, net, verbose=True, sample_ids=None ):
         # See CONSTANTS section above for optionname values
         Dataset = zsample.CSample(dspec, params, samplename, net, \
                                   outsz = output_patch_shape, is_forward=True )
-        sample_outputs[sample] = forward_pass( params, Dataset, net )
+        sample_outputs[sampleid] = forward_pass( params, Dataset, net )
     return sample_outputs
 
 def forward_pass( params, Dataset, network, verbose=True ):
