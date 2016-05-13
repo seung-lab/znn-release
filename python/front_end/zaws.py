@@ -11,7 +11,7 @@ def s3download(s3fname, tmpdir="/tmp/"):
     return:
     - lcfname: string, local file name
     """
-    if "s3://" in s3fname:
+    if s3fname and "s3://" in s3fname:
         # base name
         bn = os.path.basename(s3fname)
         # local directory
