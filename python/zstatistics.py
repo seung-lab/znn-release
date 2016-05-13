@@ -34,9 +34,10 @@ class CLearnCurve:
             self.stdpre = "/"
 
         print "stdpre: ", self.stdpre
-        ft = f[self.stdpre + 'test']
-        for key in ft:
-            self.test[key] = list(ft[key].value)
+        if self.stdpre + "test" in f:
+            ft = f[self.stdpre + 'test']
+            for key in ft:
+                self.test[key] = list(ft[key].value)
 
         ft = f[self.stdpre + 'train/']
         for  key in ft:
@@ -139,8 +140,8 @@ class CLearnCurve:
 
     def get_last_it(self):
         # return the last iteration number
-        if self.train.has_key('it') and len(self.test['it'])>0 and len(self.train['it'])>0:
-            last_it = max( self.test['it'][-1], self.train['it'][-1] )
+        if self.train.has_key('it') and len(self.train['it'])>0:
+            last_it = self.train['it'][-1]
             print "inherit last iteration: ", last_it
             return last_it
         else:
