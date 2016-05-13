@@ -408,15 +408,12 @@ def get_grdt(pars, history, props, lbl_outs, msks, wmsks, vn):
         history['cls'] += get_cls(props, lbl_outs) / vn
 
     if pars['is_debug']:
-        c1 = utils.check_dict_nan(vol_ins)
         c2 = utils.check_dict_nan(lbl_outs)
         c3 = utils.check_dict_nan(msks)
         c4 = utils.check_dict_nan(wmsks)
         c5 = utils.check_dict_nan(props)
         c6 = utils.check_dict_nan(grdts)
-        if  not (c1 and c2 and c3 and c4 and c5 and c6):
-            utils.inter_save(pars, net, lc, vol_ins, props, lbl_outs, \
-                             grdts, malis_weights, wmsks, history['elapse'], i)
+        if  not ( c2 and c3 and c4 and c5 and c6):
             # stop training
             raise NameError('nan encountered!')
 
