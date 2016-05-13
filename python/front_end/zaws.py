@@ -13,7 +13,16 @@ def s3download(s3fname, tmpdir="/tmp/"):
     """
     if "s3://" in s3fname:
         # base name
-        lcfname = os.path.join( tmpdir, os.path.basename(s3fname) )
+        bn = os.path.basename(s3fname)
+        # local directory
+        lcdir = os.path.dirname( s3fname )
+        lcdir = lcdir.replace("s3://", "")
+        lcdir = os.path.join(tmpdir, lcdir)
+        # make directory
+        os.makedirs(lcdir)
+        # local file name
+        lcfname = os.path.join( tmpdir, bn )
+        # copy file from s3
         os.system("aws s3 cp {} {}".format(s3fname, lcfname))
         return lcfname
     else:

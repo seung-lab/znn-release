@@ -13,6 +13,7 @@ import os
 import cost_fn
 import utils
 from emirt import volume_util
+import zaws
 
 def parser(conf_fname):
     # parse config file to get parameters
@@ -363,6 +364,9 @@ def autoset_dspec(pars, dspec):
 
 # parse args
 def parse_args(args):
+    # s3 to local
+    args['config'] = zaws.s3download( args['config'] )
+    args['seed'] = zaws.s3download( args['seed'] )
     #%% parameters
     if not os.path.exists( args['config'] ):
         raise NameError("config file not exist!")
