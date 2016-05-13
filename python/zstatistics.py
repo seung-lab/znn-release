@@ -6,7 +6,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 import time
 import os
-import utils
+from front_end import *
 
 class CLearnCurve:
     def __init__(self, fname=None):

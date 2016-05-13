@@ -10,8 +10,7 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 import ConfigParser
 import numpy as np
 import os
-import cost_fn
-import utils
+import zutils
 
 from emirt import volume_util
 
@@ -28,7 +27,7 @@ def record_config_file(params=None, config_filename=None, net_save_filename=None
 
     #Need to specify either a params object, or all of the other optional args
     #"ALL" optional args excludes train
-    utils.assert_arglist(params,
+    zutils.assert_arglist(params,
         [config_filename, net_save_filename]
         )
 
@@ -57,7 +56,7 @@ def record_config_file(params=None, config_filename=None, net_save_filename=None
 
     #Deriving destination filename information
     if timestamp is None:
-        timestamp = utils.timestamp()
+        timestamp = zutils.timestamp()
     mode = "train" if train else "forward"
 
     #Actually saving
@@ -76,7 +75,7 @@ def make_logfile_name(params=None, net_save_filename=None, timestamp = None, tra
     '''
 
     #Need to specify either a params object, or the net save prefix
-    utils.assert_arglist(params,
+    zutils.assert_arglist(params,
         [net_save_filename])
 
     if params is not None:
@@ -94,7 +93,7 @@ def make_logfile_name(params=None, net_save_filename=None, timestamp = None, tra
     assert(save_prefix_valid)
 
     if timestamp is None:
-        timestamp = utils.timestamp()
+        timestamp = zutils.timestamp()
     mode = "train" if train else "forward"
 
     directory_name = os.path.dirname( save_prefix )

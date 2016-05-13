@@ -32,7 +32,6 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 import os
 from front_end import *
-import utils
 from emirt import emio
 
 def parse_args( args ):
@@ -45,7 +44,7 @@ def parse_args( args ):
     assert( os.path.exists( params['forward_net'] ) )
 
     if args['range']:
-        params['forward_range'] = utils.parseIntSet( args['range'] )
+        params['forward_range'] = zutils.parseIntSet( args['range'] )
 
     return dspec, params
 
@@ -90,7 +89,7 @@ def forward_pass( params, Dataset, network, verbose=True ):
         if verbose:
 	    print "Output patch #{} of {}".format(i+1, num_patches) # i is just an index
         input_patches, junk = Dataset.get_next_patch()
-	vol_ins = utils.make_continuous(input_patches)
+	vol_ins = zutils.make_continuous(input_patches)
 	output = network.forward( vol_ins )
         Output.set_next_patch( output )
         if params['is_check']:
@@ -107,12 +106,10 @@ def run_softmax( sample_output ):
     Performs a softmax calculation over the output volumes for a
     given sample output
     '''
-    from cost_fn import softmax
-
     for dname, dataset in sample_output.output_volumes.iteritems():
 
         props = {'dataset':dataset.data}
-        props = softmax(props)
+        props = zcost.softmax(props)
         dataset.data = props.values()[0]
         sample_output.output_volumes[dname] = dataset
 

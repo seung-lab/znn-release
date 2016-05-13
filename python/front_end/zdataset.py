@@ -10,7 +10,7 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 import sys
 import numpy as np
 import emirt
-import utils
+import zutils
 
 class CDataset(object):
 
@@ -383,7 +383,7 @@ class CImage(CImageBase):
         if pars['is_bd_mirror']:
             if self.pars['is_debug']:
                 print "data shape before mirror: ", self.data.shape
-            self.data = utils.boundary_mirror(self.data, self.mapsz)
+            self.data = zutils.boundary_mirror(self.data, self.mapsz)
             #Modifying the deviation boundaries for the modified dataset
             self.calculate_sizes( )
             if self.pars['is_debug']:

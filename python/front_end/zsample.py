@@ -13,7 +13,7 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 import sys
 import numpy as np
 import emirt
-import utils
+import zutils
 from zdataset import *
 import os
 
@@ -111,11 +111,11 @@ class CSample(object):
         if self.pars['is_data_aug']:
             rft = (np.random.rand(4)>0.5)
             for key, subinput in self.subimgs.iteritems():
-                self.subimgs[key] = utils.data_aug_transform(subinput,      rft )
+                self.subimgs[key] = zutils.data_aug_transform(subinput,      rft )
             for key, sublbl in self.sublbls.iteritems():
                 submsk = self.submsks[key]
-                self.sublbls[key]  = utils.data_aug_transform(sublbl, rft )
-                self.submsks[key]  = utils.data_aug_transform(submsk, rft )
+                self.sublbls[key]  = zutils.data_aug_transform(sublbl, rft )
+                self.submsks[key]  = zutils.data_aug_transform(submsk, rft )
 
     def get_random_sample(self):
         '''Fetches a matching random sample from all input and output volumes'''
@@ -139,7 +139,7 @@ class CSample(object):
         self._data_aug()
         # make sure that the input image is continuous in memory
         # the C++ core can not deal with numpy view
-        self.subimgs = utils.make_continuous(self.subimgs)
+        self.subimgs = zutils.make_continuous(self.subimgs)
         return ( self.subimgs, self.sublbls, self.submsks )
 
     def _get_balance_weight(self, arr, msk=None):
@@ -225,8 +225,8 @@ class CSample(object):
         if self.log is not None:
             log_line1 = self.name
             log_line2 = "subvolume: [{},{},{}] requested".format(dev[0],dev[1],dev[2])
-            utils.write_to_log(self.log, log_line1)
-            utils.write_to_log(self.log, log_line2)
+            zutils.write_to_log(self.log, log_line1)
+            zutils.write_to_log(self.log, log_line2)
 
 class CAffinitySample(CSample):
     """

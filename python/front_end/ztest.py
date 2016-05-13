@@ -3,8 +3,7 @@ __doc__ = """
 
 Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
-import utils
-import cost_fn
+import zutils
 import numpy as np
 from core import pyznn
 import time
@@ -15,7 +14,7 @@ def _single_test(net, pars, sample, vn):
     vol_ins, lbl_outs, msks, wmsks = sample.get_random_sample()
 
     # forward pass
-    vol_ins = utils.make_continuous(vol_ins)
+    vol_ins = zutils.make_continuous(vol_ins)
     props = net.forward( vol_ins )
 
     # cost function and accumulate errors
@@ -26,9 +25,10 @@ def _single_test(net, pars, sample, vn):
     #derr['re'] = pyznn.get_rand_error(props.values()[0], lbl_outs.values()[0])
 
     if pars['is_malis']:
-        malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight( pars, props, lbl_outs )
+        import zcost
+        malis_weights, rand_errors, num_non_bdr = zcost.malis_weight( pars, props, lbl_outs )
         # dictionary of malis classification error
-        dmc, dme = utils.get_malis_cost( props, lbl_outs, malis_weights )
+        dmc, dme = zutils.get_malis_cost( props, lbl_outs, malis_weights )
         derr['mc'] = dmc.values()[0]
         derr['me'] = dme.values()[0]
     # normalization

@@ -5,12 +5,9 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import time
 from front_end import *
-import cost_fn
-import utils
 import zstatistics
 import os
 import numpy as np
-import test
 
 
 def main( args ):
@@ -19,7 +16,7 @@ def main( args ):
     net, lc = znetio.create_net(pars)
 
     # total voxel number of output volumes
-    vn = utils.get_total_num(net.get_outputs_setsz())
+    vn = zutils.get_total_num(net.get_outputs_setsz())
 
     # initialize samples
     print "\n\ncreate train samples..."
@@ -28,7 +25,6 @@ def main( args ):
     smp_tst = zsample.CSamples(dspec, pars, pars['test_range'],  net, pars['train_outsz'], logfile)
 
     if pars['is_check']:
-        import zcheck
         zcheck.check_patch(pars, smp_trn)
 
     # initialize history recording
@@ -40,7 +36,7 @@ def main( args ):
     #Saving initial/seeded network
     # get file name
     fname, fname_current = znetio.get_net_fname( pars['train_net_prefix'], iter_last, suffix="init" )
-    utils.init_save(pars, lc, net, iter_last)
+    zutils.init_save(pars, lc, net, iter_last)
 
     # start time cumulation
     print "start training..."
@@ -59,7 +55,7 @@ def main( args ):
 
         #print props
         # get gradient and record history
-        props, grdts, history = cost_fn.get_grdt(pars, history, props, lbl_outs, msks, wmsks, vn)
+        props, grdts, history = zcost.get_grdt(pars, history, props, lbl_outs, msks, wmsks, vn)
         #print props
         #print lbl_outs
 
@@ -69,10 +65,10 @@ def main( args ):
         # post backward pass processing
         history, net, lc, start, total_time = zstatistics.process_history(pars, history, \
                                                             lc, net, it, start, total_time)
-        utils.inter_save(pars, lc, net, vol_ins, props, \
+        zutils.inter_save(pars, lc, net, vol_ins, props, \
                          lbl_outs, grdts, wmsks, it)
 
-        lc, start, total_time = test.run_test(net, pars, smp_tst, \
+        lc, start, total_time = ztest.run_test(net, pars, smp_tst, \
                                               vn, it, lc, start, total_time)
 
         # stop the iteration at checking mode
