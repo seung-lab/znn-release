@@ -281,7 +281,13 @@ def autoset_pars(pars):
     # aws s3 filehandling
     pars['fnet_spec']  = zaws.s3download( pars['fnet_spec'] )
     pars['fdata_spec'] = zaws.s3download( pars['fdata_spec'] )
-
+    # local file name
+    if "s3://" in pars['train_net_prefix']:
+        # copy the path as a backup
+        pars['s3_train_net_prefix'] = pars['train_net_prefix']
+        bn = os.path.basename( pars['train_net_prefix'] )
+        # replace with local path
+        pars['train_net_prefix'] = "/tmp/{}".format(bn)
     return pars
 
 def check_pars(pars):
