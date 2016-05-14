@@ -255,8 +255,8 @@ class CAffinitySample(CSample):
         self.taffs = dict()
         self.tmsks = dict()
         for k, out in self.outs.iteritems():
-            self.taffs[k] = self._seg2aff( out.lbl )
-            self.tmsks[k] = self._msk2affmsk( out.msk )
+            self.taffs[k] = self._seg2aff( out.get_lbl() )
+            self.tmsks[k] = self._msk2affmsk( out.get_msk() )
 
         self._prepare_rebalance_weights( self.taffs, self.tmsks )
         return
@@ -415,7 +415,7 @@ class CBoundarySample(CSample):
         self.wps = dict()
         self.wzs = dict()
         for key, out in self.outs.iteritems():
-            self.wps[key], self.wzs[key] = self._get_balance_weight( out.lbl,out.msk )
+            self.wps[key], self.wzs[key] = self._get_balance_weight( out.get_lbl(),out.get_msk() )
 
     def _binary_class(self, lbl):
         """

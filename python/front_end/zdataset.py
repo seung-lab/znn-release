@@ -450,9 +450,6 @@ class CLabel(CImageBase):
         self.sublbl = None
         self.submsk = None
 
-        # rename data as lbl
-        self.lbl = self.data
-
         # deal with mask
         self.msk = np.array([])
         if dspec[sec_name].has_key('fmasks'):
@@ -498,7 +495,10 @@ class CLabel(CImageBase):
         return the whole label for examination
         """
         return self.data
-
+    def get_lbl(self):
+        return self.data
+    def get_msk(self):
+        return self.msk
     def get_candidate_loc( self, low, high ):
         """
         find the candidate location of subvolume
