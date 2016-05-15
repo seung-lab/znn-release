@@ -16,6 +16,7 @@ import emirt
 import zutils
 from zdataset import *
 import os
+from copy import deepcopy
 
 class CSample(object):
     def __init__(self, dspec, pars, name, net, \
@@ -41,31 +42,43 @@ class CSample(object):
         # temporary layer names
         if is_forward and setsz_ins is None and setsz_outs is None:
             print "forward pass, get setsz from network"
-            self.setsz_ins  = net.get_inputs_setsz()
-            self.setsz_outs = net.get_outputs_setsz()
+            self.smp_setsz_ins  = net.get_inputs_setsz()
+            self.smp_setsz_outs = net.get_outputs_setsz()
         else:
-            self.setsz_ins  = setsz_ins
-            self.setsz_outs = setsz_outs
-        fov = np.asarray(net.get_fov(), dtype='uint32')
+            # keep the original setsz for network
+            print "setsz ins: {}".format( setsz_ins )
+            print "setsz_outs: {}".format( setsz_outs )
+            self.net_setsz_ins  = deepcopy( setsz_ins )
+            self.net_setsz_outs = deepcopy( setsz_outs )
+            # increase setsz by jitter size, will shrink in data augmentation
+            # only change the xy coordinate, keep the z the same size
+            self.smp_setsz_ins  = deepcopy( setsz_ins )
+            self.smp_setsz_outs = deepcopy( setsz_outs )
+            for k, v in self.smp_setsz_ins.iteritems():
+                self.smp_setsz_ins[k][2:] = v[2:] + pars['jitter_size']
+            for k, v in self.smp_setsz_outs.iteritems():
+                self.smp_setsz_outs[k][2:] = v[2:] + pars['jitter_size']
+        # field of view
+        self.fov = np.asarray(net.get_fov(), dtype='uint32')
 
         # Loading input images
         print "\ncreate input image class..."
-        for name,setsz_in in self.setsz_ins.iteritems():
+        for name,setsz_in in self.smp_setsz_ins.iteritems():
             # section name of image
             imsec = dspec[self.name][name]
             self.ins[name] = CImage( dspec, pars, imsec, \
-                                     outsz, setsz_in, fov, is_forward=is_forward )
+                                     outsz, setsz_in, self.fov, is_forward=is_forward )
 
         if not is_forward:
             print "\ncreate label image class..."
-            for name,setsz_out in self.setsz_outs.iteritems():
+            for name,setsz_out in self.smp_setsz_outs.iteritems():
                 #Allowing for users to abstain from specifying labels
                 if not (dspec.has_key(self.name) and dspec[self.name].has_key(name)):
                     continue
                 #Finding the section of the config file
                 imsec = dspec[self.name][name]
                 self.outs[name] = CLabel( dspec, pars, imsec, \
-                                          outsz, setsz_out, fov)
+                                          outsz, setsz_out, self.fov)
             self._prepare_training()
 
         #Filename for log
@@ -85,14 +98,14 @@ class CSample(object):
         dev_high = np.array([sys.maxsize, sys.maxsize, sys.maxsize])
         dev_low  = np.array([-sys.maxint-1, -sys.maxint-1, -sys.maxint-1])
 
-        for name,setsz in self.setsz_ins.iteritems():
+        for name,setsz in self.smp_setsz_ins.iteritems():
             low, high = self.ins[name].get_dev_range()
             # Deviation bookkeeping
             dev_high = np.minimum( dev_high, high )
             dev_low  = np.maximum( dev_low , low  )
 
         # define output images
-        for name, setsz in self.setsz_outs.iteritems():
+        for name, setsz in self.smp_setsz_outs.iteritems():
             low, high = self.outs[name].get_dev_range()
             # Deviation bookkeeping
             dev_high = np.minimum( dev_high, high )
@@ -106,16 +119,101 @@ class CSample(object):
             print "\nWARNING: No output volumes defined!\n"
             self.locs = None
 
+    def _data_aug_transform(self, data, rft):
+        """
+        transform data according to a rule
+
+        Parameters
+        ----------
+        data : 3D numpy array need to be transformed
+        rft : transform rule, specified as an array of bool
+            [z-reflection,
+            y-reflection,
+            x-reflection,
+            xy transpose]
+
+        Returns
+        -------
+        data : the transformed array
+        """
+
+        if np.size(data)==0 or np.size(rft)==0:
+            return data
+
+        #z-reflection
+        if rft[0]:
+            data  = data[:, ::-1, :,    :]
+        #y-reflection
+        if rft[1]:
+            data  = data[:, :,    ::-1, :]
+        #x-reflection
+        if rft[2]:
+            data = data[:,  :,    :,    ::-1]
+        # transpose in XY
+        if rft[3]:
+            data = data.transpose(0,1,3,2)
+
+        return data
+
+    def _jitter_crop(self, img, z, offsets,  retsz):
+        """
+        simulate jittering
+        Parameters:
+        img: 4D numpy array, image stack
+        z: int, the section index to separate image stack
+        offsets: the offsets of sub image stacks
+        retsz: int vector, the array size of returned image stack
+
+        Return:
+        img: 3D numpy array, jittered and cropped image stack
+        """
+        ret = np.empty(retsz, dtype=img.dtype)
+        print "image size: {}".format(img.shape)
+        print "z: {}".format(z)
+        print "offsets: {}".format(offsets)
+        print "return size: {}".format( retsz )
+        ret[:,0:z,:,:] = img[:, 0:z, offsets[0]:offsets[0]+retsz[2], offsets[1]:offsets[1]+retsz[3] ]
+        ret[:,z:,:,:]  = img[:, z:,  offsets[2]:offsets[2]+retsz[2], offsets[3]:offsets[3]+retsz[3] ]
+        return ret
     def _data_aug(self):
+        """
+        data augmentation
+        """
         # random transformation roll
         if self.pars['is_data_aug']:
+            # random transformation
             rft = (np.random.rand(4)>0.5)
-            for key, subinput in self.subimgs.iteritems():
-                self.subimgs[key] = zutils.data_aug_transform(subinput,      rft )
+            if self.pars['jitter_size']<=0:
+                for key, subimg in self.subimgs.iteritems():
+                    self.subimgs[key] = self._data_aug_transform(subimg,      rft )
+                for key, sublbl in self.sublbls.iteritems():
+                    submsk = self.submsks[key]
+                    self.sublbls[key] = self._data_aug_transform(sublbl, rft )
+                    self.submsks[key] = self._data_aug_transform(submsk, rft )
+                return
+            # jitter code
+            # the starting section in the output image stack
+            outjz = np.random.randint( self.smp_setsz_outs.values()[0][1] )
+            # input offset by ofv
+            inoffset = (self.smp_setsz_ins.values()[0][1] - self.smp_setsz_outs.values()[0][1] + 1) /2
+            injz = outjz + inoffset
+            # the XY offset of upper and lower image stacks
+            offsets = np.random.randint( self.pars['jitter_size'], size=4 )
+
+            for key, subimg in self.subimgs.iteritems():
+                # jitter crop
+                subimg = self._jitter_crop(subimg, injz, offsets, self.net_setsz_ins[key])
+                # spatial transformation
+                self.subimgs[key] = self._data_aug_transform(subimg, rft )
+
             for key, sublbl in self.sublbls.iteritems():
                 submsk = self.submsks[key]
-                self.sublbls[key]  = zutils.data_aug_transform(sublbl, rft )
-                self.submsks[key]  = zutils.data_aug_transform(submsk, rft )
+                # jitter crop
+                sublbl = self._jitter_crop(sublbl, outjz, offsets, self.net_setsz_outs[key])
+                submsk = self._jitter_crop(submsk, outjz, offsets, self.net_setsz_outs[key])
+                # spatial transformation
+                self.sublbls[key]  = self._data_aug_transform(sublbl, rft )
+                self.submsks[key]  = self._data_aug_transform(submsk, rft )
 
     def get_random_sample(self):
         '''Fetches a matching random sample from all input and output volumes'''
@@ -234,21 +332,21 @@ class CAffinitySample(CSample):
     """
 
     def __init__(self, dspec, pars, sample_id, net, outsz, log=None, is_forward=False):
-        self.setsz_ins  = net.get_inputs_setsz()
-        self.setsz_outs = net.get_outputs_setsz()
+        self.smp_setsz_ins  = net.get_inputs_setsz()
+        self.smp_setsz_outs = net.get_outputs_setsz()
 
         if not is_forward:
             # increase the shape by 1 for affinity sample
             # this will be shrinked later
             print "increase set size..."
-            for key, setsz in self.setsz_ins.iteritems():
-                self.setsz_ins[key][-3:] += 1
-            for key, setsz in self.setsz_outs.iteritems():
-                self.setsz_outs[key][-3:] += 1
+            for key, setsz in self.smp_setsz_ins.iteritems():
+                self.smp_setsz_ins[key][-3:] += 1
+            for key, setsz in self.smp_setsz_outs.iteritems():
+                self.smp_setsz_outs[key][-3:] += 1
 
         # initialize the general sample
         CSample.__init__(self, dspec, pars, sample_id, net, \
-                         outsz, setsz_ins = self.setsz_ins, setsz_outs = self.setsz_outs, \
+                         outsz, setsz_ins = self.smp_setsz_ins, setsz_outs = self.smp_setsz_outs, \
                          log=log, is_forward=is_forward)
 
         # precompute the global rebalance weights
@@ -399,13 +497,13 @@ class CBoundarySample(CSample):
     """
     def __init__(self, dspec, pars, sample_id, net, outsz, log=None, is_forward=False):
 
-        self.setsz_ins  = net.get_inputs_setsz()
-        self.setsz_outs = net.get_outputs_setsz()
+        self.smp_setsz_ins  = net.get_inputs_setsz()
+        self.smp_setsz_outs = net.get_outputs_setsz()
 
         # initialize the general sample
         CSample.__init__(self, dspec, pars, sample_id, \
-                        net, outsz, self.setsz_ins, \
-                        self.setsz_outs, log=log, is_forward=is_forward)
+                        net, outsz, self.smp_setsz_ins, \
+                        self.smp_setsz_outs, log=log, is_forward=is_forward)
 
         # precompute the global rebalance weights
         self._prepare_rebalance_weights()

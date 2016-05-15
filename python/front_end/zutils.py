@@ -112,41 +112,6 @@ def rft_to_string(rft):
 
     return rft_string
 
-def data_aug_transform(data, rft):
-        """
-        transform data according to a rule
-
-        Parameters
-        ----------
-        data : 3D numpy array need to be transformed
-        rft : transform rule, specified as an array of bool
-            [z-reflection,
-            y-reflection,
-            x-reflection,
-            xy transpose]
-
-        Returns
-        -------
-        data : the transformed array
-        """
-
-        if np.size(data)==0 or np.size(rft)==0:
-            return data
-
-        #z-reflection
-        if rft[0]:
-            data  = data[:, ::-1, :,    :]
-        #y-reflection
-        if rft[1]:
-            data  = data[:, :,    ::-1, :]
-        #x-reflection
-        if rft[2]:
-            data = data[:,  :,    :,    ::-1]
-        # transpose in XY
-        if rft[3]:
-            data = data.transpose(0,1,3,2)
-
-        return data
 
 def _mirror2d( im, bf, fov ):
     """
