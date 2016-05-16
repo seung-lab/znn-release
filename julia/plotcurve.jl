@@ -1,80 +1,77 @@
-using ArgParse
+using Gadfly
+using Distributions
 using HDF5
-using EMIRT
-using PyPlot
 
-function parse_commandline()
-    s = ArgParseSettings()
-
-    @add_arg_table s begin
-        "--fname"
-        help = "error curve file name"
-        arg_type = ASCIIString
-        default = "/tmp/error_curve.h5"
-
-        "--tag"
-        help = "curve name"
-        arg_type= ASCIIString
-        default = "all"
+function get_learning_curve(fname::AbstractString)
+    if contains(fname, "s3://")
+        # local file name
+        lcfname = "/tmp/net_current.h5"
+        # download from  AWS S3
+        run(`aws s3 cp $(fname) $(lcfname)`)
+        # rename fname to local file name
+        fname = lcfname
     end
-    return parse_args(s)
+    curve = Dict{ASCIIString, Dict{ASCIIString,Vector}}()
+    if isfile(fname)
+        curve["train"] = Dict{ASCIIString, Vector}()
+        curve["test"]  = Dict{ASCIIString, Vector}()
+
+        curve["train"]["it"]  = h5read(fname, "/processing/znn/train/statistics/train/it")
+        curve["train"]["err"] = h5read(fname, "/processing/znn/train/statistics/train/err")
+        curve["train"]["cls"] = h5read(fname, "/processing/znn/train/statistics/train/cls")
+        curve["test"]["it"]   = h5read(fname, "/processing/znn/train/statistics/test/it")
+        curve["test"]["err"]  = h5read(fname, "/processing/znn/train/statistics/test/err")
+        curve["test"]["cls"]  = h5read(fname, "/processing/znn/train/statistics/test/cls")
+    end
+    return curve
 end
 
-function plotall()
-    fname = ""
-    stag = ""
-    for pa in parse_commandline()
-        if pa[1] == "fname"
-            fname = pa[2]
-        elseif pa[1] == "tag"
-            stag = pa[2]
-        end
+function plotcurve(curve::Dict)
+    if length( keys(curve) ) == 0
+        return ""
+    else
+        return vbox(
+                    md"## Learning Curve of Cost",
+                    drawing(8Gadfly.inch, 4Gadfly.inch,
+                            plot(layer(x=curve["train"]["it"]/1000, y=curve["train"]["err"], Geom.line, Theme(default_color=color("blue"))),
+                                 layer(x=curve["test"]["it"] /1000, y=curve["test"]["err"],  Geom.line, Theme(default_color=color("red"))),
+                                 Guide.xlabel("Iteration (K)"), Guide.ylabel("Cost"),
+                                 Guide.title("Learning Curve of Cost"))),
+        md"## Learning Curve of Pixel Error",
+        drawing(8Gadfly.inch, 4Gadfly.inch,
+                plot(layer(x=curve["train"]["it"]/1000, y=curve["train"]["cls"], Geom.line, Theme(default_color=color("blue"))),
+                     layer(x=curve["test"]["it"] /1000, y=curve["test"]["cls"],  Geom.line, Theme(default_color=color("red"))),
+                     Guide.xlabel("Iteration (K)"), Guide.ylabel("Pixel Error"),
+                     Guide.title("Learning Curve of Pixel Error"))),
+        ) |> Escher.pad(2em)
     end
-
-    # traverse the tags
-    f = h5open(fname, "r")
-    for tag in names(f)
-        if stag != "all" && tag != stag
-            continue
-        end
-
-        println("tag name: $tag")
-        # every error curve
-        thds = read( f[tag]["thds"] )
-        re   = read( f[tag]["re"]   )
-        rem  = read( f[tag]["rem"]  )
-        res  = read( f[tag]["res"]  )
-        rf   = read( f[tag]["rf"]   )
-        rfm  = read( f[tag]["rfm"]  )
-        rfs  = read( f[tag]["rfs"]  )
-
-        # plot
-        c = rand(3)
-        subplot(221)
-        plot(thds, re, color=c, "s-", label=tag, linewidth=2, alpha=0.5)
-        xlabel("thresholds")
-        ylabel("rand error")
-        legend()
-
-        subplot(222)
-        plot(rem, res, color=c, "s-", label=tag, linewidth=2, alpha=0.5)
-        xlabel("rand error merger")
-        ylabel("rand error splitter")
-
-
-        subplot(223)
-        plot(thds, rf, color=c, "s-", label=tag, linewidth=2, alpha=0.5)
-        xlabel("thresholds")
-        ylabel("rand f score")
-
-        subplot(224)
-        plot(rfm, rfs, color=c, "s-", label=tag, linewidth=2, alpha=0.5)
-        xlabel("rand f score merger")
-        ylabel("rand f score splitter")
-
-    end
-    show()
-    close(f)
 end
 
-plotall()
+function plotcurve(fname::AbstractString)
+    curve = get_learning_curve(fname)
+    return plotcurve(curve)
+end
+
+function tile_form(inp::Signal, s)
+    return vbox(
+                h1("Choose your network file"),
+                watch!(s, :fname, textinput("/tmp/net_current.h5", label="network file")),
+                trigger!(s, :plot, button("Plot Learning Curve"))
+                ) |> maxwidth(400px)
+end
+
+main(window) = begin
+    push!(window.assets, "widgets")
+
+    inp = Signal(Dict())
+    s = Escher.sampler()
+    form = tile_form(inp, s)
+
+    map(inp) do dict
+        vbox(
+             intent(s, form) >>> inp,
+             vskip(2em),
+             plotcurve(get(dict, :fname, ""))
+             ) |> Escher.pad(2em)
+    end
+end
