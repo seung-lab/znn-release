@@ -3,7 +3,7 @@ using Distributions
 using HDF5
 
 function get_learning_curve(fname::AbstractString)
-    if "s3://" in fname
+    if contains(fname, "s3://")
         # local file name
         lcfname = "/tmp/net_current.h5"
         # download from  AWS S3
@@ -13,6 +13,9 @@ function get_learning_curve(fname::AbstractString)
     end
     curve = Dict{ASCIIString, Dict{ASCIIString,Vector}}()
     if isfile(fname)
+        curve["train"] = Dict{ASCIIString, Vector}()
+        curve["test"]  = Dict{ASCIIString, Vector}()
+
         curve["train"]["it"]  = h5read(fname, "/processing/znn/train/statistics/train/it")
         curve["train"]["err"] = h5read(fname, "/processing/znn/train/statistics/train/err")
         curve["train"]["cls"] = h5read(fname, "/processing/znn/train/statistics/train/cls")
@@ -24,20 +27,24 @@ function get_learning_curve(fname::AbstractString)
 end
 
 function plotcurve(curve::Dict)
-    return vbox(
-    md"## Learning Curve of Cost",
-    drawing(8Gadfly.inch, 4Gadfly.inch,
-            plot(layer(x=curve["train"]["it"]/1000, y=curve["train"]["err"], Geom.line),
-                 layer(x=curve["test"]["it"] /1000, y=curve["test"]["err"],  Geom.line),
-                 Guide.xlabel("Iteration (K)"), Guide.ylabel("Cost"),
-                 Guide.title("Learning Curve of Cost"))),
-    md"## Learning Curve of Pixel Error",
-    drawing(8Gadfly.inch, 4Gadfly.inch,
-            plot(layer(x=curve["train"]["it"]/1000, y=curve["train"]["cls"], Geom.line),
-                 layer(x=curve["test"]["it"] /1000, y=curve["test"]["cls"],  Geom.line),
-                 Guide.xlabel("Iteration (K)"), Guide.ylabel("Pixel Error"),
-                 Guide.title("Learning Curve of Pixel Error"))),
-    ) |> Escher.pad(2em)
+    if length( keys(curve) ) == 0
+        return ""
+    else
+        return vbox(
+                    md"## Learning Curve of Cost",
+                    drawing(8Gadfly.inch, 4Gadfly.inch,
+                            plot(layer(x=curve["train"]["it"]/1000, y=curve["train"]["err"], color="r", Geom.line),
+                                 layer(x=curve["test"]["it"] /1000, y=curve["test"]["err"],  Geom.line),
+                                 Guide.xlabel("Iteration (K)"), Guide.ylabel("Cost"),
+                                 Guide.title("Learning Curve of Cost"))),
+        md"## Learning Curve of Pixel Error",
+        drawing(8Gadfly.inch, 4Gadfly.inch,
+                plot(layer(x=curve["train"]["it"]/1000, y=curve["train"]["cls"], Geom.line),
+                     layer(x=curve["test"]["it"] /1000, y=curve["test"]["cls"],  color="r", Geom.line),
+                     Guide.xlabel("Iteration (K)"), Guide.ylabel("Pixel Error"),
+                     Guide.title("Learning Curve of Pixel Error"))),
+        ) |> Escher.pad(2em)
+    end
 end
 
 function plotcurve(fname::AbstractString)
