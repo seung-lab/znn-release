@@ -7,9 +7,10 @@ the form tile to provide learning curve plotting tile
 """
 function tile_form_evaluate(inp::Signal, s::Sampler)
     return vbox(
-                h1("Choose the segmentation file"),
+                h2("Choose the segmentation file"),
                 watch!(s, :fseg, textinput("/tmp/seg.h5", label="segmentation file")),
-                h1("Choose the label file"),
+                vskip(1em),
+                h2("Choose the label file"),
                 watch!(s, :flbl, textinput("/tmp/lbl.h5", label="label file")),
                 trigger!(s, :evaluate, button("Evaluate Segmenation"))
                 ) |> maxwidth(400px)
@@ -25,6 +26,7 @@ function evaluate_result(fseg::AbstractString, flbl::AbstractString)
         return ""
     else
         return ""
+    end
 end
 
 """
