@@ -36,14 +36,14 @@ function plotcurve(curve::Dict)
                     drawing(8Gadfly.inch, 4Gadfly.inch,
                             plot(layer(x=curve["train"]["it"]/1000, y=curve["train"]["err"], Geom.line, Theme(default_color=color("blue"))),
                                  layer(x=curve["test"]["it"] /1000, y=curve["test"]["err"],  Geom.line, Theme(default_color=color("red"))),
-                                 Guide.xlabel("Iteration (K)"), Guide.ylabel("Cost"),
-                                 Guide.title("Learning Curve of Cost"))),
+                                 Guide.xlabel("Iteration (K)"), Guide.ylabel("Cost"))),
+                                 # Guide.title("Learning Curve of Cost"))),
         md"## Learning Curve of Pixel Error",
         drawing(8Gadfly.inch, 4Gadfly.inch,
                 plot(layer(x=curve["train"]["it"]/1000, y=curve["train"]["cls"], Geom.line, Theme(default_color=color("blue"))),
                      layer(x=curve["test"]["it"] /1000, y=curve["test"]["cls"],  Geom.line, Theme(default_color=color("red"))),
-                     Guide.xlabel("Iteration (K)"), Guide.ylabel("Pixel Error"),
-                     Guide.title("Learning Curve of Pixel Error"))),
+                     Guide.xlabel("Iteration (K)"), Guide.ylabel("Pixel Error"))) #,
+                #Guide.title("Learning Curve of Pixel Error"))),
         ) |> Escher.pad(2em)
     end
 end
@@ -73,14 +73,21 @@ s: sampler
 `Return`:
 ret: learning curve plotting tile
 """
-function plotcurve(inp::Signal, s::Sampler, form::Tile, dict::Dict)
-
-    return vbox(
+function plotcurve(inp::Signal, s::Sampler)
+    form = tile_form(inp, s)
+    ret = consume(inp) do dict
+        vbox(
                 intent(s, form) >>> inp,
                 vskip(2em),
                 plotcurve(get(dict, :fname, ""))
                 ) |> Escher.pad(2em)
-
+    end
+    return ret
+    # return vbox(
+    #             intent(s, form) >>> inp,
+    #             vskip(2em),
+    #             plotcurve(get(dict, :fname, ""))
+    #             ) |> Escher.pad(2em)
 end
 
 # main(window) = begin
