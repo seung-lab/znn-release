@@ -73,7 +73,9 @@ s: sampler
 `Return`:
 ret: learning curve plotting tile
 """
-function plotcurve(inp::Signal, s::Sampler)
+function plotcurve()
+    inp = Signal(Dict())
+    s = Escher.sampler()
     form = tile_form(inp, s)
     ret = consume(inp) do dict
         vbox(
@@ -83,25 +85,4 @@ function plotcurve(inp::Signal, s::Sampler)
                 ) |> Escher.pad(2em)
     end
     return ret
-    # return vbox(
-    #             intent(s, form) >>> inp,
-    #             vskip(2em),
-    #             plotcurve(get(dict, :fname, ""))
-    #             ) |> Escher.pad(2em)
 end
-
-# main(window) = begin
-#     push!(window.assets, "widgets")
-
-#     inp = Signal(Dict())
-#     s = Escher.sampler()
-#     form = tile_form(inp, s)
-
-#     map(inp) do dict
-#         vbox(
-#              intent(s, form) >>> inp,
-#              vskip(2em),
-#              plotcurve(get(dict, :fname, ""))
-#              ) |> Escher.pad(2em)
-#     end
-# end
