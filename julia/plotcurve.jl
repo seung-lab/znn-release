@@ -1,6 +1,7 @@
 using Gadfly
 using Distributions
 using HDF5
+import Escher: Sampler
 
 function get_learning_curve(fname::AbstractString)
     if contains(fname, "s3://")
@@ -52,7 +53,10 @@ function plotcurve(fname::AbstractString)
     return plotcurve(curve)
 end
 
-function tile_form(inp::Signal, s)
+"""
+the form tile to provide learning curve plotting tile
+"""
+function tile_form(inp::Signal, s::Sampler)
     return vbox(
                 h1("Choose your network file"),
                 watch!(s, :fname, textinput("/tmp/net_current.h5", label="network file")),
@@ -60,18 +64,37 @@ function tile_form(inp::Signal, s)
                 ) |> maxwidth(400px)
 end
 
-main(window) = begin
-    push!(window.assets, "widgets")
+"""
+get learning curve plotting tile
+`Parameters`:
+inp: input
+s: sampler
 
-    inp = Signal(Dict())
-    s = Escher.sampler()
-    form = tile_form(inp, s)
+`Return`:
+ret: learning curve plotting tile
+"""
+function plotcurve(inp::Signal, s::Sampler, form::Tile, dict::Dict)
 
-    map(inp) do dict
-        vbox(
-             intent(s, form) >>> inp,
-             vskip(2em),
-             plotcurve(get(dict, :fname, ""))
-             ) |> Escher.pad(2em)
-    end
+    return vbox(
+                intent(s, form) >>> inp,
+                vskip(2em),
+                plotcurve(get(dict, :fname, ""))
+                ) |> Escher.pad(2em)
+
 end
+
+# main(window) = begin
+#     push!(window.assets, "widgets")
+
+#     inp = Signal(Dict())
+#     s = Escher.sampler()
+#     form = tile_form(inp, s)
+
+#     map(inp) do dict
+#         vbox(
+#              intent(s, form) >>> inp,
+#              vskip(2em),
+#              plotcurve(get(dict, :fname, ""))
+#              ) |> Escher.pad(2em)
+#     end
+# end
