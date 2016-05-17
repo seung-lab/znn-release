@@ -123,7 +123,7 @@ def get_net_fname(train_net_prefix, num_iters=None, suffix=None):
     # get directory name from file name
     archive_directory_name = os.path.dirname( train_net_prefix )
     if not os.path.exists(archive_directory_name) and archive_directory_name != '':
-        os.mkdir(archive_directory_name)
+        os.makedirs(archive_directory_name)
 
     filename_current = train_net_prefix + "_current.h5"
     filename = train_net_prefix + ".h5"
