@@ -41,6 +41,8 @@ def parse_args( args ):
     if args['net']:
         # overwrite the network in config file
         params['forward_net'] = args['net']
+    # check the existence of network
+    assert( os.path.exists( params['forward_net'] ) )
 
     if args['range']:
         params['forward_range'] = utils.parseIntSet( args['range'] )

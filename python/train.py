@@ -62,14 +62,6 @@ def parse_args(args):
         pars['seed'] = None
     return config, pars, logfile
 
-# operations after backward pass
-def post_backward(history, i, pars, lc, net, vol_ins, props, lbl_outs, grdts, wmsks, start, total_time):
-    history = zstatistics.process_history(history, i)
-    utils.inter_save(pars, lc, net, vol_ins, props, lbl_outs, grdts, wmsks, i)
-    total_time += time.time() - start
-    start = time.time()
-    return history, lc, start, total_time
-
 def main( args ):
     config, pars, logfile = parse_args(args)
     #%% create and initialize the network
@@ -88,7 +80,6 @@ def main( args ):
     qtrn_smp = Queue(1)
     ptrn_smp = Process(target=zsample.put_random_sample, args=(smp_trn, qtrn_smp,))
     ptrn_smp.daemon = True
-    ptrn_smp.start()
 
     if pars['is_check']:
         import zcheck
@@ -105,42 +96,46 @@ def main( args ):
     fname, fname_current = znetio.get_net_fname( pars['train_net_prefix'], iter_last, suffix="init" )
     utils.init_save(pars, lc, net, iter_last)
 
+    # start data provider and monitor the interuption
+    ptrn_smp.start()
 
-    #p_post_backward = Process(target = post_backward, args=(history, i, pars, lc, net, vol_ins, props, lbl_outs, grdts, wmsks, start, total_time))
-    #p_post_backward.daemon = True
+    try:
+        # start time cumulation
+        print "start training..."
+        start = time.time()
+        total_time = 0.0
+        print "start from ", iter_last+1
+        for it in xrange(iter_last+1, pars['Max_iter']+1):
+            # get random sub volume from sample
+            vol_ins, lbl_outs, msks, wmsks = qtrn_smp.get()
 
-    # start time cumulation
-    print "start training..."
-    start = time.time()
-    total_time = 0.0
-    print "start from ", iter_last+1
-    for it in xrange(iter_last+1, pars['Max_iter']+1):
-        # get random sub volume from sample
-        vol_ins, lbl_outs, msks, wmsks = qtrn_smp.get()
-        # wait for dataprovider finishes
-        #ptrn_smp.join()
+            # forward pass
+            props = net.forward( vol_ins )
 
-        # forward pass
-        props = net.forward( vol_ins )
+            # get gradient and record history
+            history, grdts = cost_fn.get_grdt(pars, history, props, lbl_outs, msks, wmsks, vn)
 
-        # get gradient and record history
-        history, grdts = cost_fn.get_grdt(pars, history, props, lbl_outs, msks, wmsks, vn)
+            # run backward pass
+            net.backward( grdts )
 
-        # run backward pass
-        net.backward( grdts )
+            # post backward pass processing
+            history, net, lc, start, total_time = zstatistics.process_history(pars, history, \
+                                                            lc, net, it, start, total_time)
+            utils.inter_save(pars, lc, net, vol_ins, props, \
+                             lbl_outs, grdts, wmsks, it)
 
-        # post backward pass processing
-        #p_post_backward.start()
-        history, net, lc, start, total_time = zstatistics.process_history(pars, history, lc, net, it, start, total_time)
-        utils.inter_save(pars, lc, net, vol_ins, props, lbl_outs, grdts, wmsks, it)
+            lc, start, total_time = test.run_test(net, pars, smp_tst, \
+                                              vn, it, lc, start, total_time)
 
-        lc, start, total_time = test.run_test(net, pars, smp_tst, vn, it, lc, start, total_time)
-
-        # stop the iteration at checking mode
-        if pars['is_check']:
-            print "only need one iteration for checking, stop program..."
-            break
-
+            # stop the iteration at checking mode
+            if pars['is_check']:
+                print "only need one iteration for checking, stop program..."
+                break
+    except:
+        print "training was interrupted, terminating dataprovider..."
+        ptrn_smp.terminate()
+        ptrn_smp.join()
+        print "data provider process was terminated."
 if __name__ == '__main__':
     """
     usage
