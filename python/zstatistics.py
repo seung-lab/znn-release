@@ -189,7 +189,11 @@ class CLearnCurve:
         w : int, window size for smoothing the curve
         plotmode: string, options: matplotlib | plotly
         """
-        import matplotlib.pylab as plt
+        import matplotlib 
+        if "plotly" in plotmode:
+            print "change backend.."
+            matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
         fig = plt.figure()
 
         # number of subplots
