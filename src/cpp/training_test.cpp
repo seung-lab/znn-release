@@ -65,10 +65,12 @@ int main(int argc, char** argv)
 
     if ( forward )
     {
-        parallel_network::network::optimize(nodes,edges,{z,y,x},tc,n);
+        std::cout << "optimize forward" << std::endl;
+        parallel_network::network::optimize_forward(nodes,edges,{z,y,x},tc,n);
     }
     else
     {
-        parallel_network::network::optimize_forward(nodes,edges,{z,y,x},tc,n);
+        std::cout << "optimize training" << std::endl;
+        parallel_network::network::optimize(nodes,edges,{z,y,x},tc,n);
     }
 }
