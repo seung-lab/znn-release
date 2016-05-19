@@ -51,11 +51,24 @@ int main(int argc, char** argv)
 
     size_t n = 10;
 
-    if ( argc == 7 )
+    if ( argc >= 7 )
     {
         n = atoi(argv[6]);
     }
 
-    parallel_network::network::optimize(nodes, edges, {z,y,x}, tc , n);
+    int forward = 0;
 
+    if ( argc == 8 )
+    {
+        forward = atoi(argv[7]);
+    }
+
+    if ( forward )
+    {
+        parallel_network::network::optimize(nodes,edges,{z,y,x},tc,n);
+    }
+    else
+    {
+        parallel_network::network::optimize_forward(nodes,edges,{z,y,x},tc,n);
+    }
 }

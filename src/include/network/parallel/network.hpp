@@ -1009,7 +1009,7 @@ public:
 
         // generate 10 inputs and outputs
         network net(ns,es,outsz,n_threads);
-        net.set_phase(phase::OPTIMIZE);
+        net.set_phase(phase::TEST);
 
         auto ins  = net.inputs();
         auto outs = net.outputs();
