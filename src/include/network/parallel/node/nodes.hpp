@@ -47,13 +47,6 @@ private:
     phase          phase_       ; // TRAIN/TEST/OPTIMIZE
 
 protected:
-    // TODO(lee):
-    //
-    //  Currently, every nodes in a network has same value, which is redundant.
-    //  This value should be kept in the global "parameter server".
-    //
-    real           patch_sz_ = 1; // minibatch averaging
-
     std::vector<int>    enabled_;
 
 protected:
@@ -99,17 +92,6 @@ public:
 
     size_t         fwd_priority() const { return fwd_priority_; }
     size_t         bwd_priority() const { return bwd_priority_; }
-
-    // TODO(lee):
-    //
-    //  Currently, every nodes in a network has same value, which is redundant.
-    //  This value should be kept in the global "parameter server".
-    //
-    void set_patch_size( real s )
-    {
-        ZI_ASSERT(s > 0);
-        patch_sz_ = s;
-    }
 
     std::string name() const
     {

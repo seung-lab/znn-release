@@ -82,7 +82,7 @@ private:
         dEdW = sparse_implode_slow(*dEdW, filter_stride, size(filter_.W()));
         *dEdW /= norm;
 
-        filter_.update(*dEdW, patch_sz_);
+        filter_.update(*dEdW);
 
 #ifndef ZNN_DONT_CACHE_FFTS
         initialize();

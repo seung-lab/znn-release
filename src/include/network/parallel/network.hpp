@@ -17,6 +17,8 @@
 //
 #pragma once
 
+#include "../filter.hpp"
+#include "../bias.hpp"
 #include "edges.hpp"
 #include "input_nodes.hpp"
 #include "transfer_nodes.hpp"
@@ -261,14 +263,12 @@ private:
     //  Deconv nets are not sliding-window nets, so one-to-one correspondence
     //  between minibatch and output patch does not hold.
     //
-    void set_patch_size( vec3i const& outsz )
+    void set_batch_size( vec3i const & outsz )
     {
         real s = outsz[0]*outsz[1]*outsz[2];
 
-        for ( auto& n: nodes_ )
-            n.second->dnodes->set_patch_size(s);
-        for ( auto& e: edges_ )
-            e.second->dedges->set_patch_size(s);
+        filter::set_batch_size(s);
+        bias::set_batch_size(s);
     }
 
     void init( vec3i const& outsz )
@@ -649,7 +649,7 @@ public:
         create_edges();
 
         // minibatch averaging
-        set_patch_size(outsz);
+        set_batch_size(outsz);
 
         // set phase
         set_phase(phs);

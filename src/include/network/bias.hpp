@@ -37,7 +37,17 @@ public:
     typedef std::map<std::string, std::vector<std::shared_ptr<bias>>>
             pool_type;
 
-    static pool_type& shared_biases_pool;
+    static pool_type &  shared_biases_pool;
+
+protected:
+    static real batch_size;
+
+public:
+    static void set_batch_size( real s )
+    {
+        ZI_ASSERT(s > 0);
+        bias::batch_size = s;
+    }
 
 public:
     bias( real eta, real mom = 0.0, real wd = 0.0 )
@@ -45,36 +55,36 @@ public:
     {
     }
 
-    real& eta()
+    real & eta()
     {
         return eta_;
     }
 
-    real& b()
+    real & b()
     {
         return b_;
     }
 
-    real& momentum_value()
+    real & momentum_value()
     {
         return v_;
     }
 
-    real& momentum()
+    real & momentum()
     {
         return mom_;
     }
 
-    real& weight_decay()
+    real & weight_decay()
     {
         return wd_;
     }
 
-    void update(real dEdB, real patch_size = 1 ) noexcept
+    void update( real dEdB ) noexcept
     {
         guard g(mutex_);
 
-        v_ = (mom_*v_) - (eta_*wd_*b_) - (eta_*dEdB/patch_size);
+        v_ = (mom_*v_) - (eta_*wd_*b_) - (eta_*dEdB/bias::batch_size);
         b_ += v_;
     }
 
@@ -82,5 +92,7 @@ public:
 
 bias::pool_type& bias::shared_biases_pool =
         zi::singleton<bias::pool_type>::instance();
+
+real bias::batch_size = 1;
 
 }} // namespace znn::v4

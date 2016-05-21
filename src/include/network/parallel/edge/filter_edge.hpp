@@ -75,7 +75,7 @@ private:
             deconv_ ? convolve_sparse_flipped(*g, *last_input, filter_stride)
                     : convolve_sparse_flipped(*last_input, *g, filter_stride);
 
-        filter_.update(*dEdW, patch_sz_);
+        filter_.update(*dEdW);
     }
 
 public:

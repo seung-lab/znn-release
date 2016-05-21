@@ -147,14 +147,6 @@ public:
         }
     }
 
-    void set_patch_size( real s )
-    {
-        if ( filters_.size() )
-        {
-            for ( auto & e: edges_ ) e->set_patch_size(s);
-        }
-    }
-
     options serialize() const
     {
         options ret = options_;

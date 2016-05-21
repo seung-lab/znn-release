@@ -31,7 +31,7 @@ protected:
     cube_p<real>   W_;
     cube_p<real>   mom_volume_;
 
-    // weight update stufftw
+    // weight update stuff
     real        eta_          = 0.1 ;
     real        momentum_     = 0.0 ;
     real        weight_decay_ = 0.0 ;
@@ -43,54 +43,58 @@ public:
     typedef std::map<std::string, std::vector<std::shared_ptr<filter>>>
             pool_type;
 
-    static pool_type& shared_filters_pool;
+    static pool_type &  shared_filters_pool;
+
+protected:
+    static real batch_size;
 
 public:
-    filter( const vec3i& s, real eta, real mom = 0.0, real wd = 0.0 )
-        : W_(get_cube<real>(s))
-        , mom_volume_(get_cube<real>(s))
+    static void set_batch_size( real s )
+    {
+        ZI_ASSERT(s > 0);
+        filter::batch_size = s;
+    }
+
+public:
+    filter( vec3i const & sz, real eta, real mom = 0.0, real wd = 0.0 )
+        : W_(get_cube<real>(sz))
+        , mom_volume_(get_cube<real>(sz))
         , eta_(eta), momentum_(mom), weight_decay_(wd)
     {
 	   fill(*mom_volume_,0);
     }
 
-    real& eta()
+    real & eta()
     {
         return eta_;
     }
 
-    cube<real>& W()
+    cube<real >& W()
     {
         return *W_;
     }
 
-    cube<real>& momentum_volume()
+    cube<real> & momentum_volume()
     {
         return *mom_volume_;
     }
 
-    real& momentum()
+    real & momentum()
     {
         return momentum_;
     }
 
-    real& weight_decay()
+    real & weight_decay()
     {
         return weight_decay_;
     }
 
-private:
-    void do_update()
-    {
-
-    }
-
 public:
-    void update(const cube<real>& dEdW, real patch_size = 1 ) noexcept
+    void update( cube<real> const & dEdW ) noexcept
     {
         guard g(mutex_);
 
-        real delta = -eta_/patch_size;
+        real delta = -eta_/filter::batch_size;
 
         if ( momentum_ == 0 )
         {
@@ -122,5 +126,7 @@ public:
 
 filter::pool_type& filter::shared_filters_pool =
         zi::singleton<filter::pool_type>::instance();
+
+real filter::batch_size = 1;
 
 }} // namespace znn::v4

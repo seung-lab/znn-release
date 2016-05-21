@@ -294,7 +294,7 @@ private:
 
             // TODO: tensor version transfer function
             func_.apply_grad(*g,*fs_[n]);
-            biases_[n]->update(sum(*g),patch_sz_);
+            biases_[n]->update(sum(*g));
 
             // TODO: forward scan
             // fs_[n].reset();
