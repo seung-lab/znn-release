@@ -693,15 +693,10 @@ public:
         return in - out + vec3i::one;
     }
 
-    // [kisuklee]
-    // This is only temporary implementation and will be removed.
     void set_phase( phase phs )
     {
-        zap();
-        for ( auto & e: nodes_ )
-            e.second->dnodes->set_phase(phs);
-        for ( auto & e: phase_dependent_edges_ )
-            e.second->dedges->set_phase(phs);
+        nodes::set_phase(phs);
+        edge::set_phase(phs);
     }
 
     std::map<std::string, std::pair<vec3i,size_t>> inputs() const

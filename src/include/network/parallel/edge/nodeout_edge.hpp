@@ -101,11 +101,6 @@ public:
         }
     }
 
-    void set_phase( phase phs ) override
-    {
-        phase_ = phs;
-    }
-
     void zap(edges* e) override
     {
         e->edge_zapped();

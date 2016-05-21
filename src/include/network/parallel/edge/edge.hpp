@@ -40,8 +40,14 @@ protected:
     size_t fwd_priority_;
     size_t bwd_priority_;
 
-    // on/off
+    // enable/disable
     bool   enabled_ = true;
+
+protected:
+    static phase phase_;
+
+public:
+    static void set_phase( phase phs ) { phase_ = phs; }
 
 public:
     edge( nodes * in, size_t inn, nodes * out, size_t outn, task_manager & m )
@@ -103,11 +109,9 @@ public:
         in_nodes->enable_out_edge(in_num,b);
     }
 
-    // [kisuklee]
-    // This is only temporary implementation and will be removed.
-    virtual void set_phase( phase ){}
-
     virtual void zap(edges*) = 0;
 };
+
+phase edge::phase_ = phase::TRAIN;
 
 }}} // namespace znn::v4::parallel_network

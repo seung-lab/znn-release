@@ -44,10 +44,14 @@ private:
     size_t const   fwd_priority_;
     size_t const   bwd_priority_;
 
-    phase          phase_       ; // TRAIN/TEST/OPTIMIZE
-
 protected:
     std::vector<int>    enabled_;
+
+protected:
+    static phase          phase_;
+
+public:
+    static void set_phase( phase phs ) { phase_ = phs; }
 
 protected:
     nodes( size_t sz,
@@ -121,8 +125,6 @@ protected:
 
 public:
     virtual ~nodes() {}
-
-    virtual void set_phase( phase phs ) { phase_ = phs; }
 
     // TODO(lee):
     //
@@ -258,5 +260,7 @@ public:
     virtual options serialize() const = 0;
 
 };
+
+phase nodes::phase_ = phase::TRAIN;
 
 }}} // namespace znn::v4::parallel_network

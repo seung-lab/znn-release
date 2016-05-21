@@ -112,14 +112,6 @@ public:
             e->setup();
     }
 
-    // [kisuklee]
-    // This is only temporary implementation and will be removed.
-    void set_phase( phase phs )
-    {
-        for ( auto & e: edges_ )
-            e->set_phase(phs);
-    }
-
     void set_eta( real eta )
     {
         if ( filters_.size() )
