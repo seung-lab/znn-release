@@ -80,6 +80,10 @@ public:
 
         auto type = op.require_as<std::string>("type");
 
+        // TODO(lee):
+        //
+        //  Should rethink this part. Unnecessarilly length and complicated.
+        //
         if ( type == "transfer" )
         {
             func_ = get_transfer_function(op);

@@ -40,6 +40,11 @@ protected:
     size_t fwd_priority_;
     size_t bwd_priority_;
 
+    // TODO(lee):
+    //
+    //  Currently, every edge in a network has same value, which is redundant.
+    //  This value should be kept in the global "parameter server".
+    //
     // minibatch averaging
     real   patch_sz_ = 1;
 
@@ -57,6 +62,11 @@ public:
     size_t fwd_priority() const { return fwd_priority_; }
     size_t bwd_priority() const { return bwd_priority_; }
 
+    // TODO(lee):
+    //
+    //  Currently, every nodes in a network has same value, which is redundant.
+    //  This value should be kept in the global "parameter server".
+    //
     void set_patch_size( real s )
     {
         ZI_ASSERT(s > 0);
@@ -75,16 +85,16 @@ public:
 
     virtual void setup() {}
 
-    virtual void forward( ccube_p<real> const & )
+    virtual void forward( ctensor<real> const & )
     { UNIMPLEMENTED(); }
 
-    virtual void backward( ccube_p<real> const & )
+    virtual void backward( ctensor<real> const & )
     { UNIMPLEMENTED(); }
 
-    virtual void forward( ccube_p<complex> const & )
+    virtual void forward( ctensor<complex> const & )
     { UNIMPLEMENTED(); }
 
-    virtual void backward( ccube_p<complex> const & )
+    virtual void backward( ctensor<complex> const & )
     { UNIMPLEMENTED(); }
 
     virtual void enable(bool b)
