@@ -26,7 +26,9 @@ namespace znn { namespace v4 { namespace parallel_network {
 class normalize_edge: public edge
 {
 private:
-    bool    use_global_stat_;
+    enum class mode : std::uint8_t {NONE = 0, LOCAL = 1, GLOBAL = 2};
+
+private:
     real    moving_avg_frac_;
     real    epsilon_        ;
     phase   phase_          ;
@@ -43,6 +45,9 @@ private:
     real    avg_ = 0.0;
     real    var_ = 0.0;
 
+    // force to use either local/global statistics regardless of phase
+    mode    force_ = mode::NONE;
+
 private:
     inline real scale() const
     {
@@ -51,12 +56,28 @@ private:
              : static_cast<real>(1)/moving_win_;
     }
 
+    inline bool use_global_stat() const
+    {
+        bool ret = false;
+
+        if ( force_ == mode::NONE )
+        {
+            ret = (phase_ == phase::TEST);
+        }
+        else
+        {
+            ret = (force_ == mode::GLOBAL);
+        }
+
+        return ret;
+    }
+
     cube_p<real> normalize( ccube<real> const & f )
     {
         auto r = get_copy(f);
 
         // use the stored mean/variance estimates
-        if ( use_global_stat_ || phase_ == phase::TEST )
+        if ( use_global_stat() )
         {
             avg_ = scale()*moving_avg_;
             var_ = scale()*moving_var_;
@@ -78,7 +99,7 @@ private:
         normalized_ = get_copy(*r);
 
         // compute and save moving average
-        if ( !use_global_stat_ && phase_ != phase::TEST )
+        if ( !use_global_stat() && phase_ != phase::TEST )
         {
             // moving window
             moving_win_ *= moving_avg_frac_;
@@ -102,7 +123,7 @@ private:
     {
         cube_p<real> r;
 
-        if ( use_global_stat_ || phase_ == phase::TEST )
+        if ( use_global_stat() || phase_ == phase::TEST )
         {
             r = get_copy(g);
         }
@@ -131,13 +152,12 @@ public:
                     nodes * out,
                     size_t outn,
                     task_manager & tm,
-                    bool gstat,
+                    std::string force,
                     real frac,
                     real eps,
                     filter & f,
                     phase phs = phase::TRAIN )
         : edge(in,inn,out,outn,tm)
-        , use_global_stat_(gstat)
         , moving_avg_frac_(frac)
         , epsilon_(eps)
         , moving_win_(f.W().data()[0])
@@ -148,6 +168,19 @@ public:
     {
         in->attach_out_edge(inn,this);
         out->attach_in_edge(outn,this);
+
+        if ( force == "local" )
+        {
+            force_ = mode::LOCAL;
+        }
+        else if ( force == "global" )
+        {
+            force_ = mode::GLOBAL;
+        }
+        else
+        {
+            force_ = mode::NONE;
+        }
     }
 
     void forward( ccube_p<real> const & f ) override

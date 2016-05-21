@@ -471,7 +471,7 @@ inline edges::edges( nodes * in,
     filters_.resize(n);
     waiter_.set(n);
 
-    auto gstat = opts.optional_as<bool>("gstat", false);
+    auto force = opts.optional_as<std::string>("force", "");
     auto frac  = opts.optional_as<real>("frac", 0.9999);
     auto eps   = opts.optional_as<real>("eps", 1e-5f);
 
@@ -511,7 +511,7 @@ inline edges::edges( nodes * in,
     for ( size_t i = 0; i < n; ++i )
     {
         edges_[i] = std::make_unique<normalize_edge>
-            (in, i, out, i, tm, gstat, frac, eps, *filters_[i], phs);
+            (in, i, out, i, tm, force, frac, eps, *filters_[i], phs);
     }
 }
 
