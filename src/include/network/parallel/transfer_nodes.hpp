@@ -35,52 +35,53 @@ private:
     std::vector<std::shared_ptr<bias>>   biases_  ;
     transfer_function                    func_    ;
 
+    // TODO: tensor version dispatcher, accumulator, and transfer function
     dispatcher_group<concurrent_forward_dispatcher<edge,edge>>    fwd_dispatch_;
     dispatcher_group<concurrent_backward_dispatcher<edge,edge>>   bwd_dispatch_;
 
     std::vector<std::unique_ptr<forward_accumulator>>  fwd_accumulators_;
     std::vector<std::unique_ptr<backward_accumulator>> bwd_accumulators_;
 
-    std::vector<cube_p<real>>    fs_      ;
-    std::vector<cube_p<real>>    gs_      ;
+    std::vector<tensor<real>>    fs_      ;
+    std::vector<tensor<real>>    gs_      ;
     std::vector<int>             fwd_done_;
     waiter                       waiter_  ;
 
+
 public:
-    transfer_nodes( size_t s,
+    transfer_nodes( size_t sz,
+                    size_t bsz,
                     vec3i const & fsize,
                     options const & op,
                     task_manager & tm,
                     size_t fwd_p,
                     size_t bwd_p,
                     bool is_out )
-        : nodes(s,fsize,op,tm,fwd_p,bwd_p,false,is_out)
-        , biases_(s)
+        : nodes(sz,bsz,fsize,op,tm,fwd_p,bwd_p,false,is_out)
+        , biases_(sz)
         , func_()
-        , fwd_dispatch_(s)
-        , bwd_dispatch_(s)
-        , fwd_accumulators_(s)
-        , bwd_accumulators_(s)
-        , fs_(s)
-        , gs_(s)
-        , fwd_done_(s)
-        , waiter_(s)
+        , fwd_dispatch_(sz)
+        , bwd_dispatch_(sz)
+        , fwd_accumulators_(sz)
+        , bwd_accumulators_(sz)
+        , fs_(sz,tensor<real>(bsz))
+        , gs_(sz,tensor<real>(bsz))
+        , fwd_done_(sz)
+        , waiter_(sz)
     {
-
         for ( size_t i = 0; i < nodes::size(); ++i )
         {
+            // TODO: take into account bsz
             fwd_accumulators_[i]
                 = std::make_unique<forward_accumulator>(fsize);
             bwd_accumulators_[i]
                 = std::make_unique<backward_accumulator>(fsize);
         }
 
-
         auto type = op.require_as<std::string>("type");
 
         if ( type == "transfer" )
         {
-
             func_ = get_transfer_function(op);
 
             // initialize biases
@@ -97,7 +98,7 @@ public:
                 if ( bias::shared_biases_pool.count(name) == 0 )
                 {
                     auto& shared = bias::shared_biases_pool[name];
-                    shared.resize(s);
+                    shared.resize(sz);
                     for ( auto& b: shared )
                     {
                         b = std::make_shared<bias>(eta, mom, wd);
@@ -197,22 +198,23 @@ public:
 
 
 public:
-
     size_t num_out_nodes() override { return nodes::size(); }
     size_t num_in_nodes()  override { return nodes::size(); }
 
-    std::vector<cube_p<real>>& get_featuremaps() override
+    std::vector<tensor<real>>& get_featuremaps() override
     {
-        for ( size_t i = 0; i < nodes::size(); ++i )
-            if( !enabled_[i] ) fs_[i] = nullptr;
+        // TODO: clear tensor or for loop to assign nullptr?
+        // for ( size_t i = 0; i < nodes::size(); ++i )
+        //     if( !enabled_[i] ) fs_[i] = nullptr;
 
         return fs_;
     }
 
-    std::vector<cube_p<real>>& get_gradientmaps() override
+    std::vector<tensor<real>>& get_gradientmaps() override
     {
-        for ( size_t i = 0; i < nodes::size(); ++i )
-            if( !enabled_[i] ) gs_[i] = nullptr;
+        // TODO: clear tensor or for loop to assign nullptr?
+        // for ( size_t i = 0; i < nodes::size(); ++i )
+        //     if( !enabled_[i] ) gs_[i] = nullptr;
 
         return gs_;
     }
@@ -228,6 +230,7 @@ private:
 
         if ( func_ )
         {
+            // TODO: transfer function for tensor
             func_.apply(*fs_[n], biases_[n]->b());
         }
 
@@ -242,7 +245,7 @@ private:
     }
 
 public:
-    void forward(size_t n, cube_p<real>&& f) override
+    void forward(size_t n, tensor<real>&& f) override
     {
         ZI_ASSERT(n<nodes::size());
         if ( !enabled_[n] ) return;
@@ -253,7 +256,7 @@ public:
         }
     }
 
-    void forward(size_t n, size_t b, cube_p<complex>&& f) override
+    void forward(size_t n, size_t b, tensor<complex>&& f) override
     {
         ZI_ASSERT(n<nodes::size());
         if ( !enabled_[n] ) return;
@@ -266,7 +269,7 @@ public:
 
 
 private:
-    void do_backward(size_t n, cube_p<real> const & g)
+    void do_backward(size_t n, tensor<real> const & g)
     {
         ZI_ASSERT(enabled_[n]);
 
@@ -284,15 +287,19 @@ private:
             //         ( nodes::is_output() ? " output\n" : "no\n");
             //     STRONG_ASSERT(0);
             // }
+
+            // TODO: tensor version transfer function
             func_.apply_grad(*g,*fs_[n]);
             biases_[n]->update(sum(*g),patch_sz_);
+
+            // TODO: forward scan
             // fs_[n].reset();
         }
         bwd_dispatch_.dispatch(n,g,nodes::manager());
     }
 
 public:
-    void backward(size_t n, cube_p<real>&& g) override
+    void backward(size_t n, tensor<real>&& g) override
     {
         ZI_ASSERT(n<nodes::size());
         if ( !enabled_[n] ) return;
@@ -310,7 +317,7 @@ public:
         }
     }
 
-    void backward(size_t n, size_t b, cube_p<complex>&& g) override
+    void backward(size_t n, size_t b, tensor<complex>&& g) override
     {
         ZI_ASSERT((n<nodes::size())&&(!nodes::is_output()));
         if ( !enabled_[n] ) return;
@@ -360,8 +367,8 @@ protected:
         bwd_accumulators_[n]->enable_all(false);
 
         // reset feature map
-        fs_[n].reset();
-        gs_[n].reset();
+        for ( auto& f: fs_[n] ) f.reset();
+        for ( auto& g: gs_[n] ) g.reset();
 
         enabled_[n] = false;
         if ( nodes::is_output() )
@@ -378,8 +385,8 @@ protected:
         fwd_accumulators_[n]->enable_all(false);
 
         // reset feature map
-        fs_[n].reset();
-        gs_[n].reset();
+        for ( auto& f: fs_[n] ) f.reset();
+        for ( auto& g: gs_[n] ) g.reset();
 
         enabled_[n] = false;
         if ( nodes::is_output() )
@@ -399,8 +406,8 @@ public:
         bwd_accumulators_[n]->enable_all(b);
 
         // reset feature map
-        fs_[n].reset();
-        gs_[n].reset();
+        for ( auto& f: fs_[n] ) f.reset();
+        for ( auto& g: gs_[n] ) g.reset();
 
         enabled_[n] = b;
         if ( nodes::is_output() )

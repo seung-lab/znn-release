@@ -34,6 +34,7 @@ class nodes
 {
 private:
     size_t const   size_        ;
+    size_t const   bsize_       ;
     vec3i  const   fsize_       ;
     task_manager & task_manager_;
     options        options_     ;
@@ -46,12 +47,18 @@ private:
     phase          phase_       ; // TRAIN/TEST/OPTIMIZE
 
 protected:
+    // TODO(lee):
+    //
+    //  Currently, every nodes in a network has same value, which is redundant.
+    //  This value should be kept in the global "parameter server".
+    //
     real           patch_sz_ = 1; // minibatch averaging
 
     std::vector<int>    enabled_;
 
 protected:
     nodes( size_t sz,
+           size_t bsz,
            vec3i const & fsize,
            options const & op,
            task_manager & tm,
@@ -61,6 +68,7 @@ protected:
            bool is_out = false,
            phase phs = phase::TRAIN )
         : size_(sz)
+        , bsize_(bsz)
         , fsize_(fsize)
         , task_manager_(tm)
         , options_(op)
@@ -85,13 +93,18 @@ public:
         return !std::accumulate(enabled_.begin(), enabled_.end(), 0);
     }
 
+    size_t         size()  const { return size_;         }
     vec3i const &  fsize() const { return fsize_;        }
     task_manager & manager()     { return task_manager_; }
-    size_t         size() const  { return size_;         }
 
     size_t         fwd_priority() const { return fwd_priority_; }
     size_t         bwd_priority() const { return bwd_priority_; }
 
+    // TODO(lee):
+    //
+    //  Currently, every nodes in a network has same value, which is redundant.
+    //  This value should be kept in the global "parameter server".
+    //
     void set_patch_size( real s )
     {
         ZI_ASSERT(s > 0);
@@ -104,7 +117,7 @@ public:
     }
 
 #   ifndef NDEBUG
-    void display() const
+    void display_enabled() const
     {
         std::cout << "[" << nodes::name() << "]\n";
 
@@ -127,16 +140,20 @@ protected:
 public:
     virtual ~nodes() {}
 
-    virtual void set_phase( phase phs )
-    {
-        phase_ = phs;
-    }
+    virtual void set_phase( phase phs ) { phase_ = phs; }
 
+    // TODO(lee):
+    //
+    //  Potentially dangereous because this phase-dependent stochastic behavior
+    //  could be overwritten if some derived class overrides this method.
+    //
     virtual void setup()
     {
-        // stochasitcally enable/disable the whole nodes
+        // stochasitcally enable/disable the whole group of nodes.
+        // only disable (not enable) dynamics will propagate automatically.
         if ( phase_ == phase::TRAIN )
         {
+            // keeping ratio
             if ( options_.contains("ratio") )
             {
                 real ratio = options_.require_as<real>("ratio");
@@ -149,56 +166,61 @@ public:
 
     // receive a featuremap for the i-th input
     // featuremap is absorbed
-    virtual void forward(size_t, cube_p<real>&&)
+    virtual void forward(size_t, tensor<real>&&)
     { UNIMPLEMENTED(); }
 
     // receive a gradient for the i-th output
     // gradient is absorbed
-    virtual void backward(size_t, cube_p<real>&&)
+    virtual void backward(size_t, tensor<real>&&)
     { UNIMPLEMENTED(); }
 
-    // for inplace convolution
+    // for inplace convolution (deprecated)
     virtual void forward(size_t,
-                         ccube_p<real> const & /* featuremap */,
+                         ctensor<real> const & /* featuremap */,
                          ccube_p<real> const & /* filter */,
                          vec3i const &         /* filter_stride */ )
     { UNIMPLEMENTED(); }
 
-    // for inplace convolution
+    // for inplace convolution (deprecated)
     virtual void backward(size_t,
-                          ccube_p<real> const & /* gradient */,
+                          ctensor<real> const & /* gradient */,
                           ccube_p<real> const & /* filter */,
                           vec3i const &         /* filter_stride */ )
     { UNIMPLEMENTED(); }
 
     // receive a featuremap for the i-th input
     // featuremap is absorbed
-    virtual void forward(size_t, size_t, cube_p<complex>&&)
+    virtual void forward(size_t, size_t, tensor<complex>&&)
     { UNIMPLEMENTED(); }
 
     // receive a gradient for the i-th output
     // gradient is absorbed
-    virtual void backward(size_t, size_t, cube_p<complex>&&)
+    virtual void backward(size_t, size_t, tensor<complex>&&)
     { UNIMPLEMENTED(); }
 
-    // inplace multiply add
+    // inplace multiply add (deprecated)
     virtual void forward(size_t, size_t,
-                         ccube_p<complex> const & /* fft(featuremap) */,
-                         ccube_p<complex> const & /* fft(filter) */ )
+                         ctensor<complex> const & /* fft(featuremap) */,
+                         ctensor<complex> const & /* fft(filter) */ )
     { UNIMPLEMENTED(); }
 
-    // inplace multiply add
+    // inplace multiply add (deprecated)
     virtual void backward(size_t, size_t,
-                          ccube_p<complex> const & /* fft(gradient) */,
-                          ccube_p<complex> const & /* fft(filter) */ )
+                          ctensor<complex> const & /* fft(gradient) */,
+                          ctensor<complex> const & /* fft(filter) */ )
     { UNIMPLEMENTED(); }
 
-    virtual std::vector<cube_p<real>>& get_featuremaps()
+    virtual std::vector<tensor<real>>& get_featuremaps()
     { UNIMPLEMENTED(); }
 
-    virtual std::vector<cube_p<real>>& get_gradientmaps()
+    virtual std::vector<tensor<real>>& get_gradientmaps()
     { UNIMPLEMENTED(); }
 
+    // TODO(lee):
+    //
+    //  Will there be any case where in/out nodes are different?
+    //  E.g. concatenated ReLU, concat/split layer, etc.
+    //
     virtual size_t num_out_nodes()
     { UNIMPLEMENTED(); }
 
