@@ -29,9 +29,8 @@ class dropout_edge: public edge
 private:
     real            ratio_; // keeping ratio
     cube_p<bool>    mask_ ; // dropout mask
-    vec3i           insize;
-    phase           phase_; // TRAIN or TEST
     bool            force_; // dropout regardless of phase
+    vec3i           insize;
 
 private:
     inline real scale() const
@@ -39,6 +38,7 @@ private:
         return static_cast<real>(1)/ratio_;
     }
 
+    // inplace dropout
     inline void dropout( cube<real> & c, ccube<bool> const & msk ) const
     {
         size_t s = c.num_elements();
@@ -51,28 +51,28 @@ private:
         }
     }
 
-    // performs inplace dropout and returns dropout mask
-    inline void dropout_forward( cube<real> & f )
+    inline tensor<real> dropout_forward( tensor<real> const & f )
     {
-        if ( !mask_ )
+        tensor<real> ret = get_copy(f);
+        if ( force_ || edge::phase_ != phase::TEST )
         {
-            mask_ = get_cube<bool>(size(f));
+            if ( !mask_ ) mask_ = get_cube<bool>(size(f));
+            bernoulli_init<bool>(ratio_).initialize(mask_); // new random mask
+            for ( auto& c: ret ) dropout(*c,*mask_);
         }
-
-        // new random mask
-        bernoulli_init<bool>(ratio_).initialize(mask_);
-
-        dropout(f, *mask_);
+        return ret;
     }
 
-    // performs inplace dropout backward
-    inline void dropout_backward( cube<real> & g )
+    inline tensor<real> dropout_backward( tensor<real> const & g )
     {
-        ZI_ASSERT(mask_);
-
-        dropout(g, *mask_);
-
-        // Should we reset mask_ here?
+        tensor<real> ret = get_copy(g);
+        if ( force_ || edge::phase_ != phase::TEST )
+        {
+            ZI_ASSERT(mask_);
+            for ( auto& c: ret ) dropout(*c,*mask_);
+            mask_.reset();
+        }
+        return ret;
     }
 
 public:
@@ -82,53 +82,37 @@ public:
                   size_t outn,
                   task_manager & tm,
                   real p,
-                  phase phs = phase::TRAIN,
                   bool force = false )
         : edge(in,inn,out,outn,tm)
         , ratio_(p)
-        , phase_(phs)
+        , mask_()
         , force_(force)
+        , insize(in->fsize())
     {
-        insize = in->fsize();
-
         in->attach_out_edge(inn,this);
         out->attach_in_edge(outn,this);
     }
 
-    void forward( ccube_p<real> const & f ) override
+    void forward( ctensor<real> const & f ) override
     {
         if ( !enabled_ ) return;
 
-        ZI_ASSERT(size(*f)==insize);
-
-        auto fmap = get_copy(*f);
-        if ( force_ || phase_ == phase::TRAIN || phase_ == phase::OPTIMIZE )
-        {
-            dropout_forward(*fmap);
-        }
-
-        out_nodes->forward(out_num, std::move(fmap));
+        ZI_ASSERT(size(f)==insize);
+        out_nodes->forward(out_num, dropout_forward(f));
     }
 
-    void backward( ccube_p<real> const & g ) override
+    void backward( ctensor<real> const & g ) override
     {
         if ( !enabled_ ) return;
 
-        ZI_ASSERT(insize==size(*g));
-
-        auto gmap = get_copy(*g);
-        if ( force_ || phase_ == phase::TRAIN || phase_ == phase::OPTIMIZE )
-        {
-            dropout_backward(*gmap);
-        }
-
+        ZI_ASSERT(size(g)==insize);
         if ( in_nodes->is_input() )
         {
             in_nodes->backward(in_num, cube_p<real>());
         }
         else
         {
-            in_nodes->backward(in_num, std::move(gmap));
+            in_nodes->backward(in_num, dropout_backward(g));
         }
     }
 

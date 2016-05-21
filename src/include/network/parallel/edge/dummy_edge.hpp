@@ -36,18 +36,18 @@ public:
         out->attach_in_edge(outn,this);
     }
 
-    void forward( ccube_p<real> const & f ) override
+    void forward( ctensor<real> const & f ) override
     {
         if ( !enabled_ ) return;
 
-        out_nodes->forward(out_num,get_copy(*f));
+        out_nodes->forward(out_num,get_copy(f));
     }
 
-    void backward( ccube_p<real> const & g ) override
+    void backward( ctensor<real> const & g ) override
     {
         if ( !enabled_ ) return;
 
-        in_nodes->backward(in_num,get_copy(*g));
+        in_nodes->backward(in_num,get_copy(g));
     }
 
     void zap(edges* e) override

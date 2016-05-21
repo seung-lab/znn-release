@@ -35,6 +35,22 @@ private:
         return insize - offset - offset;
     }
 
+    inline tensor<real> crop( ctensor<real> const & f )
+    {
+        tensor<real> ret;
+        for ( auto& c: f )
+            ret.push_back(crop(*c,offset,crop_size()));
+        return ret;
+    }
+
+    inline tensor<real> pad_zeros( ctensor<real> const & g )
+    {
+        tensor<real> ret;
+        for ( auto& c: g )
+            ret.push_back(pad_zeros(*c,offset,pad_style::BOTH));
+        return ret;
+    }
+
 public:
     crop_edge( nodes * in,
                size_t inn,
@@ -44,36 +60,32 @@ public:
                vec3i const & off )
         : edge(in,inn,out,outn,tm)
         , offset(off)
+        , insize(in->fsize())
     {
-        insize = in->fsize();
-
         in->attach_out_edge(inn,this);
         out->attach_in_edge(outn,this);
     }
 
-    void forward( ccube_p<real> const & f ) override
+    void forward( ctensor<real> const & f ) override
     {
         if ( !enabled_ ) return;
 
-        ZI_ASSERT(size(*f)==insize);
-        out_nodes->forward(out_num, crop(*f,offset,crop_size()));
+        ZI_ASSERT(size(f)==insize);
+        out_nodes->forward(out_num, crop(f));
     }
 
-    void backward( ccube_p<real> const & g ) override
+    void backward( ctensor<real> const & g ) override
     {
         if ( !enabled_ ) return;
 
-        ZI_ASSERT(crop_size()==size(*g));
-
+        ZI_ASSERT(size(g)==crop_size());
         if ( in_nodes->is_input() )
         {
-            in_nodes->backward(in_num, cube_p<real>());
+            in_nodes->backward(in_num, tensor<real>());
         }
         else
         {
-            auto gmap = get_cube<real>(insize);
-            in_nodes->backward(in_num,
-                               pad_zeros(*g,offset,pad_style::BOTH));
+            in_nodes->backward(in_num, pad_zeros(g));
         }
     }
 

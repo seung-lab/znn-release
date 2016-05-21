@@ -65,11 +65,27 @@ inline vec4i size( qube<T> const & a )
 };
 
 template <typename T>
+inline vec3i size( tensor<T> const & a )
+{
+    vec3i ret = vec3i::zero;
+    if ( !a.empty() ) ret = size(*a.front());
+    return ret;
+};
+
+template <typename T>
 inline cube_p<T> get_copy( cube<T> const & c )
 {
     auto r = get_cube<T>(size(c));
     *r = c;
     return r;
+}
+
+template <typename T>
+inline tensor<T> get_copy( tensor<T> const & t )
+{
+    tensor<T> ret;
+    for ( auto& c: t ) ret.push_back(get_copy(*c));
+    return ret;
 }
 
 template<typename T>

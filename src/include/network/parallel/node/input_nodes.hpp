@@ -31,14 +31,14 @@ private:
     waiter                                                     waiter_ ;
 
 public:
-    input_nodes( size_t s,
+    input_nodes( size_t sz,
                  vec3i const & fsize,
                  options const & op,
                  task_manager & tm,
                  size_t fwd_p,
                  size_t bwd_p )
-        : nodes(s,fsize,op,tm,fwd_p,bwd_p,true,false)
-        , outputs_(s)
+        : nodes(sz,fsize,op,tm,fwd_p,bwd_p,true,false)
+        , outputs_(sz)
         , waiter_()
     {
     }
@@ -55,11 +55,11 @@ public:
     options serialize() const override { return nodes::opts(); }
 
     // For the forward pass only this function us supported
-    void forward(size_t n, cube_p<real> && f) override
+    void forward(size_t n, tensor<real> && f) override
     {
-        ZI_ASSERT(n<nodes::size());
         if ( !enabled_[n] ) return;
 
+        ZI_ASSERT(n<nodes::size());
         outputs_.dispatch(n,f,nodes::manager());
     }
 
@@ -67,10 +67,10 @@ private:
     void backward() { waiter_.one_done(); }
 
 public:
-    void backward(size_t, cube_p<real>&&) override
+    void backward(size_t, tensor<real>&&) override
     { backward(); }
 
-    void backward(size_t, size_t, cube_p<complex>&&) override
+    void backward(size_t, size_t, tensor<complex>&&) override
     { backward(); }
 
     void attach_out_edge(size_t i, edge* e) override
