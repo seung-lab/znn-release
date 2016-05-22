@@ -17,12 +17,12 @@
 //
 #pragma once
 
-#include "edge.hpp"
-#include "edges_fwd.hpp"
-#include "nodes.hpp"
+#include "../edge.hpp"
+#include "../edges_fwd.hpp"
+#include "../nodes.hpp"
 
-#include "../../convolution/convolution.hpp"
-#include "../filter.hpp"
+#include "../../../convolution/convolution.hpp"
+#include "../../filter.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 

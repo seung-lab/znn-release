@@ -17,15 +17,15 @@
 //
 #pragma once
 
-#include "edge.hpp"
-#include "nodes.hpp"
-#include "../bias.hpp"
-#include "../../utils/dispatcher.hpp"
-#include "../../utils/accumulator.hpp"
-#include "../../utils/waiter.hpp"
-#include "../../initializator/initializators.hpp"
-#include "../../transfer_function/transfer_functions.hpp"
-#include "../trivial/utils.hpp"
+#include "../edge.hpp"
+#include "../nodes.hpp"
+#include "../../bias.hpp"
+#include "../../../utils/dispatcher.hpp"
+#include "../../../utils/accumulator.hpp"
+#include "../../../utils/waiter.hpp"
+#include "../../../initializator/initializators.hpp"
+#include "../../../transfer_function/transfer_functions.hpp"
+#include "../../trivial/utils.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 

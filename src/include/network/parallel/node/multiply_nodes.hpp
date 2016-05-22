@@ -18,12 +18,12 @@
 //
 #pragma once
 
-#include "edge.hpp"
-#include "nodes.hpp"
-#include "../../utils/dispatcher.hpp"
-#include "../../utils/mult_accumulator.hpp"
-#include "../../utils/accumulator.hpp"
-#include "../../utils/waiter.hpp"
+#include "../edge.hpp"
+#include "../nodes.hpp"
+#include "../../../utils/dispatcher.hpp"
+#include "../../../utils/mult_accumulator.hpp"
+#include "../../../utils/accumulator.hpp"
+#include "../../../utils/waiter.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 

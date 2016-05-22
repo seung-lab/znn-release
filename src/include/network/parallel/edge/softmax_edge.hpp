@@ -18,9 +18,9 @@
 //
 #pragma once
 
-#include "../../utils/simple_accumulator.hpp"
-#include "edges_fwd.hpp"
-#include "nodes.hpp"
+#include "../../../utils/simple_accumulator.hpp"
+#include "../edges_fwd.hpp"
+#include "../nodes.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 

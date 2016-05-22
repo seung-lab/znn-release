@@ -18,9 +18,9 @@
 //
 #pragma once
 
-#include "../../utils/max_accumulator.hpp"
-#include "edges_fwd.hpp"
-#include "maxout_nodes.hpp"
+#include "../../../utils/max_accumulator.hpp"
+#include "../edges_fwd.hpp"
+#include "../node/maxout_nodes.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 

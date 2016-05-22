@@ -18,9 +18,9 @@
 //
 #pragma once
 
-#include "edges_fwd.hpp"
-#include "nodes.hpp"
-#include "../../initializator/bernoulli_init.hpp"
+#include "../edges_fwd.hpp"
+#include "../nodes.hpp"
+#include "../../../initializator/bernoulli_init.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 

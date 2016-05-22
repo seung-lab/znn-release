@@ -17,9 +17,9 @@
 //
 #pragma once
 
-#include "edges_fwd.hpp"
-#include "nodes.hpp"
-#include "../../pooling/pooling.hpp"
+#include "../edges_fwd.hpp"
+#include "../nodes.hpp"
+#include "../../../pooling/pooling.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 
