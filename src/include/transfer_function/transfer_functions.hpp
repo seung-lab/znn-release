@@ -19,8 +19,9 @@
 
 #include "linear.hpp"
 #include "logistics.hpp"
-#include "rectify_linear.hpp"
 #include "hyperbolic_tangent.hpp"
+#include "rectify_linear.hpp"
+#include "exponential_linear.hpp"
 #include "gating.hpp"
 #include "soft_sign.hpp"
 

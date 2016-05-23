@@ -197,6 +197,11 @@ transfer_function get_transfer_function( const options& op )
     {
         return transfer_function(functions::rectify_linear());
     }
+    else if ( fn == "exponential_linear" )
+    {
+        real alpha = op.optional_as<real>("function_args", "1");
+        return transfer_function(functions::exponential_linear(alpha));
+    }
     else if ( fn == "soft_sign" )
     {
         return transfer_function(functions::soft_sign());
