@@ -1037,7 +1037,7 @@ public:
 
         {
             network net(ns,es,outsz,n_threads);
-            net.set_phase(phase::OPTIMIZE);
+            net.set_phase(phase::TEST);
 
             auto is = copy_samples(allins);
             auto os = copy_samples(allouts);
@@ -1070,7 +1070,7 @@ public:
             e->push("fft","0");
 
             network net(ns,es,outsz,n_threads);
-            net.set_phase(phase::OPTIMIZE);
+            net.set_phase(phase::TEST);
 
             auto is = copy_samples(allins);
             auto os = copy_samples(allouts);
