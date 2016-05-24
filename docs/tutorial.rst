@@ -298,7 +298,9 @@ We suggest you grab the example file and modify it to suit your needs. Consult t
 
 Run a training
 ``````````````
-After setting up the configuration file, you can run a training: 
+After setting up the configuration file, you can now train your networks. 
+
+Make sure you run the following command from within the `znn-release/python` directory. This is a limitation that can be fixed in future releases.
 ::
     python train.py -c path/of/config.cfg 
 
