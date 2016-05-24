@@ -66,8 +66,8 @@ Optional:
 ::
     standard2D modifies the image by subtracting the mean and dividing by the standard deviation of the pixel values.
     standard3D normalize for whole 3D volume like standard2D  
-    symetric_rescale rescales to [ -1, 1 ]  
-    
+    symmetric_rescale rescales to [ -1, 1 ]  
+
 2. ``is_auto_crop``: no (default), yes 
     If the corresponding ground truth stack's images are not the same dimension as the image set (e.g. image A is 1000px x 1000px and label A is 100px x 100px), then the smaller image will be centered in the larger image and the larger image will be cropped around it.
 
