@@ -793,7 +793,7 @@ public:
     std::map<std::string, std::vector<cube_p<real>>>
     backward( std::map<std::string, std::vector<cube_p<real>>> && fout )
     {
-        ZI_ASSERT(fout.size()==input_nodes_.size());
+        ZI_ASSERT(fout.size()==output_nodes_.size());
         for ( auto & out: fout )
         {
             ZI_ASSERT(output_nodes_.count(out.first));
