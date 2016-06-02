@@ -284,11 +284,11 @@ public:
 
 
 private:
-    void do_backward(size_t n)
+    void do_backward(size_t n, cube_p<real> const & g)
     {
         ZI_ASSERT(enabled_[n]);
 
-        gs_[n] = bwd_accumulators_[n]->reset();
+        gs_[n] = g;
 
         if ( do_average_ )
         {
@@ -330,7 +330,7 @@ public:
         {
             if ( bwd_accumulators_[n]->add(std::move(g)) )
             {
-                do_backward(n);
+                do_backward(n,bwd_accumulators_[n]->reset());
             }
         }
     }
@@ -342,7 +342,7 @@ public:
 
         if ( bwd_accumulators_[n]->add(b,std::move(g)) )
         {
-            do_backward(n);
+            do_backward(n,bwd_accumulators_[n]->reset());
         }
     }
 
