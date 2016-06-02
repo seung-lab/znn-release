@@ -510,7 +510,7 @@ private:
                 n.second->dnodes = std::make_unique<input_nodes>
                     (sz,n.second->fsize,*n.second->opts,tm_,fwd_p,bwd_p);
             }
-            else if ( (type == "sum") || (type == "transfer") )
+            else if ( (type == "sum") || (type == "transfer") || (type == "average") )
             {
                 n.second->dnodes = std::make_unique<transfer_nodes>
                     ( sz, n.second->fsize, *n.second->opts, tm_,
