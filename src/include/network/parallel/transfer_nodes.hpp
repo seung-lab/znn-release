@@ -32,8 +32,9 @@ namespace znn { namespace v4 { namespace parallel_network {
 class transfer_nodes: public nodes
 {
 private:
-    std::vector<std::shared_ptr<bias>>   biases_  ;
-    transfer_function                    func_    ;
+    std::vector<std::shared_ptr<bias>>  biases_     ; // transfer node
+    transfer_function                   func_       ; // transfer node
+    int                                 do_average_ ; //  average node
 
     dispatcher_group<concurrent_forward_dispatcher<edge,edge>>    fwd_dispatch_;
     dispatcher_group<concurrent_backward_dispatcher<edge,edge>>   bwd_dispatch_;
@@ -46,6 +47,7 @@ private:
     std::vector<int>             fwd_done_;
     waiter                       waiter_  ;
 
+
 public:
     transfer_nodes( size_t s,
                     vec3i const & fsize,
@@ -57,6 +59,7 @@ public:
         : nodes(s,fsize,op,tm,fwd_p,bwd_p,false,is_out)
         , biases_(s)
         , func_()
+        , do_average_(false)
         , fwd_dispatch_(s)
         , bwd_dispatch_(s)
         , fwd_accumulators_(s)
@@ -148,7 +151,14 @@ public:
         }
         else
         {
-            ZI_ASSERT(type=="sum");
+            if ( type == "average" )
+            {
+                do_average_ = true;
+            }
+            else
+            {
+                ZI_ASSERT(type=="sum");
+            }
         }
     }
 
@@ -223,6 +233,14 @@ private:
         ZI_ASSERT(enabled_[n]);
 
         fs_[n] = fwd_accumulators_[n]->reset();
+
+        if ( do_average_ )
+        {
+            auto m = fwd_accumulators_[n]->effectively_required();
+            ZI_ASSERT(m);
+            *fs_[n] /= m;
+        }
+
         //STRONG_ASSERT(!fwd_done_[n]);
         fwd_done_[n] = true;
 
@@ -266,17 +284,24 @@ public:
 
 
 private:
-    void do_backward(size_t n, cube_p<real> const & g)
+    void do_backward(size_t n)
     {
         ZI_ASSERT(enabled_[n]);
 
-        gs_[n] = g;
+        gs_[n] = bwd_accumulators_[n]->reset();
+
+        if ( do_average_ )
+        {
+            auto m = fwd_accumulators_[n]->effectively_required();
+            ZI_ASSERT(m);
+            *gs_[n] /= m;
+        }
+
         //STRONG_ASSERT(fwd_done_[n]);
         fwd_done_[n] = false;
 
         if ( func_ )
         {
-            //STRONG_ASSERT(g);
             STRONG_ASSERT(fs_[n]);
             // if ( !fs_[n] )
             // {
@@ -284,11 +309,11 @@ private:
             //         ( nodes::is_output() ? " output\n" : "no\n");
             //     STRONG_ASSERT(0);
             // }
-            func_.apply_grad(*g,*fs_[n]);
-            biases_[n]->update(sum(*g),patch_sz_);
+            func_.apply_grad(*gs_[n],*fs_[n]);
+            biases_[n]->update(sum(*gs_[n]),patch_sz_);
             // fs_[n].reset();
         }
-        bwd_dispatch_.dispatch(n,g,nodes::manager());
+        bwd_dispatch_.dispatch(n,gs_[n],nodes::manager());
     }
 
 public:
@@ -305,7 +330,7 @@ public:
         {
             if ( bwd_accumulators_[n]->add(std::move(g)) )
             {
-                do_backward(n,bwd_accumulators_[n]->reset());
+                do_backward(n);
             }
         }
     }
@@ -317,7 +342,7 @@ public:
 
         if ( bwd_accumulators_[n]->add(b,std::move(g)) )
         {
-            do_backward(n,bwd_accumulators_[n]->reset());
+            do_backward(n);
         }
     }
 
