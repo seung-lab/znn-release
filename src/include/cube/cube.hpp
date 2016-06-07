@@ -49,6 +49,7 @@ template <typename T> using ccube_p = std::shared_ptr<ccube<T>>;
 template <typename T> using qube_p  = std::shared_ptr<qube<T>>;
 template <typename T> using cqube_p = std::shared_ptr<cqube<T>>;
 
+template <typename T> using tensor  = std::vector<cube_p<T>>;
 
 template <typename T>
 inline vec3i size( cube<T> const & a )
