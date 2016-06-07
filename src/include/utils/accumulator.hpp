@@ -100,11 +100,21 @@ public:
         return required_;
     }
 
-    size_t disable(size_t n)
+    size_t enable(bool b)
     {
         ZI_ASSERT(current_==0);
-        ZI_ASSERT(n<=effectively_required());
-        disabled_ += n;
+
+        if ( b )
+        {
+            ZI_ASSERT(effectively_required()<required_);
+            --disabled_;
+        }
+        else
+        {
+            ZI_ASSERT(0<effectively_required());
+            ++disabled_;
+        }
+
         return effectively_required();
     }
 
@@ -125,16 +135,31 @@ public:
         return bucket_map_[size];
     }
 
-    size_t disable_fft(const vec3i& size, size_t n)
+    size_t enable_fft(const vec3i& size, bool b)
     {
         ZI_ASSERT(current_==0);
         ZI_ASSERT(bucket_map_.count(size)!=0);
-        ZI_ASSERT(effectively_required()>0);
 
-        if ( buckets_[bucket_map_[size]]->disable(n) == 0 )
-            ++disabled_;
+        if ( b )
+        {
+            // effectively_required: 0 -> 1
+            if ( buckets_[bucket_map_[size]]->enable(true) == 1 )
+            {
+                ZI_ASSERT(effectively_required()<required_);
+                --disabled_;
+            }
+        }
+        else
+        {
+            // effectively_required: 1 -> 0
+            if ( buckets_[bucket_map_[size]]->enable(false) == 0 )
+            {
+                ZI_ASSERT(0<effectively_required());
+                ++disabled_;
+            }
+        }
 
-        return bucket_map_[size];
+        return effectively_required();
     }
 
     size_t enable_all(bool b)

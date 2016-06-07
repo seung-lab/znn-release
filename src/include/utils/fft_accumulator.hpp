@@ -88,10 +88,19 @@ public:
         return required_;
     }
 
-    size_t disable(size_t n)
+    size_t enable(bool b)
     {
-        ZI_ASSERT(n<=effectively_required());
-        disabled_ += n;
+        if ( b )
+        {
+            ZI_ASSERT(effectively_required()<required_);
+            --disabled_;
+        }
+        else
+        {
+            ZI_ASSERT(0<effectively_required());
+            ++disabled_;
+        }
+
         return effectively_required();
     }
 
