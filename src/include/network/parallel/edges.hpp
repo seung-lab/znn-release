@@ -476,9 +476,9 @@ inline edges::edges( nodes * in,
     auto eps   = opts.optional_as<real>("eps", 1e-5f);
 
     // TODO(lee):
-    //      Each normalize edge has three real values to save/load.
-    //      This is only a temporary solution that could have been done
-    //      more neatly, but this is the best workaround as of now.
+    //  Each normalize edge has three real values to save/load.
+    //  This is only a temporary solution that could have been done
+    //  more neatly, but this is the best workaround as of now.
     const size_t num_vars = 3;
     auto sz = vec3i(1,1,num_vars);
 
