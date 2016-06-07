@@ -163,7 +163,7 @@ std::shared_ptr< network > CNet_Init(
 std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
                                         std::string const net_config_file,
                                         np::ndarray const & outsz_a,
-                                        std::size_t const tc,
+                                        std::size_t tc,
                                         bool const is_optimize = true,
                                         std::uint8_t const phs = 0,
                                         bool const force_fft = false )
@@ -372,8 +372,8 @@ BOOST_PYTHON_MODULE(pyznn)
         .def("get_fov",             &CNet_fov)
         .def("forward",             &CNet_forward)
         .def("backward",            &CNet_backward)
-        .def("set_eta",             network::set_eta)
-        .def("set_phase",           CNet_set_phase)
+        .def("set_eta",             &network::set_eta)
+        .def("set_phase",           &CNet_set_phase)
         .def("set_momentum",		&network::set_momentum)
         .def("set_weight_decay",	&network::set_weight_decay )
         .def("get_inputs_setsz", 	&CNet_get_inputs_setsz)
