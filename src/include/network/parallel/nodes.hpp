@@ -33,22 +33,28 @@ class edge;
 class nodes
 {
 private:
-    size_t const   size_        ;
-    vec3i  const   fsize_       ;
-    task_manager & task_manager_;
-    options        options_     ;
-    bool           is_input_    ;
-    bool           is_output_   ;
+    size_t const    size_        ;
+    vec3i  const    fsize_       ;
+    task_manager &  task_manager_;
+    options         options_     ;
+    bool            is_input_    ;
+    bool            is_output_   ;
 
-    size_t const   fwd_priority_;
-    size_t const   bwd_priority_;
+    size_t const    fwd_priority_;
+    size_t const    bwd_priority_;
 
-    phase          phase_       ; // TRAIN/TEST/OPTIMIZE
+    phase           phase_       ; // TRAIN/TEST/OPTIMIZE
 
 protected:
-    real           patch_sz_ = 1; // minibatch averaging
+    real patch_sz_ = 1; // minibatch averaging
 
-    std::vector<int>    enabled_;
+    std::vector<int> enabled_;
+
+protected:
+    static size_t time_step;
+
+public:
+    static void set_time_step( size_t step ) { time_step = step; }
 
 protected:
     nodes( size_t sz,
@@ -80,9 +86,14 @@ public:
     bool is_input()  const { return is_input_ ; }
     bool is_output() const { return is_output_; }
 
+    size_t num_enabled() const
+    {
+        return std::accumulate(enabled_.begin(), enabled_.end(), 0);
+    }
+
     bool is_disabled() const
     {
-        return !std::accumulate(enabled_.begin(), enabled_.end(), 0);
+        return num_enabled() == 0;
     }
 
     vec3i const &  fsize() const { return fsize_;        }
@@ -134,19 +145,45 @@ public:
 
     virtual void setup()
     {
-        // stochasitcally enable/disable the whole nodes
-        if ( phase_ == phase::TRAIN )
+        // assumes that setup starts from a complete graph
+        ZI_ASSERT(!is_disabled());
+
+        // time unrolling for recurrent connections
+        // unrolling is allowed regardless of the current phase (TRAIN or TEST)
+        if ( unroll(nodes::time_step) )
         {
-            if ( options_.contains("ratio") )
+            // stochasitcally enable/disable the whole nodes
+            if ( phase_ == phase::TRAIN )
             {
-                real ratio = options_.require_as<real>("ratio");
-                bool b = true;
-                bernoulli_init<bool>(ratio).initialize(&b,1);
-                nodes::enable(b);
+                if ( options_.contains("ratio") )
+                {
+                    real ratio = options_.require_as<real>("ratio");
+                    bool b = true;
+                    bernoulli_init<bool>(ratio).initialize(&b,1);
+                    nodes::enable(b);
+                }
             }
         }
     }
 
+protected:
+    // t: time steps to unroll
+    // return whether this nodes is alive or not
+    virtual bool unroll( size_t step )
+    {
+        ZI_ASSERT(step);
+
+        if ( options_.contains("time") )
+        {
+            size_t time = options_.require_as<size_t>("time");
+            ZI_ASSERT(time);
+            nodes::enable(time <= step);
+        }
+
+        return !is_disabled();
+    }
+
+public:
     // receive a featuremap for the i-th input
     // featuremap is absorbed
     virtual void forward(size_t, cube_p<real>&&)
@@ -254,5 +291,7 @@ public:
     virtual options serialize() const = 0;
 
 };
+
+size_t nodes::time_step = 1;
 
 }}} // namespace znn::v4::parallel_network

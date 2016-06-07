@@ -380,7 +380,12 @@ void CNet_set_phase(bp::object const & self, std::uint8_t const phs = 0)
 {
     network& net = bp::extract<network&>(self)();
     net.set_phase( static_cast<phase>(phs) );
-    return;
+}
+
+void CNet_set_time_step(bp::object const & self, std::size_t const step)
+{
+    network& net = bp::extract<network&>(self)();
+    net.set_time_step( step );
 }
 
 //===========================================================================
@@ -400,6 +405,7 @@ BOOST_PYTHON_MODULE(pyznn)
         .def("get_featuremaps",     &CNet_get_featuremaps)
         .def("set_eta",    		    &network::set_eta)
         .def("set_phase",           &CNet_set_phase)
+        .def("set_time_step",       &CNet_set_time_step)
         .def("set_momentum",		&network::set_momentum)
         .def("set_weight_decay",	&network::set_weight_decay)
         .def("get_inputs_setsz", 	&CNet_get_inputs_setsz)

@@ -12,7 +12,7 @@ import zstatistics
 import os
 import numpy as np
 
-def main( conf_file='config.cfg', logfile=None ):
+def main( conf_file='config.cfg', logfile=None, max_time_step=None ):
     #%% parameters
     print "reading config parameters..."
     config, pars = zconfig.parser( conf_file )
@@ -86,6 +86,11 @@ def main( conf_file='config.cfg', logfile=None ):
         # get random sub volume from sample
         imgs, lbls, msks, wmsks = smp_trn.get_random_sample()
 
+        # stochastic time unrolling of recurrent connections
+        if max_time_step is not None:
+            time_step = 1 + np.random.randint(max_time_step)
+            net.set_time_step(time_step)
+
         # forward pass
         # apply the transformations in memory rather than array view
         imgs  = utils.make_continuous(imgs, dtype=pars['dtype'])
@@ -157,6 +162,9 @@ def main( conf_file='config.cfg', logfile=None ):
 
         # test the net
         if i%pars['Num_iter_per_test']==0:
+            # maximally unroll in time when testing
+            if max_time_step is not None:
+                net.set_time_step(max_time_step)
             lc = test_softmax_affinity.znn_test(net, pars, smp_tst, vn, i, lc)
 
         if i%pars['Num_iter_per_save']==0:
@@ -174,10 +182,12 @@ if __name__ == '__main__':
     """
     usage
     ------
-    python train.py path/to/config.cfg
+    python train.py path/to/config.cfg max_time_step
     """
-    import sys
-    if len(sys.argv)>1:
-        main( sys.argv[1] )
+    from sys import argv
+    if len(argv)==2:
+        main( argv[1] )
+    elif len(argv)>2:
+        main( argv[1], max_time_step=argv[2] )
     else:
         main()

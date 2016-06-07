@@ -704,6 +704,12 @@ public:
             e.second->dedges->set_phase(phs);
     }
 
+    void set_time_step( size_t step )
+    {
+        ZI_ASSERT(step);
+        nodes::set_time_step(step);
+    }
+
     std::map<std::string, std::pair<vec3i,size_t>> inputs() const
     {
         std::map<std::string, std::pair<vec3i,size_t>> ret;
