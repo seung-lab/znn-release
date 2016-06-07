@@ -763,6 +763,19 @@ public:
                     break;
                 }
         }
+
+#       ifndef NDEBUG
+        std::cout << "time step = " << nodes::get_time_step() << std::endl;
+        for ( auto& o: nodes_ )
+        {
+            if ( o.second->dnodes->num_enabled() )
+            {
+                std::cout << "NODE GROUP: " << o.first << "\n    "
+                          << "STRIDE: " << o.second->stride << "\n    "
+                          << "SIZE: " << o.second->fsize << '\n';
+            }
+        }
+#       endif
     }
 
     std::map<std::string, std::vector<cube_p<real>>>
