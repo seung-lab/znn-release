@@ -8,6 +8,7 @@ MKL_FLAGS	=	-static-intel -mkl=sequential -DZNN_USE_MKL_FFT -DZNN_USE_MKL_NATIVE
 FFTW_FLAGS	= 	-lfftw3 -lfftw3f
 OPT_FLAGS	=	-O3 -std=c++1y -DZNN_CUBE_POOL_LOCKFREE -DNDEBUG
 SINGLE_FLAG	=	-DZNN_USE_FLOATS
+NOCACHE_FLAG	=	-DZNN_DONT_CACHE_FFTS
 OTH_FLAGS	=	-Wall -shared -fPIC -Wno-unused-result -Wno-unused-local-typedefs -DBOOST_DISABLE_ASSERTS
 LIBS		=	-lpthread -pthread -lpython2.7 -lboost_python -lboost_numpy
 
@@ -19,7 +20,10 @@ endif
 pyznn: $(SFL)
 	$(CPP) -o $(ODIR)/pyznn.so $(SFL) $(CPP_FLAGS) $(INC_FLAGS) $(FFTW_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(SINGLE_FLAG) $(OTH_FLAGS) $(LIBS)
 
-.PHONY: double mkl mkl_double clean
+.PHONY: mkl_forward double mkl mkl_double clean
+
+mkl_forward: $(SFL)
+	/opt/intel/bin/icc -o $(ODIR)/pyznn.so $(SFL) $(MKL_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(SINGLE_FLAG) $(NOCACHE_FLAG) $(OTH_FLAGS) $(LIBS)
 
 double: $(SFL)
 	$(CPP) -o $(ODIR)/pyznn.so $(SFL) $(CPP_FLAGS) $(INC_FLAGS) $(FFTW_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(OTH_FLAGS) $(LIBS)
