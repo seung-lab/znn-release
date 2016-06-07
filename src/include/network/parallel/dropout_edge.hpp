@@ -30,8 +30,8 @@ private:
     real            ratio_; // keeping ratio
     cube_p<bool>    mask_ ; // dropout mask
     vec3i           insize;
-
     phase           phase_; // TRAIN or TEST
+    bool            force_; // dropout regardless of phase
 
 private:
     inline real scale() const
@@ -39,8 +39,20 @@ private:
         return static_cast<real>(1)/ratio_;
     }
 
+    inline void dropout( cube<real> & c, ccube<bool> const & msk ) const
+    {
+        size_t s = c.num_elements();
+        for ( size_t i = 0; i < s; ++i )
+        {
+            if ( msk.data()[i] )
+                c.data()[i] *= scale();
+            else
+                c.data()[i] = static_cast<real>(0);
+        }
+    }
+
     // performs inplace dropout and returns dropout mask
-    inline void dropout_forward(cube<real>& f)
+    inline void dropout_forward( cube<real> & f )
     {
         if ( !mask_ )
         {
@@ -50,30 +62,15 @@ private:
         // new random mask
         bernoulli_init<bool>(ratio_).initialize(mask_);
 
-        size_t s = f.num_elements();
-        for ( size_t i = 0; i < s; ++i )
-        {
-            // dropout
-            if ( mask_->data()[i] )
-                f.data()[i] *= scale();
-            else
-                f.data()[i]  = static_cast<real>(0);
-        }
+        dropout(f, *mask_);
     }
 
     // performs inplace dropout backward
-    inline void dropout_backward(cube<real> & g)
+    inline void dropout_backward( cube<real> & g )
     {
         ZI_ASSERT(mask_);
 
-        size_t s = g.num_elements();
-        for ( size_t i = 0; i < s; ++i )
-        {
-            if ( mask_->data()[i] )
-                g.data()[i] *= scale();
-            else
-                g.data()[i]  = static_cast<real>(0);
-        }
+        dropout(g, *mask_);
 
         // Should we reset mask_ here?
     }
@@ -85,10 +82,12 @@ public:
                   size_t outn,
                   task_manager & tm,
                   real p,
-                  phase phs = phase::TRAIN )
+                  phase phs = phase::TRAIN,
+                  bool force = false )
         : edge(in,inn,out,outn,tm)
         , ratio_(p)
         , phase_(phs)
+        , force_(force)
     {
         insize = in->fsize();
 
@@ -103,7 +102,7 @@ public:
         ZI_ASSERT(size(*f)==insize);
 
         auto fmap = get_copy(*f);
-        if ( phase_ == phase::TRAIN )
+        if ( force_ || phase_ == phase::TRAIN || phase_ == phase::OPTIMIZE )
         {
             dropout_forward(*fmap);
         }
@@ -118,7 +117,7 @@ public:
         ZI_ASSERT(insize==size(*g));
 
         auto gmap = get_copy(*g);
-        if ( phase_ == phase::TRAIN )
+        if ( force_ || phase_ == phase::TRAIN || phase_ == phase::OPTIMIZE )
         {
             dropout_backward(*gmap);
         }
@@ -143,6 +142,5 @@ public:
         e->edge_zapped();
     }
 };
-
 
 }}} // namespace znn::v4::parallel_network

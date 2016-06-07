@@ -23,6 +23,7 @@
 
 #include "../../fft/fftw.hpp"
 #include "../filter.hpp"
+#include "../../utils.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 
@@ -31,6 +32,8 @@ class fft_filter_edge: public edge
 private:
     vec3i    filter_stride;
     filter & filter_;
+    vec3i    fft_sz_;
+    bool     shared_;
 
 #ifndef ZNN_DONT_CACHE_FFTS
     ccube_p<complex> w_fft;
@@ -100,7 +103,7 @@ private:
         //                 ony happened on my laptop
         auto w_tmp = sparse_explode_slow(filter_.W(), filter_stride,
                                          fftw_.actual_size());
-//                                         in_nodes->fsize());
+
         return fftw_.forward(std::move(w_tmp));
     }
 
@@ -112,12 +115,14 @@ public:
                      size_t outn,
                      task_manager & tm,
                      vec3i const & stride,
-                     filter & f )
+                     filter & f,
+                     bool shared = false )
         : edge(in,inn,out,outn,tm), filter_stride(stride), filter_(f)
-        , fftw_(in_nodes->fsize())
+        , fftw_(maximum(in->fsize(),out->fsize()))
+        , shared_(shared)
     {
-        bwd_bucket_ = in->attach_out_fft_edge(inn, this);
-        fwd_bucket_ = out->attach_in_fft_edge(outn, this, in->fsize());
+        bwd_bucket_ = in->attach_out_fft_edge(inn, this, fftw_.size());
+        fwd_bucket_ = out->attach_in_fft_edge(outn, this, fftw_.size());
 #ifndef ZNN_DONT_CACHE_FFTS
         pending_ = manager.schedule_unprivileged(&fft_filter_edge::initialize,this);
 #endif
@@ -149,8 +154,42 @@ public:
             in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
         }
 
-        pending_ = manager.schedule_unprivileged(
-                                &fft_filter_edge::do_update, this, g);
+        if ( shared_ )
+        {
+            // immediate upate
+            do_update(g);
+        }
+        else
+        {
+            pending_ = manager.schedule_unprivileged(
+                                    &fft_filter_edge::do_update, this, g);
+        }
+    }
+
+public:
+    void enable(bool b) override
+    {
+        if ( enabled_ == b ) return;
+
+        enabled_ = b;
+        in_nodes->enable_out_fft_edge(in_num,b,fftw_.size());
+        out_nodes->enable_in_fft_edge(out_num,b,fftw_.size());
+    }
+
+    void enable_fwd(bool b) override
+    {
+        if ( enabled_ == b ) return;
+
+        enabled_ = b;
+        out_nodes->enable_in_fft_edge(out_num,b,fftw_.size());
+    }
+
+    void enable_bwd(bool b) override
+    {
+        if ( enabled_ == b ) return;
+
+        enabled_ = b;
+        in_nodes->enable_out_fft_edge(in_num,b,fftw_.size());
     }
 
     void zap(edges* e) override

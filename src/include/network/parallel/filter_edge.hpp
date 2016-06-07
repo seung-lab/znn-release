@@ -31,10 +31,27 @@ class filter_edge: public edge
 private:
     vec3i    filter_stride;
     filter & filter_;
+    bool     shared_;
 
     ccube_p<real> last_input;
 
     task_manager::task_handle pending_ = 0;
+
+private:
+    inline cube_p<real> convolve_forward( cube<real> const & a,
+                                          cube<real> const & b,
+                                          vec3i const & s )
+    {
+        return convolve_sparse(a,b,s);
+
+    }
+
+    inline cube_p<real> convolve_backward( cube<real> const & a,
+                                           cube<real> const & b,
+                                           vec3i const & s )
+    {
+        return convolve_sparse_inverse(a,b,s);
+    }
 
 private:
     void do_forward( ccube_p<real> const & f )
@@ -44,7 +61,7 @@ private:
         last_input = f;
 
         out_nodes->forward(out_num,
-            convolve_sparse(*f, filter_.W(), filter_stride));
+            convolve_forward(*f, filter_.W(), filter_stride));
     }
 
     void do_update( ccube_p<real> const & g )
@@ -52,6 +69,7 @@ private:
         ZI_ASSERT(enabled_);
 
         auto dEdW = convolve_sparse_flipped(*last_input, *g, filter_stride);
+
         filter_.update(*dEdW, patch_sz_);
     }
 
@@ -62,8 +80,12 @@ public:
                  size_t outn,
                  task_manager & tm,
                  vec3i const & stride,
-                 filter & f )
-        : edge(in,inn,out,outn,tm), filter_stride(stride), filter_(f)
+                 filter & f,
+                 bool shared = false )
+        : edge(in,inn,out,outn,tm)
+        , filter_stride(stride)
+        , filter_(f)
+        , shared_(shared)
     {
         in->attach_out_edge(inn,this);
         out->attach_in_edge(outn,this);
@@ -88,11 +110,18 @@ public:
         else
         {
             in_nodes->backward(in_num,
-                convolve_sparse_inverse(*g, filter_.W(), filter_stride));
+                convolve_backward(*g, filter_.W(), filter_stride));
         }
 
-        pending_ = manager.schedule_unprivileged(&filter_edge::do_update,
-                                                 this, g);
+        if ( shared_ )
+        {
+            do_update(g); // immediate update
+        }
+        else
+        {
+            pending_ = manager.schedule_unprivileged(&filter_edge::do_update,
+                                                     this, g);
+        }
     }
 
     void zap(edges* e) override
@@ -102,6 +131,5 @@ public:
         //e->edge_zapped();
     }
 };
-
 
 }}} // namespace znn::v4::parallel_network
