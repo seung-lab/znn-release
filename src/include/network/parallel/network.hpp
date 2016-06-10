@@ -104,7 +104,15 @@ private:
         return ret;
     }
 
+public:
+    std::string dot() const
+    {
+        return oss_.str();
+    }
+
 private:
+    std::ostringstream oss_;
+
     std::map<std::string, nedges*> edges_;
     std::map<std::string, nnodes*> nodes_;
     std::map<std::string, nnodes*> input_nodes_;
@@ -305,6 +313,13 @@ private:
             nodes * in  = e.second->in->dnodes.get();
             nodes * out = e.second->out->dnodes.get();
 
+
+            oss_ << e.second->opts->require_as<std::string>("input")
+                 << " -> "
+                 << e.second->opts->require_as<std::string>("output")
+                 << " [label=\"" + e.first + "\"];\n";
+
+
             if ( type == "max_filter" )
             {
                 e.second->dedges = std::make_unique<edges>
@@ -372,6 +387,10 @@ private:
         {
             auto type = n.second->opts->require_as<std::string>("type");
             auto sz   = n.second->opts->require_as<size_t>("size");
+
+            oss_ << n.first
+                 << " [label=\"" + n.first + "\", shape=\"circle\"];\n";
+
 
             size_t fwd_p = n.second->fwd_priority * 1024
                 + fwd_pts[n.second->fwd_priority];
@@ -484,8 +503,13 @@ public:
         for ( auto& n: ns ) add_nodes(n);
         for ( auto& e: es ) add_edges(e);
         init(outsz);
+
+        oss_ << "digraph {\n";
+
         create_nodes();
         create_edges();
+
+        oss_ << "}\n";
 
         // minibatch averaging
         set_patch_size(outsz);
