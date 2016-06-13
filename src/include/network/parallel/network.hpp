@@ -110,6 +110,16 @@ private:
         return ret;
     }
 
+
+public:
+    std::string dot() const
+    {
+        return oss_.str();
+    }
+
+private:
+    std::ostringstream oss_;
+
 private:
     std::map<std::string, nedges*> edges_;
     std::map<std::string, nnodes*> nodes_;
@@ -380,6 +390,15 @@ private:
             auto opts = e.second->opts;
             auto type = opts->require_as<std::string>("type");
 
+            oss_ << e.second->opts->require_as<std::string>("input")
+                 << " -> "
+                 << e.second->opts->require_as<std::string>("output")
+                 << " [label=\"" + e.first + " (" + type + ")"
+                 << " Width " << e.second->width
+                 << " Stride " << e.second->in_stride
+                 << "\"];\n";
+
+
             if ( type == "max_filter" )
             {
                 e.second->dedges = std::make_unique<edges>
@@ -496,24 +515,49 @@ private:
             {
                 n.second->dnodes = std::make_unique<input_nodes>
                     (sz,n.second->fsize,*n.second->opts,tm_,fwd_p,bwd_p);
+
+                oss_ << n.first
+                     << " [label=\"" + n.first + " (input,"
+                     << sz << ")"
+                     << "\n" << n.second->fsize
+                     << "\", shape=\"invtrapezium\"];\n";
+
             }
             else if ( (type == "sum") || (type == "transfer") || (type == "average") )
             {
                 n.second->dnodes = std::make_unique<transfer_nodes>
                     ( sz, n.second->fsize, *n.second->opts, tm_,
                       fwd_p,bwd_p,n.second->out.size()==0 );
+
+                oss_ << n.first
+                     << " [label=\"" + n.first + " (" << type << ","
+                     << sz << ")"
+                     << "\n" << n.second->fsize
+                     << "\", shape=\"box\"];\n";
             }
             else if ( type == "maxout" )
             {
                 n.second->dnodes = std::make_unique<maxout_nodes>
                     ( sz, n.second->fsize, *n.second->opts, tm_,
                       fwd_p,bwd_p,n.second->out.size()==0 );
+
+                oss_ << n.first
+                     << " [label=\"" + n.first + " (maxout,"
+                     << sz << ")"
+                     << "\n" << n.second->fsize
+                     << "\", shape=\"box\"];\n";
             }
             else if ( type == "multiply" )
             {
                 n.second->dnodes = std::make_unique<multiply_nodes>
                     ( sz, n.second->fsize, *n.second->opts, tm_,
                       fwd_p,bwd_p,n.second->out.size()==0 );
+
+                oss_ << n.first
+                     << " [label=\"" + n.first + " (multiply,"
+                     << sz << ")"
+                     << "\n" << n.second->fsize
+                     << "\", shape=\"box\"];\n";
             }
             else
             {
@@ -622,8 +666,13 @@ public:
         for ( auto& n: ns ) add_nodes(n);
         for ( auto& e: es ) add_edges(e);
         init(outsz);
+
+        oss_ << "digraph {\n";
+
         create_nodes();
         create_edges();
+
+        oss_ << "}\n";
 
         // minibatch averaging
         set_patch_size(outsz);
