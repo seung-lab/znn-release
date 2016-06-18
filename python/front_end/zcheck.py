@@ -5,7 +5,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2016
 """
 import os
 import numpy as np
-import utils
+import zutils
 import emirt
 
 def check_gradient(pars, net, smp, h=0.00001):
@@ -21,7 +21,7 @@ def check_gradient(pars, net, smp, h=0.00001):
 
     # numerical gradient
     # apply the transformations in memory rather than array view
-    vol_ins = utils.make_continuous(vol_ins)
+    vol_ins = zutils.make_continuous(vol_ins)
     # shift the input to compute the analytical gradient
     vol_ins1 = dict()
     vol_ins2 = dict()

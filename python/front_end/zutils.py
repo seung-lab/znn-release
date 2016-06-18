@@ -325,6 +325,10 @@ def init_save(pars, lc, net, iter_last):
         os.remove( fname )
     lc.save(pars, fname)
     znetio.save_network(net, fname, pars['is_stdio'])
+    if pars.has_key('s3_train_net_prefix'):
+        # should transfer local network to s3
+        s3fname = pars['s3_train_net_prefix'] + "_init_{}.h5".format(iter_last)
+        os.system("aws cp {} {}".format(fname, s3fname))
 
 # save the intermediate networks while training
 def inter_save(pars, lc, net, vol_ins, props, lbl_outs, grdts, wmsks, it):
@@ -355,3 +359,10 @@ def inter_save(pars, lc, net, vol_ins, props, lbl_outs, grdts, wmsks, it):
 
     # Overwriting most current file with completely saved version
     shutil.copyfile(filename, filename_current)
+
+    if pars.has_key('s3_train_net_prefix'):
+        # should transfer local network to s3
+        s3fname = pars['s3_train_net_prefix'] + "_{}.h5".format(iter_last)
+        os.system("aws cp {} {}".format(filename, s3fname))
+        s3fname = pars['s3_train_net_prefix'] + "_current.h5"
+        os.system("aws cp {} {}".format(filename, s3fname))

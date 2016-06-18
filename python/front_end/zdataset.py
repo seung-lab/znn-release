@@ -10,7 +10,7 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 import sys
 import numpy as np
 import emirt
-import utils
+import zutils
 
 class CDataset(object):
 
@@ -383,7 +383,7 @@ class CImage(CImageBase):
         if pars['is_bd_mirror']:
             if self.pars['is_debug']:
                 print "data shape before mirror: ", self.data.shape
-            self.data = utils.boundary_mirror(self.data, self.mapsz)
+            self.data = zutils.boundary_mirror(self.data, self.mapsz)
             #Modifying the deviation boundaries for the modified dataset
             self.calculate_sizes( )
             if self.pars['is_debug']:
@@ -450,9 +450,6 @@ class CLabel(CImageBase):
         self.sublbl = None
         self.submsk = None
 
-        # rename data as lbl
-        self.lbl = self.data
-
         # deal with mask
         self.msk = np.array([])
         if dspec[sec_name].has_key('fmasks'):
@@ -498,7 +495,10 @@ class CLabel(CImageBase):
         return the whole label for examination
         """
         return self.data
-
+    def get_lbl(self):
+        return self.data
+    def get_msk(self):
+        return self.msk
     def get_candidate_loc( self, low, high ):
         """
         find the candidate location of subvolume

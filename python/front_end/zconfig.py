@@ -10,9 +10,10 @@ Nicholas Turner <nturner@cs.princeton.edu>, 2015
 import ConfigParser
 import numpy as np
 import os
-import cost_fn
-import utils
+import zcost
+import zutils
 from emirt import volume_util
+import zaws
 
 def parser(conf_fname):
     # parse config file to get parameters
@@ -78,11 +79,11 @@ def parse_cfg( conf_fname ):
     #TRAINING OPTIONS
     #Samples to use for training
     if config.has_option('parameters', 'train_range'):
-        pars['train_range'] = utils.parseIntSet( config.get('parameters',   'train_range') )
+        pars['train_range'] = zutils.parseIntSet( config.get('parameters',   'train_range') )
 
     #Samples to use for cross-validation
     if config.has_option('parameters', 'test_range'):
-        pars['test_range']  = utils.parseIntSet( config.get('parameters',   'test_range') )
+        pars['test_range']  = zutils.parseIntSet( config.get('parameters',   'test_range') )
     #Learning Rate
     if config.has_option('parameters', 'eta'):
         pars['eta']         = config.getfloat('parameters', 'eta')
@@ -241,7 +242,7 @@ def parse_cfg( conf_fname ):
 
     #FULL FORWARD PASS PARAMETERS
     #Which samples to use
-    pars['forward_range'] = utils.parseIntSet( config.get('parameters', 'forward_range') )
+    pars['forward_range'] = zutils.parseIntSet( config.get('parameters', 'forward_range') )
     #Which network file to load
     pars['forward_net']   = config.get('parameters', 'forward_net')
     #Output Patch Size
@@ -258,26 +259,36 @@ def autoset_pars(pars):
         # automatic choosing of cost function
         if 'boundary' in pars['out_type']:
             pars['cost_fn_str'] = 'softmax_loss'
-            pars['cost_fn'] = cost_fn.softmax_loss
+            pars['cost_fn'] = zcost.softmax_loss
         elif 'affin' in pars['out_type']:
             pars['cost_fn_str'] = 'binomial_cross_entropy'
-            pars['cost_fn'] = cost_fn.binomial_cross_entropy
+            pars['cost_fn'] = zcost.binomial_cross_entropy
         elif 'semantic' in pars['out_type']:
             pars['cost_fn_str'] = 'softmax_loss'
-            pars['cost_fn'] = cost_fn.softmax_loss
+            pars['cost_fn'] = zcost.softmax_loss
         else:
             raise NameError("no matching cost function for out_type!")
     elif "square-square" in pars['cost_fn_str']:
-        pars['cost_fn'] = cost_fn.square_square_loss
+        pars['cost_fn'] = zcost.square_square_loss
     elif "square" in pars['cost_fn_str']:
-        pars['cost_fn'] = cost_fn.square_loss
+        pars['cost_fn'] = zcost.square_loss
     elif  "binomial" in pars['cost_fn_str']:
-        pars['cost_fn'] = cost_fn.binomial_cross_entropy
+        pars['cost_fn'] = zcost.binomial_cross_entropy
     elif "softmax" in pars['cost_fn_str']:
-        pars['cost_fn'] = cost_fn.softmax_loss
+        pars['cost_fn'] = zcost.softmax_loss
     else:
         raise NameError('unknown type of cost function')
 
+    # aws s3 filehandling
+    pars['fnet_spec']  = zaws.s3download( pars['fnet_spec'] )
+    pars['fdata_spec'] = zaws.s3download( pars['fdata_spec'] )
+    # local file name
+    if "s3://" in pars['train_net_prefix']:
+        # copy the path as a backup
+        pars['s3_train_net_prefix'] = pars['train_net_prefix']
+        bn = os.path.basename( pars['train_net_prefix'] )
+        # replace with local path
+        pars['train_net_prefix'] = "/tmp/{}".format(bn)
     return pars
 
 def check_pars(pars):
@@ -353,6 +364,9 @@ def autoset_dspec(pars, dspec):
 
 # parse args
 def parse_args(args):
+    # s3 to local
+    args['config'] = zaws.s3download( args['config'] )
+    args['seed'] = zaws.s3download( args['seed'] )
     #%% parameters
     if not os.path.exists( args['config'] ):
         raise NameError("config file not exist!")

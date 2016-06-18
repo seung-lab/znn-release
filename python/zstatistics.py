@@ -6,7 +6,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 import numpy as np
 import time
 import os
-import utils
+from front_end import *
 
 class CLearnCurve:
     def __init__(self, fname=None):
@@ -194,7 +194,7 @@ class CLearnCurve:
         fig = plt.figure()
 
         # number of subplots
-        nsp = len(self.train)-1
+        nsp = 2
         print "number of subplots: {}".format(nsp)
 
         # print the maximum iteration
@@ -214,7 +214,7 @@ class CLearnCurve:
         # plot data
         idx = 0
         for key in self.train.keys():
-            if key == 'it':
+            if key in ['it', 'elapse', 'eta', 're', 'num_mask_voxels']:
                 continue
             idx += 1
             ax = fig.add_subplot(1,nsp,idx)

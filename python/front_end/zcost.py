@@ -5,7 +5,7 @@ Jingpeng Wu <jingpeng.wu@gmail.com>, 2015
 """
 import numpy as np
 import emirt
-import utils
+import zutils
 from core import pyznn
 
 def get_cls(props, lbls, mask=None):
@@ -25,8 +25,8 @@ def get_cls(props, lbls, mask=None):
     c = 0.0
 
     #Applying mask if it exists
-    props = utils.mask_dict_vol(props, mask)
-    lbls = utils.mask_dict_vol(lbls, mask)
+    props = zutils.mask_dict_vol(props, mask)
+    lbls = zutils.mask_dict_vol(lbls, mask)
 
     for name, prop in props.iteritems():
         lbl = lbls[name]
@@ -53,8 +53,8 @@ def square_loss(props, lbls, mask=None):
     err = 0
 
     #Applying mask if it exists
-    props = utils.mask_dict_vol(props, mask)
-    lbls = utils.mask_dict_vol(lbls, mask)
+    props = zutils.mask_dict_vol(props, mask)
+    lbls = zutils.mask_dict_vol(lbls, mask)
 
     for name, prop in props.iteritems():
         lbl = lbls[name]
@@ -74,8 +74,8 @@ def square_square_loss(props, lbls, mask=None, margin=0.2):
     error = 0
 
     #Applying mask if it exists
-    props = utils.mask_dict_vol(props, mask)
-    lbls = utils.mask_dict_vol(lbls, mask)
+    props = zutils.mask_dict_vol(props, mask)
+    lbls = zutils.mask_dict_vol(lbls, mask)
 
     for name, propagation in props.iteritems():
         lbl = lbls[name]
@@ -120,8 +120,8 @@ def binomial_cross_entropy(props, lbls, mask=None):
         entropy[name] = -lbl*np.log(prop) - (1-lbl)*np.log(1-prop)
 
     #Applying mask if it exists
-    grdts = utils.mask_dict_vol(grdts, mask)
-    entropy = utils.mask_dict_vol(entropy, mask)
+    grdts = zutils.mask_dict_vol(grdts, mask)
+    entropy = zutils.mask_dict_vol(entropy, mask)
 
     for name, vol in entropy.iteritems():
         err += np.sum( vol )
@@ -186,7 +186,7 @@ def multinomial_cross_entropy(props, lbls, mask=None):
         entropy[name] = -lbl * np.log(prop)
 
     #Applying mask if it exists
-    entropy = utils.mask_dict_vol(entropy, mask)
+    entropy = zutils.mask_dict_vol(entropy, mask)
 
     for name, vol in entropy.iteritems():
         cost += np.sum( vol )
@@ -399,7 +399,7 @@ def get_grdt(pars, history, props, lbl_outs, msks, wmsks, vn):
       #  history['re']  += pyznn.get_rand_error( props.values(), lbl_outs.values() )
        # print  're: {}'.format( history['re'] )
 
-    num_mask_voxels = utils.sum_over_dict(msks)
+    num_mask_voxels = zutils.sum_over_dict(msks)
     if num_mask_voxels > 0:
         history['err'] += cerr / num_mask_voxels
         history['cls'] += get_cls(props, lbl_outs) / num_mask_voxels
@@ -408,24 +408,24 @@ def get_grdt(pars, history, props, lbl_outs, msks, wmsks, vn):
         history['cls'] += get_cls(props, lbl_outs) / vn
 
     if pars['is_debug']:
-        c2 = utils.check_dict_nan(lbl_outs)
-        c3 = utils.check_dict_nan(msks)
-        c4 = utils.check_dict_nan(wmsks)
-        c5 = utils.check_dict_nan(props)
-        c6 = utils.check_dict_nan(grdts)
+        c2 = zutils.check_dict_nan(lbl_outs)
+        c3 = zutils.check_dict_nan(msks)
+        c4 = zutils.check_dict_nan(wmsks)
+        c5 = zutils.check_dict_nan(props)
+        c6 = zutils.check_dict_nan(grdts)
         if  not ( c2 and c3 and c4 and c5 and c6):
             # stop training
             raise NameError('nan encountered!')
 
     # gradient reweighting
-    grdts = utils.dict_mul( grdts, msks  )
+    grdts = zutils.dict_mul( grdts, msks  )
     if pars['rebalance_mode']:
-        grdts = utils.dict_mul( grdts, wmsks )
+        grdts = zutils.dict_mul( grdts, wmsks )
 
     if pars['is_malis'] :
         malis_weights, rand_errors, num_non_bdr = cost_fn.malis_weight(pars, props, lbl_outs)
-        grdts = utils.dict_mul(grdts, malis_weights)
-        dmc, dme = utils.get_malis_cost( props, lbl_outs, malis_weights )
+        grdts = zutils.dict_mul(grdts, malis_weights)
+        dmc, dme = zutils.get_malis_cost( props, lbl_outs, malis_weights )
         if num_mask_voxels > 0:
             history['mc'] += dmc.values()[0] / num_mask_voxels
             history['me'] += dme.values()[0] / num_mask_voxels
@@ -433,5 +433,5 @@ def get_grdt(pars, history, props, lbl_outs, msks, wmsks, vn):
             history['mc'] += dmc.values()[0] / vn
             history['me'] += dme.values()[0] / vn
 
-    grdts = utils.make_continuous(grdts)
+    grdts = zutils.make_continuous(grdts)
     return props, grdts, history
