@@ -85,7 +85,7 @@ def config_forward_pass( config, params, verbose=True, sample_ids=None, aug_ids=
                 output = run_softmax(output)
 
             # save output
-            print "Saving Output Volume %d (augmentation %d)..." % sample, aug_id
+            print "Saving Output Volume %d (augmentation %d)..." % (sample, aug_id)
             save_sample_output(sample, output, params[output_prefix_optionname], aug_id)
 
     return sample_outputs
@@ -243,9 +243,10 @@ if __name__ == '__main__':
         main( argv[1] )
     elif len(argv) > 2:
         sample_ids = zconfig.parseIntSet(argv[2])
-        main( argv[1], sample_ids=sample_ids )
-    elif len(argv) > 3:
-        aug_ids = zconfig.parseIntSet(argv[3])
-        main( argv[1], sample_ids=sample_ids, aug_ids=aug_ids )
+        if len(argv > 3):
+            aug_ids = zconfig.parseIntSet(argv[3])
+            main( argv[1], sample_ids=sample_ids, aug_ids=aug_ids )
+        else:
+            main( argv[1], sample_ids=sample_ids )
     else:
         main('config.cfg')
