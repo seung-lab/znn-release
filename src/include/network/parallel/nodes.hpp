@@ -54,7 +54,7 @@ protected:
     static size_t time_step;
 
 public:
-    static size_t get_time_step() const        { return time_step; }
+    static size_t get_time_step()              { return time_step; }
     static void   set_time_step( size_t step ) { time_step = step; }
 
 protected:
