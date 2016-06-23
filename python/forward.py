@@ -45,7 +45,7 @@ range_optionname = 'forward_range'
 outsz_optionname = 'forward_outsz'
 
 
-def config_forward_pass( config, params, verbose=True, sample_ids=None ):
+def config_forward_pass( config, params, verbose=True, sample_ids=None, aug_ids=None ):
     '''
     Performs a full forward pass for all samples specified within
     a configuration file
@@ -55,6 +55,10 @@ def config_forward_pass( config, params, verbose=True, sample_ids=None ):
     # set command line sample ids
     if sample_ids is not None:
         params[range_optionname] = sample_ids
+
+    # test time augmentation
+    if aug_ids is None:
+        aug_ids = [0]
 
     # load network
     net = znetio.load_network( params, train=False )
@@ -70,13 +74,19 @@ def config_forward_pass( config, params, verbose=True, sample_ids=None ):
         Dataset = zsample.CSample(config, params, sample, net, \
                                   outsz = output_patch_shape, is_forward=True )
 
-        sample_outputs[sample] = generate_full_output(Dataset, net,
-						      params, params['dtype'],
-                                                      verbose=True)
+        for aug_id in aug_ids:
+            print "Augmentation: %d" % aug_id
 
-        # softmax if using softmax_loss
-        if 'softmax' in params['cost_fn_str']:
-            sample_outputs[sample] = run_softmax(sample_outputs[sample])
+            output = generate_full_output(Dataset, net, params, params['dtype'],
+                                          verbose=True, aug_id)
+
+            # softmax if using softmax_loss
+            if 'softmax' in params['cost_fn_str']:
+                output = run_softmax(output)
+
+            # save output
+            print "Saving Output Volume %d (augmentation %d)..." % sample_id, aug_id
+            save_sample_output(sample, output, params[output_prefix_optionname], aug_id):
 
     return sample_outputs
 
@@ -96,8 +106,8 @@ def run_softmax( sample_output ):
 
     return sample_output
 
-def generate_full_output( Dataset, network, params,
-                          dtype='float32', verbose=True ):
+def generate_full_output( Dataset, network, params, dtype='float32',
+                          verbose=True, aug_id=0 ):
 	'''
 	Performs a full forward pass for a given ConfigSample object (Dataset) and
 	a given network object.
@@ -124,6 +134,12 @@ def generate_full_output( Dataset, network, params,
 			print "Output patch #{} of {}".format(i+1, num_patches) # i is just an index
 
 		input_patches, junk = Dataset.get_next_patch()
+
+        # test time augmentation
+        for key, input_patch in input_patches.iteritems():
+            # convert integer to binary number
+            rft = np.array([int(x) for x in bin(aug_id)[2:].zfill(4)])
+            input_patches[key] = utils.data_aug_transform( input_patch, rft )
 
 		vol_ins = utils.make_continuous(input_patches, dtype=dtype)
 
@@ -166,26 +182,37 @@ def save_sample_outputs(sample_outputs, prefix):
     Writes the resulting output volumes to disk according to the
     output_prefix
     '''
+    for sample_num, outputs in sample_outputs.iteritems():
+        for aug_id, output in outputs.iteritems():
+            save_sample_output(sample_num, output, prefix, aug_id)
 
-    for sample_num, output in sample_outputs.iteritems():
-        for dataset_name, dataset in output.output_volumes.iteritems():
-            num_volumes = dataset.data.shape[0]
+def save_sample_output(sample_num, output, prefix, aug_id=None):
+    for dataset_name, dataset in output.output_volumes.iteritems():
+        num_volumes = dataset.data.shape[0]
 
-            #Consolidated 4d volume
-            # hdf5 output for watershed
-            h5name = "{}_sample{}_{}.h5".format(prefix, sample_num,	dataset_name)
-            import os
-            if os.path.exists( h5name ):
-                os.remove( h5name )
-            emio.imsave(dataset.data, h5name)
+        fprefix = "{}_sample{}_{}".format(prefix, sample_num, dataset_name)
 
-            #Constitutent 3d volumes
-            # tif file for easy visualization
-            for i in range( num_volumes ):
-                emio.imsave(dataset.data[i,:,:,:],\
-                    "{}_sample{}_{}_{}.tif".format(prefix, sample_num, dataset_name, i))
+        # Add postfix when test time augmentation is on
+        aug_postfix = ""
+        if (aug_id is not None) and (aug_id>0):
+            aug_postfix = "_aug{}".format(aug_id)
 
-def main( config_filename, sample_ids=None ):
+        # Consolidated 4d volume
+        # hdf5 output for watershed
+        h5name = fprefix + aug_postfix + ".h5"
+        import os
+        if os.path.exists( h5name ):
+            os.remove( h5name )
+        emio.imsave(dataset.data, h5name)
+
+        # Constitutent 3d volumes
+        # tif file for easy visualization
+        for i in range( num_volumes ):
+            tifname = fprefix + "_{}".format(i) + aug_postfix + ".tif"
+            emio.imsave(dataset.data[i,:,:,:], tifname)
+
+
+def main( config_filename, sample_ids=None, aug_ids=None ):
     '''
     Script functionality - runs config_forward_pass and saves the
     output volumes
@@ -195,12 +222,14 @@ def main( config_filename, sample_ids=None ):
     if sample_ids is None:
     	sample_ids = params[range_optionname]
 
-    for sample_id in sample_ids:
+    config_forward_pass( config, params, True, sample_ids, aug_ids )
 
-    	output_volume = config_forward_pass( config, params, verbose=True, sample_ids=[sample_id])
+    # for sample_id in sample_ids:
 
-    	print "Saving Output Volume %d..." % sample_id
-    	save_sample_outputs( output_volume, params[output_prefix_optionname] )
+    # 	output_volume = config_forward_pass( config, params, verbose=True, sample_ids=[sample_id] )
+
+    # 	print "Saving Output Volume %d..." % sample_id
+    # 	save_sample_outputs( output_volume, params[output_prefix_optionname] )
 
 if __name__ == '__main__':
     """
@@ -208,12 +237,16 @@ if __name__ == '__main__':
     ----
     python forward.py path/of/config.cfg forward_range
     forward_range: the sample ids, such as 1-3,5
+    aug_range: test time augmentation range, such as 1-4
     """
     from sys import argv
     if len(argv)==2:
         main( argv[1] )
     elif len(argv) > 2:
         sample_ids = zconfig.parseIntSet(argv[2])
-        main( argv[1], sample_ids )
+        main( argv[1], sample_ids=sample_ids )
+    elif len(argv) > 3:
+        aug_ids = zconfig.parseIntSet(argv[3])
+        main( argv[1], sample_ids=sample_ids, aug_ids=aug_ids )
     else:
         main('config.cfg')
