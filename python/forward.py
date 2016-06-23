@@ -85,7 +85,7 @@ def config_forward_pass( config, params, verbose=True, sample_ids=None, aug_ids=
                 output = run_softmax(output)
 
             # save output
-            print "Saving Output Volume %d (augmentation %d)..." % sample_id, aug_id
+            print "Saving Output Volume %d (augmentation %d)..." % sample, aug_id
             save_sample_output(sample, output, params[output_prefix_optionname], aug_id)
 
     return sample_outputs
