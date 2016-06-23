@@ -118,8 +118,7 @@ def generate_full_output( Dataset, network, params, dtype='float32',
 	assert output_volume_shape_consistent(output_vol_shapes)
 	output_vol_shape = output_vol_shapes.values()[0]
 
-	Output = zsample.ConfigSampleOutput( params, network,
-                                               output_vol_shape, dtype )
+	Output = zsample.ConfigSampleOutput( params, network, output_vol_shape, dtype )
 
 	input_num_patches = Dataset.num_patches()
 	output_num_patches = Output.num_patches()
@@ -143,9 +142,9 @@ def generate_full_output( Dataset, network, params, dtype='float32',
 
         vol_ins = utils.make_continuous(input_patches, dtype=dtype)
 
-		output = network.forward( vol_ins )
+        output = network.forward( vol_ins )
 
-		Output.set_next_patch( output )
+        Output.set_next_patch( output )
 
 	return Output
 
