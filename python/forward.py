@@ -103,28 +103,27 @@ def run_softmax( sample_output ):
 
     return sample_output
 
-def generate_full_output( Dataset, network, params, dtype='float32',
-                          verbose=True, aug_id=0 ):
-	'''
-	Performs a full forward pass for a given ConfigSample object (Dataset) and
-	a given network object.
-	'''
+def generate_full_output( Dataset, network, params, dtype='float32', verbose=True, aug_id=0 ):
+    '''
+    Performs a full forward pass for a given ConfigSample object (Dataset) and
+    a given network object.
+    '''
 
-	# Making sure loaded images expect same size output volume
-	output_vol_shapes = Dataset.output_volume_shape()
-	assert output_volume_shape_consistent(output_vol_shapes)
-	output_vol_shape = output_vol_shapes.values()[0]
+    # Making sure loaded images expect same size output volume
+    output_vol_shapes = Dataset.output_volume_shape()
+    assert output_volume_shape_consistent(output_vol_shapes)
+    output_vol_shape = output_vol_shapes.values()[0]
 
-	Output = zsample.ConfigSampleOutput( params, network, output_vol_shape, dtype )
+    Output = zsample.ConfigSampleOutput( params, network, output_vol_shape, dtype )
 
-	input_num_patches = Dataset.num_patches()
-	output_num_patches = Output.num_patches()
+    input_num_patches = Dataset.num_patches()
+    output_num_patches = Output.num_patches()
 
-	assert num_patches_consistent(input_num_patches, output_num_patches)
+    assert num_patches_consistent(input_num_patches, output_num_patches)
 
-	num_patches = output_num_patches.values()[0]
+    num_patches = output_num_patches.values()[0]
 
-	for i in xrange( num_patches ):
+    for i in xrange( num_patches ):
 
         if verbose:
             print "Output patch #{} of {}".format(i+1, num_patches) # i is just an index
@@ -143,7 +142,7 @@ def generate_full_output( Dataset, network, params, dtype='float32',
 
         Output.set_next_patch( output )
 
-	return Output
+    return Output
 
 def output_volume_shape_consistent( output_vol_shapes ):
     '''
