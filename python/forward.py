@@ -96,11 +96,10 @@ def run_softmax( sample_output ):
     from cost_fn import softmax
 
     for dname, dataset in sample_output.output_volumes.iteritems():
-
-		props = {'dataset':dataset.data}
-		props = softmax(props)
-		dataset.data = props.values()[0]
-		sample_output.output_volumes[dname] = dataset
+        props = {'dataset':dataset.data}
+        props = softmax(props)
+        dataset.data = props.values()[0]
+        sample_output.output_volumes[dname] = dataset
 
     return sample_output
 
@@ -127,10 +126,10 @@ def generate_full_output( Dataset, network, params, dtype='float32',
 
 	for i in xrange( num_patches ):
 
-		if verbose:
-			print "Output patch #{} of {}".format(i+1, num_patches) # i is just an index
+        if verbose:
+            print "Output patch #{} of {}".format(i+1, num_patches) # i is just an index
 
-		input_patches, junk = Dataset.get_next_patch()
+        input_patches, junk = Dataset.get_next_patch()
 
         # test time augmentation
         for key, input_patch in input_patches.iteritems():
@@ -147,32 +146,32 @@ def generate_full_output( Dataset, network, params, dtype='float32',
 	return Output
 
 def output_volume_shape_consistent( output_vol_shapes ):
-	'''
-	Returns whether the dictionary of output shapes passed to the function
-	contains the same array for each entry
+    '''
+    Returns whether the dictionary of output shapes passed to the function
+    contains the same array for each entry
 
-	Here, this encodes whether all of the input volumes agree on the
-	size of the output volume (disagreement is a bad sign...)
-	'''
-	#output_vol_shapes should be a dict
-	shapes = output_vol_shapes.values()
-	assert len(shapes) > 0
+    Here, this encodes whether all of the input volumes agree on the
+    size of the output volume (disagreement is a bad sign...)
+    '''
+    #output_vol_shapes should be a dict
+    	shapes = output_vol_shapes.values()
+    assert len(shapes) > 0
 
-	return all( [np.all(shape == shapes[0]) for shape in shapes] )
+    return all( [np.all(shape == shapes[0]) for shape in shapes] )
 
 def num_patches_consistent( input_patch_count, output_patch_count ):
-	'''
-	Returns whether the dictionaries of patch counts all agree throughout
-	each entry.
-	'''
+    '''
+    Returns whether the dictionaries of patch counts all agree throughout
+    each entry.
+    '''
 
-	#These should be dicts as well
-	input_counts = input_patch_count.values()
-	output_counts = output_patch_count.values()
+    #These should be dicts as well
+    input_counts = input_patch_count.values()
+    output_counts = output_patch_count.values()
 
-	assert len(input_counts) > 0 and len(output_counts) > 0
+    assert len(input_counts) > 0 and len(output_counts) > 0
 
-	return all( [count == input_counts[0] for count in input_counts + output_counts])
+    return all( [count == input_counts[0] for count in input_counts + output_counts])
 
 def save_sample_outputs(sample_outputs, prefix):
     '''
