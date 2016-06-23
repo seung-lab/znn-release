@@ -78,7 +78,7 @@ def config_forward_pass( config, params, verbose=True, sample_ids=None, aug_ids=
             print "Augmentation: %d" % aug_id
 
             output = generate_full_output(Dataset, net, params, params['dtype'],
-                                          verbose=True, aug_id)
+                                          verbose=True, aug_id=aug_id)
 
             # softmax if using softmax_loss
             if 'softmax' in params['cost_fn_str']:
