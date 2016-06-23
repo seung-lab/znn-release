@@ -86,7 +86,7 @@ def config_forward_pass( config, params, verbose=True, sample_ids=None, aug_ids=
 
             # save output
             print "Saving Output Volume %d (augmentation %d)..." % sample_id, aug_id
-            save_sample_output(sample, output, params[output_prefix_optionname], aug_id):
+            save_sample_output(sample, output, params[output_prefix_optionname], aug_id)
 
     return sample_outputs
 
@@ -141,7 +141,7 @@ def generate_full_output( Dataset, network, params, dtype='float32',
             rft = np.array([int(x) for x in bin(aug_id)[2:].zfill(4)])
             input_patches[key] = utils.data_aug_transform( input_patch, rft )
 
-		vol_ins = utils.make_continuous(input_patches, dtype=dtype)
+        vol_ins = utils.make_continuous(input_patches, dtype=dtype)
 
 		output = network.forward( vol_ins )
 
