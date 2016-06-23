@@ -66,16 +66,14 @@ def config_forward_pass( config, params, verbose=True, sample_ids=None, aug_ids=
     sample_outputs = {}
     #Loop over sample range
     for sample in params[range_optionname]:
-        print "Sample: %d" % sample
-
-        # read image stacks
-        # Note: preprocessing included within CSamples
-        # See CONSTANTS section above for optionname values
-        Dataset = zsample.CSample(config, params, sample, net, \
-                                  outsz = output_patch_shape, is_forward=True )
-
         for aug_id in aug_ids:
-            print "Augmentation: %d" % aug_id
+            print "Sample: %d (augmentation %d)" % (sample, aug_id)
+
+            # read image stacks
+            # Note: preprocessing included within CSamples
+            # See CONSTANTS section above for optionname values
+            Dataset = zsample.CSample(config, params, sample, net, \
+                                      outsz = output_patch_shape, is_forward=True )
 
             output = generate_full_output(Dataset, net, params, params['dtype'],
                                           verbose=True, aug_id=aug_id)
@@ -243,7 +241,7 @@ if __name__ == '__main__':
         main( argv[1] )
     elif len(argv) > 2:
         sample_ids = zconfig.parseIntSet(argv[2])
-        if len(argv > 3):
+        if len(argv) > 3:
             aug_ids = zconfig.parseIntSet(argv[3])
             main( argv[1], sample_ids=sample_ids, aug_ids=aug_ids )
         else:
