@@ -30,8 +30,9 @@ namespace detail {
 
 struct random_number_generator_impl: std::mutex
 {
-    // std::mt19937 rng = std::mt19937(1234);
-    std::mt19937 rng = std::mt19937(std::random_device(0));
+    std::random_device r;
+    std::seed_seq seed{r(),r(),r(),r(),r(),r(),r(),r()};
+    std::mt19937 rng = std::mt19937(seed);
 }; // class random_number_generator_impl
 
 } // namespace detail
