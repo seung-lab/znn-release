@@ -41,7 +41,7 @@ install:
         - make -j 8
         - sudo make install
         - cd ../../
-        - export LD_LIBRARY_PATH=$LD_LIBRARY:/usr/local/lib
+        - export LD_LIBRARY_PATH=$LD_LIBRARY:/usr/local/lib64
 
 script:
         # make znn binary
