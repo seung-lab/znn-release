@@ -153,7 +153,7 @@ def output_volume_shape_consistent( output_vol_shapes ):
     size of the output volume (disagreement is a bad sign...)
     '''
     #output_vol_shapes should be a dict
-    	shapes = output_vol_shapes.values()
+    shapes = output_vol_shapes.values()
     assert len(shapes) > 0
 
     return all( [np.all(shape == shapes[0]) for shape in shapes] )
