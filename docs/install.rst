@@ -143,7 +143,7 @@ Compile with gcc and clang
 in the folder of ``src``:
 ::
     g++ -std=c++1y training_test.cpp -I../../ -I../include -lfftw3 -lfftw3f -lpthread -pthread -O3 -DNDEBUG -o training_test
-Notethat g++ should support c++1y standard. v4.8 and later works.
+Notethat g++ should support c++1y standard. v4.8 and later works (gcc-4.9.3 do not work!).
 
 Compile with icc
 ````````````````
