@@ -73,10 +73,11 @@ def config_forward_pass( config, params, verbose=True, sample_ids=None, aug_ids=
             # Note: preprocessing included within CSamples
             # See CONSTANTS section above for optionname values
             Dataset = zsample.CSample(config, params, sample, net, \
-                                      outsz = output_patch_shape, is_forward=True )
+                                      outsz = output_patch_shape, \
+                                      is_forward=True, aug_id=aug_id )
 
             output = generate_full_output(Dataset, net, params, params['dtype'],
-                                          verbose=True, aug_id=aug_id)
+                                          verbose=True)
 
             # softmax if using softmax_loss
             if 'softmax' in params['cost_fn_str']:
@@ -103,7 +104,7 @@ def run_softmax( sample_output ):
 
     return sample_output
 
-def generate_full_output( Dataset, network, params, dtype='float32', verbose=True, aug_id=0 ):
+def generate_full_output( Dataset, network, params, dtype='float32', verbose=True ):
     '''
     Performs a full forward pass for a given ConfigSample object (Dataset) and
     a given network object.
@@ -129,12 +130,6 @@ def generate_full_output( Dataset, network, params, dtype='float32', verbose=Tru
             print "Output patch #{} of {}".format(i+1, num_patches) # i is just an index
 
         input_patches, junk = Dataset.get_next_patch()
-
-        # test time augmentation
-        for key, input_patch in input_patches.iteritems():
-            # convert integer to binary number
-            rft = np.array([int(x) for x in bin(aug_id)[2:].zfill(4)])
-            input_patches[key] = utils.data_aug_transform( input_patch, rft )
 
         vol_ins = utils.make_continuous(input_patches, dtype=dtype)
 

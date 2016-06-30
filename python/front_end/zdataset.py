@@ -369,9 +369,15 @@ class ConfigInputImage(ConfigImage):
     '''
 
     def __init__(self, config, pars, sec_name, \
-                 outsz, setsz, fov, is_forward=False ):
+                 outsz, setsz, fov, is_forward=False, aug_id=0 ):
         ConfigImage.__init__(self, config, pars, sec_name, \
                              outsz, setsz, fov, is_forward=is_forward )
+
+        # test time augmentation
+        if is_forward:
+            # convert integer to binary number
+            rft = np.array([int(x) for x in bin(aug_id)[2:].zfill(4)])
+            self.data = utils.data_aug_transform( self.data, rft )
 
         # preprocessing
         pp_types = config.get(sec_name, 'pp_types').split(',')

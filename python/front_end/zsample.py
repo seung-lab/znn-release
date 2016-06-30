@@ -24,7 +24,7 @@ class CSample(object):
     """
     def __init__(self, config, pars, sample_id, net, \
                  outsz, setsz_ins=None, setsz_outs=None,\
-                 log=None, is_forward=False):
+                 log=None, is_forward=False, aug_id=0):
 
         # Parameter object (dict)
         self.pars = pars
@@ -53,7 +53,8 @@ class CSample(object):
             imid = config.getint(self.sec_name, name)
             imsec_name = "image%d" % (imid,)
             self.ins[name] = ConfigInputImage( config, pars, imsec_name, \
-                                      outsz, setsz_in, fov, is_forward=is_forward )
+                                      outsz, setsz_in, fov, \
+                                      is_forward=is_forward, aug_id=aug_id )
             self.imgs[name] = self.ins[name].data
 
         self.lbls = dict()
