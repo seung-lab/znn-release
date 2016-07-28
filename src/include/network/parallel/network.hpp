@@ -841,10 +841,23 @@ public:
     void debug_info()
     {
         zap();
-        for ( auto & n: nodes_ )
-            n.second->dnodes->debug_info();  // nodes
-        for ( auto & e: edges_ )
-            e.second->dedges->debug_info();  // edges
+        for ( auto & in: input_nodes_ )
+            debug_info_pass(in);
+    }
+
+    void debug_info_pass(nnodes* n)
+    {
+        n->dnodes->debug_info();
+
+        if ( n->out )
+        {
+            // DFS
+            for ( auto & e: n->out )
+            {
+                e->dedges->debug_info();
+                debug_info_pass(e->out);
+            }
+        }
     }
 
     std::map<std::string, std::pair<vec3i,size_t>> layers() const
