@@ -246,8 +246,7 @@ public:
         for ( size_t i = 0; i < nodes::size(); ++i )
             if ( enabled_[i] )
             {
-                auto r = std::abs(sum(*gs_[i]));
-                s += mean(*r);
+                s += std::abs(sum(*gs_[i]));
             }
         val = s/nodes::num_enabled();
         std::cout << "\tmean absolute bias gradient: " << val << "\n";
