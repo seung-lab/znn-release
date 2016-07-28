@@ -171,7 +171,7 @@ public:
 
     virtual void debug_info() const
     {
-        std::cout << "[nodes: " << nodes::name() << "]\n";
+        std::cout << "[nodes: " << name() << "]\n";
 
         if ( filters_.size() )
         {

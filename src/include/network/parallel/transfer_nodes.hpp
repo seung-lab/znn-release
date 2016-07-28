@@ -214,7 +214,7 @@ public:
         for ( size_t i = 0; i < nodes::size(); ++i )
             if ( enabled_[i] )
             {
-                auto r = abs(*fs_[i])
+                auto r = abs(*fs_[i]);
                 s += mean(*r);
             }
         real val = s/nodes::num_enabled();
@@ -225,7 +225,7 @@ public:
         for ( size_t i = 0; i < nodes::size(); ++i )
             if ( enabled_[i] )
             {
-                auto r = abs(*gs_[i])
+                auto r = abs(*gs_[i]);
                 s += mean(*r);
             }
         val = s/nodes::num_enabled();
@@ -246,7 +246,7 @@ public:
         for ( size_t i = 0; i < nodes::size(); ++i )
             if ( enabled_[i] )
             {
-                auto r = std::abs(sum(*gs_[i]))
+                auto r = std::abs(sum(*gs_[i]));
                 s += mean(*r);
             }
         val = s/nodes::num_enabled();
