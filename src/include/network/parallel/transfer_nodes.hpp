@@ -210,46 +210,46 @@ public:
         nodes::debug_info();
 
         // mean absolute activation
-        real sum = 0.0;
+        real s = 0.0;
         for ( size_t i = 0; i < nodes::size(); ++i )
             if ( enabled_[i] )
             {
                 auto r = abs(*fs_[i])
-                sum += mean(*r);
+                s += mean(*r);
             }
-        real val = sum/nodes::num_enabled();
+        real val = s/nodes::num_enabled();
         std::cout << "\tmean absolute activation: " << val << "\n";
 
         // mean absolute gradient
-        sum = 0.0;
+        s = 0.0;
         for ( size_t i = 0; i < nodes::size(); ++i )
             if ( enabled_[i] )
             {
                 auto r = abs(*gs_[i])
-                sum += mean(*r);
+                s += mean(*r);
             }
-        val = sum/nodes::num_enabled();
+        val = s/nodes::num_enabled();
         std::cout << "\tmean absolute gradient: " << val << "\n";
 
         // mean absolute bias
-        sum = 0.0;
+        s = 0.0;
         for ( size_t i = 0; i < nodes::size(); ++i )
             if ( enabled_[i] )
             {
-                sum += std::abs(biases_[i]->b());
+                s += std::abs(biases_[i]->b());
             }
-        val = sum/nodes::num_enabled();
+        val = s/nodes::num_enabled();
         std::cout << "\tmean absolute bias: " << val << "\n";
 
         // mean absolute bias gradient
-        sum = 0.0;
+        s = 0.0;
         for ( size_t i = 0; i < nodes::size(); ++i )
             if ( enabled_[i] )
             {
                 auto r = std::abs(sum(*gs_[i]))
-                sum += mean(*r);
+                s += mean(*r);
             }
-        val = sum/nodes::num_enabled();
+        val = s/nodes::num_enabled();
         std::cout << "\tmean absolute bias gradient: " << val << "\n";
     }
 

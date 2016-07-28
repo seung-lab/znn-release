@@ -49,7 +49,7 @@ public:
 public:
     filter( const vec3i& s, real eta, real mom = 0.0, real wd = 0.0 )
         : W_(get_cube<real>(s))
-        , dEdW_(null_ptr)
+        , dEdW_()
         , mom_volume_(get_cube<real>(s))
         , eta_(eta), momentum_(mom), weight_decay_(wd)
     {

@@ -118,7 +118,7 @@ public:
 #   ifndef NDEBUG
     void display() const
     {
-        std::cout << "[" << nodes::name() << "]\n";
+        std::cout << "[" << name() << "]\n";
 
         for ( auto& e: enabled_ )
             std::cout << e;
@@ -129,7 +129,7 @@ public:
 
     virtual void debug_info() const
     {
-        std::cout << "[nodes: " << nodes::name() << "]\n";
+        std::cout << "[nodes: " << name() << "]\n";
     }
 
 protected:
