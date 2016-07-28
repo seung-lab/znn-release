@@ -127,7 +127,7 @@ public:
     }
 #   endif
 
-    virtual void debug_info() const
+    virtual void debug_info()
     {
         std::cout << "[nodes: " << name() << "]\n";
     }
