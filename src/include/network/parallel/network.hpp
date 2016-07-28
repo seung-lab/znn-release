@@ -837,6 +837,15 @@ public:
         return ret;
     }
 
+    // Debug info.
+    void debug_info() const
+    {
+        for ( auto & n: nodes_ )
+            n->dnodes->debug_info();  // nodes
+        for ( auto & e: edges_ )
+            n->dedges->debug_info();  // edges
+    }
+
     std::map<std::string, std::pair<vec3i,size_t>> layers() const
     {
         std::map<std::string, std::pair<vec3i,size_t>> ret;

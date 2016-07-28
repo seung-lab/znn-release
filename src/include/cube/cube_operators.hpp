@@ -667,6 +667,21 @@ inline cube_p<T> mirror_boundary( cube<T> const & c,
 }
 
 template<typename T>
+inline cube_p<T> abs( cube<T> const & c )
+{
+    auto r = get_cube<T>(size(c));
+    T* dest = r->data();
+    const T* src = c.data();
+
+    for ( size_t i = 0; i < c.num_elements(); ++i )
+    {
+        dest[i] = std::abs(src[i]);
+    }
+
+    return r;
+}
+
+template<typename T>
 inline T mean( cube<T> const & c )
 {
     ZI_ASSERT(c.num_elements());

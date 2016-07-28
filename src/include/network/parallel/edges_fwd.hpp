@@ -169,6 +169,44 @@ public:
         return ret;
     }
 
+    virtual void debug_info() const
+    {
+        std::cout << "[nodes: " << nodes::name() << "]\n";
+
+        if ( filters_.size() )
+        {
+            // mean absolute weight
+            real sum = 0.0;
+            size_t count = 0;
+            for ( size_t i = 0; i < edges_.size(); ++i )
+            {
+                if ( edges_[i]->is_enabled() )
+                {
+                    auto r = abs(filters_[i]->W());
+                    sum += sum(*r);
+                    ++count;
+                }
+            }
+            real val = sum/count;
+            std::cout << "\tmean absolute weight: " << val << "\n";
+
+            // mean absolute weight gradient
+            sum = 0.0;
+            count = 0;
+            for ( size_t i = 0; i < edges_.size(); ++i )
+            {
+                if ( edges_[i]->is_enabled() )
+                {
+                    auto r = abs(*filters_[i]->dEdW());
+                    sum += sum(*r);
+                    ++count;
+                }
+            }
+            val = sum/count;
+            std::cout << "\tmean absolute weight gradient: " << val << "\n";
+        }
+    }
+
     void edge_zapped()
     {
         waiter_.one_done();

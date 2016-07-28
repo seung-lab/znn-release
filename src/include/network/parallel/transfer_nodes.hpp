@@ -205,6 +205,54 @@ public:
         return ret;
     }
 
+    void debug_info() const override
+    {
+        nodes::debug_info();
+
+        // mean absolute activation
+        real sum = 0.0;
+        for ( size_t i = 0; i < nodes::size(); ++i )
+            if ( enabled_[i] )
+            {
+                auto r = abs(*fs_[i])
+                sum += mean(*r);
+            }
+        real val = sum/nodes::num_enabled();
+        std::cout << "\tmean absolute activation: " << val << "\n";
+
+        // mean absolute gradient
+        sum = 0.0;
+        for ( size_t i = 0; i < nodes::size(); ++i )
+            if ( enabled_[i] )
+            {
+                auto r = abs(*gs_[i])
+                sum += mean(*r);
+            }
+        val = sum/nodes::num_enabled();
+        std::cout << "\tmean absolute gradient: " << val << "\n";
+
+        // mean absolute bias
+        sum = 0.0;
+        for ( size_t i = 0; i < nodes::size(); ++i )
+            if ( enabled_[i] )
+            {
+                sum += std::abs(biases_[i]->b());
+            }
+        val = sum/nodes::num_enabled();
+        std::cout << "\tmean absolute bias: " << val << "\n";
+
+        // mean absolute bias gradient
+        sum = 0.0;
+        for ( size_t i = 0; i < nodes::size(); ++i )
+            if ( enabled_[i] )
+            {
+                auto r = std::abs(sum(*gs_[i]))
+                sum += mean(*r);
+            }
+        val = sum/nodes::num_enabled();
+        std::cout << "\tmean absolute bias gradient: " << val << "\n";
+    }
+
 
 public:
 
@@ -214,7 +262,7 @@ public:
     std::vector<cube_p<real>>& get_featuremaps() override
     {
         for ( size_t i = 0; i < nodes::size(); ++i )
-            if( !enabled_[i] ) fs_[i] = nullptr;
+            if ( !enabled_[i] ) fs_[i] = nullptr;
 
         return fs_;
     }
@@ -222,7 +270,7 @@ public:
     std::vector<cube_p<real>>& get_gradientmaps() override
     {
         for ( size_t i = 0; i < nodes::size(); ++i )
-            if( !enabled_[i] ) gs_[i] = nullptr;
+            if ( !enabled_[i] ) gs_[i] = nullptr;
 
         return gs_;
     }

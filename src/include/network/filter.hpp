@@ -29,6 +29,7 @@ class filter
 {
 protected:
     cube_p<real>   W_;
+    cube_p<real>   dEdW_; // for debug info.
     cube_p<real>   mom_volume_;
 
     // weight update stufftw
@@ -48,6 +49,7 @@ public:
 public:
     filter( const vec3i& s, real eta, real mom = 0.0, real wd = 0.0 )
         : W_(get_cube<real>(s))
+        , dEdW_(null_ptr)
         , mom_volume_(get_cube<real>(s))
         , eta_(eta), momentum_(mom), weight_decay_(wd)
     {
@@ -62,6 +64,11 @@ public:
     cube<real>& W()
     {
         return *W_;
+    }
+
+    cube_p<real> dEdW()
+    {
+        return dEdW_;
     }
 
     cube<real>& momentum_volume()
@@ -89,6 +96,8 @@ public:
     void update(const cube<real>& dEdW, real patch_size = 1 ) noexcept
     {
         guard g(mutex_);
+
+        *dEdW_ = dEdW; // for debug info
 
         real delta = -eta_/patch_size;
 

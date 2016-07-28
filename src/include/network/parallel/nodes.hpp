@@ -127,6 +127,11 @@ public:
     }
 #   endif
 
+    virtual void debug_info() const
+    {
+        std::cout << "[nodes: " << nodes::name() << "]\n";
+    }
+
 protected:
     // propagate disable dynamics forward
     virtual void disable_fwd(size_t)
