@@ -231,25 +231,28 @@ public:
         val = s/nodes::num_enabled();
         std::cout << "\tmean absolute gradient: " << val << "\n";
 
-        // mean absolute bias
-        s = 0.0;
-        for ( size_t i = 0; i < nodes::size(); ++i )
-            if ( enabled_[i] )
-            {
-                s += std::abs(biases_[i]->b());
-            }
-        val = s/nodes::num_enabled();
-        std::cout << "\tmean absolute bias: " << val << "\n";
+        if ( func_ )
+        {
+            // mean absolute bias
+            s = 0.0;
+            for ( size_t i = 0; i < nodes::size(); ++i )
+                if ( enabled_[i] )
+                {
+                    s += std::abs(biases_[i]->b());
+                }
+            val = s/nodes::num_enabled();
+            std::cout << "\tmean absolute bias: " << val << "\n";
 
-        // mean absolute bias gradient
-        s = 0.0;
-        for ( size_t i = 0; i < nodes::size(); ++i )
-            if ( enabled_[i] )
-            {
-                s += std::abs(sum(*gs_[i]));
-            }
-        val = s/nodes::num_enabled();
-        std::cout << "\tmean absolute bias gradient: " << val << "\n";
+            // mean absolute bias gradient
+            s = 0.0;
+            for ( size_t i = 0; i < nodes::size(); ++i )
+                if ( enabled_[i] )
+                {
+                    s += std::abs(sum(*gs_[i]));
+                }
+            val = s/nodes::num_enabled();
+            std::cout << "\tmean absolute bias gradient: " << val << "\n";
+        }
     }
 
 
