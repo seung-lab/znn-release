@@ -49,7 +49,7 @@ public:
 public:
     filter( const vec3i& s, real eta, real mom = 0.0, real wd = 0.0 )
         : W_(get_cube<real>(s))
-        , dEdW_()
+        , dEdW_(get_cube<real>(s))
         , mom_volume_(get_cube<real>(s))
         , eta_(eta), momentum_(mom), weight_decay_(wd)
     {
@@ -98,7 +98,6 @@ public:
         guard g(mutex_);
 
         // for debug info
-        if ( !dEdW_ ) dEdW_ = get_cube<real>(size(dEdW));
         *dEdW_ = dEdW;
 
         real delta = -eta_/patch_size;
