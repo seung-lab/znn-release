@@ -842,14 +842,14 @@ public:
     {
         zap();
         for ( auto & in: input_nodes_ )
-            debug_info_pass(in);
+            debug_info_pass(in.second);
     }
 
     void debug_info_pass(nnodes* n)
     {
         n->dnodes->debug_info();
 
-        if ( n->out )
+        if ( n->out.size() )
         {
             // DFS
             for ( auto & e: n->out )
