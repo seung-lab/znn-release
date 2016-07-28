@@ -838,7 +838,7 @@ public:
     }
 
     // Debug info.
-    void debug_info() const
+    void debug_info()
     {
         zap();
         for ( auto & n: nodes_ )

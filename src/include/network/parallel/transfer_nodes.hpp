@@ -205,7 +205,7 @@ public:
         return ret;
     }
 
-    void debug_info() const override
+    void debug_info() override
     {
         nodes::debug_info();
 
