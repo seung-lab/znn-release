@@ -97,7 +97,9 @@ public:
     {
         guard g(mutex_);
 
-        *dEdW_ = dEdW; // for debug info
+        // for debug info
+        dEdW_ = get_cube<T>(size(dEdW));
+        *dEdW_ = dEdW;
 
         real delta = -eta_/patch_size;
 
