@@ -840,6 +840,7 @@ public:
     // Debug info.
     void debug_info() const
     {
+        zap();
         for ( auto & n: nodes_ )
             n.second->dnodes->debug_info();  // nodes
         for ( auto & e: edges_ )

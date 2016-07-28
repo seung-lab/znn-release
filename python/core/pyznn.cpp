@@ -388,6 +388,12 @@ void CNet_set_time_step(bp::object const & self, std::size_t const step)
     net.set_time_step( step );
 }
 
+void CNet_debug_info(bp::object const & self)
+{
+    network& net = bp::extract<network&>(self)();
+    net.debug_info();
+}
+
 //===========================================================================
 //BOOST PYTHON INTERFACE DEFINITION
 BOOST_PYTHON_MODULE(pyznn)
@@ -413,5 +419,6 @@ BOOST_PYTHON_MODULE(pyznn)
         .def("get_outputs_setsz", 	&CNet_get_outputs_setsz)
         .def("get_output_num", 		&CNet_get_output_num)
         .def("get_opts",			&CNet_getopts)
+        .def("debug_info",          &CNet_debug_info)
         ;
 }
