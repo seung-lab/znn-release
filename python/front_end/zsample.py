@@ -156,32 +156,9 @@ class CSample(object):
 
         return ( subinputs, subtlbls, submsks )
 
-    def _get_balance_weight(self, arr, msk=None):
-        mask_empty = msk is None or msk.size == 0
-        if mask_empty:
-            values = arr
-        else:
-            values = arr[ np.nonzero(msk) ]
-
-        # number of nonzero elements
-        pn = float( np.count_nonzero(values) )
-        # total number of elements
-        num = float( np.size(values) )
-        # number of zero elements
-        zn = num - pn
-
-        if pn==0 or zn==0:
-            return 1,1
-        else:
-            # weight of positive and zero
-            wp = 0.5 * num / pn
-            wz = 0.5 * num / zn
-
-            return wp, wz
-
     # ZNNv1 uses different normalization
     # This method is only temporary (for reproducing paper results)
-    def _get_balance_weight_v1(self, arr, msk=None):
+    def _get_balance_weight(self, arr, msk=None):
         mask_empty = msk is None or msk.size == 0
         if mask_empty:
             values = arr
@@ -354,9 +331,9 @@ class CAffinitySample(CSample):
 
                 msk = tmsks[k] if tmsks[k].size != 0 else np.zeros((3,0,0,0))
 
-                self.zwps[k], self.zwzs[k] = self._get_balance_weight_v1(aff[2,:,:,:], msk[2,:,:,:])
-                self.ywps[k], self.ywzs[k] = self._get_balance_weight_v1(aff[1,:,:,:], msk[1,:,:,:])
-                self.xwps[k], self.xwzs[k] = self._get_balance_weight_v1(aff[0,:,:,:], msk[0,:,:,:])
+                self.zwps[k], self.zwzs[k] = self._get_balance_weight(aff[2,:,:,:], msk[2,:,:,:])
+                self.ywps[k], self.ywzs[k] = self._get_balance_weight(aff[1,:,:,:], msk[1,:,:,:])
+                self.xwps[k], self.xwzs[k] = self._get_balance_weight(aff[0,:,:,:], msk[0,:,:,:])
 
         return
 
@@ -459,7 +436,7 @@ class CBoundarySample(CSample):
 
         # recompute weight for patch rebalance
         if self.pars['rebalance_mode'] and 'patch' in self.pars['rebalance_mode']:
-            wp, wz = self._get_balance_weight_v1( sublbl,submsk )
+            wp, wz = self._get_balance_weight( sublbl,submsk )
 
         if self.pars['rebalance_mode']:
             weight[0,:,:,:][sublbl[0,:,:,:]> 0] = wp
