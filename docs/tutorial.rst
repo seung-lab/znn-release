@@ -62,8 +62,12 @@ Required:
 
 Optional:
 
-1. ``pp_types`` (preprocessing types): none (default), standard2D
+1. ``pp_types`` (preprocessing types): none (default), standard2D, standard3D, symetric_rescale  
+::
     standard2D modifies the image by subtracting the mean and dividing by the standard deviation of the pixel values.
+    standard3D normalize for whole 3D volume like standard2D  
+    symmetric_rescale rescales to [ -1, 1 ]  
+
 2. ``is_auto_crop``: no (default), yes 
     If the corresponding ground truth stack's images are not the same dimension as the image set (e.g. image A is 1000px x 1000px and label A is 100px x 100px), then the smaller image will be centered in the larger image and the larger image will be cropped around it.
 
@@ -258,7 +262,7 @@ We suggest you grab the example file and modify it to suit your needs. Consult t
  momentum                     $FLOAT in [0, 1]          Resist sudden changes in gradient direction. `More information <https://en.wikibooks.org/wiki/Artificial_Neural_Networks/Neural_Network_Basics#Momentum>`_. 
  weight_decay                 $FLOAT in [0, 1]          A form of regularization, this exponent forces the highest weights to decay. Applied after every iteration.
  Num_iter_per_annealing       $INTEGER                  Number of weight updates before updating ``eta`` by the ``anneal_factor``
- train_net_prefix             $DIRECTORY_PATH           Save intermediate network states into an ``.h5`` file in this directory. Note that ``.h5`` can store more than just image data. If you don't provide a seed (see "Resume a Training" below), this will automatically load.                   
+ train_net                    $DIRECTORY_PATH           Save intermediate network states into an ``.h5`` file in this directory. Note that ``.h5`` can store more than just image data. If you don't provide a seed (see "Resume a Training" below), this will automatically load.                   
  train_range                  $SAMPLE_NUMBERS           Which samples (defined in your ``.spec``) to train against. You can specify them like 1-3,6 if you wanted to train 1,2,3, and 6.            
  train_conv_mode              fft                       Use FFT for all convolutions.
  ..                           direct                    Use direct convolution all the time.
@@ -294,7 +298,9 @@ We suggest you grab the example file and modify it to suit your needs. Consult t
 
 Run a training
 ``````````````
-After setting up the configuration file, you can run a training: 
+After setting up the configuration file, you can now train your networks. 
+
+Make sure you run the following command from within the `znn-release/python` directory. This is a limitation that can be fixed in future releases.
 ::
     python train.py -c path/of/config.cfg 
 
@@ -318,3 +324,5 @@ run the following command:
 ::
     python forward.py -c path/of/config.cfg
 if you are running forward pass intensively for a large image stack, it is recommanded to recompile python core using `DZNN_DONT_CACHE_FFTS`. Without caching FFTS, you can use a large output size, which reuse a lot of computation and speed up your forward pass.
+
+NOTE: If your forward pass aborts without writing anything, try reducing the output size, as you may have run out of memory.

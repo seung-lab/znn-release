@@ -31,6 +31,10 @@ double: $(SFL)
 mkl: $(SFL)
 	/opt/intel/bin/icc -o $(ODIR)/pyznn.so $(SFL) $(MKL_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(SINGLE_FLAG) $(OTH_FLAGS) $(LIBS)
 
+mkl_forward: $(SFL)
+	/opt/intel/bin/icc -o $(ODIR)/pyznn.so $(SFL) $(MKL_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(SINGLE_FLAG) $(OTH_FLAGS) $(LIBS)  $(DONT_CACHE_FLAG)
+
+
 mkl_double: $(SFL)
 	/opt/intel/bin/icc -o $(ODIR)/pyznn.so $(SFL) $(MKL_FLAGS) $(INC_FLAGS) $(LIB_FLAGS) $(OPT_FLAGS) $(OTH_FLAGS) $(LIBS)
 

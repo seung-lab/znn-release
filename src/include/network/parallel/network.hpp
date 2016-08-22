@@ -110,7 +110,6 @@ private:
         return ret;
     }
 
-
 public:
     std::string dot() const
     {
@@ -119,8 +118,9 @@ public:
 
 private:
     std::ostringstream oss_;
-
 private:
+    std::ostringstream oss_;
+
     std::map<std::string, nedges*> edges_;
     std::map<std::string, nnodes*> nodes_;
     std::map<std::string, nnodes*> input_nodes_;
@@ -399,6 +399,13 @@ private:
                  << "\"];\n";
 
 
+
+            oss_ << e.second->opts->require_as<std::string>("input")
+                 << " -> "
+                 << e.second->opts->require_as<std::string>("output")
+                 << " [label=\"" + e.first + "\"];\n";
+
+
             if ( type == "max_filter" )
             {
                 e.second->dedges = std::make_unique<edges>
@@ -499,6 +506,10 @@ private:
         {
             auto type = n.second->opts->require_as<std::string>("type");
             auto sz   = n.second->opts->require_as<size_t>("size");
+
+            oss_ << n.first
+                 << " [label=\"" + n.first + "\", shape=\"circle\"];\n";
+
 
             size_t fwd_p = n.second->fwd_priority * 1024
                 + fwd_pts[n.second->fwd_priority];

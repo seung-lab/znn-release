@@ -7,8 +7,11 @@ The core of ZNN is written in C++, however we typically control it via a Python 
 the python build instructions as it will result in the interface and a compiled ZNN shared library. The C++ instructions
 will generate a binary without an actively developed means of control.
 
+Using Docker image - Recommended
+------------------------------------------------------
+We have a `ZNN docker image <https://hub.docker.com/r/jpwu/znn/>`_ ,  you can use it to run znn almost everywhere.
 
-Acquiring a Machine Image -- Recommended
+Acquiring a Machine Image 
 ------------------------------------------------------
 
 We have some machine images set up and ready to go for training on:
@@ -140,7 +143,7 @@ Compile with gcc and clang
 in the folder of ``src``:
 ::
     g++ -std=c++1y training_test.cpp -I../../ -I../include -lfftw3 -lfftw3f -lpthread -pthread -O3 -DNDEBUG -o training_test
-Notethat g++ should support c++1y standard. v4.8 and later works.
+Notethat g++ should support c++1y standard. v4.8 and later works (gcc-4.9.3 do not work!).
 
 Compile with icc
 ````````````````
