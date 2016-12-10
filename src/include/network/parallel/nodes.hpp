@@ -21,10 +21,11 @@
 #include "../../options/options.hpp"
 #include "../../utils/task_manager.hpp"
 #include "../../cube/cube.hpp"
+#include "../../initializator/initializators.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 
-enum class phase : std::uint8_t {TRAIN = 0, TEST = 1};
+enum class phase : std::uint8_t {TRAIN = 0, TEST = 1, OPTIMIZE = 2};
 
 // Forward definition
 class edge;
@@ -42,10 +43,12 @@ private:
     size_t const   fwd_priority_;
     size_t const   bwd_priority_;
 
+    phase          phase_       ; // TRAIN/TEST/OPTIMIZE
+
 protected:
     real           patch_sz_ = 1; // minibatch averaging
 
-    std::vector<bool>   enabled_;
+    std::vector<int>    enabled_;
 
 protected:
     nodes( size_t sz,
@@ -55,7 +58,8 @@ protected:
            size_t fwd_p,
            size_t bwd_p,
            bool is_in = false,
-           bool is_out = false )
+           bool is_out = false,
+           phase phs = phase::TRAIN )
         : size_(sz)
         , fsize_(fsize)
         , task_manager_(tm)
@@ -64,6 +68,7 @@ protected:
         , is_output_(is_out)
         , fwd_priority_(fwd_p)
         , bwd_priority_(bwd_p)
+        , phase_(phs)
         , enabled_(sz,true)
     {
     }
@@ -72,8 +77,13 @@ protected:
     options const & opts() const { return options_; }
 
 public:
-    bool is_input()  { return is_input_ ; }
-    bool is_output() { return is_output_; }
+    bool is_input()  const { return is_input_ ; }
+    bool is_output() const { return is_output_; }
+
+    bool is_disabled() const
+    {
+        return !std::accumulate(enabled_.begin(), enabled_.end(), 0);
+    }
 
     vec3i const &  fsize() const { return fsize_;        }
     task_manager & manager()     { return task_manager_; }
@@ -93,8 +103,49 @@ public:
         return options_.require_as<std::string>("name");
     }
 
+#   ifndef NDEBUG
+    void display() const
+    {
+        std::cout << "[" << nodes::name() << "]\n";
+
+        for ( auto& e: enabled_ )
+            std::cout << e;
+
+        std::cout << std::endl;
+    }
+#   endif
+
+protected:
+    // propagate disable dynamics forward
+    virtual void disable_fwd(size_t)
+    { UNIMPLEMENTED(); }
+
+    // propagate disable dynamics backward
+    virtual void disable_bwd(size_t)
+    { UNIMPLEMENTED(); }
+
 public:
     virtual ~nodes() {}
+
+    virtual void set_phase( phase phs )
+    {
+        phase_ = phs;
+    }
+
+    virtual void setup()
+    {
+        // stochasitcally enable/disable the whole nodes
+        if ( phase_ == phase::TRAIN )
+        {
+            if ( options_.contains("ratio") )
+            {
+                real ratio = options_.require_as<real>("ratio");
+                bool b = true;
+                bernoulli_init<bool>(ratio).initialize(&b,1);
+                nodes::enable(b);
+            }
+        }
+    }
 
     // receive a featuremap for the i-th input
     // featuremap is absorbed
@@ -110,14 +161,14 @@ public:
     virtual void forward(size_t,
                          ccube_p<real> const & /* featuremap */,
                          ccube_p<real> const & /* filter */,
-                         vec3i const &           /* filter_stride */ )
+                         vec3i const &         /* filter_stride */ )
     { UNIMPLEMENTED(); }
 
     // for inplace convolution
     virtual void backward(size_t,
                           ccube_p<real> const & /* gradient */,
                           ccube_p<real> const & /* filter */,
-                          vec3i const &           /* filter_stride */ )
+                          vec3i const &         /* filter_stride */ )
     { UNIMPLEMENTED(); }
 
     // receive a featuremap for the i-th input
@@ -145,6 +196,9 @@ public:
     virtual std::vector<cube_p<real>>& get_featuremaps()
     { UNIMPLEMENTED(); }
 
+    virtual std::vector<cube_p<real>>& get_gradientmaps()
+    { UNIMPLEMENTED(); }
+
     virtual size_t num_out_nodes()
     { UNIMPLEMENTED(); }
 
@@ -157,7 +211,7 @@ public:
     virtual void attach_in_edge(size_t, edge*)
     { UNIMPLEMENTED(); }
 
-    virtual size_t attach_out_fft_edge(size_t, edge*)
+    virtual size_t attach_out_fft_edge(size_t, edge*, vec3i const &)
     { UNIMPLEMENTED(); }
 
     virtual size_t attach_in_fft_edge(size_t, edge*, vec3i const &)
@@ -172,16 +226,16 @@ public:
     virtual void enable(size_t, bool)
     { UNIMPLEMENTED(); }
 
-    virtual void disable_out_edge(size_t)
+    virtual void enable_out_edge(size_t, bool)
     { UNIMPLEMENTED(); }
 
-    virtual void disable_in_edge(size_t)
+    virtual void enable_in_edge(size_t, bool)
     { UNIMPLEMENTED(); }
 
-    virtual void disable_out_fft_edge(size_t)
+    virtual void enable_out_fft_edge(size_t, bool, vec3i const &)
     { UNIMPLEMENTED(); }
 
-    virtual void disable_in_fft_edge(size_t, vec3i const &)
+    virtual void enable_in_fft_edge(size_t, bool, vec3i const &)
     { UNIMPLEMENTED(); }
 
     virtual void set_eta( real )
@@ -200,6 +254,5 @@ public:
     virtual options serialize() const = 0;
 
 };
-
 
 }}} // namespace znn::v4::parallel_network

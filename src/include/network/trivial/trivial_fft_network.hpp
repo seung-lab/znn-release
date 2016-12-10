@@ -502,8 +502,8 @@ public:
 class dummy_edges: public edges
 {
 private:
-    options                                    options_;
-    std::vector<std::unique_ptr<edge>> edges_  ;
+    options                             options_;
+    std::vector<std::unique_ptr<edge>>  edges_  ;
 
 public:
     dummy_edges( nodes * in,
@@ -536,7 +536,7 @@ public:
 class max_pooling_edges: public edges
 {
 private:
-    options                                    options_;
+    options                            options_;
     std::vector<std::unique_ptr<edge>> edges_  ;
 
 public:
@@ -574,7 +574,7 @@ public:
 class real_pooling_edges: public edges
 {
 private:
-    options                                    options_;
+    options                            options_;
     std::vector<std::unique_ptr<edge>> edges_  ;
 
 public:
@@ -612,10 +612,10 @@ public:
 class filter_edges: public edges
 {
 private:
-    options                                           options_;
-    std::vector<std::unique_ptr<filter>>              filters_;
-    std::vector<std::unique_ptr<edge>>                edges_  ;
-    vec3i                                             size_   ;
+    options                                 options_;
+    std::vector<std::shared_ptr<filter>>    filters_;
+    std::vector<std::unique_ptr<edge>>      edges_  ;
+    vec3i                                   size_   ;
 
 public:
     filter_edges( nodes * in,
@@ -724,10 +724,10 @@ public:
 class fft_filter_edges: public edges
 {
 private:
-    options                                           options_;
-    std::vector<std::unique_ptr<filter>>              filters_;
-    std::vector<std::unique_ptr<edge>>                edges_  ;
-    vec3i                                             size_   ;
+    options                                 options_;
+    std::vector<std::shared_ptr<filter>>    filters_;
+    std::vector<std::unique_ptr<edge>>      edges_  ;
+    vec3i                                   size_   ;
 
 public:
     fft_filter_edges( nodes * in,
@@ -1025,7 +1025,7 @@ class transfer_nodes: public nodes
 {
 private:
     size_t                                  size_    ;
-    std::vector<std::unique_ptr<bias>>      biases_  ;
+    std::vector<std::shared_ptr<bias>>      biases_  ;
     transfer_function                       func_    ;
 
     dispatcher_group<forward_dispatcher<edge,edge>>  fwd_dispatch_;

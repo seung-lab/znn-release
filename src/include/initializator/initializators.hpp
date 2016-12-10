@@ -78,7 +78,7 @@ std::shared_ptr<initializator<real>> get_initializator( options const & op, opti
         // "Understanding the difficulty of training deep feedforward neuralnetworks"
 
         ZI_ASSERT(info);
-        
+
         real n = info->require_as<real>("fan-in");
         real m = info->require_as<real>("fan-out");
         real r = std::sqrt(6)/std::sqrt(n + m);

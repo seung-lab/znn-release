@@ -32,8 +32,9 @@ namespace znn { namespace v4 { namespace parallel_network {
 class transfer_nodes: public nodes
 {
 private:
-    std::vector<std::unique_ptr<bias>>   biases_  ;
-    transfer_function                    func_    ;
+    std::vector<std::shared_ptr<bias>>  biases_     ; // transfer node
+    transfer_function                   func_       ; // transfer node
+    int                                 do_average_ ; //  average node
 
     dispatcher_group<concurrent_forward_dispatcher<edge,edge>>    fwd_dispatch_;
     dispatcher_group<concurrent_backward_dispatcher<edge,edge>>   bwd_dispatch_;
@@ -42,8 +43,10 @@ private:
     std::vector<std::unique_ptr<backward_accumulator>> bwd_accumulators_;
 
     std::vector<cube_p<real>>    fs_      ;
+    std::vector<cube_p<real>>    gs_      ;
     std::vector<int>             fwd_done_;
     waiter                       waiter_  ;
+
 
 public:
     transfer_nodes( size_t s,
@@ -56,11 +59,13 @@ public:
         : nodes(s,fsize,op,tm,fwd_p,bwd_p,false,is_out)
         , biases_(s)
         , func_()
+        , do_average_(false)
         , fwd_dispatch_(s)
         , bwd_dispatch_(s)
         , fwd_accumulators_(s)
         , bwd_accumulators_(s)
         , fs_(s)
+        , gs_(s)
         , fwd_done_(s)
         , waiter_(s)
     {
@@ -87,42 +92,84 @@ public:
             real mom = op.optional_as<real>("momentum", 0.0);
             real wd  = op.optional_as<real>("weight_decay", 0.0);
 
-            for ( auto& b: biases_ )
+            // shared bias
+            bool need_init = true;
+            if ( op.contains("shared") )
             {
-                b = std::make_unique<bias>(eta, mom, wd);
-            }
-
-            std::string bias_values;
-
-            if ( op.contains("biases") )
-            {
-                bias_values = op.require_as<std::string>("biases");
-            }
-            else
-            {
-                real biases_raw[nodes::size()];
-                if ( op.contains("init") )
+                auto name = op.require_as<std::string>("shared");
+                if ( bias::shared_biases_pool.count(name) == 0 )
                 {
-                    auto initf = get_initializator(op);
-                    initf->initialize( biases_raw, nodes::size() );
+                    auto& shared = bias::shared_biases_pool[name];
+                    shared.resize(s);
+                    for ( auto& b: shared )
+                    {
+                        b = std::make_shared<bias>(eta, mom, wd);
+                    }
                 }
                 else
                 {
-                    std::fill_n(biases_raw, nodes::size(), 0);
+                    need_init = false;
                 }
-
-                bias_values = std::string( reinterpret_cast<char*>(biases_raw),
-                                           sizeof(real) * nodes::size() );
+                biases_ = bias::shared_biases_pool[name];
+            }
+            else
+            {
+                for ( auto& b: biases_ )
+                {
+                    b = std::make_shared<bias>(eta, mom, wd);
+                }
             }
 
-            load_biases(biases_, bias_values);
+            if ( need_init )
+            {
+                std::string bias_values;
+
+                if ( op.contains("biases") )
+                {
+                    bias_values = op.require_as<std::string>("biases");
+                }
+                else
+                {
+                    real biases_raw[nodes::size()];
+                    if ( op.contains("init") )
+                    {
+                        auto initf = get_initializator(op);
+                        initf->initialize( biases_raw, nodes::size() );
+                    }
+                    else
+                    {
+                        std::fill_n(biases_raw, nodes::size(), 0);
+                    }
+
+                    bias_values =
+                        std::string( reinterpret_cast<char*>(biases_raw),
+                                     sizeof(real) * nodes::size() );
+                }
+
+                load_biases(biases_, bias_values);
+            }
         }
         else
         {
-            ZI_ASSERT(type=="sum");
+            if ( type == "average" )
+            {
+                do_average_ = true;
+            }
+            else
+            {
+                ZI_ASSERT(type=="sum");
+            }
         }
     }
 
+    virtual ~transfer_nodes() override
+    {
+        if ( nodes::opts().contains("shared") )
+        {
+            auto name = nodes::opts().require_as<std::string>("shared");
+            bias::shared_biases_pool.erase(name);
+        }
+    }
 
     void set_eta( real eta ) override
     {
@@ -167,9 +214,17 @@ public:
     std::vector<cube_p<real>>& get_featuremaps() override
     {
         for ( size_t i = 0; i < nodes::size(); ++i )
-            if( !enabled_[i] ) fs_[i] = cube_p<real>();
+            if( !enabled_[i] ) fs_[i] = nullptr;
 
         return fs_;
+    }
+
+    std::vector<cube_p<real>>& get_gradientmaps() override
+    {
+        for ( size_t i = 0; i < nodes::size(); ++i )
+            if( !enabled_[i] ) gs_[i] = nullptr;
+
+        return gs_;
     }
 
 private:
@@ -178,6 +233,14 @@ private:
         ZI_ASSERT(enabled_[n]);
 
         fs_[n] = fwd_accumulators_[n]->reset();
+
+        if ( do_average_ )
+        {
+            auto m = fwd_accumulators_[n]->effectively_required();
+            ZI_ASSERT(m);
+            *fs_[n] /= m;
+        }
+
         //STRONG_ASSERT(!fwd_done_[n]);
         fwd_done_[n] = true;
 
@@ -208,21 +271,6 @@ public:
         }
     }
 
-    void forward(size_t n,
-                 ccube_p<real> const & f,
-                 ccube_p<real> const & w,
-                 vec3i const & stride) override
-    {
-        ZI_ASSERT(n<nodes::size());
-        if ( !enabled_[n] ) return;
-
-        if ( fwd_accumulators_[n]->add(f,w,stride) )
-        {
-            do_forward(n);
-        }
-
-    }
-
     void forward(size_t n, size_t b, cube_p<complex>&& f) override
     {
         ZI_ASSERT(n<nodes::size());
@@ -234,31 +282,26 @@ public:
         }
     }
 
-    void forward(size_t n, size_t b,
-                 ccube_p<complex> const & f,
-                 ccube_p<complex> const & w ) override
-    {
-        ZI_ASSERT(n<nodes::size());
-        if ( !enabled_[n] ) return;
-
-        if ( fwd_accumulators_[n]->add(b,f,w) )
-        {
-            do_forward(n);
-        }
-    }
-
 
 private:
     void do_backward(size_t n, cube_p<real> const & g)
     {
         ZI_ASSERT(enabled_[n]);
 
+        gs_[n] = g;
+
+        if ( do_average_ )
+        {
+            auto m = fwd_accumulators_[n]->effectively_required();
+            ZI_ASSERT(m);
+            *gs_[n] /= m;
+        }
+
         //STRONG_ASSERT(fwd_done_[n]);
         fwd_done_[n] = false;
 
         if ( func_ )
         {
-            //STRONG_ASSERT(g);
             STRONG_ASSERT(fs_[n]);
             // if ( !fs_[n] )
             // {
@@ -266,11 +309,11 @@ private:
             //         ( nodes::is_output() ? " output\n" : "no\n");
             //     STRONG_ASSERT(0);
             // }
-            func_.apply_grad(*g,*fs_[n]);
-            biases_[n]->update(sum(*g),patch_sz_);
-            fs_[n].reset();
+            func_.apply_grad(*gs_[n],*fs_[n]);
+            biases_[n]->update(sum(*gs_[n]),patch_sz_);
+            // fs_[n].reset();
         }
-        bwd_dispatch_.dispatch(n,g,nodes::manager());
+        bwd_dispatch_.dispatch(n,gs_[n],nodes::manager());
     }
 
 public:
@@ -292,37 +335,12 @@ public:
         }
     }
 
-    void backward(size_t n, ccube_p<real> const & g,
-                  ccube_p<real> const & w, vec3i const & stride) override
-    {
-        ZI_ASSERT((n<nodes::size())&&(!nodes::is_output()));
-        if ( !enabled_[n] ) return;
-
-        if ( bwd_accumulators_[n]->add(g,w,stride) )
-        {
-            do_backward(n,bwd_accumulators_[n]->reset());
-        }
-    }
-
     void backward(size_t n, size_t b, cube_p<complex>&& g) override
     {
         ZI_ASSERT((n<nodes::size())&&(!nodes::is_output()));
         if ( !enabled_[n] ) return;
 
         if ( bwd_accumulators_[n]->add(b,std::move(g)) )
-        {
-            do_backward(n,bwd_accumulators_[n]->reset());
-        }
-    }
-
-    void backward(size_t n, size_t b,
-                  ccube_p<complex> const & g,
-                  ccube_p<complex> const & w) override
-    {
-        ZI_ASSERT((n<nodes::size())&&(!nodes::is_output()));
-        if ( !enabled_[n] ) return;
-
-        if ( bwd_accumulators_[n]->add(b,g,w) )
         {
             do_backward(n,bwd_accumulators_[n]->reset());
         }
@@ -342,11 +360,11 @@ public:
         fwd_accumulators_[i]->grow(1);
     }
 
-    size_t attach_out_fft_edge(size_t n, edge* e) override
+    size_t attach_out_fft_edge(size_t n, edge* e, vec3i const & s) override
     {
         ZI_ASSERT(n<nodes::size());
-        fwd_dispatch_.sign_up(n,nodes::fsize(),e);
-        return bwd_accumulators_[n]->grow_fft(nodes::fsize(),1);
+        fwd_dispatch_.sign_up(n,s,e);
+        return bwd_accumulators_[n]->grow_fft(s,1);
     }
 
     size_t attach_in_fft_edge(size_t n, edge* e, vec3i const & s) override
@@ -356,68 +374,90 @@ public:
         return fwd_accumulators_[n]->grow_fft(s,1);
     }
 
+protected:
+    void disable_fwd(size_t n) override
+    {
+        ZI_ASSERT(n<nodes::size());
+        if ( !enabled_[n] ) return;
+
+        // diable outgoing edges
+        fwd_dispatch_.enable(n,false);
+        bwd_accumulators_[n]->enable_all(false);
+
+        // reset feature map
+        fs_[n].reset();
+        gs_[n].reset();
+
+        enabled_[n] = false;
+        if ( nodes::is_output() )
+            waiter_.dec();
+    }
+
+    void disable_bwd(size_t n) override
+    {
+        ZI_ASSERT(n<nodes::size());
+        if ( !enabled_[n] ) return;
+
+        // disable incoming edges
+        bwd_dispatch_.enable(n,false);
+        fwd_accumulators_[n]->enable_all(false);
+
+        // reset feature map
+        fs_[n].reset();
+        gs_[n].reset();
+
+        enabled_[n] = false;
+        if ( nodes::is_output() )
+            waiter_.dec();
+    }
+
+public:
     void enable(size_t n, bool b) override
     {
         ZI_ASSERT(n<nodes::size());
         if ( enabled_[n] == b ) return;
 
-        // enable outgoing edges
         fwd_dispatch_.enable(n,b);
+        bwd_dispatch_.enable(n,b);
+
+        fwd_accumulators_[n]->enable_all(b);
         bwd_accumulators_[n]->enable_all(b);
 
-        // enable incoming edges
-        bwd_dispatch_.enable(n,b);
-        fwd_accumulators_[n]->enable_all(b);
+        // reset feature map
+        fs_[n].reset();
+        gs_[n].reset();
 
         enabled_[n] = b;
-
         if ( nodes::is_output() )
-        {
-            if ( enabled_[n] )
-                waiter_.inc();
-            else
-                waiter_.dec();
-        }
+            b ? waiter_.inc() : waiter_.dec();
     }
 
-    void disable_out_edge(size_t n) override
+    void enable_out_edge(size_t n, bool b) override
     {
         ZI_ASSERT(n<nodes::size());
-        bwd_accumulators_[n]->disable(1);
-
-        // disconnected forward
-        if ( !bwd_accumulators_[n]->effectively_required() )
-            enable(n,false);
+        if ( !bwd_accumulators_[n]->enable(b) )
+            disable_bwd(n);
     }
 
-    void disable_in_edge(size_t n) override
+    void enable_in_edge(size_t n, bool b) override
     {
         ZI_ASSERT(n<nodes::size());
-        fwd_accumulators_[n]->disable(1);
-
-        // disconnected backward
-        if ( !fwd_accumulators_[n]->effectively_required() )
-            enable(n,false);
+        if ( !fwd_accumulators_[n]->enable(b) )
+            disable_fwd(n);
     }
 
-    void disable_out_fft_edge(size_t n) override
+    void enable_out_fft_edge(size_t n, bool b, vec3i const & s) override
     {
         ZI_ASSERT(n<nodes::size());
-        bwd_accumulators_[n]->disable_fft(nodes::fsize(),1);
-
-        // disconnected forward
-        if ( !bwd_accumulators_[n]->effectively_required() )
-            enable(n,false);
+        if ( !bwd_accumulators_[n]->enable_fft(s,b) )
+            disable_bwd(n);
     }
 
-    void disable_in_fft_edge(size_t n, vec3i const & s) override
+    void enable_in_fft_edge(size_t n, bool b, vec3i const & s) override
     {
         ZI_ASSERT(n<nodes::size());
-        fwd_accumulators_[n]->disable_fft(s,1);
-
-        // disconnected backward
-        if ( !fwd_accumulators_[n]->effectively_required() )
-            enable(n,false);
+        if ( !fwd_accumulators_[n]->enable_fft(s,b) )
+            disable_fwd(n);
     }
 
     void wait() override { waiter_.wait(); }

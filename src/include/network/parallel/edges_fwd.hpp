@@ -36,42 +36,77 @@ public:
     struct max_pooling_tag {};
     struct real_pooling_tag {};
     struct dropout_tag {};
+    struct nodeout_tag {};
     struct crop_tag {};
+    struct concat_tag {};
+    struct split_tag {};
     struct softmax_tag {};
     struct maxout_tag {};
+    struct multiply_tag {};
+    struct normalize_tag {};
+    struct scale_tag {};
 
 protected:
     options                                options_;
     waiter                                 waiter_ ;
     std::vector<std::unique_ptr<edge>>     edges_  ;
-    std::vector<std::unique_ptr<filter>>   filters_;
+    std::vector<std::shared_ptr<filter>>   filters_;
     vec3i                                  size_   ;
     task_manager &                         tm_     ;
 
 public:
-    edges( nodes *, nodes *, options const &, vec3i const &, vec3i const &,
-           task_manager &, filter_tag );
+    edges( nodes *, nodes *, options const &, vec3i const &, task_manager &,
+           filter_tag );
 
     edges( nodes *, nodes *, options const &, task_manager &, dummy_tag );
 
-    edges( nodes *, nodes *, options const &, vec3i const &, vec3i const &,
-           task_manager &, max_pooling_tag );
+    edges( nodes *, nodes *, options const &, vec3i const &, task_manager &,
+           max_pooling_tag );
 
-    edges( nodes *, nodes *, options const &, vec3i const &,
-           task_manager &, real_pooling_tag );
+    edges( nodes *, nodes *, options const &,task_manager &,
+           real_pooling_tag );
 
-    edges( nodes *, nodes *, options const &, vec3i const &,
-           task_manager &, phase phs, dropout_tag );
+    edges( nodes *, nodes *, options const &, task_manager &, phase phs,
+           dropout_tag );
+
+    edges( nodes *, nodes *, options const &, task_manager &, phase phs,
+           nodeout_tag );
 
     edges( nodes *, nodes *, options const &, task_manager &, crop_tag );
+
+    edges( nodes *, nodes *, options const &, task_manager &, concat_tag );
+
+    edges( nodes *, nodes *, options const &, task_manager &, split_tag );
 
     edges( nodes *, nodes *, options const &, task_manager &, softmax_tag );
 
     edges( nodes *, nodes *, options const &, task_manager &, maxout_tag );
 
+    edges( nodes *, nodes *, options const &, task_manager &, multiply_tag );
+
+    edges( nodes *, nodes *, options const &, task_manager &, phase phs,
+           normalize_tag );
+
+    edges( nodes *, nodes *, options const &, task_manager &, scale_tag );
+
+    ~edges()
+    {
+        if ( options_.contains("shared") )
+        {
+            auto name = options_.require_as<std::string>("shared");
+            filter::shared_filters_pool.erase(name);
+        }
+    }
+
     std::string name() const
     {
         return options_.require_as<std::string>("name");
+    }
+
+    void setup()
+    {
+        for ( auto & e: edges_ )
+            e->setup();
     }
 
     // [kisuklee]
@@ -79,9 +114,7 @@ public:
     void set_phase( phase phs )
     {
         for ( auto & e: edges_ )
-        {
             e->set_phase(phs);
-        }
     }
 
     void set_eta( real eta )
@@ -124,6 +157,10 @@ public:
         options ret = options_;
         if ( filters_.size() )
         {
+            if ( !ret.contains("size") )
+            {
+                ret.push("size", size_);
+            }
             ret.push("filters", save_filters(filters_, size_));
         }
         return ret;
@@ -142,6 +179,7 @@ public:
         }
         waiter_.wait();
     }
+
 };
 
 }}} // namespace znn::v4::parallel_network

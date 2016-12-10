@@ -116,7 +116,10 @@ std::shared_ptr< network > CNet_Init(
                     reinterpret_cast<std::int64_t*>(outsz_a.get_data())[2]
         );
     if ( tc == 0 )
-    	tc = std::thread::hardware_concurrency();
+    {
+        tc = std::thread::hardware_concurrency();
+        std::cout << "thread number: " << tc << std::endl;
+    }
 
     // force fft or optimize
     if ( force_fft )
@@ -160,11 +163,12 @@ std::shared_ptr< network > CNet_Init(
 std::shared_ptr<network> CNet_loadopts( bp::tuple const & opts,
                                         std::string const net_config_file,
                                         np::ndarray const & outsz_a,
-                                        std::size_t const tc,
+                                        std::size_t tc,
                                         bool const is_optimize = true,
                                         std::uint8_t const phs = 0,
                                         bool const force_fft = false )
 {
+    if ( tc == 0 ) tc = std::thread::hardware_concurrency();
 
     bp::list node_opts_list = bp::extract<bp::list>( opts[0] );
     bp::list edge_opts_list = bp::extract<bp::list>( opts[1] );
@@ -365,18 +369,18 @@ BOOST_PYTHON_MODULE(pyznn)
     bp::class_<network, boost::shared_ptr<network>, boost::noncopyable>("CNet",bp::no_init)
         .def("__init__", bp::make_constructor(&CNet_Init))
         .def("__init__", bp::make_constructor(&CNet_loadopts))
-        .def("get_fov",  &CNet_fov)
-        .def("forward",  &CNet_forward)
-        .def("backward", &CNet_backward)
-        .def("set_eta",                 &network::set_eta)
-        .def("set_phase",               &CNet_set_phase)
+        .def("get_fov",             &CNet_fov)
+        .def("forward",             &CNet_forward)
+        .def("backward",            &CNet_backward)
+        .def("set_eta",             &network::set_eta)
+        .def("set_phase",           &CNet_set_phase)
         .def("set_momentum",		&network::set_momentum)
         .def("set_weight_decay",	&network::set_weight_decay )
         .def("get_inputs_setsz", 	&CNet_get_inputs_setsz)
         .def("get_input_num", 		&CNet_get_input_num)
         .def("get_outputs_setsz", 	&CNet_get_outputs_setsz)
         .def("get_output_num", 		&CNet_get_output_num)
-        .def("get_opts",		&CNet_getopts)
+        .def("get_opts",            &CNet_getopts)
         ;
     def("get_rand_error", pyget_rand_error);
 }

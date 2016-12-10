@@ -363,6 +363,21 @@ inline cube_p<T> exp( cube<T> const & c )
 }
 
 template<typename T>
+inline cube_p<T> sqrt( cube<T> const & c )
+{
+    auto r = get_cube<T>(size(c));
+    T* dest = r->data();
+    const T* src = c.data();
+
+    for ( size_t i = 0; i < c.num_elements(); ++i )
+    {
+        dest[i] = std::sqrt(src[i]);
+    }
+
+    return r;
+}
+
+template<typename T>
 inline cube_p<T> sparse_explode( cube<T> const & v,
                                  vec3i const & sparse,
                                  vec3i const & s )
@@ -615,8 +630,6 @@ inline cube_p<T> mirror_boundary( cube<T> const & c,
     auto rp = get_cube<T>(vec3i(rx,ry,rz));
     cube<T>& r = *rp;
 
-    r = 0;
-
     // copy original volume
     for ( long_t x = 0; x < vx; ++x )
         for ( long_t y = 0; y < vy; ++y )
@@ -651,6 +664,21 @@ inline cube_p<T> mirror_boundary( cube<T> const & c,
             }
 
     return rp;
+}
+
+template<typename T>
+inline T mean( cube<T> const & c )
+{
+    ZI_ASSERT(c.num_elements());
+    return sum(c)/c.num_elements();
+}
+
+template<typename T>
+inline T variance( cube<T> const & c )
+{
+    auto m = mean(c);
+    auto squared = c*c;
+    return mean(*squared) - m*m;
 }
 
 }} // namespace znn::v4

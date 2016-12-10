@@ -17,16 +17,17 @@
 //
 #pragma once
 
+#include <zi/utility/singleton.hpp>
+
 #include "../types.hpp"
 #include "../cube/cube.hpp"
 #include "../cube/cube_operators.hpp"
-
 
 namespace znn { namespace v4 {
 
 class filter
 {
-private:
+protected:
     cube_p<real>   W_;
     cube_p<real>   mom_volume_;
 
@@ -35,13 +36,22 @@ private:
     real        momentum_     = 0.0 ;
     real        weight_decay_ = 0.0 ;
 
+    // for shared filter
+    std::mutex  mutex_;
+
+public:
+    typedef std::map<std::string, std::vector<std::shared_ptr<filter>>>
+            pool_type;
+
+    static pool_type& shared_filters_pool;
+
 public:
     filter( const vec3i& s, real eta, real mom = 0.0, real wd = 0.0 )
         : W_(get_cube<real>(s))
         , mom_volume_(get_cube<real>(s))
         , eta_(eta), momentum_(mom), weight_decay_(wd)
     {
-	fill(*mom_volume_,0);
+	   fill(*mom_volume_,0);
     }
 
     real& eta()
@@ -69,8 +79,17 @@ public:
         return weight_decay_;
     }
 
+private:
+    void do_update()
+    {
+
+    }
+
+public:
     void update(const cube<real>& dEdW, real patch_size = 1 ) noexcept
     {
+        guard g(mutex_);
+
         real delta = -eta_/patch_size;
 
         if ( momentum_ == 0 )
@@ -98,6 +117,10 @@ public:
             *W_ += *mom_volume_;
         }
     }
+
 }; // class filter
+
+filter::pool_type& filter::shared_filters_pool =
+        zi::singleton<filter::pool_type>::instance();
 
 }} // namespace znn::v4

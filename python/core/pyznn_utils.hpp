@@ -111,10 +111,10 @@ bp::tuple bias_string_to_np( std::string const & bin,
 //Same thing for convolution filters
 // Assumes the input size is THREE dimensional
 bp::tuple filter_string_to_np( std::string const & bin,
-	std::vector<std::size_t> size,
-	std::size_t nodes_in,
-	std::size_t nodes_out,
-	bp::object const & self)
+							   std::vector<std::size_t> size,
+							   std::size_t nodes_in,
+							   std::size_t nodes_out,
+							   bp::object const & self )
 {
 	real const * data = reinterpret_cast<real const *>(bin.data());
 
@@ -129,7 +129,7 @@ bp::tuple filter_string_to_np( std::string const & bin,
 		//values
 		np::from_data(data,
 					np::dtype::get_builtin<real>(),
-					bp::make_tuple(nodes_in, nodes_out, size[0],size[1],size[2]),
+					bp::make_tuple(nodes_in,nodes_out,size[0],size[1],size[2]),
 					bp::make_tuple(nodes_out*size[0]*size[1]*size[2]*sizeof(real),
 								   size[0]*size[1]*size[2]*sizeof(real),
 								   size[1]*size[2]*sizeof(real),
@@ -140,7 +140,7 @@ bp::tuple filter_string_to_np( std::string const & bin,
 		//momentum values
 		np::from_data(momentum,
 					np::dtype::get_builtin<real>(),
-					bp::make_tuple(nodes_in, nodes_out, size[0],size[1],size[2]),
+					bp::make_tuple(nodes_in,nodes_out,size[0],size[1],size[2]),
 					bp::make_tuple(nodes_out*size[0]*size[1]*size[2]*sizeof(real),
 								   size[0]*size[1]*size[2]*sizeof(real),
 								   size[1]*size[2]*sizeof(real),
@@ -148,6 +148,45 @@ bp::tuple filter_string_to_np( std::string const & bin,
 								   sizeof(real)),
 					self
 					).copy()//copying seems to prevent overwriting
+		);
+};
+
+// one-to-one edges
+bp::tuple one_to_one_filter_string_to_np( std::string const & bin,
+								   		  std::vector<std::size_t> size,
+							  	   		  std::size_t n,
+							  	   		  bp::object const & self )
+{
+	real const * data = reinterpret_cast<real const *>(bin.data());
+
+	//momentum values stored immediately after array values
+	std::size_t gap = bin.size() / (2 * sizeof(real));
+	real const * momentum = data + gap;
+
+	//Debug
+	//print_data_string(data, bin.size() / (2 * sizeof(real)));
+
+	return bp::make_tuple(
+		//values
+		np::from_data(data,
+					np::dtype::get_builtin<real>(),
+					bp::make_tuple(n,size[0],size[1],size[2]),
+					bp::make_tuple(size[0]*size[1]*size[2]*sizeof(real),
+								   size[1]*size[2]*sizeof(real),
+								   size[2]*sizeof(real),
+								   sizeof(real)),
+					self
+					).copy(),
+		//momentum values
+		np::from_data(momentum,
+					np::dtype::get_builtin<real>(),
+					bp::make_tuple(n,size[0],size[1],size[2]),
+					bp::make_tuple(size[0]*size[1]*size[2]*sizeof(real),
+								   size[1]*size[2]*sizeof(real),
+								   size[2]*sizeof(real),
+								   sizeof(real)),
+					self
+					).copy()
 		);
 };
 
@@ -214,8 +253,10 @@ bp::dict edge_opt_to_dict( options const opt,
 {
 	bp::dict res;
 	std::vector<std::size_t> size;
-	std::string input_layer = "";
+	std::string input_layer  = "";
 	std::string output_layer = "";
+
+	auto type = opt.require_as<std::string>("type");
 
 	//First do a conversion of all fields except
 	// biases and filters to gather necessary information
@@ -255,13 +296,24 @@ bp::dict edge_opt_to_dict( options const opt,
 			//Debug
 			// res["raw_filters"] = p.second;
 			//std::cout << opt.require_as<std::string>("name") << std::endl;
-			std::size_t nodes_in = layer_sizes[input_layer];
+			std::size_t nodes_in  = layer_sizes[input_layer];
 			std::size_t nodes_out = layer_sizes[output_layer];
 
-			res[p.first] = filter_string_to_np(p.second, size,
-											nodes_in,
-											nodes_out,
-											self);
+			if ( type == "conv" )
+			{
+				res[p.first] = filter_string_to_np( p.second, size,
+													nodes_in, nodes_out, self );
+			}
+			else if ( type == "normalize" || type == "scale" )
+			{
+				res[p.first] = one_to_one_filter_string_to_np( p.second, size,
+															   nodes_in, self );
+			}
+			else
+			{
+				throw std::logic_error(HERE() +
+					"unknown filter edges type: " + type);
+			}
 		}
 	}
 	return res;

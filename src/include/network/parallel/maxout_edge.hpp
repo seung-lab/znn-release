@@ -57,10 +57,10 @@ public:
                  task_manager & tm )
         : edge(in,inn,out,outn,tm)
     {
-        ZI_ASSERT(inn=outn);
+        ZI_ASSERT(inn==outn);
         in->attach_out_edge(inn,this);
 
-        // TODO: any better solution?
+        // TODO(lee): any better solution?
         target = reinterpret_cast<maxout_nodes*>(out_nodes);
         auto idx = target->attach_maxout_edge(outn,this);
         group_idx = static_cast<int>(idx);
@@ -68,11 +68,15 @@ public:
 
     void forward( ccube_p<real> const & f ) override
     {
+        if ( !enabled_ ) return;
+
         target->forward(out_num, get_copy(*f), group_idx);
     }
 
     void backward( ccube_p<real> const & g ) override
     {
+        if ( !enabled_ ) return;
+
         if ( in_nodes->is_input() )
         {
             in_nodes->backward(in_num, cube_p<real>());

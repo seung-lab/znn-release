@@ -70,16 +70,7 @@ public:
     void backward(size_t, cube_p<real>&&) override
     { backward(); }
 
-    void backward(size_t, ccube_p<real> const &,
-                  ccube_p<real> const &, vec3i const &) override
-    { backward(); }
-
     void backward(size_t, size_t, cube_p<complex>&&) override
-    { backward(); }
-
-    void backward(size_t, size_t,
-                  ccube_p<complex> const &,
-                  ccube_p<complex> const &) override
     { backward(); }
 
     void attach_out_edge(size_t i, edge* e) override
@@ -89,14 +80,15 @@ public:
         outputs_.sign_up(i,e);
     }
 
-    size_t attach_out_fft_edge(size_t i, edge* e) override
+    size_t attach_out_fft_edge(size_t i, edge* e, vec3i const & s) override
     {
         ZI_ASSERT(i<nodes::size());
         waiter_.inc();
-        outputs_.sign_up(i,nodes::fsize(),e);
+        outputs_.sign_up(i,s,e);
         return 0;
     }
 
+public:
     void enable(size_t n, bool b) override
     {
         ZI_ASSERT(n<nodes::size());
@@ -107,11 +99,24 @@ public:
 
         enabled_[n] = b;
 
-        // waiter inc/dec
+        // waiter set
         if ( enabled_[n] )
-            waiter_.inc(outputs_.size(n));
+            waiter_.set(outputs_.size(n));
         else
-            waiter_.dec(outputs_.size(n));
+            waiter_.set(0);
+    }
+
+    void enable_out_edge(size_t n, bool b) override
+    {
+        ZI_ASSERT(n<nodes::size());
+        size_t required = b ? waiter_.inc() : waiter_.dec();
+        if ( !required )
+            enabled_[n] = false;
+    }
+
+    void enable_out_fft_edge(size_t n, bool b, vec3i const &) override
+    {
+        enable_out_edge(n,b);
     }
 
     void wait() override { waiter_.wait(); }

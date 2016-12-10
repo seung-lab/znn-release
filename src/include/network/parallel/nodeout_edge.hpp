@@ -1,6 +1,6 @@
 //
 // Copyright (C) 2012-2015  Aleksandar Zlateski <zlateski@mit.edu>
-//                    2015  Kisuk Lee           <kisuklee@mit.edu>
+//                    2016  Kisuk Lee           <kisuklee@mit.edu>
 // ---------------------------------------------------------------
 //
 // This program is free software: you can redistribute it and/or modify
@@ -20,30 +20,37 @@
 
 #include "edges_fwd.hpp"
 #include "nodes.hpp"
+#include "../../initializator/bernoulli_init.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 
-class crop_edge: public edge
+class nodeout_edge: public edge
 {
 private:
-    vec3i   offset;
-    vec3i   insize;
+    real            ratio_; // keeping ratio
+    vec3i           insize;
+    phase           phase_; // TRAIN/TEST/OPTIMIZE
+    bool            force_; // nodeout regardless of phase
 
 private:
-    inline vec3i crop_size() const
+    inline real scale() const
     {
-        return insize - offset - offset;
+        return ratio_;
     }
 
 public:
-    crop_edge( nodes * in,
-               size_t inn,
-               nodes * out,
-               size_t outn,
-               task_manager & tm,
-               vec3i const & off )
+    nodeout_edge( nodes * in,
+                  size_t inn,
+                  nodes * out,
+                  size_t outn,
+                  task_manager & tm,
+                  real p,
+                  phase phs = phase::TRAIN,
+                  bool force = false )
         : edge(in,inn,out,outn,tm)
-        , offset(off)
+        , ratio_(p)
+        , phase_(phs)
+        , force_(force)
     {
         insize = in->fsize();
 
@@ -51,19 +58,38 @@ public:
         out->attach_in_edge(outn,this);
     }
 
+    void setup() override
+    {
+        if ( force_ || phase_ == phase::TRAIN || phase_ == phase::OPTIMIZE )
+        {
+            bool b;
+            bernoulli_init<bool>(ratio_).initialize(&b,1);
+            edge::enable(b);
+        }
+    }
+
     void forward( ccube_p<real> const & f ) override
     {
         if ( !enabled_ ) return;
 
         ZI_ASSERT(size(*f)==insize);
-        out_nodes->forward(out_num, crop(*f,offset,crop_size()));
+
+        auto fmap = get_copy(*f);
+        if ( !force_ && phase_ == phase::TEST )
+        {
+            *fmap *= scale();
+        }
+
+        out_nodes->forward(out_num, std::move(fmap));
     }
 
     void backward( ccube_p<real> const & g ) override
     {
         if ( !enabled_ ) return;
 
-        ZI_ASSERT(crop_size()==size(*g));
+        ZI_ASSERT(insize==size(*g));
+
+        auto gmap = get_copy(*g);
 
         if ( in_nodes->is_input() )
         {
@@ -71,10 +97,13 @@ public:
         }
         else
         {
-            auto gmap = get_cube<real>(insize);
-            in_nodes->backward(in_num,
-                               pad_zeros(*g,offset,pad_style::BOTH));
+            in_nodes->backward(in_num, std::move(gmap));
         }
+    }
+
+    void set_phase( phase phs ) override
+    {
+        phase_ = phs;
     }
 
     void zap(edges* e) override

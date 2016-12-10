@@ -63,6 +63,8 @@ public:
         patch_sz_ = s;
     }
 
+    bool is_enabled() const { return enabled_; }
+
     std::string name() const
     {
         return in_nodes->name() + ":" + std::to_string(in_num) + "_" +
@@ -70,6 +72,8 @@ public:
     }
 
     virtual ~edge() {}
+
+    virtual void setup() {}
 
     virtual void forward( ccube_p<real> const & )
     { UNIMPLEMENTED(); }
@@ -83,19 +87,21 @@ public:
     virtual void backward( ccube_p<complex> const & )
     { UNIMPLEMENTED(); }
 
+    virtual void enable(bool b)
+    {
+        if ( enabled_ == b ) return;
+
+        enabled_ = b;
+        in_nodes->enable_out_edge(in_num,b);
+        out_nodes->enable_in_edge(out_num,b);
+    }
+
     virtual void enable_fwd(bool b)
     {
         if ( enabled_ == b ) return;
 
         enabled_ = b;
-        if ( enabled_ )
-        {
-            out_nodes->enable(out_num,true);
-        }
-        else // disable
-        {
-            out_nodes->disable_in_edge(out_num);
-        }
+        out_nodes->enable_in_edge(out_num,b);
     }
 
     virtual void enable_bwd(bool b)
@@ -103,14 +109,7 @@ public:
         if ( enabled_ == b ) return;
 
         enabled_ = b;
-        if ( enabled_ )
-        {
-            in_nodes->enable(in_num,true);
-        }
-        else // disabled_
-        {
-            in_nodes->disable_out_edge(in_num);
-        }
+        in_nodes->enable_out_edge(in_num,b);
     }
 
     // [kisuklee]
@@ -119,7 +118,5 @@ public:
 
     virtual void zap(edges*) = 0;
 };
-
-
 
 }}} // namespace znn::v4::parallel_network

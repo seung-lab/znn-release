@@ -106,7 +106,7 @@ private:
 
 
 public:
-    global_task_manager_impl(std::size_t concurrency = 240)
+    global_task_manager_impl(std::size_t concurrency = 480)
         : spawned_threads_{0}
         , concurrency_{0}
         , idle_threads_{0}

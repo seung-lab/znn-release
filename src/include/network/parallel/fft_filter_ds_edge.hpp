@@ -23,6 +23,7 @@
 
 #include "../../fft/fftw.hpp"
 #include "../filter.hpp"
+#include "../../utils.hpp"
 
 namespace znn { namespace v4 { namespace parallel_network {
 
@@ -32,6 +33,8 @@ private:
     vec3i    filter_stride;
     vec3i    repeat_;
     filter & filter_;
+    vec3i    fft_sz_;
+    bool     shared_;
 
 #ifndef ZNN_DONT_CACHE_FFTS
     ccube_p<complex> w_fft;
@@ -63,7 +66,7 @@ private:
         ZI_ASSERT(enabled_);
 
         auto dEdW_fft = *last_input * *g;
-        auto dEdW = fftw::backward(std::move(dEdW_fft), in_nodes->fsize());
+        auto dEdW = fftw::backward(std::move(dEdW_fft), fft_sz_);
         real norm = dEdW->num_elements();
 
         flip(*dEdW);
@@ -95,8 +98,7 @@ private:
         //                 when I had to use sparse_explode_slow,
         //                 ony happened on my laptop
 
-        auto w_tmp = sparse_explode_slow(filter_.W(), filter_stride,
-                                         in_nodes->fsize());
+        auto w_tmp = sparse_explode_slow(filter_.W(), filter_stride, fft_sz_);
         return fftw::forward(std::move(w_tmp));
     }
 
@@ -109,14 +111,17 @@ public:
                         task_manager & tm,
                         vec3i const & stride,
                         vec3i const & repeat,
-                        filter & f )
-        : edge(in,inn,out,outn,tm),
-          filter_stride(stride),
-          repeat_(repeat),
-          filter_(f)
+                        filter & f,
+                        bool shared = false )
+        : edge(in,inn,out,outn,tm)
+        , filter_stride(stride)
+        , repeat_(repeat)
+        , filter_(f)
+        , fft_sz_(maximum(in->fsize(),out->fsize()))
+        , shared_(shared)
     {
-        bwd_bucket_ = in->attach_out_fft_edge(inn, this);
-        fwd_bucket_ = out->attach_in_fft_edge(outn, this, in->fsize());
+        bwd_bucket_ = in->attach_out_fft_edge(inn, this, fft_sz_);
+        fwd_bucket_ = out->attach_in_fft_edge(outn, this, fft_sz_);
         flatten(filter_.W(), repeat_);
 
 #ifndef ZNN_DONT_CACHE_FFTS
@@ -150,8 +155,42 @@ public:
             in_nodes->backward(in_num, bwd_bucket_, std::move(grad));
         }
 
-        pending_ = manager.schedule_unprivileged(
-                                &fft_filter_ds_edge::do_update, this, g);
+        if ( shared_ )
+        {
+            // immediate update
+            do_update(g);
+        }
+        else
+        {
+            pending_ = manager.schedule_unprivileged(
+                                    &fft_filter_ds_edge::do_update, this, g);
+        }
+    }
+
+public:
+    void enable(bool b) override
+    {
+        if ( enabled_ == b ) return;
+
+        enabled_ = b;
+        in_nodes->enable_out_fft_edge(in_num,b,fft_sz_);
+        out_nodes->enable_in_fft_edge(out_num,b,fft_sz_);
+    }
+
+    void enable_fwd(bool b) override
+    {
+        if ( enabled_ == b ) return;
+
+        enabled_ = b;
+        out_nodes->enable_in_fft_edge(out_num,b,fft_sz_);
+    }
+
+    void enable_bwd(bool b) override
+    {
+        if ( enabled_ == b ) return;
+
+        enabled_ = b;
+        in_nodes->enable_out_fft_edge(in_num,b,fft_sz_);
     }
 
     void zap(edges* e) override

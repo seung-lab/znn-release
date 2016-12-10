@@ -1,6 +1,6 @@
 //
 // Copyright (C) 2012-2015  Aleksandar Zlateski <zlateski@mit.edu>
-//                    2015  Kisuk Lee           <kisuklee@mit.edu>
+//                    2016  Kisuk Lee           <kisuklee@mit.edu>
 // ---------------------------------------------------------------
 //
 // This program is free software: you can redistribute it and/or modify
@@ -23,30 +23,40 @@
 
 namespace znn { namespace v4 { namespace parallel_network {
 
-class crop_edge: public edge
+class multiply_edge: public edge
 {
 private:
-    vec3i   offset;
-    vec3i   insize;
+    real    epsilon_; // small constant for numerical stability
 
 private:
-    inline vec3i crop_size() const
+    cube_p<real> do_backward( ccube<real> const & g )
     {
-        return insize - offset - offset;
+        auto grad = get_copy(g);
+        auto fmap = in_nodes->get_featuremaps()[in_num];
+
+        size_t n = grad->num_elements();
+        for ( size_t i = 0; i < n; ++i )
+        {
+            grad->data()[i] /= (fmap->data()[i] + epsilon_);
+        }
+
+        // DEBUG
+        // std::cout << "[" << edge::name() << "] " << "\n";
+        // std::cout << *grad << "\n\n";
+
+        return grad;
     }
 
 public:
-    crop_edge( nodes * in,
-               size_t inn,
-               nodes * out,
-               size_t outn,
-               task_manager & tm,
-               vec3i const & off )
+    multiply_edge( nodes * in,
+                   size_t inn,
+                   nodes * out,
+                   size_t outn,
+                   task_manager & tm,
+                   real eps )
         : edge(in,inn,out,outn,tm)
-        , offset(off)
+        , epsilon_(eps)
     {
-        insize = in->fsize();
-
         in->attach_out_edge(inn,this);
         out->attach_in_edge(outn,this);
     }
@@ -55,15 +65,12 @@ public:
     {
         if ( !enabled_ ) return;
 
-        ZI_ASSERT(size(*f)==insize);
-        out_nodes->forward(out_num, crop(*f,offset,crop_size()));
+        out_nodes->forward(out_num, get_copy(*f));
     }
 
     void backward( ccube_p<real> const & g ) override
     {
         if ( !enabled_ ) return;
-
-        ZI_ASSERT(crop_size()==size(*g));
 
         if ( in_nodes->is_input() )
         {
@@ -71,9 +78,7 @@ public:
         }
         else
         {
-            auto gmap = get_cube<real>(insize);
-            in_nodes->backward(in_num,
-                               pad_zeros(*g,offset,pad_style::BOTH));
+            in_nodes->backward(in_num, do_backward(*g));
         }
     }
 

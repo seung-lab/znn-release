@@ -25,7 +25,7 @@
 
 namespace znn { namespace v4 {
 
-inline void load_biases( std::vector<std::unique_ptr<bias>> const & bs,
+inline void load_biases( std::vector<std::shared_ptr<bias>> const & bs,
                          std::string const & s )
 {
     real const* data = reinterpret_cast<real const *>(s.data());
@@ -46,7 +46,7 @@ inline void load_biases( std::vector<std::unique_ptr<bias>> const & bs,
     }
 }
 
-inline std::string save_biases( std::vector<std::unique_ptr<bias>> const & bs )
+inline std::string save_biases( std::vector<std::shared_ptr<bias>> const & bs )
 {
     real* data = new real[bs.size() * 2];
 
@@ -64,7 +64,7 @@ inline std::string save_biases( std::vector<std::unique_ptr<bias>> const & bs )
     return ret;
 }
 
-inline void load_filters( std::vector<std::unique_ptr<filter>> const & fs,
+inline void load_filters( std::vector<std::shared_ptr<filter>> const & fs,
                           const vec3i& s,
                           std::string const & d )
 {
@@ -101,7 +101,7 @@ inline void load_filters( std::vector<std::unique_ptr<filter>> const & fs,
 }
 
 
-inline std::string save_filters( std::vector<std::unique_ptr<filter>> const & fs,
+inline std::string save_filters( std::vector<std::shared_ptr<filter>> const & fs,
                                  vec3i const & s )
 {
     long_t n = s[0] * s[1] * s[2];

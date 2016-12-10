@@ -124,8 +124,8 @@ public:
         void forward( cube<real>& in,
                       cube<complex>& out )
         {
-            ZI_ASSERT(size(out)==fft_complex_size(in));
-            ZI_ASSERT(size(in)==actual_sz);
+            ZI_ASSERT(znn::v4::size(out)==fft_complex_size(in));
+            ZI_ASSERT(znn::v4::size(in)==actual_sz);
 
             MKL_LONG status;
 
@@ -143,8 +143,8 @@ public:
         void backward( cube<complex>& in,
                        cube<real>& out )
         {
-            ZI_ASSERT(size(in)==fft_complex_size(out));
-            ZI_ASSERT(size(out)==actual_sz);
+            ZI_ASSERT(znn::v4::size(in)==fft_complex_size(out));
+            ZI_ASSERT(znn::v4::size(out)==actual_sz);
 
             MKL_LONG status;
 

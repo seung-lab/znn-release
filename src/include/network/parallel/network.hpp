@@ -21,6 +21,7 @@
 #include "input_nodes.hpp"
 #include "transfer_nodes.hpp"
 #include "maxout_nodes.hpp"
+#include "multiply_nodes.hpp"
 #include "../../initializator/initializators.hpp"
 #include "../helpers.hpp"
 
@@ -36,14 +37,16 @@ private:
 
     struct nedges
     {
-        vec3i width     = vec3i::one  ;
-        vec3i stride    = vec3i::one  ;
+        vec3i width     = vec3i::one ;
+        vec3i stride    = vec3i::one ;
+        vec3i sparse    = vec3i::one ;
 
-        vec3i in_stride = vec3i::zero ;
-        vec3i in_fsize  = vec3i::zero ;
+        vec3i in_stride = vec3i::zero;
+        vec3i in_fsize  = vec3i::zero;
 
-        bool pool = false;
-        bool crop = false;
+        bool pool       = false;
+        bool crop       = false;
+        bool reverse    = false; // deconv, unpooling, upsampling, etc.
 
         nnodes * in;
         nnodes * out;
@@ -55,7 +58,6 @@ private:
 
     struct nnodes
     {
-        vec3i fov       = vec3i::zero;
         vec3i stride    = vec3i::zero;
         vec3i fsize     = vec3i::zero;
 
@@ -79,8 +81,12 @@ public:
     ~network()
     {
         zap();
+
         for ( auto& n: nodes_ ) delete n.second;
         for ( auto& e: edges_ ) delete e.second;
+
+        for ( auto& n: implicit_nodes_ ) delete n.second;
+        for ( auto& e: implicit_edges_ ) delete e.second;
     }
 
 private:
@@ -112,15 +118,19 @@ public:
 
 private:
     std::ostringstream oss_;
+private:
+    std::ostringstream oss_;
 
     std::map<std::string, nedges*> edges_;
     std::map<std::string, nnodes*> nodes_;
     std::map<std::string, nnodes*> input_nodes_;
     std::map<std::string, nnodes*> output_nodes_;
-
-    // [kisuklee]
-    // This is only temporary implementation and will be removed.
+    std::map<std::string, nedges*> stochastic_edges_;
     std::map<std::string, nedges*> phase_dependent_edges_;
+
+    // implicit (automatically inserted) nodes and edges
+    std::map<std::string, nodes*> implicit_nodes_;
+    std::map<std::string, edges*> implicit_edges_;
 
     task_manager tm_;
 
@@ -130,57 +140,14 @@ private:
     void dump() { tm_.dump(); }
 #endif
 
-
-    void fov_pass(nnodes* n, vec3i fov, const vec3i& fsize )
-    {
-        if ( n->fov != vec3i::zero )
-        {
-            ZI_ASSERT(n->fsize==fsize);
-            if ( n->fov == fov )
-            {
-                return;
-            }
-            else
-            {
-                fov[0] = std::max(n->fov[0],fov[0]);
-                fov[1] = std::max(n->fov[1],fov[1]);
-                fov[2] = std::max(n->fov[2],fov[2]);
-            }
-        }
-
-        for ( auto& e: n->out )
-        {
-            e->in_fsize = fsize;
-        }
-        n->fov = fov;
-        n->fsize = fsize;
-        for ( auto& e: n->in )
-        {
-            if ( e->pool )
-            {
-                vec3i new_fov   = fov * e->width;
-                vec3i new_fsize = e->width * fsize;
-                fov_pass(e->in, new_fov, new_fsize);
-            }
-            else if ( e->crop )
-            {
-                // FoV doesn't change
-                fov_pass(e->in, fov, fsize + e->width - vec3i::one);
-            }
-            else
-            {
-                vec3i new_fov   = (fov - vec3i::one) * e->stride + e->width;
-                vec3i new_fsize = (e->width-vec3i::one) * e->in_stride + fsize;
-                fov_pass(e->in, new_fov, new_fsize);
-            }
-        }
-    }
-
     void stride_pass(nnodes* n, const vec3i& stride )
     {
         if ( n->stride != vec3i::zero )
         {
-            ZI_ASSERT(n->stride==stride);
+            // ZI_ASSERT(n->stride==stride);
+            // TODO(lee):
+            //  Conflicting strides should only be allowed
+            //  when 1x1x1 filtering is following.
         }
         else
         {
@@ -189,6 +156,12 @@ private:
             if ( n->opts->optional_as<int>("dense",0) )
             {
                 real_stride = vec3i::one;
+            }
+
+            // force sparseness
+            if ( n->opts->contains("sparse") )
+            {
+                real_stride = n->opts->require_as<ovec3i>("sparse");
             }
 
             n->stride = real_stride;
@@ -200,8 +173,55 @@ private:
                     UNIMPLEMENTED();
                 }
 
+                if ( e->reverse )
+                {
+                    real_stride = real_stride / e->stride;
+                    // ZI_ASSERT(new_stride*e->stride==real_stride);
+                }
+
                 e->in_stride = real_stride;
-                stride_pass(e->out, real_stride * e->stride );
+
+                if ( e->reverse )
+                    stride_pass(e->out, real_stride);
+                else
+                    stride_pass(e->out, real_stride * e->stride);
+            }
+        }
+    }
+
+    void fsize_pass( nnodes* n, vec3i fsize )
+    {
+        if ( n->fsize != vec3i::zero )
+        {
+            if ( n->fsize == fsize )
+            {
+                return;
+            }
+        }
+
+        fsize[0] = std::max(n->fsize[0],fsize[0]);
+        fsize[1] = std::max(n->fsize[1],fsize[1]);
+        fsize[2] = std::max(n->fsize[2],fsize[2]);
+        n->fsize = fsize;
+
+        for ( auto& e: n->in )
+        {
+            if ( e->pool )
+            {
+                e->in_fsize = e->reverse ? (fsize/e->width) : (fsize*e->width);
+                if ( e->reverse ) ZI_ASSERT(e->in_fsize*e->width==fsize);
+                fsize_pass(e->in, e->in_fsize);
+            }
+            else if ( e->crop )
+            {
+                e->in_fsize = fsize + e->width - vec3i::one;
+                fsize_pass(e->in, e->in_fsize);
+            }
+            else
+            {
+                auto diff = (e->width - vec3i::one)*e->in_stride*e->sparse;
+                e->in_fsize = e->reverse ? (fsize - diff) : (fsize + diff);
+                fsize_pass(e->in, e->in_fsize);
             }
         }
     }
@@ -242,9 +262,15 @@ private:
         return n->bwd_priority;
     }
 
-    // [kisuklee]
-    // This should be modified later to deal with multiple output layers
-    // with different size.
+    // TODO(lee):
+    //
+    //  This should be modified later to deal with multiple output layers
+    //  with different size.
+    //
+    //  Also, what about deconvolutional nets?
+    //  Deconv nets are not sliding-window nets, so one-to-one correspondence
+    //  between minibatch and output patch does not hold.
+    //
     void set_patch_size( vec3i const& outsz )
     {
         real s = outsz[0]*outsz[1]*outsz[2];
@@ -264,28 +290,28 @@ private:
         for ( auto& o: input_nodes_ )
             stride_pass(o.second, vec3i::one);
         for ( auto& o: output_nodes_ )
-            fov_pass(o.second, vec3i::one, outsz);
+            fsize_pass(o.second, outsz);
 
         for ( auto& o: output_nodes_ )
             fwd_priority_pass(o.second);
         for ( auto& o: input_nodes_ )
             bwd_priority_pass(o.second);
 
-        // for ( auto& o: nodes_ )
-        // {
-        //     std::cout << "NODE GROUP: " << o.first << "\n    "
-        //               << "FOV: " << o.second->fov << "\n    "
-        //               << "STRIDE: " << o.second->stride << "\n    "
-        //               << "SIZE: " << o.second->fsize << '\n';
-        // }
+#       ifndef NDEBUG
+        for ( auto& o: nodes_ )
+        {
+            std::cout << "NODE GROUP: " << o.first << "\n    "
+                      << "STRIDE: " << o.second->stride << "\n    "
+                      << "SIZE: " << o.second->fsize << '\n';
+        }
 
-        // for ( auto& o: edges_ )
-        // {
-        //     std::cout << o.first << ' ' << o.second->width
-        //               << ' ' << o.second->stride
-        //               << ' ' << o.second->in_stride << '\n';
-        // }
-
+        for ( auto& o: edges_ )
+        {
+            std::cout << o.first << ' ' << o.second->width
+                      << ' ' << o.second->stride
+                      << ' ' << o.second->in_stride << '\n';
+        }
+#       endif
     }
 
     void add_nodes( options const & op )
@@ -304,14 +330,74 @@ private:
         }
     }
 
+    // automatically add crop layer whenever feature map sizes are conflicting
+    nodes * auto_crop(nedges * e)
+    {
+        nodes * in  = e->in->dnodes.get();
+        nodes * out = e->out->dnodes.get();
+
+        auto iname = in->name();
+        auto oname = out->name();
+        std::string in_out = iname + "_" + oname;
+
+        auto diff  = e->in->fsize - e->in_fsize;
+        if ( diff != vec3i::zero )
+        {
+            nodes * bridge = nullptr;
+            std::string name = "ncrop_" + in_out;
+
+            // create nodes
+            {
+                options op;
+                op.push("name",name);
+                op.push("type","sum");
+                op.push("size",in->size());
+
+                bridge = new transfer_nodes
+                    ( in->size(), e->in_fsize, op, tm_,
+                      in->fwd_priority(), in->bwd_priority(), false );
+
+                implicit_nodes_[name] = bridge;
+            }
+
+            // create crop edges
+            {
+                options op;
+                op.push("name",in_out);
+                op.push("type","crop");
+                op.push("offset",diff/vec3i(2,2,2));
+                op.push("input",iname);
+                op.push("output",name);
+
+                implicit_edges_[in_out] = new edges
+                    ( in, bridge, op, tm_, edges::crop_tag() );
+            }
+
+            // replace "in"
+            in = bridge;
+        }
+
+        return in;
+    }
+
     void create_edges()
     {
         for ( auto & e: edges_ )
         {
+            nodes * in  = auto_crop(e.second);
+            nodes * out = e.second->out->dnodes.get();
+
             auto opts = e.second->opts;
             auto type = opts->require_as<std::string>("type");
-            nodes * in  = e.second->in->dnodes.get();
-            nodes * out = e.second->out->dnodes.get();
+
+            oss_ << e.second->opts->require_as<std::string>("input")
+                 << " -> "
+                 << e.second->opts->require_as<std::string>("output")
+                 << " [label=\"" + e.first + " (" + type + ")"
+                 << " Width " << e.second->width
+                 << " Stride " << e.second->in_stride
+                 << "\"];\n";
+
 
 
             oss_ << e.second->opts->require_as<std::string>("input")
@@ -323,20 +409,19 @@ private:
             if ( type == "max_filter" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts, e.second->in_stride,
-                      e.second->in_fsize, tm_, edges::max_pooling_tag() );
+                    ( in, out, *opts, e.second->in_stride, tm_,
+                      edges::max_pooling_tag() );
             }
             else if ( type == "max_pool" )
             {
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts,
-                      e.second->in_fsize, tm_, edges::real_pooling_tag() );
+                    ( in, out, *opts, tm_, edges::real_pooling_tag() );
             }
             else if ( type == "conv" )
             {
+                auto sparse = e.second->sparse * e.second->in_stride;
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts, e.second->in_stride,
-                      e.second->in_fsize, tm_, edges::filter_tag() );
+                    ( in, out, *opts, sparse, tm_, edges::filter_tag() );
             }
             else if ( type == "dropout" )
             {
@@ -347,13 +432,27 @@ private:
                 // the effectiveness is yet to be proven.
 
                 e.second->dedges = std::make_unique<edges>
-                    ( in, out, *opts, e.second->in_fsize,
-                      tm_, phase_, edges::dropout_tag() );
+                    ( in, out, *opts, tm_, phase_, edges::dropout_tag() );
+            }
+            else if ( type == "nodeout" )
+            {
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, tm_, phase_, edges::nodeout_tag() );
             }
             else if ( type == "crop" )
             {
                 e.second->dedges = std::make_unique<edges>
                     ( in, out, *opts, tm_, edges::crop_tag() );
+            }
+            else if ( type == "concat" )
+            {
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, tm_, edges::concat_tag() );
+            }
+            else if ( type == "split" )
+            {
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, tm_, edges::split_tag() );
             }
             else if ( type == "maxout")
             {
@@ -362,6 +461,26 @@ private:
 
                 e.second->dedges = std::make_unique<edges>
                     ( in, out, *opts, tm_, edges::maxout_tag() );
+            }
+            else if ( type == "multiply")
+            {
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, tm_, edges::multiply_tag() );
+            }
+            else if ( type == "normalize")
+            {
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, tm_, phase_, edges::normalize_tag() );
+            }
+            else if ( type == "scale")
+            {
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, tm_, edges::scale_tag() );
+            }
+            else if ( type == "softmax" )
+            {
+                e.second->dedges = std::make_unique<edges>
+                    ( in, out, *opts, tm_, edges::softmax_tag() );
             }
             else if ( type == "dummy" )
             {
@@ -407,18 +526,49 @@ private:
             {
                 n.second->dnodes = std::make_unique<input_nodes>
                     (sz,n.second->fsize,*n.second->opts,tm_,fwd_p,bwd_p);
+
+                oss_ << n.first
+                     << " [label=\"" + n.first + " (input,"
+                     << sz << ")"
+                     << "\n" << n.second->fsize
+                     << "\", shape=\"invtrapezium\"];\n";
+
             }
-            else if ( (type == "sum") || (type == "transfer") )
+            else if ( (type == "sum") || (type == "transfer") || (type == "average") )
             {
                 n.second->dnodes = std::make_unique<transfer_nodes>
                     ( sz, n.second->fsize, *n.second->opts, tm_,
                       fwd_p,bwd_p,n.second->out.size()==0 );
+
+                oss_ << n.first
+                     << " [label=\"" + n.first + " (" << type << ","
+                     << sz << ")"
+                     << "\n" << n.second->fsize
+                     << "\", shape=\"box\"];\n";
             }
             else if ( type == "maxout" )
             {
                 n.second->dnodes = std::make_unique<maxout_nodes>
                     ( sz, n.second->fsize, *n.second->opts, tm_,
                       fwd_p,bwd_p,n.second->out.size()==0 );
+
+                oss_ << n.first
+                     << " [label=\"" + n.first + " (maxout,"
+                     << sz << ")"
+                     << "\n" << n.second->fsize
+                     << "\", shape=\"box\"];\n";
+            }
+            else if ( type == "multiply" )
+            {
+                n.second->dnodes = std::make_unique<multiply_nodes>
+                    ( sz, n.second->fsize, *n.second->opts, tm_,
+                      fwd_p,bwd_p,n.second->out.size()==0 );
+
+                oss_ << n.first
+                     << " [label=\"" + n.first + " (multiply,"
+                     << sz << ")"
+                     << "\n" << n.second->fsize
+                     << "\", shape=\"box\"];\n";
             }
             else
             {
@@ -454,22 +604,28 @@ private:
 
         if ( type == "max_filter" )
         {
-            es->width  = op.require_as<ovec3i>("size");
-            es->stride = op.require_as<ovec3i>("stride");
+            es->width   = op.require_as<ovec3i>("size");
+            es->stride  = op.require_as<ovec3i>("stride");
         }
         else if ( type == "conv" )
         {
-            es->width  = op.require_as<ovec3i>("size");
-            es->stride = op.optional_as<ovec3i>("stride", "1,1,1");
+            es->width   = op.require_as<ovec3i>("size");
+            es->stride  = op.optional_as<ovec3i>("stride", "1,1,1");
+            es->sparse  = op.optional_as<ovec3i>("sparse", "1,1,1");
         }
         else if ( type == "max_pool" )
         {
-            es->width  = op.require_as<ovec3i>("size");
-            es->pool   = true;
+            es->width   = op.require_as<ovec3i>("size");
+            es->pool    = true;
         }
         else if ( type == "dropout" )
         {
             phase_dependent_edges_[name] = es;
+        }
+        else if ( type == "nodeout" )
+        {
+            phase_dependent_edges_[name] = es;
+            stochastic_edges_[name] = es;
         }
         else if ( type == "crop" )
         {
@@ -477,7 +633,27 @@ private:
             es->width   = off + off + vec3i::one;
             es->crop    = true;
         }
+        else if ( type == "concat" )
+        {
+        }
+        else if ( type == "split" )
+        {
+        }
         else if ( type == "maxout" )
+        {
+        }
+        else if ( type == "multiply" )
+        {
+        }
+        else if ( type == "normalize" )
+        {
+            phase_dependent_edges_[name] = es;
+            stochastic_edges_[name] = es;
+        }
+        else if ( type == "scale" )
+        {
+        }
+        else if ( type == "softmax" )
         {
         }
         else if ( type == "dummy" )
@@ -485,9 +661,8 @@ private:
         }
         else
         {
-            throw std::logic_error(HERE() + "unknown nodes type: " + type);
+            throw std::logic_error(HERE() + "unknown edges type: " + type);
         }
-
     }
 
 
@@ -498,7 +673,6 @@ public:
              size_t n_threads = 1,
              phase phs = phase::TRAIN )
         : tm_(n_threads)
-        , phase_(phs)
     {
         for ( auto& n: ns ) add_nodes(n);
         for ( auto& e: es ) add_edges(e);
@@ -513,6 +687,9 @@ public:
 
         // minibatch averaging
         set_patch_size(outsz);
+
+        // set phase
+        set_phase(phs);
     }
 
     void set_eta( real eta )
@@ -538,14 +715,28 @@ public:
 
     vec3i fov() const
     {
-        return input_nodes_.begin()->second->fov;
+        vec3i in = vec3i::one;
+        for ( auto& i: input_nodes_ )
+        {
+            in = maximum(in, i.second->fsize);
+        }
+
+        vec3i out = output_nodes_.begin()->second->fsize;
+        for ( auto& o: output_nodes_ )
+        {
+            out = minimum(out, o.second->fsize);
+        }
+
+        return in - out + vec3i::one;
     }
 
     // [kisuklee]
     // This is only temporary implementation and will be removed.
-    void set_phase( phase phs = phase::TRAIN )
+    void set_phase( phase phs )
     {
         zap();
+        for ( auto & e: nodes_ )
+            e.second->dnodes->set_phase(phs);
         for ( auto & e: phase_dependent_edges_ )
             e.second->dedges->set_phase(phs);
     }
@@ -572,10 +763,46 @@ public:
         return ret;
     }
 
+    void setup()
+    {
+        zap();
+
+        bool ready = false;
+        while ( !ready )
+        {
+            // revert to complete graph
+            for ( auto & n: nodes_ )
+                n.second->dnodes->enable(true);
+            for ( auto & n: implicit_nodes_ )
+                n.second->enable(true);
+
+            // inject randomness to stochastic nodes
+            for ( auto & n: nodes_ )
+                n.second->dnodes->setup();
+
+            // inject randomness to stochastic edges
+            for ( auto & e: stochastic_edges_ )
+                e.second->dedges->setup();
+
+            // check graph integrity
+            for ( auto & n: input_nodes_ )
+                if ( !n.second->dnodes->is_disabled() )
+                {
+                    // if there exists at least one available input nodes,
+                    // then we're ready to go.
+                    ready = true;
+                    break;
+                }
+        }
+    }
+
     std::map<std::string, std::vector<cube_p<real>>>
     forward( std::map<std::string, std::vector<cube_p<real>>> && fin )
     {
         ZI_ASSERT(fin.size()==input_nodes_.size());
+
+        setup();
+
         for ( auto & in: fin )
         {
             ZI_ASSERT(input_nodes_.count(in.first));
@@ -603,7 +830,7 @@ public:
     std::map<std::string, std::vector<cube_p<real>>>
     backward( std::map<std::string, std::vector<cube_p<real>>> && fout )
     {
-        ZI_ASSERT(fout.size()==input_nodes_.size());
+        ZI_ASSERT(fout.size()==output_nodes_.size());
         for ( auto & out: fout )
         {
             ZI_ASSERT(output_nodes_.count(out.first));
@@ -623,6 +850,31 @@ public:
         {
             l.second->dnodes->wait();
             ret[l.first].resize(0);
+        }
+
+        return ret;
+    }
+
+    std::map<std::string, std::pair<vec3i,size_t>> layers() const
+    {
+        std::map<std::string, std::pair<vec3i,size_t>> ret;
+        for ( auto & in: nodes_ )
+        {
+            ret[in.first] = { in.second->fsize,
+                              in.second->dnodes->num_out_nodes() };
+        }
+        return ret;
+    }
+
+    std::map<std::string, std::vector<cube_p<real>>>
+    get_featuremaps( std::vector<std::string> const & keys )
+    {
+        std::map<std::string, std::vector<cube_p<real>>> ret;
+        for ( auto& key: keys )
+        {
+            ZI_ASSERT(nodes_.count(key)!=0);
+            if ( input_nodes_.count(key) != 0 ) continue;
+            ret[key] = nodes_[key]->dnodes->get_featuremaps();
         }
 
         return ret;
@@ -660,7 +912,8 @@ public:
         std::vector<options*> edge_groups;
         for ( auto & e: es )
         {
-            if ( e.require_as<std::string>("type") == "conv" )
+            auto type = e.require_as<std::string>("type");
+            if ( type == "conv" )
             {
                 edge_groups.push_back(&e);
                 e.push("fft",1);
@@ -672,6 +925,7 @@ public:
 
         // generate 10 inputs and outputs
         network net(ns,es,outsz,n_threads);
+        net.set_phase(phase::OPTIMIZE);
 
         std::vector<std::map<std::string, std::vector<cube_p<real>>>>
             allins, allouts;
@@ -697,6 +951,7 @@ public:
 
         {
             network net(ns,es,outsz,n_threads);
+            net.set_phase(phase::OPTIMIZE);
 
             auto is = copy_samples(allins);
             auto os = copy_samples(allouts);
@@ -726,7 +981,6 @@ public:
             std::cout << (tot_time/(rounds-1)) << " secs" << std::endl;
         }
 
-        //std::vector<options*> edge_groups;
         for ( auto & e: edge_groups )
         {
             std::cout << "Trying edge group: "
@@ -735,6 +989,7 @@ public:
             e->push("fft","0");
 
             network net(ns,es,outsz,n_threads);
+            net.set_phase(phase::OPTIMIZE);
 
             auto is = copy_samples(allins);
             auto os = copy_samples(allouts);
@@ -778,7 +1033,8 @@ public:
         std::vector<options*> edge_groups;
         for ( auto & e: es )
         {
-            if ( e.require_as<std::string>("type") == "conv" )
+            auto type = e.require_as<std::string>("type");
+            if ( type == "conv" )
             {
                 edge_groups.push_back(&e);
                 e.push("fft",1);
@@ -790,6 +1046,8 @@ public:
 
         // generate 10 inputs and outputs
         network net(ns,es,outsz,n_threads);
+        net.set_phase(phase::TEST);
+
         auto ins  = net.inputs();
         auto outs = net.outputs();
 
@@ -816,6 +1074,7 @@ public:
 
         {
             network net(ns,es,outsz,n_threads);
+            net.set_phase(phase::TEST);
 
             auto is = copy_samples(allins);
             auto os = copy_samples(allouts);
@@ -840,7 +1099,6 @@ public:
             std::cout << (tot_time/(rounds-1)) << " secs" << std::endl;
         }
 
-        //std::vector<options*> edge_groups;
         for ( auto & e: edge_groups )
         {
             std::cout << "Trying edge group: "
@@ -849,6 +1107,7 @@ public:
             e->push("fft","0");
 
             network net(ns,es,outsz,n_threads);
+            net.set_phase(phase::TEST);
 
             auto is = copy_samples(allins);
             auto os = copy_samples(allouts);
@@ -887,7 +1146,8 @@ public:
     {
         for ( auto & e: es )
         {
-            if ( e.require_as<std::string>("type") == "conv" )
+            auto type = e.require_as<std::string>("type");
+            if ( type == "conv" )
             {
                 e.push("fft",1);
             }
@@ -904,7 +1164,8 @@ public:
         std::vector<options*> edge_groups;
         for ( auto & e: es )
         {
-            if ( e.require_as<std::string>("type") == "conv" )
+            auto type = e.require_as<std::string>("type");
+            if ( type == "conv" )
             {
                 edge_groups.push_back(&e);
                 e.push("fft",1);
@@ -916,6 +1177,7 @@ public:
 
         {
             network net(ns,es,outsz,n_threads);
+            net.set_phase(phase::OPTIMIZE);
 
             std::cout << "Create samples...";
 
@@ -944,6 +1206,7 @@ public:
             conv_plans.unlock();
 #endif
             network net(ns,es,outsz,n_threads);
+            net.set_phase(phase::OPTIMIZE);
 
             auto is = copy_samples(allins);
             auto os = copy_samples(allouts);
