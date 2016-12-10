@@ -17,11 +17,10 @@ Acquiring a Machine Image
 We have some machine images set up and ready to go for training on:
 
 1. `Amazon Web Services <aws.amazon.com>`_ (called AMIs, Amazon Machine Images)
+ * Image is available in N. Virginia `ami-161d9101 <https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#LaunchInstanceWizard:ami=ami-161d9101>`_
 2. `Google Cloud Platform <cloud.google.com>`_ 
 
 This is the easiest method as the program's dependencies are already loaded and the program is compiled.
-
-Contact `William Wong <william.wong@princeton.edu>`_ to get an AWS account or share the ZNN AMI with your account.
 
 You should find `ZNN` in `/opt/znn-release`. Contact `Jingpeng Wu <jingpeng@princeton.edu>`_ if there is any issue of the AMI. Note that you should run training as `root`. `sudo` is not enough.
 

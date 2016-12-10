@@ -3,23 +3,11 @@ ZNN
 
 [![Build Status](https://travis-ci.org/seung-lab/znn-release.svg?branch=master)](https://travis-ci.org/seung-lab/znn-release)
 
-Most of current deep learning implementation use GPU, but GPU has some limitations:
-* SIMD (Single Instruction Multiple Data). A single instruction decoder - all cores do same work.
-   * divergence kills performance
-* Parallelization done per convolution(s)
-    * Direct convolution, computationally expensive
-    * FFT, can’t efficiently utilize all cores
-* Memory limitations
-    * Can’t cache FFT transforms for reuse
-    * limit the dense output size (few alternatives for this feature)
+ZNN is a multicore CPU implementation of deep learning for sliding window convolutional networks.  This type of ConvNet is used for image-to-image transformations, i.e., it produces dense output. Use of ZNN is currently deprecated, except for the special case of 3D kernels that are 5x5x5 or larger. In this case, the FFT-based convolutions of ZNN are able to compensate for the lower FLOPS of most CPUs relative to GPUs.
 
-ZNN shines when Filter sizes are large so that FFTs are used
-* Wide and deep networks
-* Bigger output patch
-ZNN is the only (reasonable) open source solution
-* Very deep networks with large filters
-* FFTs of the feature maps and gradients can fit in RAM, but couldn’t fit on the GPU
-* run out of the box on future MUUUUULTI core machines
+For most dense output ConvNet applications, we are currently using https://github.com/torms3/DataProvider with Caffe or TensorFlow.
+
+ZNN will be superseded by ZNNphi, which is currently in preparation. By vectorizing direct convolutions, ZNNphi more efficiently utilizes the FLOPS of multicore CPUs for 2D and small 3D kernels. This includes manycore CPUs like Xeon Phi Knights Landing, which has narrowed the FLOPS gap with GPUs.
 
 Resources
 ---------
